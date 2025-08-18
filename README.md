@@ -14,7 +14,7 @@ BACE-ELECTRON/
 ├─ node_modules/       # Dependencias instaladas
 ├─ package.json
 └─ package-lock.json
-
+```
 ---
 
 ## Tecnologías utilizadas
