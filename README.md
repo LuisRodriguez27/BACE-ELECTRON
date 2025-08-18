@@ -5,13 +5,13 @@ Proyecto de aplicación de escritorio usando **Electron** con **React + TypeScri
 ---
 
 ## Estructura del proyecto
-
+```text
 BACE-ELECTRON/
-├─ electron/ # Archivos del proceso principal de Electron
-│ └─ src/
-│ 	 └─ index.js
-├─ rederer/ # Proyecto de frontend creado con Vite + React + TypeScript
-├─ node_modules/ # Dependencias instaladas
+├─ electron/           # Archivos del proceso principal de Electron
+│  └─ src/
+│     └─ index.js
+├─ rederer/            # Proyecto de frontend creado con Vite + React + TypeScript
+├─ node_modules/       # Dependencias instaladas
 ├─ package.json
 └─ package-lock.json
 
