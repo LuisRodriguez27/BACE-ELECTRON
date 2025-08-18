@@ -1,14 +1,16 @@
 {
   "name": "bace-electron",
   "version": "1.0.0",
-  "main": "electron/src/index.js",
+  "main": "electron/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "electron .",
-    "devg": "concurrently \"npm run dev\" \"cd renderer && npm run dev\"",
-    "buildg": "cd renderer && npm run build electron-rebuild",
+
+    "dev": "electron ./electron",
     "rebuild": "electron-rebuild -f -w better-sqlite3",
-    "frebuild": "electron-rebuild"
+    "frebuild": "electron-rebuild",
+    
+    "devg": "concurrently \"npm run dev\" \"cd renderer && npm run dev\"",
+    "buildg": "cd renderer && npm run build electron-rebuild"    
   },
   "keywords": [],
   "author": "",

@@ -8,8 +8,9 @@ Proyecto de aplicación de escritorio usando **Electron** con **React + TypeScri
 ```text
 BACE-ELECTRON/
 ├─ electron/           # Archivos del proceso principal de Electron
+│  └─ index.js/
 │  └─ src/
-│     └─ index.js
+│     └─ 
 ├─ rederer/            # Proyecto de frontend creado con Vite + React + TypeScript
 ├─ node_modules/       # Dependencias instaladas
 ├─ package.json
