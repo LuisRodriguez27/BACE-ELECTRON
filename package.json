@@ -1,0 +1,25 @@
+{
+  "name": "bace-electron",
+  "version": "1.0.0",
+  "main": "electron/src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "electron .",
+    "devg": "concurrently \"npm run dev\" \"cd renderer && npm run dev\"",
+    "build": "cd renderer && npm run build",
+    "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "frebuild": "electron-rebuild"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "concurrently": "^9.2.0",
+    "electron": "^37.3.0"
+  },
+  "dependencies": {
+    "@electron/rebuild": "^4.0.1",
+    "better-sqlite3": "^12.2.0"
+  }
+}
