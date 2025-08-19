@@ -8,10 +8,15 @@ Proyecto de aplicación de escritorio usando **Electron** con **React + TypeScri
 ```text
 BACE-ELECTRON/
 ├─ electron/           # Archivos del proceso principal de Electron
-│  └─ index.js/
+│  └─ db.js
+│  └─ index.js
+│  └─ preload.js
+│  └─ seed.js
 │  └─ src/
 │     └─ 
 ├─ rederer/            # Proyecto de frontend creado con Vite + React + TypeScript
+├─ sqlite/             # Base de datos usando better-sqlite3
+│  └─ date.db/
 ├─ node_modules/       # Dependencias instaladas
 ├─ package.json
 └─ package-lock.json

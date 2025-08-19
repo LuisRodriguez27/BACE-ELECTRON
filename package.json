@@ -6,22 +6,22 @@
     "test": "echo \"Error: no test specified\" && exit 1",
 
     "dev": "electron ./electron",
-    "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "rebuild": "electron-rebuild -f -w better-sqlite3 --version 37.3.0",
     "frebuild": "electron-rebuild",
     
     "devg": "concurrently \"npm run dev\" \"cd renderer && npm run dev\"",
-    "buildg": "cd renderer && npm run build electron-rebuild"    
+    "buildg": "cd renderer && npm run build electron-rebuild"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "@electron/rebuild": "4.0.1",
     "concurrently": "^9.2.0",
-    "electron": "^37.3.0"
+    "electron": "37.3.0"
   },
   "dependencies": {
-    "@electron/rebuild": "^4.0.1",
     "better-sqlite3": "^12.2.0"
   }
 }
