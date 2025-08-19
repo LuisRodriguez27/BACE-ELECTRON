@@ -1,5 +1,17 @@
+export interface Client {
+  id?: number;
+  name: string;
+  phone?: string;
+  address?: string;
+  description?: string;
+}
+
 export interface IElectronAPI {
-  getData: () => Promise<any>;
+  getAllClients: () => Promise<Client[]>;
+  getClientById: (id: number) => Promise<Client>;
+  createClient: (client: Omit<Client, 'id'>) => Promise<{ id: number; name: string }>;
+  updateClient: (id: number, name: string, phone?: string, address?: string, description?: string) => Promise<any>;
+  deleteClient: (id: number) => Promise<any>;
 }
 
 declare global {

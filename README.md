@@ -16,7 +16,7 @@ BACE-ELECTRON/
 │     └─ 
 ├─ rederer/            # Proyecto de frontend creado con Vite + React + TypeScript
 ├─ sqlite/             # Base de datos usando better-sqlite3
-│  └─ date.db/
+│  └─ data.db/
 ├─ node_modules/       # Dependencias instaladas
 ├─ package.json
 └─ package-lock.json
