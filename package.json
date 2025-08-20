@@ -4,11 +4,9 @@
   "main": "electron/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-
     "dev": "electron ./electron",
     "rebuild": "electron-rebuild -f -w better-sqlite3 --version 37.3.0",
     "frebuild": "electron-rebuild",
-    
     "devg": "concurrently \"npm run dev\" \"cd renderer && npm run dev\"",
     "buildg": "cd renderer && npm run build electron-rebuild"
   },
@@ -23,6 +21,7 @@
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
-    "better-sqlite3": "^12.2.0"
+    "better-sqlite3": "^12.2.0",
+    "tailwind-merge": "^3.3.1"
   }
 }

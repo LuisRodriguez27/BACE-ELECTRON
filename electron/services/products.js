@@ -10,17 +10,28 @@ function getProductById(id) {
 	return stmt.get(id);
 }
 
-function createProduct(name, serialNumber, price, description) {
-	const stmt = db.prepare('INSERT INTO products (name, serial_number, price, description) VALUES (?, ?, ?, ?)');
-	const info = stmt.run(name, serialNumber, price, description);
-	return { id: info.lastInsertRowid, name };
+function getActiveProducts() {
+	const stmt = db.prepare('SELECT * FROM products WHERE active = 1');
+	return stmt.all();
+}	
+
+function getInactiveProducts() {
+	const stmt = db.prepare('SELECT * FROM products WHERE active = 0');
+	return stmt.all();
 }
 
-function updateProduct(id, name, serialNumber, price, description) {
-	const stmt = db.prepare('UPDATE products SET name = ?, serial_number = ?, price = ?, description = ? WHERE id = ?');
-	const info = stmt.run(name, serialNumber, price, description, id);
+function createProduct({ name, serial_number, price, description }) {
+	const stmt = db.prepare('INSERT INTO products (name, serial_number, price, description) VALUES (?, ?, ?, ?)');
+	const result = stmt.run(name, serial_number, price, description);
+
+	return { id: result.lastInsertRowid, name, serial_number, price, description };
+}
+
+function updateProduct(id, { name, serial_number, price, description, active }) {
+	const stmt = db.prepare('UPDATE products SET name = ?, serial_number = ?, price = ?, description = ?, active = ? WHERE id = ?');
+	const result = stmt.run(name, serial_number, price, description, active, id);
 	
-	if (info.changes > 0) {
+	if (result.changes > 0) {
 		return { success: true, message: 'Producto actualizado exitosamente' }, getProductById(id);
 	} else {
 		return { success: false, message: 'Producto no encontrado' };
@@ -28,11 +39,22 @@ function updateProduct(id, name, serialNumber, price, description) {
 }
 
 function deleteProduct(id) {
-	const stmt = db.prepare('DELETE FROM products WHERE id = ?');
-	const info = stmt.run(id);
+	const stmt = db.prepare('UPDATE products SET active = 0 WHERE id = ?');
+	const result = stmt.run(id);
 
-	if (info.changes > 0) {
+	if (result.changes > 0) {
 		return { success: true, message: 'Producto eliminado exitosamente' };
+	} else {
+		return { success: false, message: 'Producto no encontrado' };
+	}
+}
+
+function removeProduct(id) {
+	const stmt = db.prepare('DELETE FROM products WHERE id = ?');
+	const result = stmt.run(id);
+
+	if (result.changes > 0) {
+		return { success: true, message: 'Producto eliminado permanentemente' };
 	} else {
 		return { success: false, message: 'Producto no encontrado' };
 	}
@@ -41,7 +63,10 @@ function deleteProduct(id) {
 module.exports = {
 	getAllProducts,
 	getProductById,
+	getActiveProducts,
+	getInactiveProducts,
 	createProduct,
 	updateProduct,
-	deleteProduct
+	deleteProduct,
+	removeProduct
 };

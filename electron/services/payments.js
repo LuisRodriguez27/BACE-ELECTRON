@@ -1,8 +1,13 @@
-const db = require('../db');
+const db = require('./db.js');
 
-function getAllPayments() {
-	const stmt = db.prepare('SELECT * FROM payments');
-	return stmt.all();
+function getByOrderId(orderId) {
+	const stmt = db.prepare(`
+		SELECT p.*, op.quantity, op.price
+		FROM order_products op
+		JOIN products p ON op.products_id = p.id
+		WHERE op.order_id = ?
+	`);
+	return stmt.all(orderId);
 }
 
 function getPaymentById(id) {
@@ -10,44 +15,27 @@ function getPaymentById(id) {
 	return stmt.get(id);
 }
 
-function createPayment(orderId, amount, description) {
-	const stmt = db.prepare('INSERT INTO payments (order_id, amount, description) VALUES (?, ?, ?)');
-	const info = stmt.run(orderId, amount, description);
-	return { id: info.lastInsertRowid };
-}
+function createPayment({ orderId, amount, descripcion }) {
+	const stmt = db.prepare('INSERT INTO payments (order_id, amount, descripcion) VALUES (?, ?, ?)');
+	const result = stmt.run(orderId, amount, descripcion);
 
-function updatePayment(id, orderId, amount, description) {
-	const stmt = db.prepare('UPDATE payments SET order_id = ?, amount = ?, description = ? WHERE id = ?');
-	const info = stmt.run(orderId, amount, description, id);
-	
-	if (info.changes > 0) {
-		return { success: true, message: 'Payment updated successfully' }, getPaymentById(id);
-	} else {
-		return { success: false, message: 'Payment not found' };
-	}
-}
-
-function getPaymentsByOrderId(orderId) {
-	const stmt = db.prepare('SELECT * FROM payments WHERE order_id = ?');
-	return stmt.all(orderId);
+	return db.prepare("SELECT * FROM payments WHERE id = ?").get(result.lastInsertRowid);
 }
 
 function deletePayment(id) {
 	const stmt = db.prepare('DELETE FROM payments WHERE id = ?');
-	const info = stmt.run(id);
+	const result = stmt.run(id);
 
-	if (info.changes > 0) {
-		return { success: true, message: 'Payment deleted successfully' };
+	if (result.changes > 0) {
+		return { success: true, message: 'Pago eliminado exitosamente' };
 	} else {
-		return { success: false, message: 'Payment not found' };
+		return { success: false, message: 'Pago no encontrado' };
 	}
 }
 
 module.exports = {
-	getAllPayments,
+	getByOrderId,
 	getPaymentById,
 	createPayment,
-	updatePayment,
-	getPaymentsByOrderId,
 	deletePayment
 };

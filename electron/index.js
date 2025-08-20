@@ -1,9 +1,9 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-const db = require('./db');
 
 // Importar funciones de servicios
 const userService = require('./services/users');
+const permissionService = require('./services/permissions');
 const clientService = require('./services/clients');
 const productService = require('./services/products');
 const orderService = require('./services/orders');
@@ -26,40 +26,49 @@ function createWindow() {
 // Manejo de eventos IPC para usuarios
 ipcMain.handle('users:getAll', () => userService.getAllUsers());
 ipcMain.handle('users:getById', (event, id) => userService.getUserById(id));
-ipcMain.handle('users:create', (event, username, password) => userService.createUser(username, password));
-ipcMain.handle('users:update', (event, id, username, password) => userService.updateUser(id, username, password));
+ipcMain.handle('users:create', (event, data) => userService.createUser(data));
+ipcMain.handle('users:update', (event, data) => userService.updateUser(data));
 ipcMain.handle('users:delete', (event, id) => userService.deleteUser(id));
+ipcMain.handle('users:verifyPassword', (event, data) => userService.verifyPassword(data));
+
+// Manejo de eventos IPC para permisos
+ipcMain.handle('permissions:getAll', () => permissionService.getAllUsers());
+ipcMain.handle('permissions:getById', (event, id) => permissionService.getPermissionsById(id));
+ipcMain.handle('permissions:getByUserId', (event, userId) => permissionService.getPermissionsByUserId(userId));
+ipcMain.handle('permissions:create', (event, data) => permissionService.createPermission(data));
+ipcMain.handle('permissions:update', (event, id, data) => permissionService.updatePermission(id, data));
+ipcMain.handle('permissions:delete', (event, id) => permissionService.deletePermission(id));
+ipcMain.handle('permissions:assignToUser', (event, data) => permissionService.assignPermissionToUser(data));
+ipcMain.handle('permissions:removeFromUser', (event, data) => permissionService.removePermissionFromUser(data));
 
 // Manejo de eventos IPC para clientes
 ipcMain.handle('clients:getAll', () => clientService.getAllClients());
 ipcMain.handle('clients:getById', (event, id) => clientService.getClientById(id));
-ipcMain.handle('clients:create', (event, clientData) => clientService.createClient(clientData));
-ipcMain.handle('clients:update', (event, id, name, phone, address, description) => clientService.updateClient(id, name, phone, address, description));
-ipcMain.handle('clients:delete', (event, id) => clientService.deleteClient(id));
+ipcMain.handle('clients:create', (event, data) => clientService.createClient(data));
+ipcMain.handle('clients:update', (event, id, data) => clientService.updateClient(id, data));
+ipcMain.handle('clients:delete', (event, id) => clientService.deleteClient(id));      // DEV
 
 // Manejo de eventos IPC para productos
-ipcMain.handle('products:getAll', () => productService.getAllProducts()); 
+ipcMain.handle('products:getAll', () => productService.getAllProducts());
 ipcMain.handle('products:getById', (event, id) => productService.getProductById(id));
-ipcMain.handle('products:create', (event, name, serialNumber, price, description) => productService.createProduct(name, serialNumber, price, description));
-ipcMain.handle('products:update', (event, id, name, serialNumber, price, description) => productService.updateProduct(id, name, serialNumber, price, description));
+ipcMain.handle('products:getActive', () => productService.getActiveProducts());
+ipcMain.handle('products:getInactive', () => productService.getInactiveProducts());
+ipcMain.handle('products:create', (event, data) => productService.createProduct(data));
+ipcMain.handle('products:update', (event, id, data) => productService.updateProduct(id, data));
 ipcMain.handle('products:delete', (event, id) => productService.deleteProduct(id));
+ipcMain.handle('products:remove', (event, id) => productService.removeProduct(id));   // DEV
 
-// Manejo de eventos IPC para órdenes
+// Manejo de eventos IPC para ordenes
 ipcMain.handle('orders:getAll', () => orderService.getAllOrders());
 ipcMain.handle('orders:getById', (event, id) => orderService.getOrderById(id));
-ipcMain.handle('orders:create', (event, clientId, userId, estimatedDeliveryDate, status, total) => orderService.createOrder(clientId, userId, estimatedDeliveryDate, status, total));
-ipcMain.handle('orders:update', (event, id, clientId, userId, estimatedDeliveryDate, status, total) => orderService.updateOrder(id, clientId, userId, estimatedDeliveryDate, status, total));
+ipcMain.handle('orders:create', (event, data) => orderService.createOrder(data));
+ipcMain.handle('orders:update', (event, id, data) => orderService.updateOrder(id, data));
 ipcMain.handle('orders:delete', (event, id) => orderService.deleteOrder(id));
+ipcMain.handle('orders:addProducts', (event, orderId, data) => orderService.addProductsToOrder(orderId, data));
+ipcMain.handle('orders:updateProducts', (event, orderId, data) => orderService.updateProductsInOrder(orderId, data));
+ipcMain.handle('orders:removeProducts', (event, orderId, productId) => orderService.deleteProductsFromOrder(orderId, productId));
+ipcMain.handle('orders:getProducts', (event, orderId) => orderService.getProductsFromOrder(orderId));
 
-ipcMain.handle('orders:addProduct', (event, orderId, productId, quantity, price) => orderService.addProductToOrder(orderId, productId, quantity, price));
-ipcMain.handle('orders:getProducts', (event, orderId) => orderService.getOrderProducts(orderId));
-ipcMain.handle('orders:updateProduct', (event, id, orderId, productId, quantity) => orderService.updateOrderProduct(id, orderId, productId, quantity));
-ipcMain.handle('orders:deleteProduct', (event, id) => orderService.deleteOrderProduct(id));
 
-// Manejo de eventos IPC para pagos
-ipcMain.handle('payments:create', (event, orderId, amount, description) => paymentService.createPayment(orderId, amount, description));
-ipcMain.handle('payments:getByOrderId', (event, orderId) => paymentService.getPaymentsByOrderId(orderId));
-ipcMain.handle('payments:update', (event, id, orderId, amount, description) => paymentService.updatePayment(id, orderId, amount, description));
-ipcMain.handle('payments:delete', (event, id) => paymentService.deletePayment(id)); 
 
 app.whenReady().then(createWindow);

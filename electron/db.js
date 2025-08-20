@@ -9,18 +9,21 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,
-    password TEXT NOT NULL
+    password TEXT NOT NULL,
+    active INTEGER NOT NULL DEFAULT 1
   );
 
   CREATE TABLE IF NOT EXISTS permissions  (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
-    description TEXT
+    description TEXT,
+    active INTEGER NOT NULL DEFAULT 1
   );
 
   CREATE TABLE IF NOT EXISTS user_permissions (
     user_id INTEGER NOT NULL,
     permission_id INTEGER NOT NULL,
+    active INTEGER NOT NULL DEFAULT 1,
     PRIMARY KEY (user_id, permission_id),
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (permission_id) REFERENCES permissions(id)
@@ -39,19 +42,22 @@ db.exec(`
     name TEXT NOT NULL,
     serial_number TEXT UNIQUE,
     price REAL NOT NULL,
-    description TEXT
+    description TEXT,
+    active INTEGER NOT NULL DEFAULT 1
   );
 
   CREATE TABLE IF NOT EXISTS orders (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     client_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
+    editated_by INTEGER,
     date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     estimated_delivery_date TIMESTAMP,
     status TEXT NOT NULL DEFAULT 'pending', 
     total REAL DEFAULT 0,
     FOREIGN KEY (client_id) REFERENCES clients(id),
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (editated_by) REFERENCES users(id)
   );
 
   CREATE TABLE IF NOT EXISTS order_products (
