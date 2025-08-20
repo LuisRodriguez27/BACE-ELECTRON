@@ -30,7 +30,7 @@ contextBridge.exposeInMainWorld('electron', {
   updateOrder: (id, clientId, userId, estimatedDeliveryDate, status, total) => ipcRenderer.invoke('orders:update', id, clientId, userId, estimatedDeliveryDate, status, total),
   deleteOrder: (id) => ipcRenderer.invoke('orders:delete', id),
 
-  addProductToOrder: (orderId, productId, quantity) => ipcRenderer.invoke('orders:addProduct', orderId, productId, quantity),
+  addProductToOrder: (orderId, productId, quantity, price) => ipcRenderer.invoke('orders:addProduct', orderId, productId, quantity, price),
   getOrderProducts: (orderId) => ipcRenderer.invoke('orders:getProducts', orderId),
   updateOrderProduct: (id, orderId, productId, quantity) => ipcRenderer.invoke('orders:updateProduct', id, orderId, productId, quantity),
   deleteOrderProduct: (id) => ipcRenderer.invoke('orders:deleteProduct', id),

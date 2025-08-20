@@ -51,7 +51,7 @@ ipcMain.handle('orders:create', (event, clientId, userId, estimatedDeliveryDate,
 ipcMain.handle('orders:update', (event, id, clientId, userId, estimatedDeliveryDate, status, total) => orderService.updateOrder(id, clientId, userId, estimatedDeliveryDate, status, total));
 ipcMain.handle('orders:delete', (event, id) => orderService.deleteOrder(id));
 
-ipcMain.handle('orders:addProduct', (event, orderId, productId, quantity) => orderService.addProductToOrder(orderId, productId, quantity));
+ipcMain.handle('orders:addProduct', (event, orderId, productId, quantity, price) => orderService.addProductToOrder(orderId, productId, quantity, price));
 ipcMain.handle('orders:getProducts', (event, orderId) => orderService.getOrderProducts(orderId));
 ipcMain.handle('orders:updateProduct', (event, id, orderId, productId, quantity) => orderService.updateOrderProduct(id, orderId, productId, quantity));
 ipcMain.handle('orders:deleteProduct', (event, id) => orderService.deleteOrderProduct(id));

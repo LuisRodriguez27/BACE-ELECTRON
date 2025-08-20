@@ -27,6 +27,11 @@ function updatePayment(id, orderId, amount, description) {
 	}
 }
 
+function getPaymentsByOrderId(orderId) {
+	const stmt = db.prepare('SELECT * FROM payments WHERE order_id = ?');
+	return stmt.all(orderId);
+}
+
 function deletePayment(id) {
 	const stmt = db.prepare('DELETE FROM payments WHERE id = ?');
 	const info = stmt.run(id);
@@ -43,5 +48,6 @@ module.exports = {
 	getPaymentById,
 	createPayment,
 	updatePayment,
+	getPaymentsByOrderId,
 	deletePayment
 };

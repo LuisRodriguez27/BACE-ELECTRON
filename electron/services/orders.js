@@ -38,9 +38,9 @@ function deleteOrder(id) {
 	}
 }
 
-function addProductToOrder(orderId, productId, quantity) {
-	const stmt = db.prepare('INSERT INTO order_products (order_id, products_id, quantity) VALUES (?, ?, ?)');
-	const info = stmt.run(orderId, productId, quantity);
+function addProductToOrder(orderId, productId, quantity, price) {
+	const stmt = db.prepare('INSERT INTO order_products (order_id, products_id, quantity, price) VALUES (?, ?, ?, ?)');
+	const info = stmt.run(orderId, productId, quantity, price);
 	return { id: info.lastInsertRowid };
 }
 

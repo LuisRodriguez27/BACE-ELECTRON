@@ -47,7 +47,7 @@ function deleteUser(id) {
 }
 
 function verifyPassword(username, password) {
-	const stmt = db.prepare('SELECT password FROM users WHERE username = ?').get(username);
+	const user = db.prepare('SELECT password FROM users WHERE username = ?').get(username);
 	if (!user) {
     return false; 
   }
