@@ -19,7 +19,7 @@ function createUser({ username, password }) {
 	const stmt = db.prepare('INSERT INTO users (username, password) VALUES (?, ?)');
 	const result = stmt.run(username, hashedPassword);
 
-	return { id: result.lastInsertRowid, username };
+	return { id: result.lastInsertRowid, username, active: 1 };
 }
 
 function updateUser({ id, username, password, active }) {

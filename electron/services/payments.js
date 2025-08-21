@@ -15,11 +15,11 @@ function getPaymentById(id) {
 	return stmt.get(id);
 }
 
-function createPayment({ orderId, amount, descripcion }) {
-	const stmt = db.prepare('INSERT INTO payments (order_id, amount, descripcion) VALUES (?, ?, ?)');
-	const result = stmt.run(orderId, amount, descripcion);
+function createPayment({ orderId, amount, date, descripcion }) {
+	const stmt = db.prepare('INSERT INTO payments (order_id, amount, date, descripcion) VALUES (?, ?, ?)');
+	const result = stmt.run(orderId, amount, date, descripcion);
 
-	return { id: result.lastInsertRowid, orderId, amount, descripcion };
+	return { id: result.lastInsertRowid, orderId, amount, date, descripcion };
 }
 
 function updatePayment(id, { amount, descripcion }) {

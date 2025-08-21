@@ -19,7 +19,7 @@ function createPermission({ name, description }) {
 	const stmt = db.prepare('INSERT INTO permissions (name, description) VALUES (?, ?)');
 	const result = stmt.run(name, description);
 
-	return { id: result.lastInsertRowid, name, description };
+	return { id: result.lastInsertRowid, name, description, active: 1 };
 }
 
 function updatePermission(id, { name, description, active }) {

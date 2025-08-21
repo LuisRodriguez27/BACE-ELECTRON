@@ -9,7 +9,7 @@ export const ClientApiService = {
     return window.api.getClientById(id);
   },
 
-  create: async (client: CreateClientForm): Promise<{ id: number; name: string }> => {
+  create: async (client: CreateClientForm): Promise<Client> => {
     return window.api.createClient(client);
   },
 

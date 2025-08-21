@@ -34,13 +34,27 @@ function getOrderById(id) {
 	return stmt;
 }
 
-function createOrder({ client_id, user_id, estimated_delivery_date, status, total }) {
+function getOrdersByClientId(clientId) {
   const stmt = db.prepare(`
-    INSERT INTO orders (client_id, user_id, estimated_delivery_date, status, total)
-    VALUES (?, ?, ?, ?, ?)
+    SELECT o.*, c.name as client_name, u.username as created_by, ue.username as edited_by
+    FROM orders o
+    JOIN clients c ON o.client_id = c.id
+    JOIN users u ON o.user_id = u.id
+    LEFT JOIN users ue ON o.editated_by = ue.id
+    WHERE o.client_id = ?
+    ORDER BY o.date DESC
   `);
-  const result = stmt.run(client_id, user_id, estimated_delivery_date, status || "pending", total || 0);
-  return getOrderById(result.lastInsertRowid);
+  return stmt.all(clientId);
+}
+
+
+function createOrder({ client_id, user_id, date, estimated_delivery_date, status, total }) {
+  const stmt = db.prepare(`
+    INSERT INTO orders (client_id, user_id, date, estimated_delivery_date, status, total)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+  const result = stmt.run(client_id, user_id, date, estimated_delivery_date, status || "pending", total || 0);
+  return { id: result.lastInsertRowid, client_id, user_id, date, estimated_delivery_date, status, total };
 }
 
 function updateOrder(id, { client_id, user_id, estimated_delivery_date, status, total }) {
@@ -74,7 +88,7 @@ function deleteOrder(id) {
 
 // Funciones para agregar productos a una orden
 // 1️⃣ Agregar un producto (ej: 1 toalla)
-function addProductToOrder(orderId, { products_id, quantity, price, height, width, position, colors, description }) {
+function addProductToOrder({ orderId, products_id, quantity, price, height, width, position, colors, description }) {
   const stmt = db.prepare(`
     INSERT INTO order_products (order_id, products_id, quantity, price, height, width, position, colors, description)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -84,7 +98,7 @@ function addProductToOrder(orderId, { products_id, quantity, price, height, widt
 }
 
 // 2️⃣ Agregar varios productos de una vez (ej: 35 toallas)
-function addProductsToOrder(orderId, products) {
+function addProductsToOrder({ orderId, products }) {
   const stmt = db.prepare(`
     INSERT INTO order_products (order_id, products_id, quantity, price, height, width, position, colors, description)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -99,17 +113,19 @@ function addProductsToOrder(orderId, products) {
 }
 
 // 3️⃣ Editar cantidad (ej: cambiar 35 → 15)
-function updateProductQuantity(orderProductId, newQuantity) {
+function updateProductQuantity({ orderId, productId, newQuantity }) {
   db.prepare(`
     UPDATE order_products
     SET quantity = ?
-    WHERE id = ?
-  `).run(newQuantity, orderProductId);
-  return db.prepare("SELECT * FROM order_products WHERE id = ?").get(orderProductId);
+    WHERE order_id = ? AND products_id = ?;
+  `).run(newQuantity, orderId, productId);
+
+  return db.prepare("SELECT * FROM order_products WHERE order_id = ? AND products_id = ?").get(orderId, productId);
 }
 
+
 // 4️⃣ Editar todos los datos de un producto dentro de una orden
-function updateProductInOrder(orderProductId, { quantity, price, height, width, position, colors, description }) {
+function updateProductInOrder({ orderProductId, quantity, price, height, width, position, colors, description }) {
   db.prepare(`
     UPDATE order_products 
     SET quantity = ?, price = ?, height = ?, width = ?, position = ?, colors = ?, description = ?
@@ -141,6 +157,7 @@ function getProductsToOrder(orderId) {
 module.exports = {
   getAllOrders,
   getOrderById,
+  getOrdersByClientId,
   createOrder,
   updateOrder,
   deleteOrder,

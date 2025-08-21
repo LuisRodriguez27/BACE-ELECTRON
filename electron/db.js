@@ -51,7 +51,7 @@ db.exec(`
     client_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
     editated_by INTEGER,
-    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    date TIMESTAMP NOT NULL,
     estimated_delivery_date TIMESTAMP,
     status TEXT NOT NULL DEFAULT 'pending', 
     total REAL DEFAULT 0,
@@ -79,7 +79,7 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     order_id INTEGER NOT NULL,
     amount REAL NOT NULL,
-    date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    date TIMESTAMP,
     descripcion TEXT,
     FOREIGN KEY (order_id) REFERENCES orders(id)
   );

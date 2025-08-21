@@ -24,7 +24,7 @@ function createProduct({ name, serial_number, price, description }) {
 	const stmt = db.prepare('INSERT INTO products (name, serial_number, price, description) VALUES (?, ?, ?, ?)');
 	const result = stmt.run(name, serial_number, price, description);
 
-	return { id: result.lastInsertRowid, name, serial_number, price, description };
+	return { id: result.lastInsertRowid, name, serial_number, price, description, active: 1 };
 }
 
 function updateProduct(id, { name, serial_number, price, description, active }) {

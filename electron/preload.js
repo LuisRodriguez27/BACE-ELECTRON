@@ -5,7 +5,7 @@ contextBridge.exposeInMainWorld('api', {
   getAllUsers: () => ipcRenderer.invoke('users:getAll'),
   getUserById: (id) => ipcRenderer.invoke('users:getById', id),
   createUser: (data) => ipcRenderer.invoke('users:create', data),
-  updateUser: (id, username, password) => ipcRenderer.invoke('users:update', id, username, password),
+  updateUser: (id, data) => ipcRenderer.invoke('users:update', id, data),
   deleteUser: (id) => ipcRenderer.invoke('users:delete', id),
   verifyPassword: (data) => ipcRenderer.invoke('users:verifyPassword', data),
 
@@ -39,6 +39,7 @@ contextBridge.exposeInMainWorld('api', {
   // Ordenes
   getAllOrders: () => ipcRenderer.invoke('orders:getAll'),
   getOrderById: (id) => ipcRenderer.invoke('orders:getById', id),
+  getOrdersByClientId: (clientId) => ipcRenderer.invoke('orders:getByClientId', clientId),
   createOrder: (data) => ipcRenderer.invoke('orders:create', data),
   updateOrder: (id, data) => ipcRenderer.invoke('orders:update', id, data),
   deleteOrder: (id) => ipcRenderer.invoke('orders:delete', id),
