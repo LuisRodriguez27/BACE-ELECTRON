@@ -1,11 +1,11 @@
-const db = require('./db.js');
+const db = require('../db.js');
 
-function getByOrderId(orderId) {
+function getPaymentsByOrderId(orderId) {
 	const stmt = db.prepare(`
-		SELECT p.*, op.quantity, op.price
-		FROM order_products op
-		JOIN products p ON op.products_id = p.id
-		WHERE op.order_id = ?
+		SELECT *
+    FROM payments
+    WHERE order_id = ?
+    ORDER BY date DESC
 	`);
 	return stmt.all(orderId);
 }
@@ -19,8 +19,19 @@ function createPayment({ orderId, amount, descripcion }) {
 	const stmt = db.prepare('INSERT INTO payments (order_id, amount, descripcion) VALUES (?, ?, ?)');
 	const result = stmt.run(orderId, amount, descripcion);
 
-	return db.prepare("SELECT * FROM payments WHERE id = ?").get(result.lastInsertRowid);
+	return { id: result.lastInsertRowid, orderId, amount, descripcion };
 }
+
+function updatePayment(id, { amount, descripcion }) {
+	const stmt = db.prepare('UPDATE payments SET amount = ?, descripcion = ? WHERE id = ?');
+	const result = stmt.run(amount, descripcion, id);
+
+	if (result.changes > 0) {
+		return { success: true, message: 'Pago actualizado exitosamente' }, getPaymentById(id);
+	} else {
+		return { success: false, message: 'Pago no encontrado' };
+	}
+}	
 
 function deletePayment(id) {
 	const stmt = db.prepare('DELETE FROM payments WHERE id = ?');
@@ -34,8 +45,9 @@ function deletePayment(id) {
 }
 
 module.exports = {
-	getByOrderId,
+	getPaymentsByOrderId,
 	getPaymentById,
 	createPayment,
+	updatePayment,
 	deletePayment
 };

@@ -59,41 +59,76 @@ function updateOrder(id, { client_id, user_id, estimated_delivery_date, status, 
 }
 
 function deleteOrder(id) {
-	const stmt = db.prepare('DELETE FROM orders WHERE id = ?');
-	const result = stmt.run(id);
+  // Primero eliminar productos asociados
+  db.prepare('DELETE FROM order_products WHERE order_id = ?').run(id);
+  // Luego eliminar la orden
+  const stmt = db.prepare('DELETE FROM orders WHERE id = ?');
+  const result = stmt.run(id);
 
-	if (result.changes > 0) {
-		return { success: true, message: 'Orden eliminada exitosamente' };
-	} else {
-		return { success: false, message: 'Orden no encontrada' };
-	}
+  return result.changes > 0
+    ? { success: true, message: 'Orden eliminada exitosamente' }
+    : { success: false, message: 'Orden no encontrada' };
 }
 
 
 
 // Funciones para agregar productos a una orden
-function addProductsToOrder(orderId, { products_id, quantity, price, height, width, position, description }) {
+// 1️⃣ Agregar un producto (ej: 1 toalla)
+function addProductToOrder(orderId, { products_id, quantity, price, height, width, position, colors, description }) {
   const stmt = db.prepare(`
-    INSERT INTO order_products (order_id, products_id, quantity, price, height, width, position, description)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO order_products (order_id, products_id, quantity, price, height, width, position, colors, description)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  const result = stmt.run(orderId, products_id, quantity, price, height, width, position, description);
+  const result = stmt.run(orderId, products_id, quantity, price, height, width, position, JSON.stringify(colors || []), description);
   return db.prepare("SELECT * FROM order_products WHERE id = ?").get(result.lastInsertRowid);
-};
+}
 
-function updateProductsToOrder(orderProductId, { quantity, price, height, width, position, description }) {
+// 2️⃣ Agregar varios productos de una vez (ej: 35 toallas)
+function addProductsToOrder(orderId, products) {
+  const stmt = db.prepare(`
+    INSERT INTO order_products (order_id, products_id, quantity, price, height, width, position, colors, description)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const insertMany = db.transaction((products) => {
+    for (const p of products) {
+      stmt.run(orderId, p.products_id, p.quantity, p.price, p.height, p.width, p.position, JSON.stringify(p.colors || []), p.description);
+    }
+  });
+  insertMany(products);
+  return getProductsToOrder(orderId);
+}
+
+// 3️⃣ Editar cantidad (ej: cambiar 35 → 15)
+function updateProductQuantity(orderProductId, newQuantity) {
+  db.prepare(`
+    UPDATE order_products
+    SET quantity = ?
+    WHERE id = ?
+  `).run(newQuantity, orderProductId);
+  return db.prepare("SELECT * FROM order_products WHERE id = ?").get(orderProductId);
+}
+
+// 4️⃣ Editar todos los datos de un producto dentro de una orden
+function updateProductInOrder(orderProductId, { quantity, price, height, width, position, colors, description }) {
   db.prepare(`
     UPDATE order_products 
-    SET quantity = ?, price = ?, height = ?, width = ?, position = ?, description = ?
+    SET quantity = ?, price = ?, height = ?, width = ?, position = ?, colors = ?, description = ?
     WHERE id = ?
-  `).run(quantity, price, height, width, position, description, orderProductId);
+  `).run(quantity, price, height, width, position, JSON.stringify(colors || []), description, orderProductId);
   return db.prepare("SELECT * FROM order_products WHERE id = ?").get(orderProductId);
-};
+}
 
-function removeProductsToOrder(orderProductId) {
+// 5️⃣ Eliminar un solo producto de la orden 
+function removeProductFromOrder(orderProductId) {
   return db.prepare("DELETE FROM order_products WHERE id = ?").run(orderProductId);
-};
+}
 
+// 6️⃣ Eliminar todos los productos de una orden
+function clearProductsFromOrder(orderId) {
+  return db.prepare("DELETE FROM order_products WHERE order_id = ?").run(orderId);
+}
+
+// 7️⃣ Obtener todos los productos de una orden
 function getProductsToOrder(orderId) {
   return db.prepare(`
     SELECT op.*, p.name as product_name, p.serial_number
@@ -101,16 +136,19 @@ function getProductsToOrder(orderId) {
     JOIN products p ON op.products_id = p.id
     WHERE op.order_id = ?
   `).all(orderId);
-};
+}
 
 module.exports = {
-	getAllOrders,
-	getOrderById,
-	createOrder,
-	updateOrder,
-	deleteOrder,
-	addProductsToOrder,
-	updateProductsToOrder,
-	removeProductsToOrder,
-	getProductsToOrder
+  getAllOrders,
+  getOrderById,
+  createOrder,
+  updateOrder,
+  deleteOrder,
+  addProductToOrder,
+  addProductsToOrder,
+  updateProductQuantity,
+  updateProductInOrder,
+  removeProductFromOrder,
+  clearProductsFromOrder,
+  getProductsToOrder
 };

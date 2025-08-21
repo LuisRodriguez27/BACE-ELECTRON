@@ -64,10 +64,20 @@ ipcMain.handle('orders:getById', (event, id) => orderService.getOrderById(id));
 ipcMain.handle('orders:create', (event, data) => orderService.createOrder(data));
 ipcMain.handle('orders:update', (event, id, data) => orderService.updateOrder(id, data));
 ipcMain.handle('orders:delete', (event, id) => orderService.deleteOrder(id));
+ipcMain.handle('orders:addProduct', (event, orderId, data) => orderService.addProductToOrder(orderId, data));
 ipcMain.handle('orders:addProducts', (event, orderId, data) => orderService.addProductsToOrder(orderId, data));
-ipcMain.handle('orders:updateProducts', (event, orderId, data) => orderService.updateProductsInOrder(orderId, data));
-ipcMain.handle('orders:removeProducts', (event, orderId, productId) => orderService.deleteProductsFromOrder(orderId, productId));
-ipcMain.handle('orders:getProducts', (event, orderId) => orderService.getProductsFromOrder(orderId));
+ipcMain.handle('orders:updateProductQuantity', (event, orderProductId, quantity) => orderService.updateProductQuantity(orderProductId, quantity));
+ipcMain.handle('orders:updateProductInOrder', (event, orderProductId, data) => orderService.updateProductInOrder(orderProductId, data));
+ipcMain.handle('orders:removeProduct', (event, orderProductId) => orderService.removeProductFromOrder(orderProductId));
+ipcMain.handle('orders:clearProducts', (event, orderId) => orderService.clearProductsFromOrder(orderId));
+ipcMain.handle('orders:getProducts', (event, orderId) => orderService.getProductsToOrder(orderId));
+
+// Manejo de eventos IPC para pagos
+ipcMain.handle('payments:getPaymetsByOrderId', (event, orderId) => paymentService.getPaymentsByOrderId(orderId));
+ipcMain.handle('payments:getById', (event, id) => paymentService.getPaymentById(id));
+ipcMain.handle('payments:create', (event, data) => paymentService.createPayment(data));
+ipcMain.handle('payments:update', (event, id, data) => paymentService.updatePayment(id, data));
+ipcMain.handle('payments:delete', (event, id) => paymentService.deletePayment(id));
 
 
 

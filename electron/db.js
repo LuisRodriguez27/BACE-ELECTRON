@@ -32,7 +32,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS clients (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
-    phone TEXT,
+    phone TEXT NOT NULL,
     address TEXT,
     description TEXT
   );
@@ -69,6 +69,7 @@ db.exec(`
     height REAL,
     width REAL,
     position TEXT,
+    colors TEXT,
     description TEXT,
     FOREIGN KEY (order_id) REFERENCES orders(id),
     FOREIGN KEY (products_id) REFERENCES products(id)
