@@ -13,5 +13,13 @@ export type EditUserForm = z.infer<typeof editUserSchema>;
 export interface User {
 	id: number;
 	username: string;
+	password?: string; // Optional, typically not returned in responses
 	active: number;
+	// Para joins con permisos
+	permissions?: string[];
+	userPermissions?: {
+		permission_id: number;
+		permission_name: string;
+		active: number;
+	}[];
 }

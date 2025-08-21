@@ -4,7 +4,7 @@ export const createProductSchema = z.object({
 	name: z.string().min(1, 'El nombre del producto es obligatorio'),
 	serial_number: z.string().optional(),
 	price: z.number().min(0, 'El precio debe ser un número positivo'),
-	description: z.number().optional()
+	description: z.string().optional()
 });
 
 export const editProductSchema = createProductSchema.partial();
