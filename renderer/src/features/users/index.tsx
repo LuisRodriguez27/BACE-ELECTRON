@@ -1,23 +1,63 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Plus, Search, Filter, UserCog, Shield, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { UsersApiService } from './UsersApiService';
+import type { User as UserType } from './types';
 
 const UsersPage: React.FC = () => {
-  // Datos de ejemplo (reemplazar con datos reales de la API)
-  const users = [
-    {
-      id: 1,
-      username: 'admin',
-      active: 1,
-      permissions: ['Administrar Usuarios', 'Crear Órdenes', 'Ver Reportes']
-    },
-    {
-      id: 2,
-      username: 'operador1',
-      active: 1,
-      permissions: ['Crear Órdenes', 'Ver Clientes']
-    }
-  ];
+  const [users, setUsers] = useState<UserType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        const data = await UsersApiService.findAll();
+        setUsers(data);
+        console.log('Usuarios cargados:', data);
+      } catch (err) {
+        console.error('Error fetching users:', err);
+        setError('Error al cargar usuarios');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2 mb-6"></div>
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-24 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">{error}</p>
+          <Button 
+            onClick={() => window.location.reload()} 
+            className="mt-2"
+            size="sm"
+          >
+            Reintentar
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -122,6 +162,29 @@ const UsersPage: React.FC = () => {
                             className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-md"
                           >
                             {permission}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {user.userPermissions && user.userPermissions.length > 0 && (
+                    <div className="mt-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Shield size={14} className="text-gray-400" />
+                        <span className="text-sm font-medium text-gray-700">Permisos Detallados:</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {user.userPermissions.map((userPerm, index) => (
+                          <span
+                            key={index}
+                            className={`px-2 py-1 text-xs rounded-md ${
+                              userPerm.active === 1 
+                                ? 'bg-green-50 text-green-700' 
+                                : 'bg-gray-50 text-gray-500'
+                            }`}
+                          >
+                            {userPerm.permission_name}
                           </span>
                         ))}
                       </div>

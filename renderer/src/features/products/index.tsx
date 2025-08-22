@@ -1,27 +1,63 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Plus, Search, Filter, Package, DollarSign, Hash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ProductsApiService } from './ProductsApiService';
+import type { Product } from './types';
 
 const ProductsPage: React.FC = () => {
-  // Datos de ejemplo (reemplazar con datos reales de la API)
-  const products = [
-    {
-      id: 1,
-      name: 'Camiseta Personalizada',
-      serial_number: 'CAMI-001',
-      price: 250.00,
-      description: 'Camiseta 100% algodón con impresión personalizada',
-      active: 1
-    },
-    {
-      id: 2,
-      name: 'Taza Sublimada',
-      serial_number: 'TAZA-001',
-      price: 150.00,
-      description: 'Taza de cerámica con sublimación de alta calidad',
-      active: 1
-    }
-  ];
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        const data = await ProductsApiService.findAll();
+        setProducts(data);
+        console.log('Productos cargados:', data);
+      } catch (err) {
+        console.error('Error fetching products:', err);
+        setError('Error al cargar productos');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2 mb-6"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-48 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">{error}</p>
+          <Button 
+            onClick={() => window.location.reload()} 
+            className="mt-2"
+            size="sm"
+          >
+            Reintentar
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
