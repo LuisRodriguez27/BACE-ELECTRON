@@ -1,6 +1,9 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 
+// Deshabilitar aceleración de hardware para evitar problemas de renderizado
+app.disableHardwareAcceleration();
+
 // Importar funciones de servicios
 const userService = require('./services/users');
 const permissionService = require('./services/permissions');
@@ -11,19 +14,27 @@ const paymentService = require('./services/payments');
 
 function createWindow() {
   const win = new BrowserWindow({
-    // width: 1366,
-    // height: 768,
-    // fullscreen: true,
+    width: 1366,
+    height: 768,
+    show: false, // No mostrar hasta que esté listo
+    backgroundColor: '#ffffff', // Fondo blanco para evitar pantallas negras
     autoHideMenuBar: true,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+      webSecurity: false // Solo para desarrollo
     },
+  });
+
+  // Mostrar ventana cuando esté lista para evitar flashes
+  win.once('ready-to-show', () => {
+    win.show();
+    win.maximize(); // Maximizar después de mostrar
   });
 
   win.loadURL('http://localhost:5173'); // Durante el desarrollo
   // win.loadFile('dist/index.html'); // Para producción
-
-  win.maximize(); // Maximizar la ventana al iniciar
 }
 
 // Manejo de eventos IPC para usuarios

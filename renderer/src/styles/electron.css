@@ -1,0 +1,82 @@
+/* Estilos específicos para Electron */
+
+/* Asegurar que el body tenga un fondo sólido */
+body {
+  background-color: #ffffff !important;
+  -webkit-app-region: no-drag;
+}
+
+/* Mejorar el renderizado de modales en Electron */
+.electron-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Asegurar que los elementos tengan hardware acceleration deshabilitado */
+.electron-modal-content {
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Prevenir problemas de transparencia */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Asegurar que los elementos fixed funcionen correctamente */
+.fixed {
+  position: fixed !important;
+}
+
+/* Mejorar la estabilidad del z-index */
+.z-50 {
+  z-index: 50 !important;
+}
+
+/* Asegurar que los fondos sean sólidos */
+.bg-white {
+  background-color: #ffffff !important;
+}
+
+.bg-gray-50 {
+  background-color: #f9fafb !important;
+}
+
+.bg-blue-100 {
+  background-color: #dbeafe !important;
+}
+
+/* Mejorar el scrolling en modales */
+.overflow-y-auto {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: #f7fafc;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
