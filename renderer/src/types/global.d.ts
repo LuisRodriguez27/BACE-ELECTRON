@@ -1,4 +1,9 @@
-import { Client, CreateClientForm, EditClientForm } from "./types";
+import { Client, CreateClientForm, EditClientForm } from "../features/clients/types";
+import { User, CreateUserForm, EditUserForm } from "../features/users/types";
+import { Permission, CreatePermissionForm, EditPermissionForm } from "../features/permissions/types";
+import { Product, CreateProductForm, EditProductForm } from "../features/products/types";
+import { Order, CreateOrderForm, EditOrderForm, OrderProduct } from "../features/orders/types";
+import { Payment, CreatePaymentForm, EditPaymentForm } from "../features/payments/types";
 
 declare global {
   interface Window {
