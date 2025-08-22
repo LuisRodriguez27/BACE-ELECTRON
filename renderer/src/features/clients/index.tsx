@@ -1,26 +1,92 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Search, Filter, Users, Phone, MapPin } from 'lucide-react';
+import { Plus, Search, Filter, Users, Phone, MapPin, Edit3, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ClientApiService } from './ClientApiService';
+import { CreateClientModal, EditClientModal, DeleteClientModal } from './components';
+import { toast } from 'sonner';
 import type { Client } from './types';
 
 const ClientsPage: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Modal states
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
   useEffect(() => {
-    const fetchClients = async () => {
-      try {
-        const data = await ClientApiService.findAll();
-        setClients(data);
-      } catch (error) {
-        console.error('Error fetching clients:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchClients();
   }, []);
+
+  const fetchClients = async (showSuccessToast = false) => {
+    try {
+      setLoading(true);
+      const data = await ClientApiService.findAll();
+      setClients(data);
+      setError(null);
+      if (showSuccessToast) {
+        toast.success('Clientes cargados exitosamente');
+      }
+    } catch (err) {
+      console.error('Error fetching clients:', err);
+      setError('Error al cargar clientes');
+      toast.error('Error al cargar los clientes');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter clients based on search term
+  const filteredClients = clients.filter(client =>
+    client.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleClientCreated = (newClient: Client) => {
+    setClients(prevClients => [...prevClients, newClient]);
+    toast.success('Cliente creado exitosamente');
+  };
+
+  const handleClientUpdated = (updatedClient: Client) => {
+    setClients(prevClients =>
+      prevClients.map(client =>
+        client.id === updatedClient.id ? updatedClient : client
+      )
+    );
+    toast.success('Cliente actualizado exitosamente', {
+      description: `La información de ${updatedClient.name} ha sido actualizada`
+    });
+  };
+
+  const handleClientDeleted = (deletedClientId: number) => {
+    const deletedClient = clients.find(client => client.id === deletedClientId);
+    setClients(prevClients =>
+      prevClients.filter(client => client.id !== deletedClientId)
+    );
+    toast.success('Cliente eliminado exitosamente', {
+      description: deletedClient ? `${deletedClient.name} ha sido eliminado de la lista` : 'El cliente ha sido eliminado'
+    });
+  };
+
+  const openEditModal = (client: Client) => {
+    setSelectedClient(client);
+    setShowEditModal(true);
+  };
+
+  const openDeleteModal = (client: Client) => {
+    setSelectedClient(client);
+    setShowDeleteModal(true);
+  };
+
+  const closeModals = () => {
+    setShowCreateModal(false);
+    setShowEditModal(false);
+    setShowDeleteModal(false);
+    setSelectedClient(null);
+  };
 
   if (loading) {
     return (
@@ -38,6 +104,23 @@ const ClientsPage: React.FC = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">{error}</p>
+          <Button 
+            onClick={() => fetchClients(true)} 
+            className="mt-2"
+            size="sm"
+          >
+            Reintentar
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6">
       {/* Header */}
@@ -48,7 +131,10 @@ const ClientsPage: React.FC = () => {
             Administra la información de tus clientes
           </p>
         </div>
-        <Button className="flex items-center gap-2">
+        <Button 
+          className="flex items-center gap-2"
+          onClick={() => setShowCreateModal(true)}
+        >
           <Plus size={16} />
           Nuevo Cliente
         </Button>
@@ -63,6 +149,8 @@ const ClientsPage: React.FC = () => {
               <input
                 type="text"
                 placeholder="Buscar clientes..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -78,31 +166,56 @@ const ClientsPage: React.FC = () => {
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">
-            Clientes ({clients.length})
+            Clientes ({filteredClients.length})
           </h2>
         </div>
         <div className="p-6">
-          {clients.length === 0 ? (
+          {filteredClients.length === 0 ? (
             <div className="text-center py-12">
               <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No hay clientes</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {searchTerm ? 'No se encontraron clientes' : 'No hay clientes'}
+              </h3>
               <p className="text-gray-500 mb-4">
-                Comienza agregando tu primer cliente
+                {searchTerm 
+                  ? `No hay clientes que coincidan con "${searchTerm}"` 
+                  : 'Comienza agregando tu primer cliente'
+                }
               </p>
-              <Button className="flex items-center gap-2 mx-auto">
-                <Plus size={16} />
-                Agregar Primer Cliente
-              </Button>
+              {!searchTerm && (
+                <Button 
+                  className="flex items-center gap-2 mx-auto"
+                  onClick={() => setShowCreateModal(true)}
+                >
+                  <Plus size={16} />
+                  Agregar Primer Cliente
+                </Button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {clients.map((client) => (
+              {filteredClients.map((client) => (
                 <div key={client.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between mb-3">
                     <h3 className="font-semibold text-gray-900 truncate">{client.name}</h3>
-                    <Button variant="ghost" size="sm">
-                      Editar
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => openEditModal(client)}
+                        className="p-1 h-8 w-8"
+                      >
+                        <Edit3 size={14} />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => openDeleteModal(client)}
+                        className="p-1 h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
                   </div>
                   
                   <div className="space-y-2 text-sm text-gray-600">
@@ -130,6 +243,27 @@ const ClientsPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Modals */}
+      <CreateClientModal
+        isOpen={showCreateModal}
+        onClose={closeModals}
+        onClientCreated={handleClientCreated}
+      />
+
+      <EditClientModal
+        isOpen={showEditModal}
+        onClose={closeModals}
+        onClientUpdated={handleClientUpdated}
+        client={selectedClient}
+      />
+
+      <DeleteClientModal
+        isOpen={showDeleteModal}
+        onClose={closeModals}
+        onClientDeleted={handleClientDeleted}
+        client={selectedClient}
+      />
     </div>
   );
 };
