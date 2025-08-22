@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Search, Filter, CreditCard, DollarSign, Calendar, Receipt } from 'lucide-react';
+import { Plus, Search, CreditCard, DollarSign, Calendar, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PaymentsApiService } from './PaymentsApiService';
 import { OrdersApiService } from '../orders/OrdersApiService';

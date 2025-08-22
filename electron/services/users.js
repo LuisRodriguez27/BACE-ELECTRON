@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const saltRounds = 10; 
 
 function getAllUsers() {
-	const stmt = db.prepare('SELECT id, username FROM users');
+	const stmt = db.prepare('SELECT id, username, active FROM users');
 	return stmt.all();
 }
 

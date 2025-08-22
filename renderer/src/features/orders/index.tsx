@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Search, Filter, ShoppingCart, Calendar, User, DollarSign } from 'lucide-react';
+import { Plus, Search, Filter, ShoppingCart, Calendar, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { OrdersApiService } from './OrdersApiService';
 import type { Order } from './types';

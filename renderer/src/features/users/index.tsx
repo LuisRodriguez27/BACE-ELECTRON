@@ -1,30 +1,87 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Search, Filter, UserCog, Shield, User } from 'lucide-react';
+import { Plus, Search, Filter, UserCog, Shield, User, Edit3, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UsersApiService } from './UsersApiService';
+import { CreateUserModal, EditUserModal, DeleteUserModal, UserPermissionsModal } from './components';
 import type { User as UserType } from './types';
 
 const UsersPage: React.FC = () => {
   const [users, setUsers] = useState<UserType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Modal states
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showPermissionsModal, setShowPermissionsModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setLoading(true);
-        const data = await UsersApiService.findAll();
-        setUsers(data);
-        console.log('Usuarios cargados:', data);
-      } catch (err) {
-        console.error('Error fetching users:', err);
-        setError('Error al cargar usuarios');
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchUsers();
   }, []);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const data = await UsersApiService.findAll();
+      console.log('Fetched users:', data);      
+      setUsers(data);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching users:', err);
+      setError('Error al cargar usuarios');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter users based on search term
+  const filteredUsers = users.filter(user =>
+    user.username.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleUserCreated = (newUser: UserType) => {
+    setUsers(prevUsers => [...prevUsers, newUser]);
+  };
+
+  const handleUserUpdated = (updatedUser: UserType) => {
+    setUsers(prevUsers =>
+      prevUsers.map(user =>
+        user.id === updatedUser.id ? updatedUser : user
+      )
+    );
+  };
+
+  const handleUserDeleted = (deletedUserId: number) => {
+    setUsers(prevUsers =>
+      prevUsers.filter(user => user.id !== deletedUserId)
+    );
+  };
+
+  const openEditModal = (user: UserType) => {
+    setSelectedUser(user);
+    setShowEditModal(true);
+  };
+
+  const openDeleteModal = (user: UserType) => {
+    setSelectedUser(user);
+    setShowDeleteModal(true);
+  };
+
+  const openPermissionsModal = (user: UserType) => {
+    setSelectedUser(user);
+    setShowPermissionsModal(true);
+  };
+
+  const closeModals = () => {
+    setShowCreateModal(false);
+    setShowEditModal(false);
+    setShowDeleteModal(false);
+    setShowPermissionsModal(false);
+    setSelectedUser(null);
+  };
 
   if (loading) {
     return (
@@ -48,7 +105,7 @@ const UsersPage: React.FC = () => {
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">{error}</p>
           <Button 
-            onClick={() => window.location.reload()} 
+            onClick={fetchUsers} 
             className="mt-2"
             size="sm"
           >
@@ -69,7 +126,10 @@ const UsersPage: React.FC = () => {
             Administra los usuarios del sistema y sus permisos
           </p>
         </div>
-        <Button className="flex items-center gap-2">
+        <Button 
+          className="flex items-center gap-2"
+          onClick={() => setShowCreateModal(true)}
+        >
           <Plus size={16} />
           Nuevo Usuario
         </Button>
@@ -84,6 +144,8 @@ const UsersPage: React.FC = () => {
               <input
                 type="text"
                 placeholder="Buscar usuarios..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -99,25 +161,35 @@ const UsersPage: React.FC = () => {
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">
-            Usuarios ({users.length})
+            Usuarios ({filteredUsers.length})
           </h2>
         </div>
         <div className="p-6">
-          {users.length === 0 ? (
+          {filteredUsers.length === 0 ? (
             <div className="text-center py-12">
               <UserCog className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No hay usuarios</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {searchTerm ? 'No se encontraron usuarios' : 'No hay usuarios'}
+              </h3>
               <p className="text-gray-500 mb-4">
-                Comienza agregando el primer usuario del sistema
+                {searchTerm 
+                  ? `No hay usuarios que coincidan con "${searchTerm}"` 
+                  : 'Comienza agregando el primer usuario del sistema'
+                }
               </p>
-              <Button className="flex items-center gap-2 mx-auto">
-                <Plus size={16} />
-                Agregar Primer Usuario
-              </Button>
+              {!searchTerm && (
+                <Button 
+                  className="flex items-center gap-2 mx-auto"
+                  onClick={() => setShowCreateModal(true)}
+                >
+                  <Plus size={16} />
+                  Agregar Primer Usuario
+                </Button>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
-              {users.map((user) => (
+              {filteredUsers.map((user) => (
                 <div key={user.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-4">
@@ -135,16 +207,38 @@ const UsersPage: React.FC = () => {
                           }`}>
                             {user.active === 1 ? 'Activo' : 'Inactivo'}
                           </span>
+                          <span className="text-xs text-gray-500">
+                            ID: {user.id}
+                          </span>
                         </div>
                       </div>
                     </div>
                     
                     <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm">
-                        Editar Permisos
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => openPermissionsModal(user)}
+                      >
+                        <Shield size={14} className="mr-1" />
+                        Permisos
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => openEditModal(user)}
+                      >
+                        <Edit3 size={14} className="mr-1" />
                         Editar
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => openDeleteModal(user)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 size={14} className="mr-1" />
+                        Eliminar
                       </Button>
                     </div>
                   </div>
@@ -196,6 +290,34 @@ const UsersPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Modals */}
+      <CreateUserModal
+        isOpen={showCreateModal}
+        onClose={closeModals}
+        onUserCreated={handleUserCreated}
+      />
+
+      <EditUserModal
+        isOpen={showEditModal}
+        onClose={closeModals}
+        onUserUpdated={handleUserUpdated}
+        user={selectedUser}
+      />
+
+      <DeleteUserModal
+        isOpen={showDeleteModal}
+        onClose={closeModals}
+        onUserDeleted={handleUserDeleted}
+        user={selectedUser}
+      />
+
+      <UserPermissionsModal
+        isOpen={showPermissionsModal}
+        onClose={closeModals}
+        onPermissionsUpdated={handleUserUpdated}
+        user={selectedUser}
+      />
     </div>
   );
 };
