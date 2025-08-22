@@ -11,8 +11,10 @@ const paymentService = require('./services/payments');
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 1366,
-    height: 768,
+    // width: 1366,
+    // height: 768,
+    // fullscreen: true,
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js')
     },
@@ -21,6 +23,7 @@ function createWindow() {
   win.loadURL('http://localhost:5173'); // Durante el desarrollo
   // win.loadFile('dist/index.html'); // Para producción
 
+  win.maximize(); // Maximizar la ventana al iniciar
 }
 
 // Manejo de eventos IPC para usuarios
