@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { UsersApiService } from './UsersApiService';
 import { CreateUserModal, EditUserModal, DeleteUserModal, UserPermissionsModal } from './components';
 import type { User as UserType } from './types';
+import { toast } from 'sonner';
 
 const UsersPage: React.FC = () => {
   const [users, setUsers] = useState<UserType[]>([]);
@@ -26,7 +27,6 @@ const UsersPage: React.FC = () => {
     try {
       setLoading(true);
       const data = await UsersApiService.findAll();
-      console.log('Fetched users:', data);      
       setUsers(data);
       setError(null);
     } catch (err) {
@@ -44,6 +44,7 @@ const UsersPage: React.FC = () => {
 
   const handleUserCreated = (newUser: UserType) => {
     setUsers(prevUsers => [...prevUsers, newUser]);
+    toast.success('Usuario creado exitosamente');
   };
 
   const handleUserUpdated = (updatedUser: UserType) => {
@@ -52,12 +53,14 @@ const UsersPage: React.FC = () => {
         user.id === updatedUser.id ? updatedUser : user
       )
     );
+    toast.success('Usuario actualizado exitosamente')
   };
 
   const handleUserDeleted = (deletedUserId: number) => {
     setUsers(prevUsers =>
       prevUsers.filter(user => user.id !== deletedUserId)
     );
+    toast.success('Usuario eliminado exitosamente');
   };
 
   const openEditModal = (user: UserType) => {
