@@ -50,6 +50,10 @@ Genera los archivos optimizados de React + TypeScript:
 `npm run buildg`
 
 
+### Ejecutar archivo 'seed.js'
+
+`npx electron electron/seed.js`
+
 ### Reconstruir módulos nativos para Electron
 Útil después de instalar paquetes que contienen bindings nativos:
 
