@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 export const createClientSchema = z.object({
-  name: z.string().min(1, 'El nombre es obligatorio'),
-  phone: z.string().min(1, 'El teléfono es obligatorio'),
+  name: z.string().min(3, 'El nombre es obligatorio'),
+  phone: z.string().min(10, 'El teléfono debete de tener al menos 10 digitos'),
   address: z.string().optional(),
   description: z.string().optional(),
 });

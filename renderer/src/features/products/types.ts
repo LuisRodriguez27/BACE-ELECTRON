@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const createProductSchema = z.object({
 	name: z.string().min(1, 'El nombre del producto es obligatorio'),
 	serial_number: z.string().optional(),
-	price: z.number().min(0, 'El precio debe ser un número positivo'),
+	price: z.number().min(0, 'El precio debe ser un número mayor a 0'),
 	description: z.string().optional()
 });
 

@@ -3,11 +3,18 @@ import { Plus, Search, Filter, Package, DollarSign, Hash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProductsApiService } from './ProductsApiService';
 import type { Product } from './types';
+import { CreateProductModal } from './components';
 
 const ProductsPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -15,7 +22,6 @@ const ProductsPage: React.FC = () => {
         setLoading(true);
         const data = await ProductsApiService.findAll();
         setProducts(data);
-        console.log('Productos cargados:', data);
       } catch (err) {
         console.error('Error fetching products:', err);
         setError('Error al cargar productos');
@@ -25,6 +31,14 @@ const ProductsPage: React.FC = () => {
     };
     fetchProducts();
   }, []);
+
+  const filteredProducts = products.filter(product =>
+    product.name.toLowerCase().includes(searchTerm.toLowerCase()) 
+  );
+  
+  const handleProductCreated = (newProduct: Product) => {
+    
+  };
 
   if (loading) {
     return (
@@ -166,6 +180,10 @@ const ProductsPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Modals */}
+      
+      
     </div>
   );
 };
