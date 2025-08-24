@@ -8,53 +8,53 @@ import { ProductsApiService } from "../ProductsApiService";
 
 
 interface CreateProductModalProps {
-	isOpen: boolean;
-	onClose: () => void;
-	onProductCreated: (product: Product) => void;
+  isOpen: boolean;
+  onClose: () => void;
+  onProductCreated: (product: Product) => void;
 }
 
-const CreateProductModal: React.FC<CreateProductModalProps> = ({ 
-	isOpen, onClose, onProductCreated 
+const CreateProductModal: React.FC<CreateProductModalProps> = ({
+  isOpen, onClose, onProductCreated
 }) => {
-	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-	const {
-		register,
-		handleSubmit,
-		formState: { errors },
-		reset
-	} = useForm<CreateProductForm>({
-		resolver: zodResolver(createProductSchema)
-	});
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset
+  } = useForm<CreateProductForm>({
+    resolver: zodResolver(createProductSchema)
+  });
 
-	const onSubmit = async (data: CreateProductForm) => {
-		try {
-			setIsSubmitting(true);
-			setError(null);
-			
-			const newProduct = await ProductsApiService.create(data);
-			onProductCreated(newProduct);
-			reset();
-			onClose();
-		} catch (err) {
-			console.error('Error creating product:', err);
-			setError('Error al crear el producto. Intenta nuevamente.');
-		} finally {
-			setIsSubmitting(false);
-		}
-	};
+  const onSubmit = async (data: CreateProductForm) => {
+    try {
+      setIsSubmitting(true);
+      setError(null);
 
-	const handleClose = () => {
-		reset();
-		setError(null);
-		onClose();
-	};
+      const newProduct = await ProductsApiService.create(data);
+      onProductCreated(newProduct);
+      reset();
+      onClose();
+    } catch (err) {
+      console.error('Error creating product:', err);
+      setError('Error al crear el producto. Intenta nuevamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-	if (!isOpen) return null;
+  const handleClose = () => {
+    reset();
+    setError(null);
+    onClose();
+  };
 
-	return (
-		<div 
+  if (!isOpen) return null;
+
+  return (
+    <div
       className="fixed inset-0 flex items-center justify-center z-50"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
     >
@@ -91,7 +91,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
           <div className="space-y-4">
             {/* Name */}
             <div>
-              <Label htmlFor="username" className="text-sm font-medium text-gray-700">
+              <Label htmlFor="name" className="text-sm font-medium text-gray-700">
                 Nombre del Producto *
               </Label>
               <div className="mt-1 relative">
@@ -111,7 +111,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
 
             {/* Price */}
             <div>
-              <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+              <Label htmlFor="price" className="text-sm font-medium text-gray-700">
                 Precio *
               </Label>
               <div className="mt-1 relative">
@@ -119,6 +119,8 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
                 <Input
                   id="price"
                   type="number"
+                  step='1'
+                  min='0'
                   placeholder="Ingresa el precio"
                   className="pl-10"
                   {...register('price')}
@@ -131,7 +133,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
 
             {/* Serial Number */}
             <div>
-              <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+              <Label htmlFor="serial_number" className="text-sm font-medium text-gray-700">
                 Numero de Serie
               </Label>
               <div className="mt-1 relative">
@@ -147,19 +149,19 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
               {errors.serial_number && (
                 <p className="mt-1 text-sm text-red-600">{errors.serial_number.message}</p>
               )}
-            </div>          
+            </div>
 
             {/* Description */}
             <div>
-              <Label htmlFor="password" className="text-sm font-medium text-gray-700">
-                Description
+              <Label htmlFor="description" className="text-sm font-medium text-gray-700">
+                Descripción
               </Label>
               <div className="mt-1 relative">
-                <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <FileText className="absolute left-3 top-3 text-gray-400" size={16} />
                 <textarea
                   id="description"
                   placeholder="Información adicional (opcional)"
-                  className = "w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                   rows={3}
                   {...register('description')}
                 />

@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Search, Filter, Package, DollarSign, Hash } from 'lucide-react';
+import { Plus, Search, Filter, Package, DollarSign, Hash, Edit3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProductsApiService } from './ProductsApiService';
 import type { Product } from './types';
 import { CreateProductModal } from './components';
+import { toast } from 'sonner';
+import EditClientModal from './components/EditProductModal';
 
 const ProductsPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -37,7 +39,42 @@ const ProductsPage: React.FC = () => {
   );
   
   const handleProductCreated = (newProduct: Product) => {
-    
+    setProducts(prevProducts => [...prevProducts, newProduct]);
+    toast.success('Producto creado exitosamente');
+  };
+
+  const handleClientUpdated = (updatedProduct: Product) => {
+    setProducts(prevProducts =>
+      prevProducts.map(product =>
+        product.id === updatedProduct.id ? updatedProduct : product
+      )
+    );
+    toast.success(`Producto ${updatedProduct.name} actualizado exitosamente`);
+  };
+
+  const handleProductDeleted = (deletedProductId: number) => {
+    const deletedProduct = products.find(p => p.id === deletedProductId);
+    setProducts(prevProducts =>
+      prevProducts.filter(product => product.id !== deletedProductId)
+    );
+    toast.success(`Producto ${deletedProduct?.name} eliminado exitosamente`);
+  };
+
+  const openEditModal = (product: Product) => {
+    setSelectedProduct(product);
+    setShowEditModal(true);
+  };
+
+  const openDeleteModal = (product: Product) => {
+    setSelectedProduct(product);
+    setShowDeleteModal(true);
+  };
+
+  const closeModals = () => {
+    setShowCreateModal(false);
+    setShowEditModal(false);
+    setShowDeleteModal(false);
+    setSelectedProduct(null);
   };
 
   if (loading) {
@@ -83,7 +120,10 @@ const ProductsPage: React.FC = () => {
             Administra tu catálogo de productos personalizados
           </p>
         </div>
-        <Button className="flex items-center gap-2">
+        <Button 
+          className="flex items-center gap-2"
+          onClick={() => setShowCreateModal(true)}
+        >
           <Plus size={16} />
           Nuevo Producto
         </Button>
@@ -135,8 +175,13 @@ const ProductsPage: React.FC = () => {
                 <div key={product.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between mb-3">
                     <h3 className="font-semibold text-gray-900 truncate">{product.name}</h3>
-                    <Button variant="ghost" size="sm">
-                      Editar
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => openEditModal(product)}
+                      className='p-1 h-8 w-8'
+                    >
+                      <Edit3 size={14} />
                     </Button>
                   </div>
                   
@@ -182,6 +227,18 @@ const ProductsPage: React.FC = () => {
       </div>
 
       {/* Modals */}
+      <CreateProductModal
+        isOpen={showCreateModal}
+        onClose={closeModals}
+        onProductCreated={handleProductCreated}
+      />
+      
+      <EditClientModal
+        isOpen={showEditModal}
+        onClose={closeModals}
+        onProductUpdated={handleClientUpdated}
+        product={selectedProduct}
+      />
       
       
     </div>
