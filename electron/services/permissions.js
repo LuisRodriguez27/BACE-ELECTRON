@@ -1,12 +1,12 @@
 const db = require('../db');
 
 function getAllPermissions() {
-	const stmt = db.prepare('SELECT * FROM permissions');
+	const stmt = db.prepare('SELECT * FROM permissions WHERE active = 1');
 	return stmt.all();
 }
 
 function getPermissionsById(id) {
-	const stmt = db.prepare('SELECT * FROM permissions WHERE id = ?');
+	const stmt = db.prepare('SELECT * FROM permissions WHERE id = ? AND active = 1');
 	return stmt.get(id);
 }
 

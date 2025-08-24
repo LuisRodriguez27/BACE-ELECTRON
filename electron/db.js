@@ -34,7 +34,8 @@ db.exec(`
     name TEXT NOT NULL,
     phone TEXT NOT NULL,
     address TEXT,
-    description TEXT
+    description TEXT,
+    active INTEGER NOT NULL DEFAULT 1
   );
 
   CREATE TABLE IF NOT EXISTS products (

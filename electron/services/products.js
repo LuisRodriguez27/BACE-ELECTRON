@@ -1,12 +1,12 @@
 const db = require('../db');
 
 function getAllProducts() {
-	const stmt = db.prepare('SELECT * FROM products');
+	const stmt = db.prepare('SELECT * FROM products WHERE active = 1');
 	return stmt.all();
 }
 
 function getProductById(id) {
-	const stmt = db.prepare('SELECT * FROM products WHERE id = ?');
+	const stmt = db.prepare('SELECT * FROM products WHERE id = ? AND active = 1');
 	return stmt.get(id);
 }
 

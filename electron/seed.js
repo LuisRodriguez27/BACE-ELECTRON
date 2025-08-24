@@ -9,7 +9,7 @@ const dbPath = path.join(__dirname, "../sqlite/data.db");
 const db = new Database(dbPath);
 
 function seed() {
-  console.log("🌱 Inicializando base de datos...");
+  console.log("Inicializando base de datos...");
 
   // -------------------------
   // 1. Limpiar datos (en orden por FK)
@@ -152,7 +152,8 @@ function seed() {
 
   insertPayment.run(order2, 500.0, new Date().toISOString(), "Pago completo de Cliente B");
 
-  console.log("✅ Base de datos inicializada con datos de ejemplo");
+  console.log("Base de datos inicializada con datos de ejemplo");
+
 }
 
 seed();

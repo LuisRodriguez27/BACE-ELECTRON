@@ -1,12 +1,12 @@
 const db = require('../db');
 
 function getAllClients() {
-	const stmt = db.prepare('SELECT * FROM clients');
+	const stmt = db.prepare('SELECT * FROM clients WHERE active = 1');
 	return stmt.all();
 }
 
 function getClientById(id) {
-	const stmt = db.prepare('SELECT * FROM clients WHERE id = ?');
+	const stmt = db.prepare('SELECT * FROM clients WHERE id = ? AND active = 1');
 	return stmt.get(id);
 }
 
