@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Search, Filter, Package, DollarSign, Hash, Edit3 } from 'lucide-react';
+import { Plus, Search, Filter, Package, DollarSign, Hash, Edit3, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProductsApiService } from './ProductsApiService';
 import type { Product } from './types';
-import { CreateProductModal } from './components';
+import { CreateProductModal, DeleteProductModal, EditProductModal } from './components';
 import { toast } from 'sonner';
-import EditClientModal from './components/EditProductModal';
 
 const ProductsPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -138,6 +137,8 @@ const ProductsPage: React.FC = () => {
               <input
                 type="text"
                 placeholder="Buscar productos..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -153,11 +154,11 @@ const ProductsPage: React.FC = () => {
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">
-            Productos ({products.length})
+            Productos ({filteredProducts.length})
           </h2>
         </div>
         <div className="p-6">
-          {products.length === 0 ? (
+          {filteredProducts.length === 0 ? (
             <div className="text-center py-12">
               <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No hay productos</h3>
@@ -171,18 +172,28 @@ const ProductsPage: React.FC = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {products.map((product) => (
+              {filteredProducts.map((product) => (
                 <div key={product.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between mb-3">
                     <h3 className="font-semibold text-gray-900 truncate">{product.name}</h3>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => openEditModal(product)}
-                      className='p-1 h-8 w-8'
-                    >
-                      <Edit3 size={14} />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => openEditModal(product)}
+                        className='p-1 h-8 w-8'
+                      >
+                        <Edit3 size={14} />
+                      </Button>
+                      <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => openDeleteModal(product)}
+                          className="p-1 h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                    </div>
                   </div>
                   
                   <div className="space-y-2 text-sm text-gray-600">
@@ -233,13 +244,19 @@ const ProductsPage: React.FC = () => {
         onProductCreated={handleProductCreated}
       />
       
-      <EditClientModal
+      <EditProductModal
         isOpen={showEditModal}
         onClose={closeModals}
         onProductUpdated={handleClientUpdated}
         product={selectedProduct}
       />
       
+      <DeleteProductModal
+        isOpen={showDeleteModal}
+        onClose={closeModals}
+        onProductDeleted={handleProductDeleted}
+        product={selectedProduct}
+      />
       
     </div>
   );
