@@ -17,20 +17,18 @@ export const changePasswordSchema = z.object({
 export type LoginForm = z.infer<typeof loginSchema>;
 export type ChangePasswordForm = z.infer<typeof changePasswordSchema>;
 
-export interface AuthUser {
+export interface UserData {
   id: number;
   username: string;
   permissions: string[];
 }
 
 export interface AuthState {
-  user: AuthUser | null;
+  user: UserData | null;
   isAuthenticated: boolean;
-  isLoading: boolean;
 }
 
-export interface LoginResponse {
-  success: boolean;
-  user?: AuthUser;
-  message?: string;
+export interface LoginData {
+  username: string,
+  password: string
 }

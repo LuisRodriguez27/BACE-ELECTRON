@@ -4,6 +4,7 @@ import { Permission, CreatePermissionForm, EditPermissionForm } from "../feature
 import { Product, CreateProductForm, EditProductForm } from "../features/products/types";
 import { Order, CreateOrderForm, EditOrderForm, OrderProduct } from "../features/orders/types";
 import { Payment, CreatePaymentForm, EditPaymentForm } from "../features/payments/types";
+import type { LoginData } from "@/features/auth/types";
 
 declare global {
   interface Window {
@@ -14,7 +15,7 @@ declare global {
       createUser: (data: CreateUserForm) => Promise<User>;
       updateUser: (id: number, data: EditUserForm) => Promise<User>;
       deleteUser: (id: number) => Promise<void>;
-      verifyPassword: (data: string) => Promise<boolean>;
+      verifyPassword: (data: LoginData) => Promise<boolean>;
 
       // Permisos
       getAllPermissions: () => Promise<Permission[]>;
