@@ -15,7 +15,6 @@ const OrdersPage: React.FC = () => {
         setLoading(true);
         const data = await OrdersApiService.findAll();
         setOrders(data);
-        console.log('Órdenes cargadas:', data);
       } catch (err) {
         console.error('Error fetching orders:', err);
         setError('Error al cargar órdenes');
