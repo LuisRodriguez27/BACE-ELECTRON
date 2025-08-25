@@ -22,17 +22,30 @@ function createUser({ username, password }) {
 	return { id: result.lastInsertRowid, username, active: 1 };
 }
 
-function updateUser({ id, username, password, active }) {
-	const hashedPassword = bcrypt.hashSync(password, saltRounds);
-	
-	const stmt = db.prepare('UPDATE users SET username = ?, password = ?, active = ? WHERE id = ?');
-	const result = stmt.run(username, hashedPassword, active, id);
-	
-	if (result.changes > 0) {
-		return { success: true, message: 'Usuario actualizado exitosamente' }, getUserById(id);
-	} else {
-		return { success: false, message: 'Usuario no encontrado' };
-	}
+function updateUser(id, { username, password }) {
+  let fields = ['username = ?'];
+  let values = [username];
+
+  if (password) {
+    const hashedPassword = bcrypt.hashSync(password, saltRounds);
+    fields.push('password = ?');
+    values.push(hashedPassword);
+  }
+
+  values.push(id);
+
+  const stmt = db.prepare(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`);
+  const result = stmt.run(...values);
+
+  if (result.changes > 0) {
+    return { 
+      success: true, 
+      message: 'Usuario actualizado exitosamente',
+      user: getUserById(id) 
+    };
+  } else {
+    return { success: false, message: 'Usuario no encontrado' };
+  }
 }
 
 function deleteUser(id) {

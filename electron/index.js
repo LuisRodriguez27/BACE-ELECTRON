@@ -18,7 +18,7 @@ function createWindow() {
     height: 768,
     show: false, // No mostrar hasta que esté listo
     backgroundColor: '#ffffff', // Fondo blanco para evitar pantallas negras
-    autoHideMenuBar: true,
+    // autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -41,7 +41,7 @@ function createWindow() {
 ipcMain.handle('users:getAll', () => userService.getAllUsers());
 ipcMain.handle('users:getById', (event, id) => userService.getUserById(id));
 ipcMain.handle('users:create', (event, data) => userService.createUser(data));
-ipcMain.handle('users:update', (event, data) => userService.updateUser(data));
+ipcMain.handle('users:update', (event, id, data) => userService.updateUser(id, data));
 ipcMain.handle('users:delete', (event, id) => userService.deleteUser(id));
 ipcMain.handle('users:verifyPassword', (event, data) => userService.verifyPassword(data));
 
@@ -81,8 +81,8 @@ ipcMain.handle('orders:update', (event, id, data) => orderService.updateOrder(id
 ipcMain.handle('orders:delete', (event, id) => orderService.deleteOrder(id));
 ipcMain.handle('orders:addProduct', (event, data) => orderService.addProductToOrder(data));
 ipcMain.handle('orders:addProducts', (event, data) => orderService.addProductsToOrder(data));
-ipcMain.handle('orders:updateProductQuantity', (event, data) => orderService.updateProductQuantity(data));
-ipcMain.handle('orders:updateProductInOrder', (event, data) => orderService.updateProductInOrder(data));
+ipcMain.handle('orders:updateProductQuantity', (event, data) => orderService.updateProductQuantity(orderProductId,data));
+ipcMain.handle('orders:updateProductInOrder', (event, data) => orderService.updateProductInOrder(orderProductId,data));
 ipcMain.handle('orders:removeProduct', (event, orderProductId) => orderService.removeProductFromOrder(orderProductId));
 ipcMain.handle('orders:clearProducts', (event, orderId) => orderService.clearProductsFromOrder(orderId));
 ipcMain.handle('orders:getProducts', (event, orderId) => orderService.getProductsToOrder(orderId));
