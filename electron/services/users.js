@@ -65,7 +65,7 @@ function verifyPassword({ username, password }) {
     return false; 
   }
   
-  return bcrypt.compareSync(password, user.password);
+  return bcrypt.compareSync(password, stmt.password);
 }
 
 module.exports = {
