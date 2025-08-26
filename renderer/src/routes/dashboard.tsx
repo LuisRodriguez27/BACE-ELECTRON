@@ -19,7 +19,7 @@ export const Route = createFileRoute('/dashboard')({
 })
 
 function AuthenticatedLayout() {
-  const { user, isAuthenticated } = useAuthStore()
+  const { isAuthenticated } = useAuthStore()
 
   useEffect(() => {
     // Verificación periódica de autenticación (opcional)
@@ -50,24 +50,6 @@ function AuthenticatedLayout() {
       <Sidebar />
       <main className="flex-1 overflow-auto">
         <div className="p-6">
-          {/* Header de usuario */}
-          <div className="mb-6 bg-white rounded-lg shadow p-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  Bienvenido, {user?.username}
-                </h1>
-                <p className="text-gray-600">Sistema de gestión empresarial</p>
-              </div>
-              <button
-                onClick={() => authService.logout()}
-                className="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
-              >
-                Cerrar sesión
-              </button>
-            </div>
-          </div>
-          
           <Outlet />
         </div>
       </main>
