@@ -1,4 +1,5 @@
 import type { User, CreateUserForm, EditUserForm } from "./types";
+import type { LoginCredentials } from "@/features/auth/types";
 
 export const UsersApiService = {
   findAll: async (): Promise<User[]> => {
@@ -21,7 +22,7 @@ export const UsersApiService = {
     return window.api.deleteUser(id);
   },
 
-  verifyPassword: async (password: string): Promise<boolean> => {
-    return window.api.verifyPassword(password);
+  verifyPassword: async (credentials: LoginCredentials): Promise<boolean> => {
+    return window.api.verifyPassword(credentials);
   }
 };

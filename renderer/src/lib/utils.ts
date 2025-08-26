@@ -1,29 +1,28 @@
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
 
 export function cn(...inputs: ClassValue[]) {
-	return twMerge(clsx(inputs));
+  return twMerge(clsx(inputs))
 }
 
-export function formatDate(date: Date | string): string {
-	const fecha = new Date(date);
+// Utility function para validar autenticación
+export function isValidAuthResponse(response: any): response is { success: boolean; message: string; user?: any } {
+  return response && 
+         typeof response === 'object' && 
+         typeof response.success === 'boolean' &&
+         typeof response.message === 'string'
+}
 
-	const opciones: Intl.DateTimeFormatOptions = {
-		timeZone: "America/Mexico_City",
-		year: "numeric",
-		month: "2-digit",
-		day: "2-digit",
-		hour: "2-digit",
-		minute: "2-digit",
-		second: "2-digit",
-		hour12: false
-	};
-
-	// Esto da: "21/08/2025, 14:35:22"
-	const formateado = new Intl.DateTimeFormat("es-MX", opciones).format(fecha);
-
-	// Convertirlo a formato SQLite: YYYY-MM-DD HH:MM:SS
-	const [fechaParte, horaParte] = formateado.split(', ');
-	const [dia, mes, anio] = fechaParte.split('/');
-	return `${anio}-${mes}-${dia} ${horaParte}`;
+// Utility function para manejar errores de API
+export function handleApiError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message
+  }
+  if (typeof error === 'string') {
+    return error
+  }
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String(error.message)
+  }
+  return 'Error desconocido'
 }

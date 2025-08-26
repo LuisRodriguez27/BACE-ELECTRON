@@ -7,7 +7,8 @@ import {
   History, 
   UserCog, 
   Settings,
-  Menu
+  Menu,
+  Home
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSidebarStore } from '@/store/sidebar'
@@ -22,34 +23,40 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   {
+    id: 'dashboard',
+    label: 'Dashboard',
+    icon: Home,
+    path: '/dashboard'
+  },
+  {
     id: 'orders',
     label: 'Órdenes',
     icon: ShoppingCart,
-    path: '/orders'
+    path: '/dashboard/orders'
   },
   {
     id: 'clients',
     label: 'Clientes',
     icon: Users,
-    path: '/clients'
+    path: '/dashboard/clients'
   },
   {
     id: 'products',
     label: 'Productos',
     icon: Package,
-    path: '/products'
+    path: '/dashboard/products'
   },
   {
     id: 'history',
     label: 'Historial de Órdenes',
     icon: History,
-    path: '/history'
+    path: '/dashboard/history'
   },
   {
     id: 'users',
     label: 'Usuarios',
     icon: UserCog,
-    path: '/users'
+    path: '/dashboard/users'
   }
 ]
 
@@ -115,10 +122,10 @@ const Sidebar: React.FC = () => {
       {/* Configuraciones al final */}
       <div className="px-2 py-4 border-t border-gray-700">
         <Link
-          to="/configurations"
+          to="/dashboard/configurations"
           className={cn(
             'flex items-center px-3 py-2 rounded-lg transition-colors duration-200',
-            location.pathname === '/configurations'
+            location.pathname === '/dashboard/configurations'
               ? 'bg-blue-600 text-white'
               : 'text-gray-300 hover:bg-gray-700 hover:text-white'
           )}

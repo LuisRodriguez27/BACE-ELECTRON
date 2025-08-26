@@ -17,18 +17,37 @@ export const changePasswordSchema = z.object({
 export type LoginForm = z.infer<typeof loginSchema>;
 export type ChangePasswordForm = z.infer<typeof changePasswordSchema>;
 
-export interface UserData {
+// Usamos el mismo tipo de User que en features/users para evitar conflictos
+export interface User {
   id: number;
   username: string;
-  permissions: string[];
+  active: number; // En SQLite es number (0 o 1)
+}
+
+// Función helper para convertir active number a boolean
+export function isUserActive(user: User): boolean {
+  return user.active === 1;
+}
+
+export interface Business {
+  id: number;
+  name: string;
+}
+
+export interface LoginCredentials {
+  username: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  success: boolean;
+  message: string;
+  user?: User;
 }
 
 export interface AuthState {
-  user: UserData | null;
-  isAuthenticated: boolean;
-}
-
-export interface LoginData {
-  username: string,
-  password: string
+  user: User | null;
+  business: Business | null;
+  isLoading: boolean;
+  error: string | null;
 }

@@ -4,18 +4,26 @@ import { Permission, CreatePermissionForm, EditPermissionForm } from "../feature
 import { Product, CreateProductForm, EditProductForm } from "../features/products/types";
 import { Order, CreateOrderForm, EditOrderForm, OrderProduct } from "../features/orders/types";
 import { Payment, CreatePaymentForm, EditPaymentForm } from "../features/payments/types";
-import type { LoginData } from "@/features/auth/types";
+import type { LoginCredentials, LoginResponse } from "@/features/auth/types";
 
 declare global {
   interface Window {
     api: {
+      // Autenticación
+      login: (credentials: LoginCredentials) => Promise<LoginResponse>;
+      logout: () => Promise<{ success: boolean; message: string }>;
+      getCurrentUser: () => Promise<User | null>;
+      isAuthenticated: () => Promise<boolean>;
+      getUserWithPermissions: () => Promise<User | null>;
+      requireAuth: () => Promise<{ success: boolean; message?: string }>;
+
       // Usuarios
       getAllUsers: () => Promise<User[]>;
       getUserById: (id: number) => Promise<User>;
       createUser: (data: CreateUserForm) => Promise<User>;
       updateUser: (id: number, data: EditUserForm) => Promise<User>;
       deleteUser: (id: number) => Promise<void>;
-      verifyPassword: (data: LoginData) => Promise<boolean>;
+      verifyPassword: (data: LoginCredentials) => Promise<boolean>;
 
       // Permisos
       getAllPermissions: () => Promise<Permission[]>;
@@ -65,7 +73,6 @@ declare global {
       createPayment: (data: CreatePaymentForm) => Promise<Payment>;
       updatePayment: (id: number, data: EditPaymentForm) => Promise<Payment>;
       deletePayment: (id: number) => Promise<void>;
-
     };
   }
 }

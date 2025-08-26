@@ -116,3 +116,22 @@ ipcMain.handle('payments:delete', (event, id) => paymentService.deletePayment(id
 
 
 app.whenReady().then(createWindow);
+
+// Limpiar sesión al cerrar la aplicación
+app.on('before-quit', () => {
+  authService.logout();
+});
+
+app.on('window-all-closed', () => {
+  // Limpiar sesión antes de cerrar
+  authService.logout();
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
+});
