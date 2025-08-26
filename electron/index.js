@@ -11,6 +11,7 @@ const clientService = require('./services/clients');
 const productService = require('./services/products');
 const orderService = require('./services/orders');
 const paymentService = require('./services/payments');
+const authService = require('./services/auth')
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -44,6 +45,24 @@ ipcMain.handle('users:create', (event, data) => userService.createUser(data));
 ipcMain.handle('users:update', (event, id, data) => userService.updateUser(id, data));
 ipcMain.handle('users:delete', (event, id) => userService.deleteUser(id));
 ipcMain.handle('users:verifyPassword', (event, data) => userService.verifyPassword(data));
+
+// Manejo de eventos IPC para autenticacion
+ipcMain.handle('auth:login', (event, { username, password }) => 
+  authService.login(username, password)
+);
+ipcMain.handle('auth:logout', () => authService.logout());
+ipcMain.handle('auth:getCurrentUser', () => authService.getCurrentUser());
+ipcMain.handle('auth:isAuthenticated', () => authService.isAuthenticated());
+ipcMain.handle('auth:getUserWithPermissions', () => 
+  authService.getUserWithPermissions()
+);
+// Middleware para verificar autenticación
+ipcMain.handle('auth:requireAuth', (event, operation) => {
+  if (!authService.isAuthenticated()) {
+    return { success: false, message: 'No autorizado' };
+  }
+  return { success: true };
+});
 
 // Manejo de eventos IPC para permisos
 ipcMain.handle('permissions:getAll', () => permissionService.getAllUsers());

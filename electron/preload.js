@@ -9,6 +9,16 @@ contextBridge.exposeInMainWorld('api', {
   deleteUser: (id) => ipcRenderer.invoke('users:delete', id),
   verifyPassword: (data) => ipcRenderer.invoke('users:verifyPassword', data),
 
+  // Autenticación
+  login: (credentials) => ipcRenderer.invoke('auth:login', credentials),
+  logout: () => ipcRenderer.invoke('auth:logout'),
+  getCurrentUser: () => ipcRenderer.invoke('auth:getCurrentUser'),
+  isAuthenticated: () => ipcRenderer.invoke('auth:isAuthenticated'),
+  getUserWithPermissions: () => ipcRenderer.invoke('auth:getUserWithPermissions'),
+  
+  // Verificación de autenticación
+  requireAuth: () => ipcRenderer.invoke('auth:requireAuth'),
+
   // Permisos
   getAllPermissions: () => ipcRenderer.invoke('permissions:getAll'),
   getPermissionsById: (id) => ipcRenderer.invoke('permissions:getById', id),
