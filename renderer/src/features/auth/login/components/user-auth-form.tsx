@@ -31,7 +31,7 @@ export function UserAuthForm() {
       const result = await authService.login(data)
       
       if (result.success) {
-        toast.success(result.message)
+        // toast.success(result.message)
         // Navegamos al dashboard después del login exitoso
         router.navigate({ to: '/' })
       } else {
