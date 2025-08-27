@@ -123,7 +123,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
                   min='0'
                   placeholder="Ingresa el precio"
                   className="pl-10"
-                  {...register('price')}
+                  {...register('price', { valueAsNumber: true })}
                 />
               </div>
               {errors.price && (
