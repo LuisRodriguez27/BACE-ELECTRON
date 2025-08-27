@@ -37,14 +37,20 @@ export const OrdersApiService = {
     return window.api.getProductsToOrder(orderId);
   },
 
-  addProduct: async (orderProduct: CreateOrderProductForm): Promise<Order> => {
-    // Nota: La API espera AddProductToOrderForm, pero usamos CreateOrderProductForm
-    return window.api.addProductToOrder(orderProduct as any);
+  addProduct: async (data: CreateOrderProductForm & { orderId: number }): Promise<OrderProduct> => {
+    return window.api.addProductToOrder(data);
   },
 
-  updateProduct: async (orderProduct: EditOrderProductForm): Promise<OrderProduct> => {
-    // Nota: La API espera UpdateProductInOrderForm, pero usamos EditOrderProductForm
-    return window.api.updateProductInOrder(orderProduct as any);
+  addProducts: async (data: { orderId: number; products: CreateOrderProductForm[] }): Promise<OrderProduct[]> => {
+    return window.api.addProductsToOrder(data);
+  },
+
+  updateProduct: async (data: EditOrderProductForm & { orderProductId: number }): Promise<OrderProduct> => {
+    return window.api.updateProductInOrder(data);
+  },
+
+  updateProductQuantity: async (data: { orderId: number; productId: number; newQuantity: number }): Promise<OrderProduct> => {
+    return window.api.updateProductQuantity(data);
   },
 
   removeProduct: async (orderProductId: number): Promise<void> => {

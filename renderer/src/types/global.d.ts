@@ -2,7 +2,7 @@ import { Client, CreateClientForm, EditClientForm } from "../features/clients/ty
 import { User, CreateUserForm, EditUserForm } from "../features/users/types";
 import { Permission, CreatePermissionForm, EditPermissionForm } from "../features/permissions/types";
 import { Product, CreateProductForm, EditProductForm } from "../features/products/types";
-import { Order, CreateOrderForm, EditOrderForm, OrderProduct } from "../features/orders/types";
+import { Order, CreateOrderForm, EditOrderForm, OrderProduct, CreateOrderProductForm, EditOrderProductForm } from "../features/orders/types";
 import { Payment, CreatePaymentForm, EditPaymentForm } from "../features/payments/types";
 import type { LoginCredentials, LoginResponse } from "@/features/auth/types";
 
@@ -59,10 +59,10 @@ declare global {
       createOrder: (data: CreateOrderForm) => Promise<Order>;
       updateOrder: (id: number, data: EditOrderForm) => Promise<Order>;
       deleteOrder: (id: number) => Promise<void>;
-      addProductToOrder: (data: AddProductToOrderForm) => Promise<Order>;
-      addProductsToOrder: (data: AddProductsToOrderForm) => Promise<Order>;
-      updateProductQuantity: (data: UpdateProductQuantityForm) => Promise<OrderProduct>;
-      updateProductInOrder: (data: UpdateProductInOrderForm) => Promise<OrderProduct>;
+      addProductToOrder: (data: CreateOrderProductForm & { orderId: number }) => Promise<OrderProduct>;
+      addProductsToOrder: (data: { orderId: number; products: CreateOrderProductForm[] }) => Promise<OrderProduct[]>;
+      updateProductQuantity: (data: { orderId: number; productId: number; newQuantity: number }) => Promise<OrderProduct>;
+      updateProductInOrder: (data: EditOrderProductForm & { orderProductId: number }) => Promise<OrderProduct>;
       removeProductFromOrder: (orderProductId: number) => Promise<void>;
       clearProductsFromOrder: (orderId: number) => Promise<void>;
       getProductsToOrder: (orderId: number) => Promise<OrderProduct[]>;

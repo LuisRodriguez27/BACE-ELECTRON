@@ -6,7 +6,17 @@ export const createOrderSchema = z.object({
 	date: z.string().min(1, 'La fecha es obligatoria'),
 	estimated_delivery_date: z.string().optional(),
 	status: z.string().min(1, 'El estado es obligatorio'),
-	total: z.number().min(0, 'El total debe ser un número positivo')
+	total: z.number().min(0, 'El total debe ser un número positivo'),
+	products: z.array(z.object({
+		products_id: z.number().int().min(1, 'El ID del producto es obligatorio'),
+		quantity: z.number().int().min(1, 'La cantidad debe ser al menos 1'),
+		price: z.number().min(0, 'El precio debe ser un número positivo'),
+		height: z.number().optional(),
+		width: z.number().optional(),
+		position: z.string().optional(),
+		colors: z.string().optional(),
+		description: z.string().optional()
+	})).optional()
 });
 
 export const editOrderSchema = createOrderSchema.partial();

@@ -48,27 +48,58 @@ function getOrdersByClientId(clientId) {
 }
 
 
-function createOrder({ client_id, user_id, date, estimated_delivery_date, status, total }) {
+function createOrder({ client_id, user_id, date, estimated_delivery_date, status, total, products }) {
   const stmt = db.prepare(`
     INSERT INTO orders (client_id, user_id, date, estimated_delivery_date, status, total)
     VALUES (?, ?, ?, ?, ?, ?)
   `);
   const result = stmt.run(client_id, user_id, date, estimated_delivery_date, status || "pending", total || 0);
-  return { id: result.lastInsertRowid, client_id, user_id, date, estimated_delivery_date, status, total };
+  
+  const orderId = result.lastInsertRowid;
+  
+  // Si hay productos, agregarlos a la orden
+  if (products && products.length > 0) {
+    const insertProductStmt = db.prepare(`
+      INSERT INTO order_products (order_id, products_id, quantity, price, height, width, position, colors, description)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    const insertProducts = db.transaction((products) => {
+      for (const product of products) {
+        const colorsString = typeof product.colors === 'string' ? product.colors : JSON.stringify(product.colors || []);
+        insertProductStmt.run(
+          orderId,
+          product.products_id,
+          product.quantity,
+          product.price,
+          product.height || null,
+          product.width || null,
+          product.position || null,
+          colorsString,
+          product.description || null
+        );
+      }
+    });
+    
+    insertProducts(products);
+  }
+  
+  // Retornar la orden completa con joins
+  return getOrderById(orderId);
 }
 
-function updateOrder(id, { client_id, user_id, estimated_delivery_date, status, total }) {
+function updateOrder(id, { client_id, user_id, estimated_delivery_date, status, total, editated_by }) {
 	const stmt = db.prepare(`
 		UPDATE orders
-		SET client_id = ?, user_id = ?, estimated_delivery_date = ?, status = ?, total = ?
+		SET client_id = ?, user_id = ?, estimated_delivery_date = ?, status = ?, total = ?, editated_by = ?
 		WHERE id = ?
 	`);
-	const result = stmt.run(client_id, user_id, estimated_delivery_date, status, total, id);
+	const result = stmt.run(client_id, user_id, estimated_delivery_date, status, total, editated_by, id);
 
 	if (result.changes > 0) {
-		return { success: true, menssage: 'Orden actualizada exitosamente' }, getOrderById(id);
+		return { success: true, message: 'Orden actualizada exitosamente', data: getOrderById(id) };
 	} else {
-		return null;
+		return { success: false, message: 'Orden no encontrada' };
 	}
 }
 
@@ -93,7 +124,8 @@ function addProductToOrder({ orderId, products_id, quantity, price, height, widt
     INSERT INTO order_products (order_id, products_id, quantity, price, height, width, position, colors, description)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  const result = stmt.run(orderId, products_id, quantity, price, height, width, position, JSON.stringify(colors || []), description);
+  const colorsString = typeof colors === 'string' ? colors : JSON.stringify(colors || []);
+  const result = stmt.run(orderId, products_id, quantity, price, height, width, position, colorsString, description);
   return db.prepare("SELECT * FROM order_products WHERE id = ?").get(result.lastInsertRowid);
 }
 
@@ -105,7 +137,8 @@ function addProductsToOrder({ orderId, products }) {
   `);
   const insertMany = db.transaction((products) => {
     for (const p of products) {
-      stmt.run(orderId, p.products_id, p.quantity, p.price, p.height, p.width, p.position, JSON.stringify(p.colors || []), p.description);
+      const colorsString = typeof p.colors === 'string' ? p.colors : JSON.stringify(p.colors || []);
+      stmt.run(orderId, p.products_id, p.quantity, p.price, p.height, p.width, p.position, colorsString, p.description);
     }
   });
   insertMany(products);
@@ -126,11 +159,12 @@ function updateProductQuantity({ orderId, productId, newQuantity }) {
 
 // 4️⃣ Editar todos los datos de un producto dentro de una orden
 function updateProductInOrder({ orderProductId, quantity, price, height, width, position, colors, description }) {
+  const colorsString = typeof colors === 'string' ? colors : JSON.stringify(colors || []);
   db.prepare(`
     UPDATE order_products 
     SET quantity = ?, price = ?, height = ?, width = ?, position = ?, colors = ?, description = ?
     WHERE id = ?
-  `).run(quantity, price, height, width, position, JSON.stringify(colors || []), description, orderProductId);
+  `).run(quantity, price, height, width, position, colorsString, description, orderProductId);
   return db.prepare("SELECT * FROM order_products WHERE id = ?").get(orderProductId);
 }
 
