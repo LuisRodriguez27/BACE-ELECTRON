@@ -27,9 +27,9 @@ function createProduct({ name, serial_number, price, description }) {
 	return { id: result.lastInsertRowid, name, serial_number, price, description, active: 1 };
 }
 
-function updateProduct(id, { name, serial_number, price, description, active }) {
-	const stmt = db.prepare('UPDATE products SET name = ?, serial_number = ?, price = ?, description = ?, active = ? WHERE id = ?');
-	const result = stmt.run(name, serial_number, price, description, active, id);
+function updateProduct(id, { name, serial_number, price, description }) {
+	const stmt = db.prepare('UPDATE products SET name = ?, serial_number = ?, price = ?, description = ? WHERE id = ?');
+	const result = stmt.run(name, serial_number, price, description, id);
 	
 	if (result.changes > 0) {
 		return { success: true, message: 'Producto actualizado exitosamente' }, getProductById(id);

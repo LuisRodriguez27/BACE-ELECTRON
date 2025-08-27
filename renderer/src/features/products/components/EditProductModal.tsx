@@ -141,7 +141,7 @@ const EditClientModal: React.FC<EditProductModalProps> = ({
                     min='0'
                     placeholder='Precio del producto'
                     className='pl-10'
-                    {...register('price')}
+                    {...register('price', { valueAsNumber: true })}
                   />
                 </div>
                 {errors.price && (
