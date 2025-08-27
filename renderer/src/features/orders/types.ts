@@ -3,10 +3,10 @@ import { z } from 'zod';
 export const createOrderSchema = z.object({
 	client_id: z.number().int().min(1, 'El ID del cliente es obligatorio'),
 	user_id: z.number().int().min(1, 'El ID del usuario es obligatorio'),
-	date: z.string(),
+	date: z.string().min(1, 'La fecha es obligatoria'),
 	estimated_delivery_date: z.string().optional(),
-	status: z.string().optional(),
-	total: z.number().min(0, 'El total debe ser un número positivo').optional()
+	status: z.string().min(1, 'El estado es obligatorio'),
+	total: z.number().min(0, 'El total debe ser un número positivo')
 });
 
 export const editOrderSchema = createOrderSchema.partial();

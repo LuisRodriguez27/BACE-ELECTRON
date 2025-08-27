@@ -1,5 +1,4 @@
 import { useAuthStore } from '@/store/auth'
-import { isUserActive } from '@/features/auth/types'
 import { authService } from '@/features/auth/AuthService'
 
 export function Dashboard() {

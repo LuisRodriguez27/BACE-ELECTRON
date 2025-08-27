@@ -3,11 +3,17 @@ import { Plus, Search, Filter, ShoppingCart, Calendar, DollarSign } from 'lucide
 import { Button } from '@/components/ui/button';
 import { OrdersApiService } from './OrdersApiService';
 import type { Order } from './types';
+import { toast } from 'sonner';
+import CreateOrderModal from './components/CreateOrderModal';
+import { useAuthStore } from '@/store/auth';
 
 const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const[showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -24,6 +30,16 @@ const OrdersPage: React.FC = () => {
     };
     fetchOrders();
   }, []);
+
+  const handleOrderCrated = (newOrder: Order) => {
+    setOrders(prevOrders => [...prevOrders, newOrder]);
+    toast.success('Orden creada exitosamente');
+  };
+
+
+  const closeModals = () => {
+    setShowCreateModal(false);
+  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-MX', {
@@ -62,6 +78,8 @@ const OrdersPage: React.FC = () => {
         return status;
     }
   };
+
+  const { user } = useAuthStore()
 
   if (loading) {
     return (
@@ -106,7 +124,10 @@ const OrdersPage: React.FC = () => {
             Administra las órdenes de producción y su estado
           </p>
         </div>
-        <Button className="flex items-center gap-2">
+        <Button 
+          className="flex items-center gap-2"
+          onClick={() => setShowCreateModal(true)}
+        >
           <Plus size={16} />
           Nueva Orden
         </Button>
@@ -235,6 +256,15 @@ const OrdersPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Modals */}
+      <CreateOrderModal
+        isOpen = {showCreateModal}
+        onClose = {closeModals}
+        onOrderCreated = {handleOrderCrated}
+        currentUserId={user?.id!}
+      />  
+
     </div>
   );
 };
