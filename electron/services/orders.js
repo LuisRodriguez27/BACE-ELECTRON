@@ -48,12 +48,26 @@ function getOrdersByClientId(clientId) {
 }
 
 
+// Estados válidos para las órdenes
+const VALID_ORDER_STATUSES = ['pendiente', 'en proceso', 'completado', 'cancelado'];
+
+// Función para validar estado de orden
+function validateOrderStatus(status) {
+  if (!status || !VALID_ORDER_STATUSES.includes(status)) {
+    return 'pendiente'; // Estado por defecto
+  }
+  return status;
+}
+
 function createOrder({ client_id, user_id, date, estimated_delivery_date, status, total, products }) {
+  // Validar estado antes de insertar
+  const validatedStatus = validateOrderStatus(status);
+  
   const stmt = db.prepare(`
     INSERT INTO orders (client_id, user_id, date, estimated_delivery_date, status, total)
     VALUES (?, ?, ?, ?, ?, ?)
   `);
-  const result = stmt.run(client_id, user_id, date, estimated_delivery_date, status || "pending", total || 0);
+  const result = stmt.run(client_id, user_id, date, estimated_delivery_date, validatedStatus, total || 0);
   
   const orderId = result.lastInsertRowid;
   
@@ -89,12 +103,15 @@ function createOrder({ client_id, user_id, date, estimated_delivery_date, status
 }
 
 function updateOrder(id, { client_id, user_id, estimated_delivery_date, status, total, editated_by }) {
+	// Validar estado antes de actualizar (solo si se proporciona)
+	const validatedStatus = status ? validateOrderStatus(status) : status;
+	
 	const stmt = db.prepare(`
 		UPDATE orders
 		SET client_id = ?, user_id = ?, estimated_delivery_date = ?, status = ?, total = ?, editated_by = ?
 		WHERE id = ?
 	`);
-	const result = stmt.run(client_id, user_id, estimated_delivery_date, status, total, editated_by, id);
+	const result = stmt.run(client_id, user_id, estimated_delivery_date, validatedStatus, total, editated_by, id);
 
 	if (result.changes > 0) {
 		return { success: true, message: 'Orden actualizada exitosamente', data: getOrderById(id) };
@@ -201,5 +218,7 @@ module.exports = {
   updateProductInOrder,
   removeProductFromOrder,
   clearProductsFromOrder,
-  getProductsToOrder
+  getProductsToOrder,
+  VALID_ORDER_STATUSES,
+  validateOrderStatus
 };
