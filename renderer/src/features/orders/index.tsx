@@ -51,13 +51,13 @@ const OrdersPage: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'pending':
+      case 'pendiente':
         return 'bg-yellow-100 text-yellow-800';
-      case 'completed':
+      case 'completado':
         return 'bg-green-100 text-green-800';
-      case 'cancelled':
+      case 'cancelada':
         return 'bg-red-100 text-red-800';
-      case 'in_progress':
+      case 'en proceso':
         return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -66,13 +66,13 @@ const OrdersPage: React.FC = () => {
 
   const getStatusText = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'pending':
+      case 'pendiente':
         return 'Pendiente';
-      case 'completed':
+      case 'completado':
         return 'Completada';
-      case 'cancelled':
+      case 'cancelada':
         return 'Cancelada';
-      case 'in_progress':
+      case 'en progreso':
         return 'En Progreso';
       default:
         return status;

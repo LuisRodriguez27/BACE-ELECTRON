@@ -7,6 +7,7 @@ function getAllOrders() {
     JOIN clients c ON o.client_id = c.id
     JOIN users u ON o.user_id = u.id
     LEFT JOIN users ue ON o.editated_by = ue.id
+    WHERE o.status NOT IN ('completado', 'cancelado')
     ORDER BY o.date DESC
   `);
 	return stmt.all();

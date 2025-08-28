@@ -108,7 +108,7 @@ function seed() {
     adminId,
     new Date().toISOString(),
     new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // +3 días
-    "pending",
+    "pendiente",
     350.5
   ).lastInsertRowid;
 
@@ -118,7 +118,7 @@ function seed() {
     null,
     new Date().toISOString(),
     new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), // +5 días
-    "completed",
+    "completado",
     500.0
   ).lastInsertRowid;
 

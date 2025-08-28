@@ -67,6 +67,8 @@ declare global {
       clearProductsFromOrder: (orderId: number) => Promise<void>;
       getProductsToOrder: (orderId: number) => Promise<OrderProduct[]>;
 
+      getSales: () => Promise<Order[]>;
+
       // Pagos
       getPaymentsByOrderId: (orderId: number) => Promise<Payment[]>;
       getPaymentById: (id: number) => Promise<Payment>;
