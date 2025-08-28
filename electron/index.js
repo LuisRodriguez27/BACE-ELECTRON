@@ -106,6 +106,8 @@ ipcMain.handle('orders:removeProduct', (event, orderProductId) => orderService.r
 ipcMain.handle('orders:clearProducts', (event, orderId) => orderService.clearProductsFromOrder(orderId));
 ipcMain.handle('orders:getProducts', (event, orderId) => orderService.getProductsToOrder(orderId));
 
+ipcMain.handle('sales:getAll', () => orderService.getSales());
+
 // Manejo de eventos IPC para pagos
 ipcMain.handle('payments:getPaymetsByOrderId', (event, orderId) => paymentService.getPaymentsByOrderId(orderId));
 ipcMain.handle('payments:getById', (event, id) => paymentService.getPaymentById(id));

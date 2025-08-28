@@ -47,6 +47,19 @@ function getOrdersByClientId(clientId) {
   return stmt.all(clientId);
 }
 
+function getSales() {
+  const stmt = db.prepare (`
+    SELECT o.*, c.name as client_name, u.username as created_by, ue.username as edited_by
+    FROM orders o
+    JOIN clients c ON o.client_id = c.id
+    JOIN users u ON o.user_id = u.id
+    LEFT JOIN users ue ON o.editated_by = ue.id
+    WHERE o.status = 'completado'
+    ORDER BY o.date DESC
+  `)
+
+  return stmt.all();
+}
 
 // Estados válidos para las órdenes
 const VALID_ORDER_STATUSES = ['pendiente', 'en proceso', 'completado', 'cancelado'];
@@ -220,5 +233,6 @@ module.exports = {
   clearProductsFromOrder,
   getProductsToOrder,
   VALID_ORDER_STATUSES,
-  validateOrderStatus
+  validateOrderStatus,
+  getSales
 };
