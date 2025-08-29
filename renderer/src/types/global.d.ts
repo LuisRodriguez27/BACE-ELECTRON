@@ -15,7 +15,7 @@ declare global {
       logout: () => Promise<{ success: boolean; message: string }>;
       getCurrentUser: () => Promise<User | null>;
       isAuthenticated: () => Promise<boolean>;
-      getUserWithPermissions: () => Promise<User | null>;
+      getUserWithPermissions: () => Promise<(User & { permissions: string[] }) | null>;
       requireAuth: () => Promise<{ success: boolean; message?: string }>;
 
       // Usuarios
@@ -28,13 +28,14 @@ declare global {
 
       // Permisos
       getAllPermissions: () => Promise<Permission[]>;
-      getPermissionById: (id: number) => Promise<Permission>;
+      getPermissionsById: (id: number) => Promise<Permission>;
       getPermissionsByUserId: (userId: number) => Promise<Permission[]>;
       createPermission: (data: CreatePermissionForm) => Promise<Permission>;
-      updatePermission: (id: number, data: EditPermissionForm) => Promise<Permission>;
-      deletePermission: (id: number) => Promise<void>;
-      assignPermissionToUser: (data: string) => Promise<void>;
-      removePermissionFromUser: (data: string) => Promise<void>;
+      updatePermission: (id: number, data: EditPermissionForm) => Promise<{ success: boolean; message: string } | Permission>;
+      deletePermission: (id: number) => Promise<{ success: boolean; message: string }>;
+      // Corregidos los tipos de parámetros - deben ser objetos, no strings
+      assignPermissionToUser: (data: { userId: number; permissionId: number }) => Promise<{ success: boolean; message: string }>;
+      removePermissionFromUser: (data: { userId: number; permissionId: number }) => Promise<{ success: boolean; message: string }>;
 
       // Clientes
       getAllClients: () => Promise<Client[]>;
@@ -180,9 +181,9 @@ declare global {
       // Pagos
       getPaymentsByOrderId: (orderId: number) => Promise<Payment[]>;
       getPaymentById: (id: number) => Promise<Payment>;
-      createPayment: (data: CreatePaymentForm) => Promise<Payment>;
-      updatePayment: (id: number, data: EditPaymentForm) => Promise<Payment>;
-      deletePayment: (id: number) => Promise<void>;
+      createPayment: (data: CreatePaymentForm & { orderId: number; amount: number; date?: string; descripcion?: string }) => Promise<Payment>;
+      updatePayment: (id: number, data: { amount: number; descripcion?: string }) => Promise<{ success: boolean; message: string } | Payment>;
+      deletePayment: (id: number) => Promise<{ success: boolean; message: string }>;
     };
   }
 }
