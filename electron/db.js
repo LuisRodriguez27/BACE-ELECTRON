@@ -44,7 +44,25 @@ db.exec(`
     serial_number TEXT UNIQUE,
     price REAL NOT NULL,
     description TEXT,
+    width REAL,
+    height REAL,
+    colors TEXT,
+    position TEXT,
     active INTEGER NOT NULL DEFAULT 1
+  );
+
+  CREATE TABLE IF NOT EXISTS product_templates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id INTEGER NOT NULL,
+    width REAL,
+    height REAL,
+    colors TEXT,
+    position TEXT,
+    description TEXT,
+    created_by INTEGER,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES products(id),
+    FOREIGN KEY (created_by) REFERENCES users(id)
   );
 
   CREATE TABLE IF NOT EXISTS orders (
@@ -65,15 +83,12 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     order_id INTEGER NOT NULL,
     products_id INTEGER NOT NULL,
+    template_id INTEGER,
     quantity INTEGER NOT NULL,
     price REAL NOT NULL,
-    height REAL,
-    width REAL,
-    position TEXT,
-    colors TEXT,
-    description TEXT,
     FOREIGN KEY (order_id) REFERENCES orders(id),
-    FOREIGN KEY (products_id) REFERENCES products(id)
+    FOREIGN KEY (products_id) REFERENCES products(id),
+    FOREIGN KEY (template_id) REFERENCES product_templates(id)
   );
 
   CREATE TABLE IF NOT EXISTS payments (

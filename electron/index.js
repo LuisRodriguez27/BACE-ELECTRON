@@ -9,6 +9,7 @@ const userService = require('./services/users');
 const permissionService = require('./services/permissions');
 const clientService = require('./services/clients');
 const productService = require('./services/products');
+const productTemplatesService = require('./services/productTemplates');
 const orderService = require('./services/orders');
 const paymentService = require('./services/payments');
 const authService = require('./services/auth')
@@ -91,6 +92,19 @@ ipcMain.handle('products:update', (event, id, data) => productService.updateProd
 ipcMain.handle('products:delete', (event, id) => productService.deleteProduct(id));
 ipcMain.handle('products:remove', (event, id) => productService.removeProduct(id));   // DEV
 
+// Manejo de eventos IPC para plantillas de productos
+ipcMain.handle('templates:getAll', () => productTemplatesService.getAllTemplates());
+ipcMain.handle('templates:getById', (event, id) => productTemplatesService.getTemplateById(id));
+ipcMain.handle('templates:getByProductId', (event, productId) => productTemplatesService.getTemplatesByProductId(productId));
+ipcMain.handle('templates:getByUserId', (event, userId) => productTemplatesService.getTemplatesByUserId(userId));
+ipcMain.handle('templates:create', (event, data) => productTemplatesService.createTemplate(data));
+ipcMain.handle('templates:update', (event, id, data) => productTemplatesService.updateTemplate(id, data));
+ipcMain.handle('templates:delete', (event, id) => productTemplatesService.deleteTemplate(id));
+ipcMain.handle('templates:createFromModification', (event, data) => productTemplatesService.createTemplateFromProductModification(data));
+ipcMain.handle('templates:findSimilar', (event, productId, width, height, tolerance) => productTemplatesService.findSimilarTemplates(productId, width, height, tolerance));
+ipcMain.handle('templates:getUsageStats', () => productTemplatesService.getTemplateUsageStats());
+ipcMain.handle('templates:clone', (event, templateId, createdBy, newDescription) => productTemplatesService.cloneTemplate(templateId, createdBy, newDescription));
+
 // Manejo de eventos IPC para ordenes
 ipcMain.handle('orders:getAll', () => orderService.getAllOrders());
 ipcMain.handle('orders:getById', (event, id) => orderService.getOrderById(id));
@@ -98,13 +112,23 @@ ipcMain.handle('orders:getByClientId', (event, clientId) => orderService.getOrde
 ipcMain.handle('orders:create', (event, data) => orderService.createOrder(data));
 ipcMain.handle('orders:update', (event, id, data) => orderService.updateOrder(id, data));
 ipcMain.handle('orders:delete', (event, id) => orderService.deleteOrder(id));
+
+// Funciones del nuevo flujo de productos en órdenes
 ipcMain.handle('orders:addProduct', (event, data) => orderService.addProductToOrder(data));
-ipcMain.handle('orders:addProducts', (event, data) => orderService.addProductsToOrder(data));
-ipcMain.handle('orders:updateProductQuantity', (event, data) => orderService.updateProductQuantity(orderProductId,data));
-ipcMain.handle('orders:updateProductInOrder', (event, data) => orderService.updateProductInOrder(orderProductId,data));
+ipcMain.handle('orders:addProductWithModifications', (event, data) => orderService.addProductWithModifications(data));
+ipcMain.handle('orders:addProductFromTemplate', (event, data) => orderService.addProductFromTemplate(data));
+ipcMain.handle('orders:addProductFromTemplateWithModifications', (event, data) => orderService.addProductFromTemplateWithModifications(data));
+
+// Funciones de gestión de productos en orden
+ipcMain.handle('orders:updateProductQuantity', (event, data) => orderService.updateProductQuantity(data));
+ipcMain.handle('orders:updateProductTemplate', (event, data) => orderService.updateProductTemplate(data));
 ipcMain.handle('orders:removeProduct', (event, orderProductId) => orderService.removeProductFromOrder(orderProductId));
 ipcMain.handle('orders:clearProducts', (event, orderId) => orderService.clearProductsFromOrder(orderId));
 ipcMain.handle('orders:getProducts', (event, orderId) => orderService.getProductsToOrder(orderId));
+
+// Funciones de consulta y estadísticas
+ipcMain.handle('orders:getOrdersUsingTemplate', (event, templateId) => orderService.getOrdersUsingTemplate(templateId));
+ipcMain.handle('orders:getTemplateUsageInOrders', () => orderService.getTemplateUsageInOrders());
 
 ipcMain.handle('sales:getAll', () => orderService.getSales());
 

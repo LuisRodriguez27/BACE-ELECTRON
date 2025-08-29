@@ -26,13 +26,9 @@ export const createOrderSchema = z.object({
 	total: z.number().min(0, 'El total debe ser un número positivo'),
 	products: z.array(z.object({
 		products_id: z.number().int().min(1, 'El ID del producto es obligatorio'),
+		template_id: z.number().int().optional(),
 		quantity: z.number().int().min(1, 'La cantidad debe ser al menos 1'),
-		price: z.number().min(0, 'El precio debe ser un número positivo'),
-		height: z.number().optional(),
-		width: z.number().optional(),
-		position: z.string().optional(),
-		colors: z.string().optional(),
-		description: z.string().optional()
+		price: z.number().min(0, 'El precio debe ser un número positivo')
 	})).optional()
 });
 
@@ -76,13 +72,9 @@ export interface Order {
 export const createOrderProductSchema = z.object({
 	order_id: z.number().int().min(1, 'El ID de la orden es obligatorio'),
 	products_id: z.number().int().min(1, 'El ID del producto es obligatorio'),
+	template_id: z.number().int().optional(),
 	quantity: z.number().int().min(1, 'La cantidad debe ser al menos 1'),
-	price: z.number().min(0, 'El precio debe ser un número positivo'),
-	height: z.number().optional(),
-	width: z.number().optional(),
-	position: z.string().optional(),
-	colors: z.string().optional(),
-	description: z.string().optional()
+	price: z.number().min(0, 'El precio debe ser un número positivo')
 });
 
 export const editOrderProductSchema = createOrderProductSchema.partial();
@@ -94,14 +86,27 @@ export interface OrderProduct {
 	id: number;
 	order_id: number;
 	products_id: number;
+	template_id?: number;
 	quantity: number;
 	price: number;
-	height?: number;
-	width?: number;
-	position?: string;
-	colors?: string;
-	description?: string;
-	// Para joins
+	
+	// Campos añadidos por JOIN con products
+	product_name?: string;
+	serial_number?: string;
+	product_width?: number;
+	product_height?: number;
+	product_colors?: string;
+	product_position?: string;
+	
+	// Campos añadidos por JOIN con product_templates
+	template_width?: number;
+	template_height?: number;
+	template_colors?: string;
+	template_position?: string;
+	template_description?: string;
+	template_created_at?: string;
+	
+	// Para joins (compatibilidad hacia atrás)
 	product?: {
 		id: number;
 		name: string;

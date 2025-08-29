@@ -20,19 +20,38 @@ function getInactiveProducts() {
 	return stmt.all();
 }
 
-function createProduct({ name, serial_number, price, description }) {
-	const stmt = db.prepare('INSERT INTO products (name, serial_number, price, description) VALUES (?, ?, ?, ?)');
-	const result = stmt.run(name, serial_number, price, description);
+function createProduct({ name, serial_number, price, description, width, height, colors, position }) {
+	const stmt = db.prepare('INSERT INTO products (name, serial_number, price, description, width, height, colors, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+	
+	// Convertir colors a string si es un objeto/array
+	const colorsString = typeof colors === 'string' ? colors : JSON.stringify(colors || null);
+	
+	const result = stmt.run(name, serial_number, price, description, width || null, height || null, colorsString, position || null);
 
-	return { id: result.lastInsertRowid, name, serial_number, price, description, active: 1 };
+	return { 
+		id: result.lastInsertRowid, 
+		name, 
+		serial_number, 
+		price, 
+		description, 
+		width: width || null,
+		height: height || null,
+		colors: colorsString,
+		position: position || null,
+		active: 1 
+	};
 }
 
-function updateProduct(id, { name, serial_number, price, description }) {
-	const stmt = db.prepare('UPDATE products SET name = ?, serial_number = ?, price = ?, description = ? WHERE id = ?');
-	const result = stmt.run(name, serial_number, price, description, id);
+function updateProduct(id, { name, serial_number, price, description, width, height, colors, position }) {
+	const stmt = db.prepare('UPDATE products SET name = ?, serial_number = ?, price = ?, description = ?, width = ?, height = ?, colors = ?, position = ? WHERE id = ?');
+	
+	// Convertir colors a string si es un objeto/array
+	const colorsString = typeof colors === 'string' ? colors : JSON.stringify(colors || null);
+	
+	const result = stmt.run(name, serial_number, price, description, width || null, height || null, colorsString, position || null, id);
 	
 	if (result.changes > 0) {
-		return { success: true, message: 'Producto actualizado exitosamente' }, getProductById(id);
+		return { success: true, message: 'Producto actualizado exitosamente', data: getProductById(id) };
 	} else {
 		return { success: false, message: 'Producto no encontrado' };
 	}

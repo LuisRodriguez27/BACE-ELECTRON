@@ -46,6 +46,19 @@ contextBridge.exposeInMainWorld('api', {
   deleteProduct: (id) => ipcRenderer.invoke('products:delete', id),
   removeProduct: (id) => ipcRenderer.invoke('products:remove', id),
 
+  // Plantillas de productos
+  getAllTemplates: () => ipcRenderer.invoke('templates:getAll'),
+  getTemplateById: (id) => ipcRenderer.invoke('templates:getById', id),
+  getTemplatesByProductId: (productId) => ipcRenderer.invoke('templates:getByProductId', productId),
+  getTemplatesByUserId: (userId) => ipcRenderer.invoke('templates:getByUserId', userId),
+  createTemplate: (data) => ipcRenderer.invoke('templates:create', data),
+  updateTemplate: (id, data) => ipcRenderer.invoke('templates:update', id, data),
+  deleteTemplate: (id) => ipcRenderer.invoke('templates:delete', id),
+  createTemplateFromModification: (data) => ipcRenderer.invoke('templates:createFromModification', data),
+  findSimilarTemplates: (productId, width, height, tolerance) => ipcRenderer.invoke('templates:findSimilar', productId, width, height, tolerance),
+  getTemplateUsageStats: () => ipcRenderer.invoke('templates:getUsageStats'),
+  cloneTemplate: (templateId, createdBy, newDescription) => ipcRenderer.invoke('templates:clone', templateId, createdBy, newDescription),
+
   // Ordenes
   getAllOrders: () => ipcRenderer.invoke('orders:getAll'),
   getOrderById: (id) => ipcRenderer.invoke('orders:getById', id),
@@ -53,13 +66,23 @@ contextBridge.exposeInMainWorld('api', {
   createOrder: (data) => ipcRenderer.invoke('orders:create', data),
   updateOrder: (id, data) => ipcRenderer.invoke('orders:update', id, data),
   deleteOrder: (id) => ipcRenderer.invoke('orders:delete', id),
-  addProductToOrder: (orderId, data) => ipcRenderer.invoke('orders:addProduct', orderId, data),
-  addProductsToOrder: (orderId, data) => ipcRenderer.invoke('orders:addProducts', orderId, data),
-  updateProductQuantity: (orderProductId, quantity) => ipcRenderer.invoke('orders:updateProductQuantity', orderProductId, quantity),
-  updateProductInOrder: (orderProductId, data) => ipcRenderer.invoke('orders:updateProductInOrder', orderProductId, data),
-  removeProduct: (orderProductId) => ipcRenderer.invoke('orders:removeProduct', orderProductId),
-  clearProducts: (orderId) => ipcRenderer.invoke('orders:clearProducts', orderId),
-  getProducts: (orderId) => ipcRenderer.invoke('orders:getProducts', orderId),
+  
+  // Funciones del nuevo flujo de productos en órdenes
+  addProductToOrder: (data) => ipcRenderer.invoke('orders:addProduct', data),
+  addProductWithModifications: (data) => ipcRenderer.invoke('orders:addProductWithModifications', data),
+  addProductFromTemplate: (data) => ipcRenderer.invoke('orders:addProductFromTemplate', data),
+  addProductFromTemplateWithModifications: (data) => ipcRenderer.invoke('orders:addProductFromTemplateWithModifications', data),
+  
+  // Funciones de gestión de productos en orden
+  updateProductQuantity: (data) => ipcRenderer.invoke('orders:updateProductQuantity', data),
+  updateProductTemplate: (data) => ipcRenderer.invoke('orders:updateProductTemplate', data),
+  removeProductFromOrder: (orderProductId) => ipcRenderer.invoke('orders:removeProduct', orderProductId),
+  clearProductsFromOrder: (orderId) => ipcRenderer.invoke('orders:clearProducts', orderId),
+  getProductsFromOrder: (orderId) => ipcRenderer.invoke('orders:getProducts', orderId),
+  
+  // Funciones de consulta y estadísticas
+  getOrdersUsingTemplate: (templateId) => ipcRenderer.invoke('orders:getOrdersUsingTemplate', templateId),
+  getTemplateUsageInOrders: () => ipcRenderer.invoke('orders:getTemplateUsageInOrders'),
 
   getSales: () => ipcRenderer.invoke('sales:getAll'),
 
