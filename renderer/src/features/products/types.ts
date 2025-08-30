@@ -2,13 +2,13 @@ import { z } from 'zod';
 
 export const createProductSchema = z.object({
 	name: z.string().min(1, 'El nombre del producto es obligatorio'),
-	serial_number: z.string().optional(),
-	price: z.number().min(0, 'El precio debe ser un número mayor a 0'),
-	description: z.string().optional(),
-	width: z.number().optional(),
-	height: z.number().optional(),
+	serial_number: z.string().optional().or(z.literal('')),
+	price: z.number().min(0, 'El precio debe ser un número mayor o igual a 0'),
+	description: z.string().optional().or(z.literal('')),
+	width: z.number().min(0, 'El ancho debe ser un número mayor o igual a 0').optional().or(z.literal(undefined)),
+	height: z.number().min(0, 'El alto debe ser un número mayor o igual a 0').optional().or(z.literal(undefined)),
 	colors: z.union([z.string(), z.array(z.string())]).optional(),
-	position: z.string().optional()
+	position: z.string().optional().or(z.literal(''))
 });
 
 export const editProductSchema = createProductSchema.partial();

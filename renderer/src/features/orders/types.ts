@@ -22,13 +22,19 @@ export const createOrderSchema = z.object({
 	user_id: z.number().int().min(1, 'El ID del usuario es obligatorio'),
 	date: z.string().min(1, 'La fecha es obligatoria'),
 	estimated_delivery_date: z.string().optional(),
-	status: orderStatusSchema.default('pendiente'),
+	status: orderStatusSchema,
 	total: z.number().min(0, 'El total debe ser un número positivo'),
 	products: z.array(z.object({
 		products_id: z.number().int().min(1, 'El ID del producto es obligatorio'),
 		template_id: z.number().int().optional(),
 		quantity: z.number().int().min(1, 'La cantidad debe ser al menos 1'),
-		price: z.number().min(0, 'El precio debe ser un número positivo')
+		price: z.number().min(0, 'El precio debe ser un número positivo'),
+		// Campos para modificaciones de producto
+		width: z.number().min(0, 'El ancho debe ser un número positivo').optional(),
+		height: z.number().min(0, 'El alto debe ser un número positivo').optional(),
+		colors: z.union([z.string(), z.array(z.string())]).optional(),
+		position: z.string().optional(),
+		description: z.string().optional()
 	})).optional()
 });
 

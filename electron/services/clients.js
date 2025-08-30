@@ -22,7 +22,7 @@ function updateClient(id, { name, phone, address, description }) {
 	const result = stmt.run(name, phone, address, description, id);
 	
 	if (result.changes > 0) {
-		return { success: true, message: 'Cliente actualizado exitosamente' }, getClientById(id);
+		return { success: true, message: 'Cliente actualizado exitosamente', data: getClientById(id) };
 	} else {
 		return { success: false, message: 'Cliente no encontrado' };
 	}

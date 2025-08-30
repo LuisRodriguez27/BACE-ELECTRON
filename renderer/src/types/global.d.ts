@@ -31,7 +31,7 @@ declare global {
       getPermissionsById: (id: number) => Promise<Permission>;
       getPermissionsByUserId: (userId: number) => Promise<Permission[]>;
       createPermission: (data: CreatePermissionForm) => Promise<Permission>;
-      updatePermission: (id: number, data: EditPermissionForm) => Promise<{ success: boolean; message: string } | Permission>;
+      updatePermission: (id: number, data: EditPermissionForm) => Promise<{ success: boolean; message: string; data?: Permission }>;
       deletePermission: (id: number) => Promise<{ success: boolean; message: string }>;
       // Corregidos los tipos de parámetros - deben ser objetos, no strings
       assignPermissionToUser: (data: { userId: number; permissionId: number }) => Promise<{ success: boolean; message: string }>;
@@ -60,8 +60,8 @@ declare global {
       getTemplatesByProductId: (productId: number) => Promise<ProductTemplate[]>;
       getTemplatesByUserId: (userId: number) => Promise<ProductTemplate[]>;
       createTemplate: (data: CreateProductTemplateForm) => Promise<ProductTemplate>;
-      updateTemplate: (id: number, data: EditProductTemplateForm) => Promise<ProductTemplate>;
-      deleteTemplate: (id: number) => Promise<void>;
+      updateTemplate: (id: number, data: EditProductTemplateForm) => Promise<{ success: boolean; message: string; data?: ProductTemplate }>;
+      deleteTemplate: (id: number) => Promise<{ success: boolean; message: string }>;
       createTemplateFromModification: (data: {
         product_id: number;
         modifications: {
@@ -182,7 +182,7 @@ declare global {
       getPaymentsByOrderId: (orderId: number) => Promise<Payment[]>;
       getPaymentById: (id: number) => Promise<Payment>;
       createPayment: (data: CreatePaymentForm & { orderId: number; amount: number; date?: string; descripcion?: string }) => Promise<Payment>;
-      updatePayment: (id: number, data: { amount: number; descripcion?: string }) => Promise<{ success: boolean; message: string } | Payment>;
+      updatePayment: (id: number, data: { amount: number; descripcion?: string }) => Promise<{ success: boolean; message: string; data?: Payment }>;
       deletePayment: (id: number) => Promise<{ success: boolean; message: string }>;
     };
   }

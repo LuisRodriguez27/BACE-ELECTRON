@@ -11,7 +11,7 @@ export const PermissionsApiService = {
   },
 
   findById: async (id: number): Promise<Permission> => {
-    return window.api.getPermissionById(id);
+    return window.api.getPermissionsById(id);
   },
 
   findByUserId: async (userId: number): Promise<Permission[]> => {
@@ -22,22 +22,28 @@ export const PermissionsApiService = {
     return window.api.createPermission(permission);
   },
 
-  update: async (id: number, permission: EditPermissionForm): Promise<Permission> => {
+  update: async (id: number, permission: EditPermissionForm): Promise<{ success: boolean; message: string; data?: Permission }> => {
     return window.api.updatePermission(id, permission);
   },
 
-  delete: async (id: number): Promise<void> => {
+  delete: async (id: number): Promise<{ success: boolean; message: string }> => {
     return window.api.deletePermission(id);
   },
 
   // User-Permission assignment methods
-  assignToUser: async (assignment: AssignPermissionForm): Promise<void> => {
-    // La API espera una string, convertimos el objeto a JSON
-    return window.api.assignPermissionToUser(JSON.stringify(assignment));
+  assignToUser: async (assignment: AssignPermissionForm): Promise<{ success: boolean; message: string }> => {
+    // Convertir snake_case a camelCase para la API
+    return window.api.assignPermissionToUser({
+      userId: assignment.user_id,
+      permissionId: assignment.permission_id
+    });
   },
 
-  removeFromUser: async (assignment: AssignPermissionForm): Promise<void> => {
-    // La API espera una string, convertimos el objeto a JSON
-    return window.api.removePermissionFromUser(JSON.stringify(assignment));
+  removeFromUser: async (assignment: AssignPermissionForm): Promise<{ success: boolean; message: string }> => {
+    // Convertir snake_case a camelCase para la API  
+    return window.api.removePermissionFromUser({
+      userId: assignment.user_id,
+      permissionId: assignment.permission_id
+    });
   }
 };

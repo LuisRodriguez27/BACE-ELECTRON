@@ -3,31 +3,63 @@ const productTemplatesService = require('./productTemplates');
 
 function getAllOrders() {
 	const stmt = db.prepare(`
-    SELECT o.*, c.name as client_name, u.username as created_by, ue.username as edited_by
+    SELECT o.*, 
+           c.id as client_id, c.name as client_name, c.phone as client_phone,
+           u.id as user_id, u.username as user_username,
+           ue.id as edited_by_user_id, ue.username as edited_by_username
     FROM orders o
     JOIN clients c ON o.client_id = c.id
     JOIN users u ON o.user_id = u.id
-    LEFT JOIN users ue ON o.editated_by = ue.id
+    LEFT JOIN users ue ON o.edited_by = ue.id
     WHERE o.status NOT IN ('completado', 'cancelado')
     ORDER BY o.date DESC
   `);
-	return stmt.all();
+	
+	const orders = stmt.all();
+	
+	// Transformar respuesta para coincidir con types del frontend
+	return orders.map(order => ({
+		id: order.id,
+		client_id: order.client_id,
+		user_id: order.user_id,
+		edited_by: order.edited_by,
+		date: order.date,
+		estimated_delivery_date: order.estimated_delivery_date,
+		status: order.status,
+		total: order.total,
+		client: {
+			id: order.client_id,
+			name: order.client_name,
+			phone: order.client_phone
+		},
+		user: {
+			id: order.user_id,
+			username: order.user_username
+		},
+		editedByUser: order.edited_by_user_id ? {
+			id: order.edited_by_user_id,
+			username: order.edited_by_username
+		} : undefined
+	}));
 }
 
 function getOrderById(id) {
-	const stmt = db.prepare(`
-    SELECT o.*, c.name as client_name, u.username as created_by, ue.username as edited_by
+	const orderData = db.prepare(`
+    SELECT o.*, 
+           c.id as client_id, c.name as client_name, c.phone as client_phone,
+           u.id as user_id, u.username as user_username,
+           ue.id as edited_by_user_id, ue.username as edited_by_username
     FROM orders o
     JOIN clients c ON o.client_id = c.id
     JOIN users u ON o.user_id = u.id
-    LEFT JOIN users ue ON o.editated_by = ue.id
+    LEFT JOIN users ue ON o.edited_by = ue.id
     WHERE o.id = ?
   `).get(id);
 
-	if (!stmt) return null;
+	if (!orderData) return null;
 
-	// ✅ MODIFICADO: Incluir datos del producto base Y de la plantilla
-	stmt.products = db.prepare(`
+	// Obtener productos de la orden
+	const orderProducts = db.prepare(`
     SELECT 
       op.*,
       p.name as product_name, 
@@ -40,41 +72,121 @@ function getOrderById(id) {
       pt.height as template_height,
       pt.colors as template_colors,
       pt.position as template_position,
-      pt.description as template_description
+      pt.description as template_description,
+      pt.created_at as template_created_at
     FROM order_products op
     JOIN products p ON op.products_id = p.id
     LEFT JOIN product_templates pt ON op.template_id = pt.id
     WHERE op.order_id = ?
   `).all(id);
 
-	return stmt;
+	// Estructurar respuesta según types del frontend
+	return {
+		id: orderData.id,
+		client_id: orderData.client_id,
+		user_id: orderData.user_id,
+		edited_by: orderData.edited_by,
+		date: orderData.date,
+		estimated_delivery_date: orderData.estimated_delivery_date,
+		status: orderData.status,
+		total: orderData.total,
+		client: {
+			id: orderData.client_id,
+			name: orderData.client_name,
+			phone: orderData.client_phone
+		},
+		user: {
+			id: orderData.user_id,
+			username: orderData.user_username
+		},
+		editedByUser: orderData.edited_by_user_id ? {
+			id: orderData.edited_by_user_id,
+			username: orderData.edited_by_username
+		} : undefined,
+		orderProducts: orderProducts
+	};
 }
 
 function getOrdersByClientId(clientId) {
   const stmt = db.prepare(`
-    SELECT o.*, c.name as client_name, u.username as created_by, ue.username as edited_by
+    SELECT o.*, 
+           c.id as client_id, c.name as client_name, c.phone as client_phone,
+           u.id as user_id, u.username as user_username,
+           ue.id as edited_by_user_id, ue.username as edited_by_username
     FROM orders o
     JOIN clients c ON o.client_id = c.id
     JOIN users u ON o.user_id = u.id
-    LEFT JOIN users ue ON o.editated_by = ue.id
+    LEFT JOIN users ue ON o.edited_by = ue.id
     WHERE o.client_id = ?
     ORDER BY o.date DESC
   `);
-  return stmt.all(clientId);
+  
+  const orders = stmt.all(clientId);
+  
+  return orders.map(order => ({
+    id: order.id,
+    client_id: order.client_id,
+    user_id: order.user_id,
+    edited_by: order.edited_by,
+    date: order.date,
+    estimated_delivery_date: order.estimated_delivery_date,
+    status: order.status,
+    total: order.total,
+    client: {
+      id: order.client_id,
+      name: order.client_name,
+      phone: order.client_phone
+    },
+    user: {
+      id: order.user_id,
+      username: order.user_username
+    },
+    editedByUser: order.edited_by_user_id ? {
+      id: order.edited_by_user_id,
+      username: order.edited_by_username
+    } : undefined
+  }));
 }
 
 function getSales() {
   const stmt = db.prepare (`
-    SELECT o.*, c.name as client_name, u.username as created_by, ue.username as edited_by
+    SELECT o.*, 
+           c.id as client_id, c.name as client_name, c.phone as client_phone,
+           u.id as user_id, u.username as user_username,
+           ue.id as edited_by_user_id, ue.username as edited_by_username
     FROM orders o
     JOIN clients c ON o.client_id = c.id
     JOIN users u ON o.user_id = u.id
-    LEFT JOIN users ue ON o.editated_by = ue.id
+    LEFT JOIN users ue ON o.edited_by = ue.id
     WHERE o.status = 'completado'
     ORDER BY o.date DESC
-  `)
+  `);
 
-  return stmt.all();
+  const sales = stmt.all();
+  
+  return sales.map(order => ({
+    id: order.id,
+    client_id: order.client_id,
+    user_id: order.user_id,
+    edited_by: order.edited_by,
+    date: order.date,
+    estimated_delivery_date: order.estimated_delivery_date,
+    status: order.status,
+    total: order.total,
+    client: {
+      id: order.client_id,
+      name: order.client_name,
+      phone: order.client_phone
+    },
+    user: {
+      id: order.user_id,
+      username: order.user_username
+    },
+    editedByUser: order.edited_by_user_id ? {
+      id: order.edited_by_user_id,
+      username: order.edited_by_username
+    } : undefined
+  }));
 }
 
 // Estados válidos para las órdenes
@@ -127,16 +239,16 @@ function createOrder({ client_id, user_id, date, estimated_delivery_date, status
   return getOrderById(orderId);
 }
 
-function updateOrder(id, { client_id, user_id, estimated_delivery_date, status, total, editated_by }) {
+function updateOrder(id, { client_id, user_id, estimated_delivery_date, status, total, edited_by }) {
 	// Validar estado antes de actualizar (solo si se proporciona)
 	const validatedStatus = status ? validateOrderStatus(status) : status;
 	
 	const stmt = db.prepare(`
 		UPDATE orders
-		SET client_id = ?, user_id = ?, estimated_delivery_date = ?, status = ?, total = ?, editated_by = ?
+		SET client_id = ?, user_id = ?, estimated_delivery_date = ?, status = ?, total = ?, edited_by = ?
 		WHERE id = ?
 	`);
-	const result = stmt.run(client_id, user_id, estimated_delivery_date, validatedStatus, total, editated_by, id);
+	const result = stmt.run(client_id, user_id, estimated_delivery_date, validatedStatus, total, edited_by, id);
 
 	if (result.changes > 0) {
 		return { success: true, message: 'Orden actualizada exitosamente', data: getOrderById(id) };
@@ -366,14 +478,43 @@ function getProductsToOrder(orderId) {
 
 // Obtener órdenes que usan una plantilla específica
 function getOrdersUsingTemplate(templateId) {
-  return db.prepare(`
-    SELECT DISTINCT o.*, c.name as client_name
+  const orders = db.prepare(`
+    SELECT DISTINCT o.*, 
+           c.id as client_id, c.name as client_name, c.phone as client_phone,
+           u.id as user_id, u.username as user_username,
+           ue.id as edited_by_user_id, ue.username as edited_by_username
     FROM orders o
     JOIN order_products op ON o.id = op.order_id
     JOIN clients c ON o.client_id = c.id
+    JOIN users u ON o.user_id = u.id
+    LEFT JOIN users ue ON o.edited_by = ue.id
     WHERE op.template_id = ?
     ORDER BY o.date DESC
   `).all(templateId);
+  
+  return orders.map(order => ({
+    id: order.id,
+    client_id: order.client_id,
+    user_id: order.user_id,
+    edited_by: order.edited_by,
+    date: order.date,
+    estimated_delivery_date: order.estimated_delivery_date,
+    status: order.status,
+    total: order.total,
+    client: {
+      id: order.client_id,
+      name: order.client_name,
+      phone: order.client_phone
+    },
+    user: {
+      id: order.user_id,
+      username: order.user_username
+    },
+    editedByUser: order.edited_by_user_id ? {
+      id: order.edited_by_user_id,
+      username: order.edited_by_username
+    } : undefined
+  }));
 }
 
 // Estadísticas de uso de plantillas en órdenes

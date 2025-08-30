@@ -52,7 +52,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     defaultValues: {
       user_id: currentUserId,
       date: new Date().toISOString().split('T')[0],
-      status: 'pending',
+      status: 'pendiente',
       total: 0,
       products: []
     }
@@ -195,7 +195,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     setShowCreateProductModal(true);
   };
 
-  const onSubmit = async (data: CreateOrderForm) => {
+  const onSubmit = async (data: any) => {
     try {
       setIsSubmitting(true);
       setError(null);

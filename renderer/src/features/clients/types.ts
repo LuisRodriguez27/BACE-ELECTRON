@@ -18,4 +18,5 @@ export interface Client {
   phone: string;
   address?: string;
   description?: string;
+  active: number; // 1 for active, 0 for inactive
 }

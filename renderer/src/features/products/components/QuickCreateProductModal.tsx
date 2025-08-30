@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createProductSchema, type CreateProductForm, type Product } from '../types';
+import { ProductsApiService } from '../ProductsApiService';
 import { Button, Input, Label } from '@/components/ui';
 import { X, Package, Loader } from 'lucide-react';
 
@@ -49,7 +50,7 @@ const QuickCreateProductModal: React.FC<QuickCreateProductModalProps> = ({
       setIsSubmitting(true);
       setError(null);
 
-      const newProduct = await window.api.createProduct(data);
+      const newProduct = await ProductsApiService.create(data);
       onProductCreated(newProduct);
       reset();
       onClose();

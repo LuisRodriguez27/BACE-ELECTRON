@@ -69,14 +69,14 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     client_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
-    editated_by INTEGER,
+    edited_by INTEGER,
     date TIMESTAMP NOT NULL,
     estimated_delivery_date TIMESTAMP,
-    status TEXT NOT NULL DEFAULT 'pending', 
+    status TEXT NOT NULL DEFAULT 'pendiente', 
     total REAL DEFAULT 0,
     FOREIGN KEY (client_id) REFERENCES clients(id),
     FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (editated_by) REFERENCES users(id)
+    FOREIGN KEY (edited_by) REFERENCES users(id)
   );
 
   CREATE TABLE IF NOT EXISTS order_products (

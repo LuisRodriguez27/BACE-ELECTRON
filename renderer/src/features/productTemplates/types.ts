@@ -1,3 +1,30 @@
+import { z } from 'zod';
+
+// Schemas de validación Zod
+export const createProductTemplateSchema = z.object({
+  product_id: z.number().int().min(1, 'El ID del producto es obligatorio'),
+  width: z.number().min(0, 'El ancho debe ser un número positivo').optional(),
+  height: z.number().min(0, 'El alto debe ser un número positivo').optional(),
+  colors: z.union([z.string(), z.array(z.string())]).optional(),
+  position: z.string().optional(),
+  description: z.string().min(1, 'La descripción es obligatoria'),
+  created_by: z.number().int().min(1, 'El ID del usuario creador es obligatorio').optional()
+});
+
+export const editProductTemplateSchema = createProductTemplateSchema.partial();
+
+export const productModificationsSchema = z.object({
+  width: z.number().min(0, 'El ancho debe ser un número positivo').optional(),
+  height: z.number().min(0, 'El alto debe ser un número positivo').optional(),
+  colors: z.union([z.string(), z.array(z.string())]).optional(),
+  position: z.string().optional(),
+  description: z.string().optional()
+});
+
+export type CreateProductTemplateFormValidation = z.infer<typeof createProductTemplateSchema>;
+export type EditProductTemplateFormValidation = z.infer<typeof editProductTemplateSchema>;
+export type ProductModificationsValidation = z.infer<typeof productModificationsSchema>;
+
 export interface ProductTemplate {
   id: number;
   product_id: number;

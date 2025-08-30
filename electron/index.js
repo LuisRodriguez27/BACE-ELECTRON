@@ -66,7 +66,7 @@ ipcMain.handle('auth:requireAuth', (event, operation) => {
 });
 
 // Manejo de eventos IPC para permisos
-ipcMain.handle('permissions:getAll', () => permissionService.getAllUsers());
+ipcMain.handle('permissions:getAll', () => permissionService.getAllPermissions());
 ipcMain.handle('permissions:getById', (event, id) => permissionService.getPermissionsById(id));
 ipcMain.handle('permissions:getByUserId', (event, userId) => permissionService.getPermissionsByUserId(userId));
 ipcMain.handle('permissions:create', (event, data) => permissionService.createPermission(data));
@@ -133,7 +133,7 @@ ipcMain.handle('orders:getTemplateUsageInOrders', () => orderService.getTemplate
 ipcMain.handle('sales:getAll', () => orderService.getSales());
 
 // Manejo de eventos IPC para pagos
-ipcMain.handle('payments:getPaymetsByOrderId', (event, orderId) => paymentService.getPaymentsByOrderId(orderId));
+ipcMain.handle('payments:getPaymentsByOrderId', (event, orderId) => paymentService.getPaymentsByOrderId(orderId));
 ipcMain.handle('payments:getById', (event, id) => paymentService.getPaymentById(id));
 ipcMain.handle('payments:create', (event, data) => paymentService.createPayment(data));
 ipcMain.handle('payments:update', (event, id, data) => paymentService.updatePayment(id, data));

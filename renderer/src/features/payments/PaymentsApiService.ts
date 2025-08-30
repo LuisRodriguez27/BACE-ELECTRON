@@ -1,7 +1,6 @@
 import type { 
   Payment, 
-  CreatePaymentForm, 
-  EditPaymentForm 
+  CreatePaymentForm
 } from "./types";
 
 export const PaymentsApiService = {
@@ -17,11 +16,11 @@ export const PaymentsApiService = {
     return window.api.createPayment(payment);
   },
 
-  update: async (id: number, payment: EditPaymentForm): Promise<Payment> => {
+  update: async (id: number, payment: { amount: number; descripcion?: string }): Promise<{ success: boolean; message: string; data?: Payment }> => {
     return window.api.updatePayment(id, payment);
   },
 
-  delete: async (id: number): Promise<void> => {
+  delete: async (id: number): Promise<{ success: boolean; message: string }> => {
     return window.api.deletePayment(id);
   }
 };

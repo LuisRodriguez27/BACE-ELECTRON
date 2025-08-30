@@ -27,7 +27,7 @@ function updatePermission(id, { name, description, active }) {
 	const result = stmt.run(name, description, active, id);
 	
 	if (result.changes > 0) {
-		return { success: true, message: 'Permiso actualizado exitosamente' }, getPermissionsById(id);
+		return { success: true, message: 'Permiso actualizado exitosamente', data: getPermissionsById(id) };
 	} else {
 		return { success: false, message: 'Permiso no encontrado' };
 	}

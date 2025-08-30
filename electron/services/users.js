@@ -5,12 +5,46 @@ const saltRounds = 10;
 
 function getAllUsers() {
 	const stmt = db.prepare('SELECT id, username, active FROM users WHERE active = 1');
-	return stmt.all();
+	const users = stmt.all();
+	
+	// Obtener permisos para cada usuario
+	return users.map(user => {
+		const permissionsStmt = db.prepare(`
+			SELECT p.id as permission_id, p.name as permission_name, up.active
+			FROM user_permissions up
+			JOIN permissions p ON up.permission_id = p.id
+			WHERE up.user_id = ? AND p.active = 1
+		`);
+		const userPermissions = permissionsStmt.all(user.id);
+		
+		return {
+			...user,
+			permissions: userPermissions.map(p => p.permission_name),
+			userPermissions: userPermissions
+		};
+	});
 }
 
 function getUserById(id) {
-	const stmt = db.prepare('SELECT id, username FROM users WHERE id = ? AND active = 1');
-	return stmt.get(id);
+	const stmt = db.prepare('SELECT id, username, active FROM users WHERE id = ? AND active = 1');
+	const user = stmt.get(id);
+	
+	if (!user) return null;
+	
+	// Obtener permisos del usuario
+	const permissionsStmt = db.prepare(`
+		SELECT p.id as permission_id, p.name as permission_name, up.active
+		FROM user_permissions up
+		JOIN permissions p ON up.permission_id = p.id
+		WHERE up.user_id = ? AND p.active = 1
+	`);
+	const userPermissions = permissionsStmt.all(id);
+	
+	return {
+		...user,
+		permissions: userPermissions.map(p => p.permission_name),
+		userPermissions: userPermissions
+	};
 }
 
 function createUser({ username, password }) {
@@ -19,7 +53,13 @@ function createUser({ username, password }) {
 	const stmt = db.prepare('INSERT INTO users (username, password) VALUES (?, ?)');
 	const result = stmt.run(username, hashedPassword);
 
-	return { id: result.lastInsertRowid, username, active: 1 };
+	return { 
+		id: result.lastInsertRowid, 
+		username, 
+		active: 1,
+		permissions: [],
+		userPermissions: []
+	};
 }
 
 function updateUser(id, { username, password }) {
