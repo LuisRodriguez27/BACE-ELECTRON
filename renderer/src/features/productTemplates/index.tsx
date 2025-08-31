@@ -1,15 +1,24 @@
-import React, { useEffect, useState } from 'react';
-import { 
-  Plus, Search, Filter, Package, DollarSign, Hash, Edit3, Trash2, 
-  Copy, User, Clock, BarChart3, Palette, Ruler, MapPin, Star, TrendingUp,
-  Grid, List, Eye
-} from 'lucide-react';
 import { Button, Input } from '@/components/ui';
-import { ProductTemplatesApiService } from './ProductTemplatesApiService';
 import { ProductsApiService } from '@/features/products/ProductsApiService';
-import type { ProductTemplate, TemplateUsageStats } from './types';
 import type { Product } from '@/features/products/types';
+import {
+  BarChart3,
+  Clock,
+  Copy,
+  Grid, List,
+  MapPin,
+  Package,
+  Palette, Ruler,
+  Search,
+  Star,
+  Trash2,
+  TrendingUp,
+  User
+} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { ProductTemplatesApiService } from './ProductTemplatesApiService';
+import type { ProductTemplate, TemplateUsageStats } from './types';
 
 const ProductTemplatesPage: React.FC = () => {
   const [templates, setTemplates] = useState<ProductTemplate[]>([]);

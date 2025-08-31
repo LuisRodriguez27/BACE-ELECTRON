@@ -1,15 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  ArrowLeft, Package, DollarSign, Hash, Ruler, Palette, MapPin, 
-  FileText, Plus, Copy, Edit3, Trash2, Eye, BarChart3, Clock, User,
-  Search, Filter, Grid, List, Star, TrendingUp
-} from 'lucide-react';
 import { Button, Input } from '@/components/ui';
-import type { Product } from '../types';
-import type { ProductTemplate, TemplateUsageStats } from '@/features/productTemplates/types';
-import { ProductsApiService } from '../ProductsApiService';
 import { ProductTemplatesApiService } from '@/features/productTemplates/ProductTemplatesApiService';
+import type { ProductTemplate, TemplateUsageStats } from '@/features/productTemplates/types';
+import {
+  ArrowLeft,
+  BarChart3, Clock,
+  Copy,
+  DollarSign,
+  Edit3,
+  FileText,
+  Grid,
+  Hash,
+  List,
+  MapPin,
+  Package,
+  Palette,
+  Plus,
+  Ruler,
+  Search,
+  Star,
+  Trash2,
+  TrendingUp,
+  User
+} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { ProductsApiService } from '../ProductsApiService';
+import type { Product } from '../types';
 
 interface ProductDetailViewProps {
   productId: number;

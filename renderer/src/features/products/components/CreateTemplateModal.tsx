@@ -1,10 +1,10 @@
+import { Button, Input, Label } from "@/components/ui";
+import { ProductTemplatesApiService } from "@/features/productTemplates/ProductTemplatesApiService";
+import { createProductTemplateSchema, type CreateProductTemplateForm, type ProductTemplate } from "@/features/productTemplates/types";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { FileText, Loader, MapPin, Package, Palette, Ruler, X } from "lucide-react";
 import React, { useState } from "react";
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Input, Label } from "@/components/ui";
-import { createProductTemplateSchema, type CreateProductTemplateForm, type ProductTemplate } from "@/features/productTemplates/types";
-import { Loader, X, Package, FileText, Ruler, Palette, MapPin, User } from "lucide-react";
-import { ProductTemplatesApiService } from "@/features/productTemplates/ProductTemplatesApiService";
 import type { Product } from "../types";
 
 interface CreateTemplateModalProps {
@@ -26,8 +26,7 @@ const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
     handleSubmit,
     formState: { errors },
     reset,
-    setValue,
-    watch
+    setValue
   } = useForm<CreateProductTemplateForm>({
     resolver: zodResolver(createProductTemplateSchema),
     defaultValues: {
