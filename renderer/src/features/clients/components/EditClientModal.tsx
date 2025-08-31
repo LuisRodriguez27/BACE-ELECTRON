@@ -188,14 +188,7 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
                 <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
               )}
             </div>
-
-            {/* Client Info */}
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">Cliente ID:</span>
-                <span className="text-sm text-gray-500">#{client.id}</span>
-              </div>
-            </div>
+            
           </div>
 
           {/* Actions */}
