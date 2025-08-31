@@ -3,10 +3,31 @@ import { z } from 'zod';
 export const createProductSchema = z.object({
 	name: z.string().min(1, 'El nombre del producto es obligatorio'),
 	serial_number: z.string().optional().or(z.literal('')),
-	price: z.number().min(0, 'El precio debe ser un número mayor o igual a 0'),
+	price: z.preprocess(
+		(val) => {
+			if (val === '' || val === null || val === undefined) return undefined;
+			const num = Number(val);
+			return isNaN(num) ? undefined : num;
+		},
+		z.number({ error: 'El precio es obligatorio' }).min(0, 'El precio debe ser mayor o igual a 0')
+	),
 	description: z.string().optional().or(z.literal('')),
-	width: z.number().min(0, 'El ancho debe ser un número mayor o igual a 0').optional().or(z.literal(undefined)),
-	height: z.number().min(0, 'El alto debe ser un número mayor o igual a 0').optional().or(z.literal(undefined)),
+	width: z.preprocess(
+		(val) => {
+			if (val === '' || val === null || val === undefined) return undefined;
+			const num = Number(val);
+			return isNaN(num) ? undefined : num;
+		},
+		z.number().min(0, 'El ancho debe ser mayor o igual a 0').optional()
+	),
+	height: z.preprocess(
+		(val) => {
+			if (val === '' || val === null || val === undefined) return undefined;
+			const num = Number(val);
+			return isNaN(num) ? undefined : num;
+		},
+		z.number().min(0, 'El alto debe ser mayor o igual a 0').optional()
+	),
 	colors: z.union([z.string(), z.array(z.string())]).optional(),
 	position: z.string().optional().or(z.literal(''))
 });
