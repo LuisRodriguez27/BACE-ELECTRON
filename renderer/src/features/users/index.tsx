@@ -210,9 +210,6 @@ const UsersPage: React.FC = () => {
                           }`}>
                             {user.active === 1 ? 'Activo' : 'Inactivo'}
                           </span>
-                          <span className="text-xs text-gray-500">
-                            ID: {user.id}
-                          </span>
                         </div>
                       </div>
                     </div>
