@@ -187,7 +187,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
                 <Input
                   id='price'
                   type='number'
-                  step='0.01'
+                  step='1'
                   min='0'
                   placeholder='Precio del producto'
                   className='pl-10'
