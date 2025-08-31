@@ -35,10 +35,10 @@ const menuItems: MenuItem[] = [
     path: '/dashboard/orders'
   },
   {
-    id: 'clients',
-    label: 'Clientes',
-    icon: Users,
-    path: '/dashboard/clients'
+    id: 'history',
+    label: 'Historial de Órdenes',
+    icon: History,
+    path: '/dashboard/history'
   },
   {
     id: 'products',
@@ -47,10 +47,10 @@ const menuItems: MenuItem[] = [
     path: '/dashboard/products'
   },
   {
-    id: 'history',
-    label: 'Historial de Órdenes',
-    icon: History,
-    path: '/dashboard/history'
+    id: 'clients',
+    label: 'Clientes',
+    icon: Users,
+    path: '/dashboard/clients'
   },
   {
     id: 'users',
