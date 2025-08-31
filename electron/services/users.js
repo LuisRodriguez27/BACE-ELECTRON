@@ -108,11 +108,27 @@ function verifyPassword({ username, password }) {
   return bcrypt.compareSync(password, stmt.password);
 }
 
+function checkUsernameExists(username, excludeUserId = null) {
+	let query = 'SELECT id FROM users WHERE username = ?';
+	let params = [username];
+	
+	if (excludeUserId) {
+		query += ' AND id != ?';
+		params.push(excludeUserId);
+	}
+	
+	const stmt = db.prepare(query);
+	const result = stmt.get(...params);
+	
+	return !!result; // Retorna true si existe, false si no
+}
+
 module.exports = {
 	getAllUsers,
 	getUserById,
 	createUser,
 	updateUser,
 	deleteUser,
-	verifyPassword
+	verifyPassword,
+	checkUsernameExists
 };

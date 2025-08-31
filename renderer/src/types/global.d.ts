@@ -25,6 +25,7 @@ declare global {
       updateUser: (id: number, data: EditUserForm) => Promise<User>;
       deleteUser: (id: number) => Promise<void>;
       verifyPassword: (data: LoginCredentials) => Promise<boolean>;
+      checkUsername: (username: string, excludeUserId?: number) => Promise<boolean>;
 
       // Permisos
       getAllPermissions: () => Promise<Permission[]>;

@@ -53,7 +53,7 @@ const UsersPage: React.FC = () => {
         user.id === updatedUser.id ? updatedUser : user
       )
     );
-    toast.success('Usuario actualizado exitosamente')
+    // Toast se maneja desde el modal
   };
 
   const handleUserDeleted = (deletedUserId: number) => {

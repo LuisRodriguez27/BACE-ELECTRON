@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { X, User as UserIcon, Lock, Loader, Eye, EyeOff } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -53,6 +54,20 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
       setIsSubmitting(true);
       setError(null);
       
+      // Solo verificar si el username cambió
+      if (data.username !== user.username) {
+        const usernameExists = await UsersApiService.checkUsername(
+          data.username ?? '', 
+          user.id 
+        );
+        
+        if (usernameExists) {
+          toast.error('Nombre de usuario en uso');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+      
       const updateData: EditUserForm = {
         username: data.username
       };
@@ -63,12 +78,19 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
       }
 
       const updatedUser = await UsersApiService.update(user.id, updateData);
+      toast.success('Usuario actualizado correctamente');
       onUserUpdated(updatedUser);
       reset();
       onClose();
     } catch (err) {
       console.error('Error updating user:', err);
-      setError('Error al actualizar el usuario. Intenta nuevamente.');
+      
+      // Manejo de errores adicional por si algo falla
+      if (err instanceof Error && err.message.includes('UNIQUE constraint failed')) {
+        toast.error('Nombre de usuario en uso');
+      } else {
+        toast.error('Error al actualizar usuario');
+      }
     } finally {
       setIsSubmitting(false);
     }

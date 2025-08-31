@@ -24,5 +24,9 @@ export const UsersApiService = {
 
   verifyPassword: async (credentials: LoginCredentials): Promise<boolean> => {
     return window.api.verifyPassword(credentials);
+  },
+
+  checkUsername: async (username: string, excludeUserId?: number): Promise<boolean> => {
+    return window.api.checkUsername(username, excludeUserId);
   }
 };

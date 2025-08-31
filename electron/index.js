@@ -46,6 +46,7 @@ ipcMain.handle('users:create', (event, data) => userService.createUser(data));
 ipcMain.handle('users:update', (event, id, data) => userService.updateUser(id, data));
 ipcMain.handle('users:delete', (event, id) => userService.deleteUser(id));
 ipcMain.handle('users:verifyPassword', (event, data) => userService.verifyPassword(data));
+ipcMain.handle('users:checkUsername', (event, username, excludeUserId) => userService.checkUsernameExists(username, excludeUserId));
 
 // Manejo de eventos IPC para autenticacion
 ipcMain.handle('auth:login', (event, { username, password }) => 

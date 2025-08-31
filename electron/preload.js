@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('api', {
   updateUser: (id, data) => ipcRenderer.invoke('users:update', id, data),
   deleteUser: (id) => ipcRenderer.invoke('users:delete', id),
   verifyPassword: (data) => ipcRenderer.invoke('users:verifyPassword', data),
+  checkUsername: (username, excludeUserId) => ipcRenderer.invoke('users:checkUsername', username, excludeUserId),
 
   // Autenticación
   login: (credentials) => ipcRenderer.invoke('auth:login', credentials),
