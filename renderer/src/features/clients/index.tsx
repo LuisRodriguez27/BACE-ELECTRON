@@ -42,7 +42,7 @@ const ClientsPage: React.FC = () => {
 
   // Filter clients based on search term
   const filteredClients = clients.filter(client =>
-    client.name.toLowerCase().includes(searchTerm.toLowerCase())
+    client.name?.toLowerCase()?.includes(searchTerm.toLowerCase()) || false
   );
 
   const handleClientCreated = (newClient: Client) => {
@@ -56,9 +56,7 @@ const ClientsPage: React.FC = () => {
         client.id === updatedClient.id ? updatedClient : client
       )
     );
-    toast.success('Cliente actualizado exitosamente', {
-      description: `La información de ${updatedClient.name} ha sido actualizada`
-    });
+    // Toast se maneja desde el modal
   };
 
   const handleClientDeleted = (deletedClientId: number) => {

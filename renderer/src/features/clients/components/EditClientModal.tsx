@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { X, User as UserIcon, Phone, MapPin, FileText, Loader } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -52,14 +53,13 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
       setError(null);
       
       const updatedClient = await ClientApiService.update(client.id, data);
-      // Aseguramos que el cliente actualizado tenga el ID correcto
-      const clientWithId = { ...updatedClient, id: client.id };
-      onClientUpdated(clientWithId);
+      toast.success('Cliente actualizado correctamente');
+      onClientUpdated(updatedClient);
       reset();
       onClose();
     } catch (err) {
       console.error('Error updating client:', err);
-      setError('Error al actualizar el cliente. Intenta nuevamente.');
+      toast.error('Error al actualizar cliente');
     } finally {
       setIsSubmitting(false);
     }
