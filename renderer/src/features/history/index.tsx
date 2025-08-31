@@ -94,17 +94,10 @@ const OrdersPage: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Historial de Ordenes</h1>
-          {/* <p className="text-gray-600 mt-2">
-            Administra las órdenes de producción y su estado
-          </p> */}
+          <p className="text-gray-600 mt-2">
+            Consulta las órdenes finalizadas
+          </p>
         </div>
-        <Button 
-          className="flex items-center gap-2"
-          onClick={() => setShowCreateModal(true)}
-        >
-          <Plus size={16} />
-          Nueva Orden
-        </Button>
       </div>
 
       {/* Filtros y búsqueda */}
