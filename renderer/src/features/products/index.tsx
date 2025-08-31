@@ -3,7 +3,8 @@ import { Plus, Search, Filter, Package, DollarSign, Hash, Edit3, Trash2 } from '
 import { Button } from '@/components/ui/button';
 import { ProductsApiService } from './ProductsApiService';
 import type { Product } from './types';
-import { CreateProductModal, DeleteProductModal, EditProductModal } from './components';
+import { CreateProductModal, DeleteProductModal, EditProductModal, ProductDetailView, CreateTemplateModal, EditTemplateModal } from './components';
+import type { ProductTemplate } from '@/features/productTemplates/types';
 import { toast } from 'sonner';
 
 const ProductsPage: React.FC = () => {
@@ -16,6 +17,13 @@ const ProductsPage: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  
+  // Estados para vista detallada y plantillas
+  const [currentView, setCurrentView] = useState<'list' | 'detail'>('list');
+  const [detailProductId, setDetailProductId] = useState<number | null>(null);
+  const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
+  const [showEditTemplateModal, setShowEditTemplateModal] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<ProductTemplate | null>(null);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -69,12 +77,61 @@ const ProductsPage: React.FC = () => {
     setShowDeleteModal(true);
   };
 
+  const openProductDetail = (productId: number) => {
+    setDetailProductId(productId);
+    setCurrentView('detail');
+  };
+
+  const closeProductDetail = () => {
+    setCurrentView('list');
+    setDetailProductId(null);
+  };
+
+  const openCreateTemplateModal = (productId: number) => {
+    const product = products.find(p => p.id === productId);
+    if (product) {
+      setSelectedProduct(product);
+      setShowCreateTemplateModal(true);
+    }
+  };
+
+  const openEditTemplateModal = (template: ProductTemplate) => {
+    setSelectedTemplate(template);
+    setShowEditTemplateModal(true);
+  };
+
+  const handleTemplateCreated = (template: ProductTemplate) => {
+    toast.success('Plantilla creada exitosamente');
+    setShowCreateTemplateModal(false);
+  };
+
+  const handleTemplateUpdated = (template: ProductTemplate) => {
+    toast.success('Plantilla actualizada exitosamente');
+    setShowEditTemplateModal(false);
+  };
+
   const closeModals = () => {
     setShowCreateModal(false);
     setShowEditModal(false);
     setShowDeleteModal(false);
+    setShowCreateTemplateModal(false);
+    setShowEditTemplateModal(false);
     setSelectedProduct(null);
+    setSelectedTemplate(null);
   };
+
+  // Si estamos en vista detallada, mostrar el componente correspondiente
+  if (currentView === 'detail' && detailProductId) {
+    return (
+      <ProductDetailView
+        productId={detailProductId}
+        onBack={closeProductDetail}
+        onEditProduct={openEditModal}
+        onCreateTemplate={openCreateTemplateModal}
+        onEditTemplate={openEditTemplateModal}
+      />
+    );
+  }
 
   if (loading) {
     return (
@@ -226,7 +283,11 @@ const ProductsPage: React.FC = () => {
                     }`}>
                       {product.active === 1 ? 'Activo' : 'Inactivo'}
                     </span>
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => openProductDetail(product.id)}
+                    >
                       Ver Detalles
                     </Button>
                   </div>
@@ -256,6 +317,23 @@ const ProductsPage: React.FC = () => {
         onClose={closeModals}
         onProductDeleted={handleProductDeleted}
         product={selectedProduct}
+      />
+      
+      {/* Modales de Plantillas */}
+      {selectedProduct && (
+        <CreateTemplateModal
+          isOpen={showCreateTemplateModal}
+          onClose={closeModals}
+          onTemplateCreated={handleTemplateCreated}
+          product={selectedProduct}
+        />
+      )}
+      
+      <EditTemplateModal
+        isOpen={showEditTemplateModal}
+        onClose={closeModals}
+        onTemplateUpdated={handleTemplateUpdated}
+        template={selectedTemplate}
       />
       
     </div>
