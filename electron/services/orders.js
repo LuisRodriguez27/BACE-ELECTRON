@@ -5,10 +5,10 @@ const db = require('../db');
 function getAllOrders() {
   const stmt = db.prepare(`
     SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
-           o.estimated_delivery_date, o.status, o.total, o.notes,
-           c.name as client_name, c.phone as client_phone,
-           u.username as user_username,
-           ue.username as edited_by_username
+          o.estimated_delivery_date, o.status, o.total, o.notes,
+          c.name as client_name, c.phone as client_phone,
+          u.username as user_username,
+          ue.username as edited_by_username
     FROM orders o
     JOIN clients c ON o.client_id = c.id
     JOIN users u ON o.user_id = u.id
@@ -24,10 +24,10 @@ function getAllOrders() {
 function getOrderById(id) {
   const orderData = db.prepare(`
     SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
-           o.estimated_delivery_date, o.status, o.total, o.notes,
-           c.name as client_name, c.phone as client_phone,
-           u.username as user_username,
-           ue.username as edited_by_username
+          o.estimated_delivery_date, o.status, o.total, o.notes,
+          c.name as client_name, c.phone as client_phone,
+          u.username as user_username,
+          ue.username as edited_by_username
     FROM orders o
     JOIN clients c ON o.client_id = c.id
     JOIN users u ON o.user_id = u.id
@@ -65,10 +65,10 @@ function getOrderById(id) {
 function getOrdersByClientId(clientId) {
   const stmt = db.prepare(`
     SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
-           o.estimated_delivery_date, o.status, o.total, o.notes,
-           c.name as client_name, c.phone as client_phone,
-           u.username as user_username,
-           ue.username as edited_by_username
+          o.estimated_delivery_date, o.status, o.total, o.notes,
+          c.name as client_name, c.phone as client_phone,
+          u.username as user_username,
+          ue.username as edited_by_username
     FROM orders o
     JOIN clients c ON o.client_id = c.id
     JOIN users u ON o.user_id = u.id
@@ -84,10 +84,10 @@ function getOrdersByClientId(clientId) {
 function getSales() {
   const stmt = db.prepare(`
     SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
-           o.estimated_delivery_date, o.status, o.total, o.notes,
-           c.name as client_name, c.phone as client_phone,
-           u.username as user_username,
-           ue.username as edited_by_username
+          o.estimated_delivery_date, o.status, o.total, o.notes,
+          c.name as client_name, c.phone as client_phone,
+          u.username as user_username,
+          ue.username as edited_by_username
     FROM orders o
     JOIN clients c ON o.client_id = c.id
     JOIN users u ON o.user_id = u.id

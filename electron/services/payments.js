@@ -3,7 +3,7 @@ const db = require('../db.js');
 function getPaymentsByOrderId(orderId) {
 	const stmt = db.prepare(`
 		SELECT p.*, 
-		       o.id as order_id, o.client_id, o.status, o.total as order_total
+		      o.id as order_id, o.client_id, o.status, o.total as order_total
     FROM payments p
     LEFT JOIN orders o ON p.order_id = o.id
     WHERE p.order_id = ?
