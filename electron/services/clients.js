@@ -10,16 +10,16 @@ function getClientById(id) {
 	return stmt.get(id);
 }
 
-function createClient({ name, phone, address, description }) {
-	const stmt = db.prepare('INSERT INTO clients (name, phone, address, description) VALUES (?, ?, ?, ?)');
-	const result = stmt.run(name, phone, address, description);
+function createClient({ name, phone, address, description, color }) {
+	const stmt = db.prepare('INSERT INTO clients (name, phone, address, description, color) VALUES (?, ?, ?, ?, ?)');
+	const result = stmt.run(name, phone, address, description, color);
 
-	return { id: result.lastInsertRowid, name, phone, address, description };
+	return { id: result.lastInsertRowid, name, phone, address, description, color };
 }
 
-function updateClient(id, { name, phone, address, description }) {
-	const stmt = db.prepare('UPDATE clients SET name = ?, phone = ?, address = ?, description = ? WHERE id = ?');
-	const result = stmt.run(name, phone, address, description, id);
+function updateClient(id, { name, phone, address, description, color }) {
+	const stmt = db.prepare('UPDATE clients SET name = ?, phone = ?, address = ?, description = ?, color = ? WHERE id = ?');
+	const result = stmt.run(name, phone, address, description, color, id);
 	
 	if (result.changes > 0) {
 		return { success: true, message: 'Cliente actualizado exitosamente', data: getClientById(id) };

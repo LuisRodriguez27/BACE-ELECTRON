@@ -4,7 +4,6 @@ const Database = require('better-sqlite3');
 const dbPath = path.join(__dirname, '../sqlite/data.db');
 const db = new Database(dbPath);
 
-
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,6 +34,7 @@ db.exec(`
     phone TEXT NOT NULL,
     address TEXT,
     description TEXT,
+    color TEXT,
     active INTEGER NOT NULL DEFAULT 1
   );
 
@@ -44,10 +44,6 @@ db.exec(`
     serial_number TEXT UNIQUE,
     price REAL NOT NULL,
     description TEXT,
-    width REAL,
-    height REAL,
-    colors TEXT,
-    position TEXT,
     active INTEGER NOT NULL DEFAULT 1
   );
 
@@ -58,9 +54,10 @@ db.exec(`
     height REAL,
     colors TEXT,
     position TEXT,
+    texts TEXT,
     description TEXT,
     created_by INTEGER,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    active INTEGER NOT NULL DEFAULT 1,
     FOREIGN KEY (product_id) REFERENCES products(id),
     FOREIGN KEY (created_by) REFERENCES users(id)
   );
@@ -74,6 +71,7 @@ db.exec(`
     estimated_delivery_date TIMESTAMP,
     status TEXT NOT NULL DEFAULT 'pendiente', 
     total REAL DEFAULT 0,
+    notes TEXT,
     FOREIGN KEY (client_id) REFERENCES clients(id),
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (edited_by) REFERENCES users(id)
@@ -82,12 +80,13 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS order_products (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     order_id INTEGER NOT NULL,
-    products_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
     template_id INTEGER,
     quantity INTEGER NOT NULL,
-    price REAL NOT NULL,
+    unit_price REAL NOT NULL,
+    total_price REAL NOT NULL,
     FOREIGN KEY (order_id) REFERENCES orders(id),
-    FOREIGN KEY (products_id) REFERENCES products(id),
+    FOREIGN KEY (product_id) REFERENCES products(id),
     FOREIGN KEY (template_id) REFERENCES product_templates(id)
   );
 
@@ -99,7 +98,11 @@ db.exec(`
     descripcion TEXT,
     FOREIGN KEY (order_id) REFERENCES orders(id)
   );
-  
+
+  -- Índices útiles para tu flujo diario
+  CREATE INDEX IF NOT EXISTS idx_products_active ON products(active);
+  CREATE INDEX IF NOT EXISTS idx_orders_client_id ON orders(client_id);
+  CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 `);
 
 db.pragma('foreign_keys = ON');

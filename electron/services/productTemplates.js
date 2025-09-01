@@ -1,102 +1,120 @@
 const db = require('../db');
 
-// ============================
-// CRUD BÁSICO DE PLANTILLAS
-// ============================
-
 function getAllTemplates() {
   const stmt = db.prepare(`
-    SELECT pt.*, p.name as product_name, p.serial_number, u.username as created_by_username
+    SELECT 
+      pt.*,
+      p.name as product_name, 
+      p.serial_number,
+      u.username as created_by_username
     FROM product_templates pt
     JOIN products p ON pt.product_id = p.id
     LEFT JOIN users u ON pt.created_by = u.id
-    ORDER BY pt.created_at DESC
+    WHERE pt.active = 1
   `);
   return stmt.all();
 }
 
 function getTemplateById(id) {
   const stmt = db.prepare(`
-    SELECT pt.*, p.name as product_name, p.serial_number, u.username as created_by_username
+    SELECT 
+      pt.*,
+      p.name as product_name, 
+      p.serial_number, 
+      p.price,
+      u.username as created_by_username
     FROM product_templates pt
     JOIN products p ON pt.product_id = p.id
     LEFT JOIN users u ON pt.created_by = u.id
-    WHERE pt.id = ?
+    WHERE pt.id = ? AND pt.active = 1
   `);
   return stmt.get(id);
 }
 
 function getTemplatesByProductId(productId) {
   const stmt = db.prepare(`
-    SELECT pt.*, p.name as product_name, p.serial_number, u.username as created_by_username
+    SELECT 
+      pt.*,
+      p.name as product_name, 
+      p.serial_number, 
+      u.username as created_by_username
     FROM product_templates pt
     JOIN products p ON pt.product_id = p.id
     LEFT JOIN users u ON pt.created_by = u.id
-    WHERE pt.product_id = ?
-    ORDER BY pt.created_at DESC
+    WHERE pt.product_id = ? AND pt.active = 1
   `);
   return stmt.all(productId);
 }
 
-function getTemplatesByUserId(userId) {
-  const stmt = db.prepare(`
-    SELECT pt.*, p.name as product_name, p.serial_number, u.username as created_by_username
-    FROM product_templates pt
-    JOIN products p ON pt.product_id = p.id
-    LEFT JOIN users u ON pt.created_by = u.id
-    WHERE pt.created_by = ?
-    ORDER BY pt.created_at DESC
-  `);
-  return stmt.all(userId);
-}
-
-// ============================
 // CREAR PLANTILLAS
-// ============================
 
-function createTemplate({ product_id, width, height, colors, position, description, created_by }) {
+function createTemplate({ 
+  product_id, 
+  width, 
+  height, 
+  colors, 
+  position, 
+  texts,
+  description,
+  created_by 
+}) {
   const stmt = db.prepare(`
-    INSERT INTO product_templates (product_id, width, height, colors, position, description, created_by)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO product_templates (
+      product_id, width, height, colors, position, 
+      texts, description, created_by
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   
-  // Convertir colors a string si es un objeto/array
+  // Convertir objetos/arrays a JSON strings
   const colorsString = typeof colors === 'string' ? colors : JSON.stringify(colors || null);
+  const textsString = typeof texts === 'string' ? texts : JSON.stringify(texts || null);
   
-  const result = stmt.run(product_id, width || null, height || null, colorsString, position || null, description, created_by);
+  const result = stmt.run(
+    product_id, 
+    width || null, 
+    height || null, 
+    colorsString, 
+    position || null,
+    textsString,
+    description, 
+    created_by
+  );
   
-  // Retornar la plantilla completa con joins
   return getTemplateById(result.lastInsertRowid);
 }
 
-// Crear plantilla desde un producto modificado en una orden
-function createTemplateFromProductModification({ product_id, modifications, created_by, templateDescription }) {
-  return createTemplate({
-    product_id,
-    width: modifications.width,
-    height: modifications.height,
-    colors: modifications.colors,
-    position: modifications.position,
-    description: templateDescription || 'Plantilla personalizada',
-    created_by
-  });
-}
-
-// ============================
 // ACTUALIZAR Y ELIMINAR
-// ============================
 
-function updateTemplate(id, { product_id, width, height, colors, position, description }) {
+function updateTemplate(id, { 
+  product_id, 
+  width, 
+  height, 
+  colors, 
+  position, 
+  texts,
+  description, 
+}) {
   const stmt = db.prepare(`
     UPDATE product_templates 
-    SET product_id = ?, width = ?, height = ?, colors = ?, position = ?, description = ?
+    SET product_id = ?, width = ?, height = ?, colors = ?, 
+        position = ?, texts = ?, description = ?
     WHERE id = ?
   `);
   
-  // Convertir colors a string si es un objeto/array
+  // Convertir objetos/arrays a JSON strings
   const colorsString = typeof colors === 'string' ? colors : JSON.stringify(colors || null);
+  const textsString = typeof texts === 'string' ? texts : JSON.stringify(texts || null);
   
-  const result = stmt.run(product_id, width || null, height || null, colorsString, position || null, description, id);
+  const result = stmt.run(
+    product_id, 
+    width || null, 
+    height || null, 
+    colorsString, 
+    position || null,
+    textsString,
+    description, 
+    id
+  );
   
   if (result.changes > 0) {
     return { success: true, message: 'Plantilla actualizada exitosamente', data: getTemplateById(id) };
@@ -106,7 +124,7 @@ function updateTemplate(id, { product_id, width, height, colors, position, descr
 }
 
 function deleteTemplate(id) {
-  const stmt = db.prepare('DELETE FROM product_templates WHERE id = ?');
+  const stmt = db.prepare('UPDATE product_templates SET active = 0 WHERE id = ?');
   const result = stmt.run(id);
   
   return result.changes > 0
@@ -114,64 +132,39 @@ function deleteTemplate(id) {
     : { success: false, message: 'Plantilla no encontrada' };
 }
 
-// ============================
-// FUNCIONES AUXILIARES
-// ============================
-
-// Buscar plantillas similares (por dimensiones)
-function findSimilarTemplates(product_id, width, height, tolerance = 0.1) {
+// Buscar plantillas por texto
+function searchTemplates(searchTerm) {
   const stmt = db.prepare(`
-    SELECT pt.*, p.name as product_name, p.serial_number, u.username as created_by_username
+    SELECT 
+      pt.*,
+      p.name as product_name, 
+      p.serial_number, 
+      u.username as created_by_username
     FROM product_templates pt
     JOIN products p ON pt.product_id = p.id
     LEFT JOIN users u ON pt.created_by = u.id
-    WHERE pt.product_id = ?
-      AND ABS(pt.width - ?) <= ?
-      AND ABS(pt.height - ?) <= ?
-    ORDER BY pt.created_at DESC
+    WHERE pt.description LIKE ? OR p.name LIKE ?
   `);
   
-  return stmt.all(product_id, width, tolerance, height, tolerance);
+  const term = `%${searchTerm}%`;
+  return stmt.all(term, term);
 }
 
-// Obtener estadísticas de uso de plantillas
-function getTemplateUsageStats() {
-  const stmt = db.prepare(`
-    SELECT 
-      pt.id,
-      pt.description,
-      p.name as product_name,
-      COUNT(op.template_id) as usage_count,
-      MAX(o.date) as last_used
-    FROM product_templates pt
-    JOIN products p ON pt.product_id = p.id
-    LEFT JOIN order_products op ON pt.id = op.template_id
-    LEFT JOIN orders o ON op.order_id = o.id
-    GROUP BY pt.id
-    ORDER BY usage_count DESC, pt.created_at DESC
-  `);
+// Calcular precio final con modificadores
+function calculateTemplatePrice(templateId, baseQuantity = 1) {
+  const template = getTemplateById(templateId);
+  if (!template) return null;
   
-  return stmt.all();
-}
-
-// Clonar una plantilla existente
-function cloneTemplate(templateId, created_by, newDescription) {
-  const original = getTemplateById(templateId);
-  if (!original) {
-    return { success: false, message: 'Plantilla original no encontrada' };
-  }
+  const basePrice = template.base_price || 0;
+  const modifier = template.price_modifier || 0;
+  const finalUnitPrice = basePrice + modifier;
   
-  const cloned = createTemplate({
-    product_id: original.product_id,
-    width: original.width,
-    height: original.height,
-    colors: original.colors,
-    position: original.position,
-    description: newDescription || `Copia de: ${original.description}`,
-    created_by: created_by
-  });
-  
-  return { success: true, template: cloned };
+  return {
+    base_price: basePrice,
+    price_modifier: modifier,
+    unit_price: finalUnitPrice,
+    total_price: finalUnitPrice * baseQuantity,
+  };
 }
 
 module.exports = {
@@ -179,14 +172,13 @@ module.exports = {
   getAllTemplates,
   getTemplateById,
   getTemplatesByProductId,
-  getTemplatesByUserId,
   createTemplate,
   updateTemplate,
   deleteTemplate,
+    
+  // Búsqueda y filtrado
+  searchTemplates,
   
-  // Funciones especiales
-  createTemplateFromProductModification,
-  findSimilarTemplates,
-  getTemplateUsageStats,
-  cloneTemplate
+  // Utilidades
+  calculateTemplatePrice
 };
