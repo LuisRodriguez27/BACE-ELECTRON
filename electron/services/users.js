@@ -7,7 +7,6 @@ function getAllUsers() {
 	const stmt = db.prepare('SELECT id, username, active FROM users WHERE active = 1');
 	const users = stmt.all();
 	
-	// Obtener permisos para cada usuario
 	return users.map(user => {
 		const permissionsStmt = db.prepare(`
 			SELECT p.id as permission_id, p.name as permission_name, up.active
@@ -19,7 +18,6 @@ function getAllUsers() {
 		
 		return {
 			...user,
-			permissions: userPermissions.map(p => p.permission_name),
 			userPermissions: userPermissions
 		};
 	});
@@ -42,7 +40,6 @@ function getUserById(id) {
 	
 	return {
 		...user,
-		permissions: userPermissions.map(p => p.permission_name),
 		userPermissions: userPermissions
 	};
 }
