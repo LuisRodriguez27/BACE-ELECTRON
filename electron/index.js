@@ -105,7 +105,6 @@ ipcMain.handle('templates:delete', (event, id) => productTemplatesService.delete
 
 // Funciones especiales de plantillas
 ipcMain.handle('templates:search', (event, searchTerm) => productTemplatesService.searchTemplates(searchTerm));
-ipcMain.handle('templates:calculatePrice', (event, templateId, quantity) => productTemplatesService.calculateTemplatePrice(templateId, quantity));
 
 // Manejo de eventos IPC para ordenes
 ipcMain.handle('orders:getAll', () => orderService.getAllOrders());

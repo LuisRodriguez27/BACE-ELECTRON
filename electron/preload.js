@@ -59,7 +59,6 @@ contextBridge.exposeInMainWorld('api', {
 
   // Funciones especiales de plantillas
   searchTemplates: (searchTerm) => ipcRenderer.invoke('templates:search', searchTerm),
-  calculateTemplatePrice: (templateId, quantity) => ipcRenderer.invoke('templates:calculatePrice', templateId, quantity),
 
   // Ordenes
   getAllOrders: () => ipcRenderer.invoke('orders:getAll'),

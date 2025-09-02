@@ -50,6 +50,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS product_templates (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     product_id INTEGER NOT NULL,
+    final_price REAL NOT NULL,
     width REAL,
     height REAL,
     colors TEXT,

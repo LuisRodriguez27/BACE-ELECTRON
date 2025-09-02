@@ -21,7 +21,6 @@ function getTemplateById(id) {
       pt.*,
       p.name as product_name, 
       p.serial_number, 
-      p.price,
       u.username as created_by_username
     FROM product_templates pt
     JOIN products p ON pt.product_id = p.id
@@ -49,7 +48,8 @@ function getTemplatesByProductId(productId) {
 // CREAR PLANTILLAS
 
 function createTemplate({ 
-  product_id, 
+  product_id,
+  final_price,
   width, 
   height, 
   colors, 
@@ -60,23 +60,20 @@ function createTemplate({
 }) {
   const stmt = db.prepare(`
     INSERT INTO product_templates (
-      product_id, width, height, colors, position, 
+      product_id, final_price, width, height, colors, position, 
       texts, description, created_by
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  
-  // Convertir objetos/arrays a JSON strings
-  const colorsString = typeof colors === 'string' ? colors : JSON.stringify(colors || null);
-  const textsString = typeof texts === 'string' ? texts : JSON.stringify(texts || null);
-  
+    
   const result = stmt.run(
-    product_id, 
-    width || null, 
+    product_id,
+    final_price,
+    width || null,
     height || null, 
-    colorsString, 
+    colors || null, 
     position || null,
-    textsString,
-    description, 
+    texts || null,
+    description || null, 
     created_by
   );
   
@@ -87,6 +84,7 @@ function createTemplate({
 
 function updateTemplate(id, { 
   product_id, 
+  final_price,
   width, 
   height, 
   colors, 
@@ -96,23 +94,20 @@ function updateTemplate(id, {
 }) {
   const stmt = db.prepare(`
     UPDATE product_templates 
-    SET product_id = ?, width = ?, height = ?, colors = ?, 
+    SET product_id = ?, final_price = ?, width = ?, height = ?, colors = ?, 
         position = ?, texts = ?, description = ?
     WHERE id = ?
   `);
   
-  // Convertir objetos/arrays a JSON strings
-  const colorsString = typeof colors === 'string' ? colors : JSON.stringify(colors || null);
-  const textsString = typeof texts === 'string' ? texts : JSON.stringify(texts || null);
-  
   const result = stmt.run(
     product_id, 
+    final_price,
     width || null, 
     height || null, 
-    colorsString, 
+    colors || null,
     position || null,
-    textsString,
-    description, 
+    texts || null,
+    description || null, 
     id
   );
   
@@ -150,23 +145,6 @@ function searchTemplates(searchTerm) {
   return stmt.all(term, term);
 }
 
-// Calcular precio final con modificadores
-function calculateTemplatePrice(templateId, baseQuantity = 1) {
-  const template = getTemplateById(templateId);
-  if (!template) return null;
-  
-  const basePrice = template.base_price || 0;
-  const modifier = template.price_modifier || 0;
-  const finalUnitPrice = basePrice + modifier;
-  
-  return {
-    base_price: basePrice,
-    price_modifier: modifier,
-    unit_price: finalUnitPrice,
-    total_price: finalUnitPrice * baseQuantity,
-  };
-}
-
 module.exports = {
   // CRUD básico
   getAllTemplates,
@@ -179,6 +157,4 @@ module.exports = {
   // Búsqueda y filtrado
   searchTemplates,
   
-  // Utilidades
-  calculateTemplatePrice
 };
