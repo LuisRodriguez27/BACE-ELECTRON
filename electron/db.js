@@ -73,6 +73,7 @@ db.exec(`
     status TEXT NOT NULL DEFAULT 'pendiente', 
     total REAL DEFAULT 0,
     notes TEXT,
+    active INTEGER NOT NULL DEFAULT 1,
     FOREIGN KEY (client_id) REFERENCES clients(id),
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (edited_by) REFERENCES users(id)

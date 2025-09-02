@@ -166,8 +166,7 @@ function updateOrder(id, { estimated_delivery_date, status, notes, edited_by }) 
 }
 
 function deleteOrder(id) {
-  db.prepare('DELETE FROM order_products WHERE order_id = ?').run(id);
-  const result = db.prepare('DELETE FROM orders WHERE id = ?').run(id);
+  const result = db.prepare('UPDATE orders SET active = 0 WHERE id = ?').run(id);
 
   return result.changes > 0
     ? { success: true, message: 'Orden eliminada exitosamente' }
