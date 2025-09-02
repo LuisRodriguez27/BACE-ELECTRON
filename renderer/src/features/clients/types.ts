@@ -5,6 +5,7 @@ export const createClientSchema = z.object({
   phone: z.string().min(10, 'El teléfono debete de tener al menos 10 digitos'),
   address: z.string().optional(),
   description: z.string().optional(),
+  color: z.string().optional()
 });
 
 export const editClientSchema = createClientSchema.partial();
@@ -18,5 +19,6 @@ export interface Client {
   phone: string;
   address?: string;
   description?: string;
+  color?: string;
   active: number; // 1 for active, 0 for inactive
 }
