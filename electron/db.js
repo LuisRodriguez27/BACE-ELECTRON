@@ -82,7 +82,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS order_products (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     order_id INTEGER NOT NULL,
-    product_id INTEGER NOT NULL,
+    product_id INTEGER,
     template_id INTEGER,
     quantity INTEGER NOT NULL,
     unit_price REAL NOT NULL,
@@ -90,6 +90,8 @@ db.exec(`
     FOREIGN KEY (order_id) REFERENCES orders(id),
     FOREIGN KEY (product_id) REFERENCES products(id),
     FOREIGN KEY (template_id) REFERENCES product_templates(id)
+    CHECK (product_id IS NOT NULL OR template_id IS NOT NULL)
+
   );
 
   CREATE TABLE IF NOT EXISTS payments (

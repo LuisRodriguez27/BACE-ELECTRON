@@ -112,11 +112,12 @@ function validateOrderStatus(status) {
 
 function createOrder({ client_id, user_id, date, estimated_delivery_date, status, products, notes }) {
   if (!products || !products.length) {
-    throw new Error("Una orden debe contener al menos un producto");
+    throw new Error("Una orden debe contener al menos un producto o plantilla");
   }
 
   const validatedStatus = validateOrderStatus(status);
 
+  // Crear la orden con total = 0 temporalmente
   const stmt = db.prepare(`
     INSERT INTO orders (client_id, user_id, date, estimated_delivery_date, status, total, notes)
     VALUES (?, ?, ?, ?, ?, 0, ?)
@@ -130,15 +131,29 @@ function createOrder({ client_id, user_id, date, estimated_delivery_date, status
   `);
 
   const insertProducts = db.transaction((products) => {
-    for (const product of products) {
-      const totalPrice = product.quantity * product.unit_price;
-      
+    for (const item of products) {
+      let unitPrice = 0;
+
+      // Si existe product_id, se toma precio de products
+      if (item.product_id) {
+        const product = db.prepare(`SELECT price FROM products WHERE id = ?`).get(item.product_id);
+        unitPrice += product ? product.price : 0;
+      }
+
+      // Si existe template_id, se toma precio de product_templates
+      if (item.template_id) {
+        const template = db.prepare(`SELECT final_price FROM product_templates WHERE id = ?`).get(item.template_id);
+        unitPrice += template ? template.final_price : 0;
+      }
+
+      const totalPrice = unitPrice * item.quantity;
+
       insertProductStmt.run(
         orderId,
-        product.product_id,
-        product.template_id || null,
-        product.quantity,
-        product.unit_price,
+        item.product_id || null,
+        item.template_id || null,
+        item.quantity,
+        unitPrice,
         totalPrice
       );
     }
@@ -149,6 +164,7 @@ function createOrder({ client_id, user_id, date, estimated_delivery_date, status
 
   return getOrderById(orderId);
 }
+
 
 function updateOrder(id, { estimated_delivery_date, status, notes, edited_by }) {
   const validatedStatus = status ? validateOrderStatus(status) : status;
