@@ -5,6 +5,7 @@ import { Button, Input, Label } from "@/components/ui";
 import { createProductSchema, type CreateProductForm, type Product } from "../types";
 import { Loader, X, ShoppingBag, ScanBarcode, CircleDollarSign, FileText, Ruler, Palette, MapPin } from "lucide-react";
 import { ProductsApiService } from "../ProductsApiService";
+import { extractErrorMessage } from '@/utils/errorHandling';
 
 
 interface CreateProductModalProps {
@@ -45,9 +46,10 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
       reset();
       setColorsInput('');
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error creating product:', err);
-      setError('Error al crear el producto. Intenta nuevamente.');
+      const errorMessage = extractErrorMessage(err);
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

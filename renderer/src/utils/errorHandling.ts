@@ -45,6 +45,16 @@ export function getUserFriendlyErrorMessage(error: any): string {
     'El teléfono contiene caracteres inválidos': 'El teléfono solo puede contener números, espacios, guiones y paréntesis.',
     'Cliente no encontrado': 'No se pudo encontrar el cliente solicitado.',
     'ID de cliente inválido': 'El identificador del cliente no es válido.',
+    
+    // Errores de productos
+    'Ya existe un producto con este número de serie': 'Este número de serie ya está registrado. Por favor, usa otro.',
+    'Ya existe otro producto con este número de serie': 'Este número de serie ya pertenece a otro producto.',
+    'El nombre del producto es requerido': 'El nombre del producto es obligatorio.',
+    'El nombre del producto no puede estar vacío': 'El nombre del producto no puede estar vacío.',
+    'El precio es requerido y debe ser un número válido': 'El precio debe ser un número válido.',
+    'El precio debe ser mayor o igual a cero': 'El precio debe ser mayor o igual a cero.',
+    'Producto no encontrado': 'No se pudo encontrar el producto solicitado.',
+    'ID de producto inválido': 'El identificador del producto no es válido.',
   };
 
   return errorMappings[message] || message;

@@ -5,6 +5,7 @@ import { Button, Input, Label } from '@/components/ui';
 import { editProductSchema, type EditProductForm, type Product } from '../types';
 import { ProductsApiService } from '../ProductsApiService';
 import { CircleDollarSign, FileText, Loader, ScanBarcode, ShoppingBag, X, Ruler, Palette, MapPin } from 'lucide-react';
+import { extractErrorMessage } from '@/utils/errorHandling';
 
 interface EditProductModalProps {
   isOpen: boolean;
@@ -84,9 +85,10 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       onProductUpdated(productWithId);
       reset();
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error updating product:', err);
-      setError('Error al actualizar el producto');
+      const errorMessage = extractErrorMessage(err);
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     };

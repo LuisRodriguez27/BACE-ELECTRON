@@ -41,19 +41,38 @@ const ProductsPage: React.FC = () => {
     fetchProducts();
   }, []);
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) 
-  );
+  // Validar que los datos sean válidos y filtrar
+  const filteredProducts = products.filter(product => {
+    // Validación defensiva: asegurar que el product sea válido
+    if (!product || typeof product !== 'object' || !product.id || !product.name) {
+      console.warn('Producto inválido encontrado en la lista:', product);
+      return false;
+    }
+    
+    const searchLower = searchTerm.toLowerCase();
+    
+    return (
+      product.name.toLowerCase().includes(searchLower) ||
+      (product.serial_number && product.serial_number.toLowerCase().includes(searchLower)) ||
+      (product.description && product.description.toLowerCase().includes(searchLower))
+    );
+  });
   
   const handleProductCreated = (newProduct: Product) => {
     setProducts(prevProducts => [...prevProducts, newProduct]);
     toast.success('Producto creado exitosamente');
   };
 
-  const handleClientUpdated = (updatedProduct: Product) => {
+  const handleProductUpdated = (updatedProduct: Product) => {
+    if (!updatedProduct || !updatedProduct.id) {
+      console.error('Producto actualizado no válido:', updatedProduct);
+      toast.error('Error: datos del producto inválidos');
+      return;
+    }
+    
     setProducts(prevProducts =>
       prevProducts.map(product =>
-        product.id === updatedProduct.id ? updatedProduct : product
+        product && product.id === updatedProduct.id ? updatedProduct : product
       )
     );
     toast.success(`Producto ${updatedProduct.name} actualizado exitosamente`);
@@ -308,7 +327,7 @@ const ProductsPage: React.FC = () => {
       <EditProductModal
         isOpen={showEditModal}
         onClose={closeModals}
-        onProductUpdated={handleClientUpdated}
+        onProductUpdated={handleProductUpdated}
         product={selectedProduct}
       />
       
