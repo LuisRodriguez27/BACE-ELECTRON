@@ -242,20 +242,20 @@ const UsersPage: React.FC = () => {
                       </Button>
                     </div>
                   </div>
-                  
-                  {user.permissions && user.permissions.length > 0 && (
+
+                  {user.userPermissions && user.userPermissions.length > 0 && (
                     <div className="mt-4">
                       <div className="flex items-center gap-2 mb-2">
                         <Shield size={14} className="text-gray-400" />
                         <span className="text-sm font-medium text-gray-700">Permisos:</span>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {user.permissions.map((permission, index) => (
+                        {user.userPermissions.map((permission, index) => (
                           <span
                             key={index}
                             className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-md"
                           >
-                            {permission}
+                            {permission.permission_name}
                           </span>
                         ))}
                       </div>
