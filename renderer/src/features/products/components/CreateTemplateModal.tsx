@@ -5,13 +5,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { FileText, Loader, MapPin, Package, Palette, Ruler, X } from "lucide-react";
 import React, { useState } from "react";
 import { useForm } from 'react-hook-form';
-import type { Product } from "../types";
 
 interface CreateTemplateModalProps {
   isOpen: boolean;
   onClose: () => void;
   onTemplateCreated: (template: ProductTemplate) => void;
-  product: Product;
+  product: ProductTemplate;
 }
 
 const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
@@ -60,10 +59,6 @@ const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
         ...data,
         created_by: 1 // TODO: Get from auth context
       };
-      
-      if (colorsInput.trim()) {
-        processedData.colors = colorsInput.split(',').map(color => color.trim()).filter(color => color);
-      }
 
       const newTemplate = await ProductTemplatesApiService.create(processedData);
       onTemplateCreated(newTemplate);
@@ -118,7 +113,7 @@ const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Nueva Plantilla</h2>
               <p className="text-sm text-gray-500">
-                Crear plantilla para: <span className="font-medium">{product.name}</span>
+                Crear plantilla para: <span className="font-medium">{product.product_name}</span>
               </p>
             </div>
           </div>

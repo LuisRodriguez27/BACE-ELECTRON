@@ -1,11 +1,11 @@
+import { Button, Input, Label } from '@/components/ui';
+import { extractErrorMessage } from '@/utils/errorHandling';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { CircleDollarSign, FileText, Loader, ScanBarcode, ShoppingBag, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Input, Label } from '@/components/ui';
-import { editProductSchema, type EditProductForm, type Product } from '../types';
 import { ProductsApiService } from '../ProductsApiService';
-import { CircleDollarSign, FileText, Loader, ScanBarcode, ShoppingBag, X, Ruler, Palette, MapPin } from 'lucide-react';
-import { extractErrorMessage } from '@/utils/errorHandling';
+import { editProductSchema, type EditProductForm, type Product } from '../types';
 
 interface EditProductModalProps {
   isOpen: boolean;
@@ -22,7 +22,6 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [colorsInput, setColorsInput] = useState('');
 
   const {
     register,
@@ -40,25 +39,6 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       setValue('serial_number', product.serial_number || '');
       setValue('price', product.price);
       setValue('description', product.description || '');
-      setValue('width', product.width || undefined);
-      setValue('height', product.height || undefined);
-      setValue('position', product.position || '');
-      
-      // Manejar colors - puede ser string JSON o string simple
-      let colorsText = '';
-      if (product.colors) {
-        try {
-          const colorsArray = JSON.parse(product.colors);
-          if (Array.isArray(colorsArray)) {
-            colorsText = colorsArray.join(', ');
-          } else {
-            colorsText = product.colors;
-          }
-        } catch {
-          colorsText = product.colors;
-        }
-      }
-      setColorsInput(colorsText);
       
       setError(null);
     }
@@ -73,11 +53,6 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
 
       // Convertir colors de string a array si es necesario
       let processedData = { ...data };
-      if (colorsInput.trim()) {
-        processedData.colors = colorsInput.split(',').map(color => color.trim()).filter(color => color);
-      } else {
-        processedData.colors = undefined;
-      }
 
       const updatedProduct = await ProductsApiService.update(product.id, processedData);
       // Aseguramos que el producto actualizado tenga el ID correcto
@@ -96,7 +71,6 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
 
   const handleClose = () => {
     reset();
-    setColorsInput('');
     setError(null);
     onClose();
   };
@@ -198,94 +172,6 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
               </div>
               {errors.price && (
                 <p className='mt-1 text-sm text-red-600'>{errors.price.message}</p>
-              )}
-            </div>
-
-            {/* Width */}
-            <div>
-              <Label htmlFor="width" className="text-sm font-medium text-gray-700">
-                Ancho (m)
-              </Label>
-              <div className="mt-1 relative">
-                <Ruler className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                <Input
-                  id="width"
-                  type="number"
-                  step='0.1'
-                  min='0'
-                  placeholder="Ej: 2.0"
-                  className="pl-10"
-                  {...register('width', { valueAsNumber: true })}
-                />
-              </div>
-              {errors.width && (
-                <p className="mt-1 text-sm text-red-600">{errors.width.message}</p>
-              )}
-            </div>
-
-            {/* Height */}
-            <div>
-              <Label htmlFor="height" className="text-sm font-medium text-gray-700">
-                Alto (m)
-              </Label>
-              <div className="mt-1 relative">
-                <Ruler className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                <Input
-                  id="height"
-                  type="number"
-                  step='0.1'
-                  min='0'
-                  placeholder="Ej: 3.0"
-                  className="pl-10"
-                  {...register('height', { valueAsNumber: true })}
-                />
-              </div>
-              {errors.height && (
-                <p className="mt-1 text-sm text-red-600">{errors.height.message}</p>
-              )}
-            </div>
-
-            {/* Colors */}
-            <div>
-              <Label htmlFor="colors" className="text-sm font-medium text-gray-700">
-                Colores
-              </Label>
-              <div className="mt-1 relative">
-                <Palette className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                <Input
-                  id="colors"
-                  type="text"
-                  placeholder="rojo, azul, blanco"
-                  className="pl-10"
-                  value={colorsInput}
-                  onChange={(e) => setColorsInput(e.target.value)}
-                />
-              </div>
-              <p className="mt-1 text-xs text-gray-500">Separa los colores con comas</p>
-            </div>
-
-            {/* Position */}
-            <div>
-              <Label htmlFor="position" className="text-sm font-medium text-gray-700">
-                Posición
-              </Label>
-              <div className="mt-1 relative">
-                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                <select
-                  id="position"
-                  className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  {...register('position')}
-                >
-                  <option value="">Seleccionar posición</option>
-                  <option value="centro">Centro</option>
-                  <option value="superior">Superior</option>
-                  <option value="inferior">Inferior</option>
-                  <option value="izquierda">Izquierda</option>
-                  <option value="derecha">Derecha</option>
-                </select>
-              </div>
-              {errors.position && (
-                <p className="mt-1 text-sm text-red-600">{errors.position.message}</p>
               )}
             </div>
 

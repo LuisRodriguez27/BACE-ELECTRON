@@ -8,9 +8,6 @@ const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-
-  const[showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -27,10 +24,6 @@ const OrdersPage: React.FC = () => {
     };
     fetchOrders();
   }, []);
-
-  const closeModals = () => {
-    setShowCreateModal(false);
-  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-MX', {
@@ -206,7 +199,7 @@ const OrdersPage: React.FC = () => {
                         <div className="flex flex-wrap gap-2 mt-1">
                           {order.orderProducts.map((op, index) => (
                             <span key={index} className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded">
-                              {op.product?.name} (x{op.quantity})
+                              {op.product_name} (x{op.quantity})
                             </span>
                           ))}
                         </div>

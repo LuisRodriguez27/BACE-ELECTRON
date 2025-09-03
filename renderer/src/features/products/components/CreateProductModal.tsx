@@ -35,11 +35,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
       setIsSubmitting(true);
       setError(null);
 
-      // Convertir colors de string a array si es necesario
       let processedData = { ...data };
-      if (colorsInput.trim()) {
-        processedData.colors = colorsInput.split(',').map(color => color.trim()).filter(color => color);
-      }
 
       const newProduct = await ProductsApiService.create(processedData);
       onProductCreated(newProduct);
@@ -176,12 +172,8 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
                   min='0'
                   placeholder="Ej: 2.0"
                   className="pl-10"
-                  {...register('width', { valueAsNumber: true })}
                 />
               </div>
-              {errors.width && (
-                <p className="mt-1 text-sm text-red-600">{errors.width.message}</p>
-              )}
             </div>
 
             {/* Height */}
@@ -198,12 +190,8 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
                   min='0'
                   placeholder="Ej: 3.0"
                   className="pl-10"
-                  {...register('height', { valueAsNumber: true })}
                 />
               </div>
-              {errors.height && (
-                <p className="mt-1 text-sm text-red-600">{errors.height.message}</p>
-              )}
             </div>
 
             {/* Colors */}
@@ -235,7 +223,7 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
                 <select
                   id="position"
                   className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  {...register('position')}
+                  
                 >
                   <option value="">Seleccionar posición</option>
                   <option value="centro">Centro</option>
@@ -245,9 +233,6 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
                   <option value="derecha">Derecha</option>
                 </select>
               </div>
-              {errors.position && (
-                <p className="mt-1 text-sm text-red-600">{errors.position.message}</p>
-              )}
             </div>
 
             {/* Description */}

@@ -14,8 +14,8 @@ export const createProductTemplateSchema = z.object({
 
 export const editProductTemplateSchema = createProductTemplateSchema.partial();
 
-export type CreateProductTemplateFormValidation = z.infer<typeof createProductTemplateSchema>;
-export type EditProductTemplateFormValidation = z.infer<typeof editProductTemplateSchema>;
+export type CreateProductTemplateForm = z.infer<typeof createProductTemplateSchema>;
+export type EditProductTemplateForm = z.infer<typeof editProductTemplateSchema>;
 
 export interface ProductTemplate {
   id: number;

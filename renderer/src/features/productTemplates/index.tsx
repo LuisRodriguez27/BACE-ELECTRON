@@ -2,28 +2,22 @@ import { Button, Input } from '@/components/ui';
 import { ProductsApiService } from '@/features/products/ProductsApiService';
 import type { Product } from '@/features/products/types';
 import {
-  BarChart3,
-  Clock,
-  Copy,
   Grid, List,
   MapPin,
   Package,
   Palette, Ruler,
   Search,
-  Star,
   Trash2,
-  TrendingUp,
   User
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ProductTemplatesApiService } from './ProductTemplatesApiService';
-import type { ProductTemplate, TemplateUsageStats } from './types';
+import type { ProductTemplate } from './types';
 
 const ProductTemplatesPage: React.FC = () => {
   const [templates, setTemplates] = useState<ProductTemplate[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [usageStats, setUsageStats] = useState<TemplateUsageStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -35,15 +29,13 @@ const ProductTemplatesPage: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [templatesData, productsData, statsData] = await Promise.all([
+        const [templatesData, productsData] = await Promise.all([
           ProductTemplatesApiService.findAll(),
           ProductsApiService.findAll(),
-          ProductTemplatesApiService.getUsageStats()
         ]);
         
         setTemplates(templatesData);
         setProducts(productsData);
-        setUsageStats(statsData);
       } catch (err) {
         console.error('Error fetching templates:', err);
         setError('Error al cargar las plantillas');
@@ -63,25 +55,6 @@ const ProductTemplatesPage: React.FC = () => {
     return matchesSearch && matchesProduct && matchesUser;
   });
 
-  const handleCloneTemplate = async (template: ProductTemplate) => {
-    try {
-      const currentUser = { id: 1 }; // TODO: Get from auth context
-      const result = await ProductTemplatesApiService.clone(
-        template.id,
-        currentUser.id,
-        `Copia de: ${template.description}`
-      );
-      
-      if (result.success && result.template) {
-        setTemplates(prev => [...prev, result.template!]);
-        toast.success('Plantilla clonada exitosamente');
-      }
-    } catch (error) {
-      console.error('Error cloning template:', error);
-      toast.error('Error al clonar la plantilla');
-    }
-  };
-
   const handleDeleteTemplate = async (templateId: number) => {
     if (!confirm('¿Estás seguro de eliminar esta plantilla? Esta acción no se puede deshacer.')) {
       return;
@@ -99,10 +72,6 @@ const ProductTemplatesPage: React.FC = () => {
     }
   };
 
-  const getTemplateUsage = (templateId: number) => {
-    return usageStats.find(stat => stat.id === templateId);
-  };
-
   const formatColors = (colors?: string) => {
     if (!colors) return null;
     try {
@@ -116,13 +85,6 @@ const ProductTemplatesPage: React.FC = () => {
   const getUniqueUsers = () => {
     const users = templates.map(t => t.created_by_username).filter(Boolean);
     return [...new Set(users)];
-  };
-
-  const getMostUsedTemplates = () => {
-    return usageStats
-      .filter(stat => stat.usage_count > 0)
-      .sort((a, b) => b.usage_count - a.usage_count)
-      .slice(0, 5);
   };
 
   if (loading) {
@@ -184,50 +146,7 @@ const ProductTemplatesPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-              <TrendingUp className="h-5 w-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Plantillas Usadas</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {usageStats.filter(s => s.usage_count > 0).length}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-              <BarChart3 className="h-5 w-5 text-purple-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Usos Totales</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {usageStats.reduce((acc, stat) => acc + stat.usage_count, 0)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-              <Star className="h-5 w-5 text-orange-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Más Popular</p>
-              <p className="text-sm font-bold text-gray-900 truncate">
-                {getMostUsedTemplates()[0]?.description || 'N/A'}
-              </p>
-              <p className="text-xs text-gray-500">
-                {getMostUsedTemplates()[0]?.usage_count || 0} usos
-              </p>
-            </div>
-          </div>
-        </div>
+        
       </div>
 
       {/* Filters and Search */}
@@ -327,7 +246,6 @@ const ProductTemplatesPage: React.FC = () => {
                 : 'grid-cols-1'
             }`}>
               {filteredTemplates.map((template) => {
-                const usage = getTemplateUsage(template.id);
                 const colors = formatColors(template.colors);
                 
                 return (
@@ -354,19 +272,8 @@ const ProductTemplatesPage: React.FC = () => {
                                 <span>{template.created_by_username}</span>
                               </div>
                             )}
-                            <div className="flex items-center gap-1">
-                              <Clock size={12} />
-                              <span>{new Date(template.created_at).toLocaleDateString()}</span>
-                            </div>
                           </div>
                         </div>
-                        
-                        {usage && usage.usage_count > 0 && (
-                          <div className="flex items-center gap-1 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                            <Star size={12} />
-                            <span>{usage.usage_count}</span>
-                          </div>
-                        )}
                       </div>
 
                       {/* Specifications */}
@@ -389,15 +296,6 @@ const ProductTemplatesPage: React.FC = () => {
                           <div className="flex items-center gap-2">
                             <MapPin size={14} />
                             <span className="capitalize">{template.position}</span>
-                          </div>
-                        )}
-
-                        {usage && usage.last_used && (
-                          <div className="flex items-center gap-2">
-                            <Clock size={14} />
-                            <span>
-                              Último uso: {new Date(usage.last_used).toLocaleDateString()}
-                            </span>
                           </div>
                         )}
                       </div>
@@ -428,15 +326,6 @@ const ProductTemplatesPage: React.FC = () => {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => handleCloneTemplate(template)}
-                        className="flex items-center gap-1"
-                      >
-                        <Copy size={14} />
-                        Clonar
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
                         onClick={() => handleDeleteTemplate(template.id)}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center gap-1"
                       >
@@ -451,40 +340,6 @@ const ProductTemplatesPage: React.FC = () => {
           )}
         </div>
       </div>
-
-      {/* Most Used Templates */}
-      {getMostUsedTemplates().length > 0 && (
-        <div className="bg-white rounded-lg shadow mt-6">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <Star className="text-yellow-500" size={20} />
-              Plantillas Más Utilizadas
-            </h2>
-          </div>
-          
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {getMostUsedTemplates().map((stat, index) => (
-                <div key={stat.id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="w-6 h-6 bg-yellow-100 text-yellow-800 rounded-full flex items-center justify-center text-xs font-bold">
-                      {index + 1}
-                    </span>
-                    <h3 className="font-medium text-gray-900 truncate flex-1">
-                      {stat.description}
-                    </h3>
-                  </div>
-                  <p className="text-sm text-blue-600 mb-2">{stat.product_name}</p>
-                  <div className="flex items-center justify-between text-sm text-gray-500">
-                    <span>{stat.usage_count} usos</span>
-                    <span>Último: {new Date(stat.last_used).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

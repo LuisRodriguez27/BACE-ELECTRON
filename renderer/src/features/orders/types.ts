@@ -21,6 +21,7 @@ export const createOrderSchema = z.object({
   date: z.string().min(1, 'La fecha es obligatoria'), 
   estimated_delivery_date: z.string().optional(), 
   status: orderStatusSchema,
+  total: z.number().min(0, 'El total debe ser un número positivo'),
   notes: z.string().optional(),
   products: z.array(
     z.object({

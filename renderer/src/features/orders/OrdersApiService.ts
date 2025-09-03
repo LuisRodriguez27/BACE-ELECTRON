@@ -3,7 +3,6 @@ import type {
   CreateOrderForm, 
   EditOrderForm, 
   OrderProduct, 
-  CreateOrderProductForm
 } from "./types";
 
 export const OrdersApiService = {
@@ -36,19 +35,7 @@ export const OrdersApiService = {
     return window.api.getProductsFromOrder(orderId);
   },
 
-  addProduct: async (data: CreateOrderProductForm & { orderId: number }): Promise<OrderProduct> => {
-    return window.api.addProductToOrder(data);
-  },
-
   updateProductQuantity: async (data: { orderProductId: number; newQuantity: number; newPrice?: number }): Promise<OrderProduct> => {
     return window.api.updateProductQuantity(data);
   },
-
-  removeProduct: async (orderProductId: number): Promise<void> => {
-    return window.api.removeProductFromOrder(orderProductId);
-  },
-
-  clearProducts: async (orderId: number): Promise<void> => {
-    return window.api.clearProductsFromOrder(orderId);
-  }
 };

@@ -1,10 +1,9 @@
 import { Button, Input } from '@/components/ui';
 import { ProductTemplatesApiService } from '@/features/productTemplates/ProductTemplatesApiService';
-import type { ProductTemplate, TemplateUsageStats } from '@/features/productTemplates/types';
+import type { ProductTemplate } from '@/features/productTemplates/types';
 import {
   ArrowLeft,
-  BarChart3, Clock,
-  Copy,
+  BarChart3,
   DollarSign,
   Edit3,
   FileText,
@@ -17,9 +16,7 @@ import {
   Plus,
   Ruler,
   Search,
-  Star,
   Trash2,
-  TrendingUp,
   User
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
@@ -40,7 +37,6 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
 }) => {
   const [product, setProduct] = useState<Product | null>(null);
   const [templates, setTemplates] = useState<ProductTemplate[]>([]);
-  const [usageStats, setUsageStats] = useState<TemplateUsageStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [templatesLoading, setTemplatesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,15 +49,13 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
         setLoading(true);
         setTemplatesLoading(true);
         
-        const [productData, templatesData, statsData] = await Promise.all([
+        const [productData, templatesData] = await Promise.all([
           ProductsApiService.findById(productId),
-          ProductTemplatesApiService.findByProductId(productId),
-          ProductTemplatesApiService.getUsageStats()
+          ProductTemplatesApiService.findByProductId(productId)
         ]);
         
         setProduct(productData);
         setTemplates(templatesData);
-        setUsageStats(statsData.filter(stat => templatesData.some(t => t.id === stat.id)));
       } catch (err) {
         console.error('Error fetching product data:', err);
         setError('Error al cargar los datos del producto');
@@ -81,25 +75,6 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
     template.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleCloneTemplate = async (template: ProductTemplate) => {
-    try {
-      const currentUser = { id: 1 }; // TODO: Get from auth context
-      const result = await ProductTemplatesApiService.clone(
-        template.id,
-        currentUser.id,
-        `Copia de: ${template.description}`
-      );
-      
-      if (result.success && result.template) {
-        setTemplates(prev => [...prev, result.template!]);
-        toast.success('Plantilla clonada exitosamente');
-      }
-    } catch (error) {
-      console.error('Error cloning template:', error);
-      toast.error('Error al clonar la plantilla');
-    }
-  };
-
   const handleDeleteTemplate = async (templateId: number) => {
     if (!confirm('¿Estás seguro de eliminar esta plantilla? Esta acción no se puede deshacer.')) {
       return;
@@ -117,9 +92,6 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
     }
   };
 
-  const getTemplateUsage = (templateId: number) => {
-    return usageStats.find(stat => stat.id === templateId);
-  };
 
   const formatColors = (colors?: string) => {
     if (!colors) return null;
@@ -225,46 +197,13 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-3">Especificaciones</h3>
-            <div className="space-y-2 text-sm">
-              {product.width && (
-                <div className="flex items-center gap-2">
-                  <Ruler className="text-gray-400" size={14} />
-                  <span>Ancho: {product.width}m</span>
-                </div>
-              )}
-              
-              {product.height && (
-                <div className="flex items-center gap-2">
-                  <Ruler className="text-gray-400" size={14} />
-                  <span>Alto: {product.height}m</span>
-                </div>
-              )}
-              
-              {product.position && (
-                <div className="flex items-center gap-2">
-                  <MapPin className="text-gray-400" size={14} />
-                  <span>Posición: {product.position}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div>
             <h3 className="text-sm font-medium text-gray-700 mb-3">Estadísticas</h3>
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-2">
                 <BarChart3 className="text-gray-400" size={14} />
                 <span>{templates.length} plantillas</span>
               </div>
-              
-              <div className="flex items-center gap-2">
-                <TrendingUp className="text-gray-400" size={14} />
-                <span>
-                  {usageStats.reduce((acc, stat) => acc + stat.usage_count, 0)} usos totales
-                </span>
-              </div>
-              
+                            
               <div className="flex items-center gap-2">
                 <span className={`px-2 py-1 text-xs rounded-full ${
                   product.active === 1 
@@ -277,26 +216,6 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
             </div>
           </div>
         </div>
-
-        {/* Colors Display */}
-        {product.colors && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <div className="flex items-center gap-2 mb-2">
-              <Palette className="text-gray-400" size={16} />
-              <span className="text-sm font-medium text-gray-700">Colores disponibles:</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {formatColors(product.colors)?.map((color, index) => (
-                <span 
-                  key={index}
-                  className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full"
-                >
-                  {color}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Templates Section */}
@@ -397,7 +316,6 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                 : 'grid-cols-1'
             }`}>
               {filteredTemplates.map((template) => {
-                const usage = getTemplateUsage(template.id);
                 const colors = formatColors(template.colors);
                 
                 return (
@@ -414,19 +332,9 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                               <span>{template.created_by_username}</span>
                             </div>
                           )}
-                          <div className="flex items-center gap-1">
-                            <Clock size={12} />
-                            <span>{new Date(template.created_at).toLocaleDateString()}</span>
-                          </div>
                         </div>
                       </div>
                       
-                      {usage && usage.usage_count > 0 && (
-                        <div className="flex items-center gap-1 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                          <Star size={12} />
-                          <span>{usage.usage_count}</span>
-                        </div>
-                      )}
                     </div>
 
                     {/* Template Specifications */}
@@ -483,15 +391,6 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                       >
                         <Edit3 size={14} />
                         Editar
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleCloneTemplate(template)}
-                        className="flex items-center gap-1"
-                      >
-                        <Copy size={14} />
-                        Clonar
                       </Button>
                       <Button 
                         variant="outline" 

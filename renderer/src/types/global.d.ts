@@ -166,16 +166,6 @@ declare global {
       clearProductsFromOrder: (orderId: number) => Promise<void>;
       getProductsFromOrder: (orderId: number) => Promise<OrderProduct[]>;
       
-      // Funciones de consulta y estadísticas
-      getOrdersUsingTemplate: (templateId: number) => Promise<Order[]>;
-      getTemplateUsageInOrders: () => Promise<{
-        template_id: number;
-        template_description: string;
-        product_name: string;
-        usage_count: number;
-        total_quantity: number;
-        avg_price: number;
-      }[]>;
 
       getSales: () => Promise<Order[]>;
 

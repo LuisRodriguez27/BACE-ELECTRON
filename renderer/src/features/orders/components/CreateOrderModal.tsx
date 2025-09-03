@@ -69,7 +69,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   const calculateTotal = () => {
     if (!watchedProducts) return 0;
     return watchedProducts.reduce((total, product) => {
-      return total + ((product?.quantity || 0) * (product?.price || 0));
+      return total + ((product?.quantity || 0) * (product?.unit_price || 0));
     }, 0);
   };
 
@@ -141,9 +141,9 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
 
   const addProduct = () => {
     append({
-      products_id: 0,
+      product_id: 0,
       quantity: 1,
-      price: 0,
+      unit_price: 0,
       height: undefined,
       width: undefined,
       position: '',
@@ -178,10 +178,10 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     // en el último campo de producto agregado si está vacío
     if (fields.length > 0) {
       const lastIndex = fields.length - 1;
-      const lastProductId = watchedProducts?.[lastIndex]?.products_id;
+      const lastProductId = watchedProducts?.[lastIndex]?.product_id;
       if (!lastProductId || lastProductId === 0) {
-        setValue(`products.${lastIndex}.products_id` as const, newProduct.id);
-        setValue(`products.${lastIndex}.price` as const, newProduct.price);
+        setValue(`products.${lastIndex}.product_id` as const, newProduct.id);
+        setValue(`products.${lastIndex}.unit_price` as const, newProduct.price);
       }
     }
     setPrefilledProductName(''); // Limpiar el nombre prellenado
@@ -466,7 +466,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                                   
                                   // Si el usuario está escribiendo, limpiar la selección
                                   if (searchTerm !== '') {
-                                    setValue(`products.${index}.products_id` as const, 0);
+                                    setValue(`products.${index}.product_id` as const, 0);
                                   }
                                   
                                   // Mostrar dropdown si hay texto o al hacer foco
@@ -505,8 +505,8 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                                     className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
                                     onClick={() => {
                                       // Seleccionar producto
-                                      setValue(`products.${index}.products_id` as const, product.id);
-                                      setValue(`products.${index}.price` as const, product.price);
+                                      setValue(`products.${index}.product_id` as const, product.id);
+                                      setValue(`products.${index}.unit_price` as const, product.price);
                                       updateProductSearchTerm(index, `${product.name}${product.serial_number ? ` (${product.serial_number})` : ''}`);
                                       
                                       // Ocultar dropdown
@@ -558,11 +558,11 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                           {/* Input hidden para el formulario */}
                           <input
                             type="hidden"
-                            {...register(`products.${index}.products_id` as const, { valueAsNumber: true })}
+                            {...register(`products.${index}.product_id` as const, { valueAsNumber: true })}
                           />
-                          
-                          {errors.products?.[index]?.products_id && (
-                            <p className="mt-1 text-sm text-red-600">{errors.products[index]?.products_id?.message}</p>
+
+                          {errors.products?.[index]?.product_id && (
+                            <p className="mt-1 text-sm text-red-600">{errors.products[index]?.product_id?.message}</p>
                           )}
                         </div>
 
@@ -588,10 +588,10 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                             step="0.01"
                             min="0"
                             className="mt-1"
-                            {...register(`products.${index}.price` as const, { valueAsNumber: true })}
+                            {...register(`products.${index}.unit_price` as const, { valueAsNumber: true })}
                           />
-                          {errors.products?.[index]?.price && (
-                            <p className="mt-1 text-sm text-red-600">{errors.products[index]?.price?.message}</p>
+                          {errors.products?.[index]?.unit_price && (
+                            <p className="mt-1 text-sm text-red-600">{errors.products[index]?.unit_price?.message}</p>
                           )}
                         </div>
 

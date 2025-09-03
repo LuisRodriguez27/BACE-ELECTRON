@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { Plus, Search, Filter, Package, DollarSign, Hash, Edit3, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import type { ProductTemplate } from '@/features/productTemplates/types';
+import { DollarSign, Edit3, Filter, Hash, Package, Plus, Search, Trash2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { CreateProductModal, CreateTemplateModal, DeleteProductModal, EditProductModal, EditTemplateModal, ProductDetailView } from './components';
 import { ProductsApiService } from './ProductsApiService';
 import type { Product } from './types';
-import { CreateProductModal, DeleteProductModal, EditProductModal, ProductDetailView, CreateTemplateModal, EditTemplateModal } from './components';
-import type { ProductTemplate } from '@/features/productTemplates/types';
-import { toast } from 'sonner';
 
 const ProductsPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -119,12 +119,12 @@ const ProductsPage: React.FC = () => {
     setShowEditTemplateModal(true);
   };
 
-  const handleTemplateCreated = (template: ProductTemplate) => {
+  const handleTemplateCreated = () => {
     toast.success('Plantilla creada exitosamente');
     setShowCreateTemplateModal(false);
   };
 
-  const handleTemplateUpdated = (template: ProductTemplate) => {
+  const handleTemplateUpdated = () => {
     toast.success('Plantilla actualizada exitosamente');
     setShowEditTemplateModal(false);
   };
@@ -344,7 +344,7 @@ const ProductsPage: React.FC = () => {
           isOpen={showCreateTemplateModal}
           onClose={closeModals}
           onTemplateCreated={handleTemplateCreated}
-          product={selectedProduct}
+          product={selectedTemplate!}
         />
       )}
       

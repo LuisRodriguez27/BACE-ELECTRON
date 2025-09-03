@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Button, Input, Label } from "@/components/ui";
-import { editProductTemplateSchema, type EditProductTemplateForm, type ProductTemplate } from "@/features/productTemplates/types";
-import { Loader, X, Package, FileText, Ruler, Palette, MapPin, Clock, User } from "lucide-react";
 import { ProductTemplatesApiService } from "@/features/productTemplates/ProductTemplatesApiService";
+import { editProductTemplateSchema, type EditProductTemplateForm, type ProductTemplate } from "@/features/productTemplates/types";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { FileText, Loader, MapPin, Package, Palette, Ruler, X } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { useForm } from 'react-hook-form';
 
 interface EditTemplateModalProps {
   isOpen: boolean;
@@ -60,14 +60,7 @@ const EditTemplateModal: React.FC<EditTemplateModalProps> = ({
       setIsSubmitting(true);
       setError(null);
 
-      // Convertir colors de string a array si es necesario
       let processedData = { ...data };
-      
-      if (colorsInput.trim()) {
-        processedData.colors = colorsInput.split(',').map(color => color.trim()).filter(color => color);
-      } else {
-        processedData.colors = [];
-      }
 
       const result = await ProductTemplatesApiService.update(template.id, processedData);
       
@@ -132,28 +125,6 @@ const EditTemplateModal: React.FC<EditTemplateModalProps> = ({
           )}
 
           {/* Template Info */}
-          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Información de la plantilla</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-              <div className="flex items-center gap-2">
-                <User size={14} />
-                <span>
-                  Creada por: {template.created_by_username || 'Usuario desconocido'}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock size={14} />
-                <span>
-                  Creada: {new Date(template.created_at).toLocaleDateString('es-ES', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </span>
-              </div>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Description */}
             <div className="md:col-span-2">
