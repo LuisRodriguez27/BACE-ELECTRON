@@ -14,8 +14,7 @@ export const ClientApiService = {
   },
 
   update: async (id: number, client: EditClientForm): Promise<Client> => {
-    const result: any = await window.api.updateClient(id, client);
-    return result.data; // Extraer el cliente de la respuesta
+    return window.api.updateClient(id, client);
   },
 
   delete: async (id: number): Promise<any> => {
