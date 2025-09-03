@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ClientApiService } from '../ClientApiService';
 import { editClientSchema, type EditClientForm, type Client } from '../types';
+import { extractErrorMessage } from '@/utils/errorHandling';
 
 interface EditClientModalProps {
   isOpen: boolean;
@@ -57,9 +58,11 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
       onClientUpdated(updatedClient);
       reset();
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error updating client:', err);
       toast.error('Error al actualizar cliente');
+      const errorMessage = extractErrorMessage(err);
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

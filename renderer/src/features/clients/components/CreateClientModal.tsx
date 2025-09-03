@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ClientApiService } from '../ClientApiService';
 import { createClientSchema, type CreateClientForm, type Client } from '../types';
+import { extractErrorMessage } from '@/utils/errorHandling';
 
 interface CreateClientModalProps {
   isOpen: boolean;
@@ -40,9 +41,10 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
       onClientCreated(newClient);
       reset();
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error creating client:', err);
-      setError('Error al crear el cliente. Intenta nuevamente.');
+      const errorMessage = extractErrorMessage(err);
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

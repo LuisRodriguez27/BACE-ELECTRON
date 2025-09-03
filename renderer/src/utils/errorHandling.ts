@@ -29,11 +29,22 @@ export function getUserFriendlyErrorMessage(error: any): string {
   
   // Mapear algunos errores comunes a mensajes más amigables si es necesario
   const errorMappings: Record<string, string> = {
+    // Errores de usuarios
     'El username ya está en uso': 'Este nombre de usuario ya existe. Por favor, elige otro.',
     'Username es requerido': 'El nombre de usuario es obligatorio.',
     'La contraseña debe tener al menos 6 caracteres': 'La contraseña debe tener mínimo 6 caracteres.',
     'Usuario no encontrado': 'No se pudo encontrar el usuario solicitado.',
     'ID de usuario inválido': 'El identificador del usuario no es válido.',
+    
+    // Errores de clientes
+    'Ya existe un cliente con este teléfono': 'Este número de teléfono ya está registrado. Por favor, usa otro.',
+    'Ya existe otro cliente con este teléfono': 'Este número de teléfono ya pertenece a otro cliente.',
+    'Nombre y teléfono son requeridos': 'El nombre y teléfono son obligatorios.',
+    'El nombre debe tener al menos 3 caracteres': 'El nombre debe tener mínimo 3 caracteres.',
+    'El teléfono debe tener al menos 10 dígitos': 'El teléfono debe tener mínimo 10 dígitos.',
+    'El teléfono contiene caracteres inválidos': 'El teléfono solo puede contener números, espacios, guiones y paréntesis.',
+    'Cliente no encontrado': 'No se pudo encontrar el cliente solicitado.',
+    'ID de cliente inválido': 'El identificador del cliente no es válido.',
   };
 
   return errorMappings[message] || message;
