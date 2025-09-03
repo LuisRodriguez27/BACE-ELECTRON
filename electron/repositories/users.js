@@ -1,3 +1,10 @@
+// DEPRECATED: Este archivo ha sido reemplazado por el patrón Repository + Service Layer
+// Nuevo patrón:
+// - Domain: ../domain/user.js (entidad)
+// - Repository: ../repositories/userRepository.js (acceso a datos)
+// - Service: ../services/userService.js (lógica de negocio)
+// Este archivo se mantiene por compatibilidad, pero no se usa más.
+
 const db = require('../db');
 const bcrypt = require('bcryptjs');
 

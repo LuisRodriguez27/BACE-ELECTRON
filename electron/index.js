@@ -5,7 +5,7 @@ const path = require('path');
 app.disableHardwareAcceleration();
 
 // Importar funciones de servicios
-const userService = require('./repositories/users');
+const userService = require('./services/userService');
 const permissionService = require('./repositories/permissions');
 const clientService = require('./repositories/clients');
 const productService = require('./repositories/products');
@@ -40,13 +40,13 @@ function createWindow() {
 }
 
 // Manejo de eventos IPC para usuarios
-ipcMain.handle('users:getAll', () => userService.getAllUsers());
-ipcMain.handle('users:getById', (event, id) => userService.getUserById(id));
-ipcMain.handle('users:create', (event, data) => userService.createUser(data));
-ipcMain.handle('users:update', (event, id, data) => userService.updateUser(id, data));
-ipcMain.handle('users:delete', (event, id) => userService.deleteUser(id));
-ipcMain.handle('users:verifyPassword', (event, data) => userService.verifyPassword(data));
-ipcMain.handle('users:checkUsername', (event, username, excludeUserId) => userService.checkUsernameExists(username, excludeUserId));
+ipcMain.handle('users:getAll', async () => await userService.getAllUsers());
+ipcMain.handle('users:getById', async (event, id) => await userService.getUserById(id));
+ipcMain.handle('users:create', async (event, data) => await userService.createUser(data));
+ipcMain.handle('users:update', async (event, id, data) => await userService.updateUser(id, data));
+ipcMain.handle('users:delete', async (event, id) => await userService.deleteUser(id));
+ipcMain.handle('users:verifyPassword', async (event, data) => await userService.verifyPassword(data));
+ipcMain.handle('users:checkUsername', async (event, username, excludeUserId) => await userService.checkUsernameExists(username, excludeUserId));
 
 // Manejo de eventos IPC para autenticacion
 ipcMain.handle('auth:login', (event, { username, password }) => 
