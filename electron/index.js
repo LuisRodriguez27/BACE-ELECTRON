@@ -5,14 +5,14 @@ const path = require('path');
 app.disableHardwareAcceleration();
 
 // Importar funciones de servicios
-const userService = require('./services/users');
-const permissionService = require('./services/permissions');
-const clientService = require('./services/clients');
-const productService = require('./services/products');
-const productTemplatesService = require('./services/productTemplates');
-const orderService = require('./services/orders');
-const paymentService = require('./services/payments');
-const authService = require('./services/auth')
+const userService = require('./repositories/users');
+const permissionService = require('./repositories/permissions');
+const clientService = require('./repositories/clients');
+const productService = require('./repositories/products');
+const productTemplatesService = require('./repositories/productTemplates');
+const orderService = require('./repositories/orders');
+const paymentService = require('./repositories/payments');
+const authService = require('./repositories/auth')
 
 function createWindow() {
   const win = new BrowserWindow({
