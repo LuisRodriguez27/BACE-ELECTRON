@@ -8,7 +8,7 @@ app.disableHardwareAcceleration();
 const userService = require('./services/userService');
 const permissionService = require('./repositories/permissions');
 const clientService = require('./services/clientService');
-const productService = require('./repositories/products');
+const productService = require('./services/productService');
 const productTemplatesService = require('./repositories/productTemplates');
 const orderService = require('./repositories/orders');
 const paymentService = require('./repositories/payments');
@@ -82,19 +82,18 @@ ipcMain.handle('clients:getById', async (event, id) => await clientService.getCl
 ipcMain.handle('clients:create', async (event, data) => await clientService.createClient(data));
 ipcMain.handle('clients:update', async (event, id, data) => await clientService.updateClient(id, data));
 ipcMain.handle('clients:delete', async (event, id) => await clientService.deleteClient(id));
-ipcMain.handle('clients:search', async (event, searchTerm) => await clientService.searchClients(searchTerm));
 
 // Manejo de eventos IPC para productos
-ipcMain.handle('products:getAll', () => productService.getAllProducts());
-ipcMain.handle('products:getById', (event, id) => productService.getProductById(id));
-ipcMain.handle('products:create', (event, data) => productService.createProduct(data));
-ipcMain.handle('products:update', (event, id, data) => productService.updateProduct(id, data));
-ipcMain.handle('products:delete', (event, id) => productService.deleteProduct(id));
-ipcMain.handle('products:remove', (event, id) => productService.removeProduct(id));   // DEV
+ipcMain.handle('products:getAll', async () => await productService.getAllProducts());
+ipcMain.handle('products:getById', async (event, id) => await productService.getProductById(id));
+ipcMain.handle('products:create', async (event, data) => await productService.createProduct(data));
+ipcMain.handle('products:update', async (event, id, data) => await productService.updateProduct(id, data));
+ipcMain.handle('products:delete', async (event, id) => await productService.deleteProduct(id));
+ipcMain.handle('products:remove', async (event, id) => await productService.removeProduct(id));
 
 // Funciones avanzadas de productos
-ipcMain.handle('products:getWithTemplates', (event, productId) => productService.getProductWithTemplates(productId));
-ipcMain.handle('products:search', (event, searchTerm) => productService.searchProducts(searchTerm));
+ipcMain.handle('products:getWithTemplates', async (event, productId) => await productService.getProductWithTemplates(productId));
+ipcMain.handle('products:search', async (event, searchTerm) => await productService.searchProducts(searchTerm));
 
 // Manejo de eventos IPC para plantillas de productos
 ipcMain.handle('templates:getAll', () => productTemplatesService.getAllTemplates());

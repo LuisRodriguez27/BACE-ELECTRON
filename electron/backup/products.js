@@ -1,3 +1,10 @@
+// DEPRECATED: Este archivo ha sido reemplazado por el patrón Repository + Service Layer
+// Nuevo patrón:
+// - Domain: ../domain/product.js (entidad)
+// - Repository: ../repositories/productRepository.js (acceso a datos)
+// - Service: ../services/productService.js (lógica de negocio)
+// Este archivo se mantiene por compatibilidad, pero no se usa más.
+
 const db = require('../db');
 
 function getAllProducts() {
