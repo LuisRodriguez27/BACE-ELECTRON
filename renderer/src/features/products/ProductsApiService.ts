@@ -9,13 +9,6 @@ export const ProductsApiService = {
     return window.api.getProductById(id);
   },
 
-  findActive: async (): Promise<Product[]> => {
-    return window.api.getActiveProducts();
-  },
-
-  findInactive: async (): Promise<Product[]> => {
-    return window.api.getInactiveProducts();
-  },
 
   create: async (product: CreateProductForm): Promise<Product> => {
     return window.api.createProduct(product);
@@ -28,8 +21,4 @@ export const ProductsApiService = {
   delete: async (id: number): Promise<void> => {
     return window.api.deleteProduct(id);
   },
-
-  remove: async (id: number): Promise<void> => {
-    return window.api.removeProduct(id);
-  }
 };
