@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { ProductTemplate } from '../productTemplates/types';
 
 export const createProductSchema = z.object({
 	name: z.string().min(1, 'El nombre del producto es obligatorio'),
@@ -18,5 +19,7 @@ export interface Product {
 	serial_number?: string;
 	price: number;
 	description?: string;
-	active: number; // 1 for active, 0 for inactive
+	active: number; 
+
+	templates?: ProductTemplate[];
 }
