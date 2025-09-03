@@ -10,14 +10,6 @@ import type { LoginCredentials, LoginResponse } from "@/features/auth/types";
 declare global {
   interface Window {
     api: {
-      // Autenticación
-      login: (credentials: LoginCredentials) => Promise<LoginResponse>;
-      logout: () => Promise<{ success: boolean; message: string }>;
-      getCurrentUser: () => Promise<User | null>;
-      isAuthenticated: () => Promise<boolean>;
-      getUserWithPermissions: () => Promise<(User & { permissions: string[] }) | null>;
-      requireAuth: () => Promise<{ success: boolean; message?: string }>;
-
       // Usuarios
       getAllUsers: () => Promise<User[]>;
       getUserById: (id: number) => Promise<User>;
@@ -26,6 +18,14 @@ declare global {
       deleteUser: (id: number) => Promise<void>;
       verifyPassword: (data: LoginCredentials) => Promise<boolean>;
       checkUsername: (username: string, excludeUserId?: number) => Promise<boolean>;
+
+      // Autenticación
+      login: (credentials: LoginCredentials) => Promise<LoginResponse>;
+      logout: () => Promise<{ success: boolean; message: string }>;
+      getCurrentUser: () => Promise<User | null>;
+      isAuthenticated: () => Promise<boolean>;
+      getUserWithPermissions: () => Promise<(User & { permissions: string[] }) | null>;
+      requireAuth: () => Promise<{ success: boolean; message?: string }>;
 
       // Permisos
       getAllPermissions: () => Promise<Permission[]>;
@@ -48,41 +48,22 @@ declare global {
       // Productos
       getAllProducts: () => Promise<Product[]>;
       getProductById: (id: number) => Promise<Product>;
-      getActiveProducts: () => Promise<Product[]>;
-      getInactiveProducts: () => Promise<Product[]>;
       createProduct: (data: CreateProductForm) => Promise<Product>;
       updateProduct: (id: number, data: EditProductForm) => Promise<Product>;
       deleteProduct: (id: number) => Promise<void>;
-      removeProduct: (id: number) => Promise<void>;
+
+      // Funciones avanzadas de productos
+      getProductsWithTemplates: (productId: number) => Promise<Product & { templates: ProductTemplate[] }>;
+      searchProducts: (searchTerm: string) => Promise<Product[]>;
 
       // Plantillas de productos
       getAllTemplates: () => Promise<ProductTemplate[]>;
       getTemplateById: (id: number) => Promise<ProductTemplate>;
       getTemplatesByProductId: (productId: number) => Promise<ProductTemplate[]>;
-      getTemplatesByUserId: (userId: number) => Promise<ProductTemplate[]>;
       createTemplate: (data: CreateProductTemplateForm) => Promise<ProductTemplate>;
       updateTemplate: (id: number, data: EditProductTemplateForm) => Promise<{ success: boolean; message: string; data?: ProductTemplate }>;
       deleteTemplate: (id: number) => Promise<{ success: boolean; message: string }>;
-      createTemplateFromModification: (data: {
-        product_id: number;
-        modifications: {
-          width?: number;
-          height?: number;
-          colors?: string | string[];
-          position?: string;
-        };
-        created_by: number;
-        templateDescription?: string;
-      }) => Promise<ProductTemplate>;
-      findSimilarTemplates: (productId: number, width: number, height: number, tolerance?: number) => Promise<ProductTemplate[]>;
-      getTemplateUsageStats: () => Promise<{
-        id: number;
-        description: string;
-        product_name: string;
-        usage_count: number;
-        last_used: string;
-      }[]>;
-      cloneTemplate: (templateId: number, createdBy: number, newDescription?: string) => Promise<{ success: boolean; template?: ProductTemplate; message?: string }>;
+      searchTemplate: (searchTerm: string) => Promise<ProductTemplate[]>;
 
       // Ordenes
       getAllOrders: () => Promise<Order[]>;
@@ -91,82 +72,7 @@ declare global {
       createOrder: (data: CreateOrderForm) => Promise<Order>;
       updateOrder: (id: number, data: EditOrderForm) => Promise<Order>;
       deleteOrder: (id: number) => Promise<void>;
-      
-      // Funciones del nuevo flujo de productos en órdenes
-      addProductToOrder: (data: {
-        orderId: number;
-        products_id: number;
-        quantity: number;
-        price: number;
-      }) => Promise<OrderProduct>;
-      addProductWithModifications: (data: {
-        orderId: number;
-        products_id: number;
-        quantity: number;
-        price: number;
-        modifications?: {
-          width?: number;
-          height?: number;
-          colors?: string | string[];
-          position?: string;
-        };
-        saveAsTemplate?: boolean;
-        templateDescription?: string;
-        created_by?: number;
-      }) => Promise<{
-        success: boolean;
-        orderProduct: OrderProduct;
-        templateCreated: boolean;
-        templateId?: number;
-      }>;
-      addProductFromTemplate: (data: {
-        orderId: number;
-        template_id: number;
-        quantity: number;
-        price: number;
-      }) => Promise<{
-        success: boolean;
-        orderProduct?: OrderProduct;
-        message?: string;
-      }>;
-      addProductFromTemplateWithModifications: (data: {
-        orderId: number;
-        template_id: number;
-        quantity: number;
-        price: number;
-        modifications?: {
-          width?: number;
-          height?: number;
-          colors?: string | string[];
-          position?: string;
-          description?: string;
-        };
-        saveModificationsAs?: 'none' | 'update' | 'new';
-        newTemplateDescription?: string;
-        created_by?: number;
-      }) => Promise<{
-        success: boolean;
-        orderProduct?: OrderProduct;
-        templateUsed?: number;
-        templateWasModified?: boolean;
-        message?: string;
-      }>;
-      
-      // Funciones de gestión de productos en orden
-      updateProductQuantity: (data: {
-        orderProductId: number;
-        newQuantity: number;
-        newPrice?: number;
-      }) => Promise<OrderProduct>;
-      updateProductTemplate: (data: {
-        orderProductId: number;
-        template_id?: number;
-      }) => Promise<OrderProduct>;
-      removeProductFromOrder: (orderProductId: number) => Promise<void>;
-      clearProductsFromOrder: (orderId: number) => Promise<void>;
-      getProductsFromOrder: (orderId: number) => Promise<OrderProduct[]>;
-      
-
+      recalculateOrderTotal: (id: number) => Promise<number>;
       getSales: () => Promise<Order[]>;
 
       // Pagos
