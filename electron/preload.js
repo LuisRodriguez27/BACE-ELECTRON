@@ -36,6 +36,7 @@ contextBridge.exposeInMainWorld('api', {
   createClient: (data) => ipcRenderer.invoke('clients:create', data),
   updateClient: (id, data) => ipcRenderer.invoke('clients:update', id, data),
   deleteClient: (id) => ipcRenderer.invoke('clients:delete', id),
+  searchClients: (searchTerm) => ipcRenderer.invoke('clients:search', searchTerm),
 
   // Productos
   getAllProducts: () => ipcRenderer.invoke('products:getAll'),

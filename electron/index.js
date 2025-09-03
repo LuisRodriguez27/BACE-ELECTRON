@@ -7,7 +7,7 @@ app.disableHardwareAcceleration();
 // Importar funciones de servicios
 const userService = require('./services/userService');
 const permissionService = require('./repositories/permissions');
-const clientService = require('./repositories/clients');
+const clientService = require('./services/clientService');
 const productService = require('./repositories/products');
 const productTemplatesService = require('./repositories/productTemplates');
 const orderService = require('./repositories/orders');
@@ -77,11 +77,12 @@ ipcMain.handle('permissions:assignToUser', (event, data) => permissionService.as
 ipcMain.handle('permissions:removeFromUser', (event, data) => permissionService.removePermissionFromUser(data));
 
 // Manejo de eventos IPC para clientes
-ipcMain.handle('clients:getAll', () => clientService.getAllClients());
-ipcMain.handle('clients:getById', (event, id) => clientService.getClientById(id));
-ipcMain.handle('clients:create', (event, data) => clientService.createClient(data));
-ipcMain.handle('clients:update', (event, id, data) => clientService.updateClient(id, data));
-ipcMain.handle('clients:delete', (event, id) => clientService.deleteClient(id));      // DEV
+ipcMain.handle('clients:getAll', async () => await clientService.getAllClients());
+ipcMain.handle('clients:getById', async (event, id) => await clientService.getClientById(id));
+ipcMain.handle('clients:create', async (event, data) => await clientService.createClient(data));
+ipcMain.handle('clients:update', async (event, id, data) => await clientService.updateClient(id, data));
+ipcMain.handle('clients:delete', async (event, id) => await clientService.deleteClient(id));
+ipcMain.handle('clients:search', async (event, searchTerm) => await clientService.searchClients(searchTerm));
 
 // Manejo de eventos IPC para productos
 ipcMain.handle('products:getAll', () => productService.getAllProducts());
