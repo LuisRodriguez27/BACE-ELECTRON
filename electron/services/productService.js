@@ -192,34 +192,6 @@ class ProductService {
     }
   }
 
-  async removeProduct(id) {
-    try {
-      if (!id || isNaN(id)) {
-        throw new Error('ID de producto inválido');
-      }
-
-      const productId = parseInt(id);
-
-      // Verificar si el producto existe (incluso inactivos para eliminación física)
-      const existingProduct = productRepository.findById(productId);
-      if (!existingProduct) {
-        throw new Error('Producto no encontrado');
-      }
-
-      // ADVERTENCIA: Eliminación física - solo para casos especiales
-      const removed = productRepository.remove(productId);
-
-      if (!removed) {
-        throw new Error('Error al eliminar producto permanentemente');
-      }
-
-      // El frontend espera void, no retornamos nada
-    } catch (error) {
-      console.error('Error al eliminar producto permanentemente:', error);
-      throw error;
-    }
-  }
-
   async searchProducts(searchTerm) {
     try {
       if (!searchTerm || searchTerm.trim().length === 0) {

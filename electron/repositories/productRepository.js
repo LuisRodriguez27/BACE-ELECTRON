@@ -74,14 +74,6 @@ class ProductRepository {
     return result.changes > 0;
   }
 
-  // Eliminación física (para casos especiales)
-  remove(id) {
-    const stmt = db.prepare('DELETE FROM products WHERE id = ?');
-    const result = stmt.run(id);
-    
-    return result.changes > 0;
-  }
-
   existsBySerialNumber(serialNumber, excludeProductId = null) {
     if (!serialNumber || serialNumber.trim() === '') {
       return false; // Serial number vacío es válido (no único)

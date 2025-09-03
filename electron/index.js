@@ -89,7 +89,6 @@ ipcMain.handle('products:getById', async (event, id) => await productService.get
 ipcMain.handle('products:create', async (event, data) => await productService.createProduct(data));
 ipcMain.handle('products:update', async (event, id, data) => await productService.updateProduct(id, data));
 ipcMain.handle('products:delete', async (event, id) => await productService.deleteProduct(id));
-ipcMain.handle('products:remove', async (event, id) => await productService.removeProduct(id));
 
 // Funciones avanzadas de productos
 ipcMain.handle('products:getWithTemplates', async (event, productId) => await productService.getProductWithTemplates(productId));

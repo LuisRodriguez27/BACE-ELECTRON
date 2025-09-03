@@ -44,7 +44,6 @@ contextBridge.exposeInMainWorld('api', {
   createProduct: (data) => ipcRenderer.invoke('products:create', data),
   updateProduct: (id, data) => ipcRenderer.invoke('products:update', id, data),
   deleteProduct: (id) => ipcRenderer.invoke('products:delete', id),
-  removeProduct: (id) => ipcRenderer.invoke('products:remove', id),
 
   // Funciones avanzadas de productos
   getProductWithTemplates: (productId) => ipcRenderer.invoke('products:getWithTemplates', productId),
