@@ -42,7 +42,11 @@ const ClientsPage: React.FC = () => {
 
   // Filter clients based on search term
   const filteredClients = clients.filter(client =>
-    client.name?.toLowerCase()?.includes(searchTerm.toLowerCase()) || false
+    client && client.name && (
+      client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (client.phone && client.phone.includes(searchTerm)) ||
+      (client.address && client.address.toLowerCase().includes(searchTerm.toLowerCase()))
+    )
   );
 
   const handleClientCreated = (newClient: Client) => {
