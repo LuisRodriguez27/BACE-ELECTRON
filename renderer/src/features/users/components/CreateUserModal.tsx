@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { UsersApiService } from '../UsersApiService';
 import { createUserSchema, type CreateUserForm, type User } from '../types';
+import { extractErrorMessage } from '@/utils/errorHandling';
 
 interface CreateUserModalProps {
   isOpen: boolean;
@@ -40,9 +41,10 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
       onUserCreated(newUser);
       reset();
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error creating user:', err);
-      setError('Error al crear el usuario. Intenta nuevamente.');
+      const errorMessage = extractErrorMessage(err);
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { UsersApiService } from '../UsersApiService';
 import { editUserSchema, type EditUserForm, type User as UserType } from '../types';
+import { extractErrorMessage } from '@/utils/errorHandling';
 
 interface EditUserModalProps {
   isOpen: boolean;
@@ -62,7 +63,8 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
         );
         
         if (usernameExists) {
-          toast.error('Nombre de usuario en uso');
+          // toast.error('Nombre de usuario en uso');
+          setError('Nombre de usuario en uso');
           setIsSubmitting(false);
           return;
         }
@@ -82,15 +84,10 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
       onUserUpdated(updatedUser);
       reset();
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error updating user:', err);
-      
-      // Manejo de errores adicional por si algo falla
-      if (err instanceof Error && err.message.includes('UNIQUE constraint failed')) {
-        toast.error('Nombre de usuario en uso');
-      } else {
-        toast.error('Error al actualizar usuario');
-      }
+      const errorMessage = extractErrorMessage(err);
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
