@@ -1,3 +1,10 @@
+// DEPRECATED: Este archivo ha sido reemplazado por el patrón Repository + Service Layer
+// Nuevo patrón:
+// - Domain: ../domain/order.js (entidad)
+// - Repository: ../repositories/orderRepository.js (acceso a datos)
+// - Service: ../services/orderService.js (lógica de negocio)
+// Este archivo se mantiene por compatibilidad, pero no se usa más.
+
 const db = require('../db');
 
 // FUNCIONES DE CONSULTA DE ÓRDENES

@@ -10,7 +10,7 @@ const permissionService = require('./repositories/permissions');
 const clientService = require('./services/clientService');
 const productService = require('./services/productService');
 const productTemplatesService = require('./services/productTemplateService');
-const orderService = require('./repositories/orders');
+const orderService = require('./services/orderService');
 const paymentService = require('./repositories/payments');
 const authService = require('./repositories/auth')
 
@@ -106,14 +106,15 @@ ipcMain.handle('templates:delete', async (event, id) => await productTemplatesSe
 ipcMain.handle('templates:search', async (event, searchTerm) => await productTemplatesService.searchTemplates(searchTerm));
 
 // Manejo de eventos IPC para ordenes
-ipcMain.handle('orders:getAll', () => orderService.getAllOrders());
-ipcMain.handle('orders:getById', (event, id) => orderService.getOrderById(id));
-ipcMain.handle('orders:getByClientId', (event, clientId) => orderService.getOrdersByClientId(clientId));
-ipcMain.handle('orders:create', (event, data) => orderService.createOrder(data));
-ipcMain.handle('orders:update', (event, id, data) => orderService.updateOrder(id, data));
-ipcMain.handle('orders:delete', (event, id) => orderService.deleteOrder(id));
-ipcMain.handle('orders:recalculateTotal', (event, orderId) => orderService.recalculateOrderTotal(orderId));
-ipcMain.handle('sales:getAll', () => orderService.getSales());
+ipcMain.handle('orders:getAll', async () => await orderService.getAllOrders());
+ipcMain.handle('orders:getById', async (event, id) => await orderService.getOrderById(id));
+ipcMain.handle('orders:getByClientId', async (event, clientId) => await orderService.getOrdersByClientId(clientId));
+ipcMain.handle('orders:create', async (event, data) => await orderService.createOrder(data));
+ipcMain.handle('orders:update', async (event, id, data) => await orderService.updateOrder(id, data));
+ipcMain.handle('orders:delete', async (event, id) => await orderService.deleteOrder(id));
+ipcMain.handle('orders:recalculateTotal', async (event, orderId) => await orderService.recalculateOrderTotal(orderId));
+ipcMain.handle('sales:getAll', async () => await orderService.getSales());
+ipcMain.handle('orders:getProducts', async (event, orderId) => await orderService.getOrderProducts(orderId));
 
 // Manejo de eventos IPC para pagos
 ipcMain.handle('payments:getPaymentsByOrderId', (event, orderId) => paymentService.getPaymentsByOrderId(orderId));
