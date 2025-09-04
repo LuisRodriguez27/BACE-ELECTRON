@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { FileText, Loader, MapPin, Package, Palette, Ruler, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useForm } from 'react-hook-form';
+import { extractErrorMessage } from '@/utils/errorHandling';
 
 interface EditTemplateModalProps {
   isOpen: boolean;
@@ -38,15 +39,9 @@ const EditTemplateModal: React.FC<EditTemplateModalProps> = ({
       setValue('height', template.height);
       setValue('position', template.position || '');
       
-      // Handle colors
+      // Handle colors - ahora es texto plano
       if (template.colors) {
-        try {
-          const colors = JSON.parse(template.colors);
-          const colorString = Array.isArray(colors) ? colors.join(', ') : template.colors;
-          setColorsInput(colorString);
-        } catch {
-          setColorsInput(template.colors);
-        }
+        setColorsInput(template.colors);
       } else {
         setColorsInput('');
       }
@@ -60,19 +55,18 @@ const EditTemplateModal: React.FC<EditTemplateModalProps> = ({
       setIsSubmitting(true);
       setError(null);
 
-      let processedData = { ...data };
+      let processedData = { 
+        ...data,
+        colors: colorsInput.trim() || undefined
+      };
 
-      const result = await ProductTemplatesApiService.update(template.id, processedData);
-      
-      if (result.success && result.data) {
-        onTemplateUpdated(result.data);
-        handleClose();
-      } else {
-        setError(result.message || 'Error al actualizar la plantilla');
-      }
-    } catch (err) {
+      const updatedTemplate = await ProductTemplatesApiService.update(template.id, processedData);
+      onTemplateUpdated(updatedTemplate);
+      handleClose();
+    } catch (err: any) {
       console.error('Error updating template:', err);
-      setError('Error al actualizar la plantilla. Intenta nuevamente.');
+      const errorMessage = extractErrorMessage(err);
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

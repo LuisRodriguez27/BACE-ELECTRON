@@ -48,7 +48,7 @@ const ProductTemplatesPage: React.FC = () => {
 
   const filteredTemplates = templates.filter(template => {
     const matchesSearch = template.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         template.product_name?.toLowerCase().includes(searchTerm.toLowerCase());
+                          template.product_name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesProduct = selectedProduct === 'all' || template.product_id.toString() === selectedProduct;
     const matchesUser = selectedUser === 'all' || template.created_by_username === selectedUser;
     
@@ -61,11 +61,9 @@ const ProductTemplatesPage: React.FC = () => {
     }
 
     try {
-      const result = await ProductTemplatesApiService.delete(templateId);
-      if (result.success) {
-        setTemplates(prev => prev.filter(t => t.id !== templateId));
-        toast.success('Plantilla eliminada exitosamente');
-      }
+      await ProductTemplatesApiService.delete(templateId);
+      setTemplates(prev => prev.filter(t => t.id !== templateId));
+      toast.success('Plantilla eliminada exitosamente');
     } catch (error) {
       console.error('Error deleting template:', error);
       toast.error('Error al eliminar la plantilla');

@@ -22,11 +22,11 @@ export const ProductTemplatesApiService = {
     return window.api.createTemplate(template);
   },
 
-  update: async (id: number, template: EditProductTemplateForm): Promise<{ success: boolean; message: string; data?: ProductTemplate }> => {
+  update: async (id: number, template: EditProductTemplateForm): Promise<ProductTemplate> => {
     return window.api.updateTemplate(id, template);
   },
 
-  delete: async (id: number): Promise<{ success: boolean; message: string }> => {
+  delete: async (id: number): Promise<void> => {
     return window.api.deleteTemplate(id);
   },
 };

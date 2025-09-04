@@ -55,6 +55,15 @@ export function getUserFriendlyErrorMessage(error: any): string {
     'El precio debe ser mayor o igual a cero': 'El precio debe ser mayor o igual a cero.',
     'Producto no encontrado': 'No se pudo encontrar el producto solicitado.',
     'ID de producto inválido': 'El identificador del producto no es válido.',
+    
+    // Errores de plantillas de productos
+    'El producto especificado no existe': 'El producto seleccionado no existe o fue eliminado.',
+    'El precio final es requerido y debe ser un número válido': 'El precio final debe ser un número válido.',
+    'El precio final debe ser mayor o igual a cero': 'El precio final debe ser mayor o igual a cero.',
+    'El ancho debe ser un número válido mayor o igual a cero': 'El ancho debe ser un número válido mayor o igual a cero.',
+    'El alto debe ser un número válido mayor o igual a cero': 'El alto debe ser un número válido mayor o igual a cero.',
+    'Plantilla no encontrada': 'No se pudo encontrar la plantilla solicitada.',
+    'ID de plantilla inválido': 'El identificador de la plantilla no es válido.',
   };
 
   return errorMappings[message] || message;

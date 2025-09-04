@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { FileText, Loader, MapPin, Package, Palette, Ruler, X } from "lucide-react";
 import React, { useState } from "react";
 import { useForm } from 'react-hook-form';
+import { extractErrorMessage } from '@/utils/errorHandling';
 
 interface CreateTemplateModalProps {
   isOpen: boolean;
@@ -39,13 +40,8 @@ const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
   // Set initial colors from product
   React.useEffect(() => {
     if (product.colors) {
-      try {
-        const colors = JSON.parse(product.colors);
-        const colorString = Array.isArray(colors) ? colors.join(', ') : product.colors;
-        setColorsInput(colorString);
-      } catch {
-        setColorsInput(product.colors);
-      }
+      // Ahora colors es texto plano, no necesitamos parsing
+      setColorsInput(product.colors);
     }
   }, [product.colors]);
 
@@ -54,9 +50,10 @@ const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
       setIsSubmitting(true);
       setError(null);
 
-      // Convertir colors de string a array si es necesario
+      // Pasar colores como texto plano
       let processedData = { 
         ...data,
+        colors: colorsInput.trim() || undefined,
         created_by: 1 // TODO: Get from auth context
       };
 
@@ -65,9 +62,10 @@ const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
       reset();
       setColorsInput('');
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error creating template:', err);
-      setError('Error al crear la plantilla. Intenta nuevamente.');
+      const errorMessage = extractErrorMessage(err);
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -85,14 +83,9 @@ const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
     setValue('height', product.height);
     setValue('position', product.position || '');
     
+    // Ahora colors es texto plano
     if (product.colors) {
-      try {
-        const colors = JSON.parse(product.colors);
-        const colorString = Array.isArray(colors) ? colors.join(', ') : product.colors;
-        setColorsInput(colorString);
-      } catch {
-        setColorsInput(product.colors);
-      }
+      setColorsInput(product.colors);
     }
   };
 

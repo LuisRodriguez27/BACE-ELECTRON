@@ -81,11 +81,10 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
     }
 
     try {
-      const result = await ProductTemplatesApiService.delete(templateId);
-      if (result.success) {
-        setTemplates(prev => prev.filter(t => t.id !== templateId));
-        toast.success('Plantilla eliminada exitosamente');
-      }
+      await ProductTemplatesApiService.delete(templateId);
+      setTemplates(prev => prev.filter(t => t.id !== templateId));
+      toast.success('Plantilla eliminada exitosamente');
+      
     } catch (error) {
       console.error('Error deleting template:', error);
       toast.error('Error al eliminar la plantilla');

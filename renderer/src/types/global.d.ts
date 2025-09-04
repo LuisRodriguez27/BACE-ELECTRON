@@ -61,8 +61,8 @@ declare global {
       getTemplateById: (id: number) => Promise<ProductTemplate>;
       getTemplatesByProductId: (productId: number) => Promise<ProductTemplate[]>;
       createTemplate: (data: CreateProductTemplateForm) => Promise<ProductTemplate>;
-      updateTemplate: (id: number, data: EditProductTemplateForm) => Promise<{ success: boolean; message: string; data?: ProductTemplate }>;
-      deleteTemplate: (id: number) => Promise<{ success: boolean; message: string }>;
+      updateTemplate: (id: number, data: EditProductTemplateForm) => Promise<ProductTemplate>;
+      deleteTemplate: (id: number) => Promise<void>;
       searchTemplate: (searchTerm: string) => Promise<ProductTemplate[]>;
 
       // Ordenes
