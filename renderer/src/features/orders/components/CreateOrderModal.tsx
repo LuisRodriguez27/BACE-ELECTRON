@@ -7,6 +7,7 @@ import { Button, Input, Label } from '@/components/ui';
 import { Calendar, ReceiptText, X, DollarSign, Loader, CalendarDays, Plus, Trash2, Package, Search } from 'lucide-react';
 import type { Product } from '@/features/products/types';
 import QuickCreateProductModal from '@/features/products/components/QuickCreateProductModal';
+import { extractErrorMessage } from '@/utils/errorHandling';
 
 interface Client {
   id: number;
@@ -212,9 +213,10 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       onOrderCreated(newOrder);
       reset();
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error creating order', err);
-      setError('Error al crear la orden. Intente nuevamente.');
+      const errorMessage = extractErrorMessage(err);
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
