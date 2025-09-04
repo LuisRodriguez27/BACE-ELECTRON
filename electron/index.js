@@ -9,7 +9,7 @@ const userService = require('./services/userService');
 const permissionService = require('./repositories/permissions');
 const clientService = require('./services/clientService');
 const productService = require('./services/productService');
-const productTemplatesService = require('./repositories/productTemplates');
+const productTemplatesService = require('./services/productTemplateService');
 const orderService = require('./repositories/orders');
 const paymentService = require('./repositories/payments');
 const authService = require('./repositories/auth')
@@ -95,15 +95,15 @@ ipcMain.handle('products:getWithTemplates', async (event, productId) => await pr
 ipcMain.handle('products:search', async (event, searchTerm) => await productService.searchProducts(searchTerm));
 
 // Manejo de eventos IPC para plantillas de productos
-ipcMain.handle('templates:getAll', () => productTemplatesService.getAllTemplates());
-ipcMain.handle('templates:getById', (event, id) => productTemplatesService.getTemplateById(id));
-ipcMain.handle('templates:getByProductId', (event, productId) => productTemplatesService.getTemplatesByProductId(productId));
-ipcMain.handle('templates:create', (event, data) => productTemplatesService.createTemplate(data));
-ipcMain.handle('templates:update', (event, id, data) => productTemplatesService.updateTemplate(id, data));
-ipcMain.handle('templates:delete', (event, id) => productTemplatesService.deleteTemplate(id));
+ipcMain.handle('templates:getAll', async () => await productTemplatesService.getAllTemplates());
+ipcMain.handle('templates:getById', async (event, id) => await productTemplatesService.getTemplateById(id));
+ipcMain.handle('templates:getByProductId', async (event, productId) => await productTemplatesService.getTemplatesByProductId(productId));
+ipcMain.handle('templates:create', async (event, data) => await productTemplatesService.createTemplate(data));
+ipcMain.handle('templates:update', async (event, id, data) => await productTemplatesService.updateTemplate(id, data));
+ipcMain.handle('templates:delete', async (event, id) => await productTemplatesService.deleteTemplate(id));
 
 // Funciones especiales de plantillas
-ipcMain.handle('templates:search', (event, searchTerm) => productTemplatesService.searchTemplates(searchTerm));
+ipcMain.handle('templates:search', async (event, searchTerm) => await productTemplatesService.searchTemplates(searchTerm));
 
 // Manejo de eventos IPC para ordenes
 ipcMain.handle('orders:getAll', () => orderService.getAllOrders());
