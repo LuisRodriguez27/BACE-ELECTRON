@@ -10,6 +10,7 @@ class OrderService {
   async getAllOrders() {
     try {
       const orders = orderRepository.findAll();
+      console.log('Orders fetched:', orders);      
       return orders.map(order => order.toPlainObject());
     } catch (error) {
       console.error('Error al obtener órdenes:', error);

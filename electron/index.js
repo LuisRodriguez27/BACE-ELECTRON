@@ -11,7 +11,7 @@ const clientService = require('./services/clientService');
 const productService = require('./services/productService');
 const productTemplatesService = require('./services/productTemplateService');
 const orderService = require('./services/orderService');
-const paymentService = require('./repositories/payments');
+const paymentService = require('./services/paymentsService');
 const authService = require('./repositories/auth')
 
 function createWindow() {
@@ -117,11 +117,13 @@ ipcMain.handle('sales:getAll', async () => await orderService.getSales());
 ipcMain.handle('orders:getProducts', async (event, orderId) => await orderService.getOrderProducts(orderId));
 
 // Manejo de eventos IPC para pagos
-ipcMain.handle('payments:getPaymentsByOrderId', (event, orderId) => paymentService.getPaymentsByOrderId(orderId));
-ipcMain.handle('payments:getById', (event, id) => paymentService.getPaymentById(id));
-ipcMain.handle('payments:create', (event, data) => paymentService.createPayment(data));
-ipcMain.handle('payments:update', (event, id, data) => paymentService.updatePayment(id, data));
-ipcMain.handle('payments:delete', (event, id) => paymentService.deletePayment(id));
+ipcMain.handle('payments:getAll', async () => await paymentService.getAllPayments());
+ipcMain.handle('payments:getPaymentsByOrderId', async (event, orderId) => await paymentService.getPaymentsByOrderId(orderId));
+ipcMain.handle('payments:getById', async (event, id) => await paymentService.getPaymentById(id));
+ipcMain.handle('payments:create', async (event, data) => await paymentService.createPayment(data));
+ipcMain.handle('payments:update', async (event, id, data) => await paymentService.updatePayment(id, data));
+ipcMain.handle('payments:delete', async (event, id) => await paymentService.deletePayment(id));
+ipcMain.handle('payments:getByClientId', async (event, clientId) => await paymentService.getPaymentsByClientId(clientId));
 
 
 

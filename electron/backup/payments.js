@@ -1,3 +1,10 @@
+// DEPRECATED: Este archivo ha sido reemplazado por el patrón Repository + Service Layer
+// Nuevo patrón:
+// - Domain: ../domain/payments.js (entidad)
+// - Repository: ../repositories/paymentsRepository.js (acceso a datos)
+// - Service: ../services/paymentsService.js (lógica de negocio)
+// Este archivo se mantiene por compatibilidad, pero no se usa más.
+
 const db = require('../db.js');
 
 function getPaymentsByOrderId(orderId) {
