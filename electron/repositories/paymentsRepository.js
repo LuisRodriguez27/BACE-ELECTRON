@@ -5,11 +5,7 @@ class PaymentsRepository {
   findAll() {
     const stmt = db.prepare(`
       SELECT 
-        p.id, 
-        p.order_id, 
-        p.amount, 
-        p.date, 
-        p.descripcion,
+        p.*,
         o.id as o_id, 
         o.client_id as o_client_id, 
         o.status as o_status, 
@@ -41,11 +37,7 @@ class PaymentsRepository {
   findByOrderId(orderId) {
     const stmt = db.prepare(`
       SELECT 
-        p.id, 
-        p.order_id, 
-        p.amount, 
-        p.date, 
-        p.descripcion,
+        p.*,
         o.id as o_id, 
         o.client_id as o_client_id, 
         o.status as o_status, 
@@ -78,11 +70,7 @@ class PaymentsRepository {
   findById(id) {
     const stmt = db.prepare(`
       SELECT 
-        p.id, 
-        p.order_id, 
-        p.amount, 
-        p.date, 
-        p.descripcion,
+        p.*,
         o.id as o_id, 
         o.client_id as o_client_id, 
         o.status as o_status, 
@@ -141,11 +129,7 @@ class PaymentsRepository {
   findByClientId(clientId) {
     const stmt = db.prepare(`
       SELECT 
-        p.id, 
-        p.order_id, 
-        p.amount, 
-        p.date, 
-        p.descripcion,
+        p.*,
         o.id as o_id, 
         o.client_id as o_client_id, 
         o.status as o_status, 
