@@ -72,9 +72,11 @@ contextBridge.exposeInMainWorld('api', {
   getOrderProducts: (orderId) => ipcRenderer.invoke('orders:getProducts', orderId),
 
   // Pagos
+  getAllPayments: () => ipcRenderer.invoke('payments:getAll'),
   getPaymentsByOrderId: (orderId) => ipcRenderer.invoke('payments:getPaymentsByOrderId', orderId),
   getPaymentById: (id) => ipcRenderer.invoke('payments:getById', id),
   createPayment: (data) => ipcRenderer.invoke('payments:create', data),
   updatePayment: (id, data) => ipcRenderer.invoke('payments:update', id, data),
   deletePayment: (id) => ipcRenderer.invoke('payments:delete', id),
+  getPaymentsByClientId: (clientId) => ipcRenderer.invoke('payments:getByClientId', clientId),
 });

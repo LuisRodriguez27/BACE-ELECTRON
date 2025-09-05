@@ -44,6 +44,7 @@ declare global {
       createClient: (data: CreateClientForm) => Promise<Client>;
       updateClient: (id: number, data: EditClientForm) => Promise<Client>;
       deleteClient: (id: number) => Promise<void>;
+      searchClients: (searchTerm: string) => Promise<Client[]>;
 
       // Productos
       getAllProducts: () => Promise<Product[]>;
@@ -53,7 +54,7 @@ declare global {
       deleteProduct: (id: number) => Promise<void>;
 
       // Funciones avanzadas de productos
-      getProductsWithTemplates: (productId: number) => Promise<Product & { templates: ProductTemplate[] }>;
+      getProductWithTemplates: (productId: number) => Promise<Product & { templates: ProductTemplate[] }>;
       searchProducts: (searchTerm: string) => Promise<Product[]>;
 
       // Plantillas de productos
@@ -63,7 +64,7 @@ declare global {
       createTemplate: (data: CreateProductTemplateForm) => Promise<ProductTemplate>;
       updateTemplate: (id: number, data: EditProductTemplateForm) => Promise<ProductTemplate>;
       deleteTemplate: (id: number) => Promise<void>;
-      searchTemplate: (searchTerm: string) => Promise<ProductTemplate[]>;
+      searchTemplates: (searchTerm: string) => Promise<ProductTemplate[]>;
 
       // Ordenes
       getAllOrders: () => Promise<Order[]>;
@@ -74,13 +75,16 @@ declare global {
       deleteOrder: (id: number) => Promise<void>;
       recalculateOrderTotal: (id: number) => Promise<number>;
       getSales: () => Promise<Order[]>;
+      getOrderProducts: (orderId: number) => Promise<OrderProduct[]>;
 
       // Pagos
+      getAllPayments: () => Promise<Payment[]>;
       getPaymentsByOrderId: (orderId: number) => Promise<Payment[]>;
       getPaymentById: (id: number) => Promise<Payment>;
       createPayment: (data: CreatePaymentForm & { orderId: number; amount: number; date?: string; descripcion?: string }) => Promise<Payment>;
       updatePayment: (id: number, data: { amount: number; descripcion?: string }) => Promise<{ success: boolean; message: string; data?: Payment }>;
       deletePayment: (id: number) => Promise<{ success: boolean; message: string }>;
+      getPaymentsByClientId: (clientId: number) => Promise<Payment[]>;
     };
   }
 }

@@ -73,6 +73,7 @@ ipcMain.handle('clients:getById', async (event, id) => await clientService.getCl
 ipcMain.handle('clients:create', async (event, data) => await clientService.createClient(data));
 ipcMain.handle('clients:update', async (event, id, data) => await clientService.updateClient(id, data));
 ipcMain.handle('clients:delete', async (event, id) => await clientService.deleteClient(id));
+ipcMain.handle('clients:search', async (event, searchTerm) => await clientService.searchClients(searchTerm));
 
 // Manejo de eventos IPC para productos
 ipcMain.handle('products:getAll', async () => await productService.getAllProducts());
