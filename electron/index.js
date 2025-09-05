@@ -6,7 +6,7 @@ app.disableHardwareAcceleration();
 
 // Importar funciones de servicios
 const userService = require('./services/userService');
-const permissionService = require('./repositories/permissions');
+const permissionService = require('./services/permissionService');
 const clientService = require('./services/clientService');
 const productService = require('./services/productService');
 const productTemplatesService = require('./services/productTemplateService');
@@ -67,14 +67,14 @@ ipcMain.handle('auth:requireAuth', (event, operation) => {
 });
 
 // Manejo de eventos IPC para permisos
-ipcMain.handle('permissions:getAll', () => permissionService.getAllPermissions());
-ipcMain.handle('permissions:getById', (event, id) => permissionService.getPermissionsById(id));
-ipcMain.handle('permissions:getByUserId', (event, userId) => permissionService.getPermissionsByUserId(userId));
-ipcMain.handle('permissions:create', (event, data) => permissionService.createPermission(data));
-ipcMain.handle('permissions:update', (event, id, data) => permissionService.updatePermission(id, data));
-ipcMain.handle('permissions:delete', (event, id) => permissionService.deletePermission(id));
-ipcMain.handle('permissions:assignToUser', (event, data) => permissionService.assignPermissionToUser(data));
-ipcMain.handle('permissions:removeFromUser', (event, data) => permissionService.removePermissionFromUser(data));
+ipcMain.handle('permissions:getAll', async () => await permissionService.getAllPermissions());
+ipcMain.handle('permissions:getById', async (event, id) => await permissionService.getPermissionById(id));
+ipcMain.handle('permissions:getByUserId', async (event, userId) => await permissionService.getPermissionsByUserId(userId));
+ipcMain.handle('permissions:create', async (event, data) => await permissionService.createPermission(data));
+ipcMain.handle('permissions:update', async (event, id, data) => await permissionService.updatePermission(id, data));
+ipcMain.handle('permissions:delete', async (event, id) => await permissionService.deletePermission(id));
+ipcMain.handle('permissions:assignToUser', async (event, data) => await permissionService.assignPermissionToUser(data));
+ipcMain.handle('permissions:removeFromUser', async (event, data) => await permissionService.removePermissionFromUser(data));
 
 // Manejo de eventos IPC para clientes
 ipcMain.handle('clients:getAll', async () => await clientService.getAllClients());
