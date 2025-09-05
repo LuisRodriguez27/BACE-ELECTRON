@@ -32,8 +32,8 @@ declare global {
       getPermissionsById: (id: number) => Promise<Permission>;
       getPermissionsByUserId: (userId: number) => Promise<Permission[]>;
       createPermission: (data: CreatePermissionForm) => Promise<Permission>;
-      updatePermission: (id: number, data: EditPermissionForm) => Promise<{ success: boolean; message: string; data?: Permission }>;
-      deletePermission: (id: number) => Promise<{ success: boolean; message: string }>;
+      updatePermission: (id: number, data: EditPermissionForm) => Promise<Permission>;
+      deletePermission: (id: number) => Promise<void>;
       // Corregidos los tipos de parámetros - deben ser objetos, no strings
       assignPermissionToUser: (data: { userId: number; permissionId: number }) => Promise<{ success: boolean; message: string }>;
       removePermissionFromUser: (data: { userId: number; permissionId: number }) => Promise<{ success: boolean; message: string }>;
@@ -81,9 +81,9 @@ declare global {
       getAllPayments: () => Promise<Payment[]>;
       getPaymentsByOrderId: (orderId: number) => Promise<Payment[]>;
       getPaymentById: (id: number) => Promise<Payment>;
-      createPayment: (data: CreatePaymentForm & { orderId: number; amount: number; date?: string; descripcion?: string }) => Promise<Payment>;
-      updatePayment: (id: number, data: { amount: number; descripcion?: string }) => Promise<{ success: boolean; message: string; data?: Payment }>;
-      deletePayment: (id: number) => Promise<{ success: boolean; message: string }>;
+      createPayment: (data: CreatePaymentForm) => Promise<Payment>;
+      updatePayment: (id: number, data: EditPaymentForm) => Promise<Payment>;
+      deletePayment: (id: number) => Promise<void>;
       getPaymentsByClientId: (clientId: number) => Promise<Payment[]>;
     };
   }
