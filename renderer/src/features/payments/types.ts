@@ -29,10 +29,3 @@ export interface Payment {
     total: number;
   };
 }
-
-export interface PaymentSummary {
-  order_id: number;
-  total_payments: number;
-  pending_amount: number;
-  payment_count: number;
-}

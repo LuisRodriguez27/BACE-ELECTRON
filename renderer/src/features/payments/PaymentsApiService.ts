@@ -16,11 +16,11 @@ export const PaymentsApiService = {
     return window.api.createPayment(payment);
   },
 
-  update: async (id: number, payment: { amount: number; descripcion?: string }): Promise<{ success: boolean; message: string; data?: Payment }> => {
+  update: async (id: number, payment: Payment): Promise<Payment> => {
     return window.api.updatePayment(id, payment);
   },
 
-  delete: async (id: number): Promise<{ success: boolean; message: string }> => {
+  delete: async (id: number): Promise<void> => {
     return window.api.deletePayment(id);
   }
 };
