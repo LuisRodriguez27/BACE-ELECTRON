@@ -143,6 +143,16 @@ function seed() {
     "en proceso",
     300.0
   ).lastInsertRowid;
+  
+  const order3 = insertOrder.run(
+    restaurant,
+    adminId,
+    adminId,
+    new Date().toISOString(),
+    new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+    "completado",
+    300.0
+  ).lastInsertRowid;
 
   // -------------------------
   // 8. Insertar productos de órdenes
@@ -156,6 +166,7 @@ function seed() {
   insertOrderProduct.run(order1, productIds["TP-001"], null, 100, 2.5, 250.0);
   insertOrderProduct.run(order2, productIds["MV-001"], null, 1, 200.0, 200.0);
   insertOrderProduct.run(order2, productIds["VP-001"], null, 100, 0.8, 80.0);
+  insertOrderProduct.run(order3, productIds["VP-001"], null, 100, 0.8, 80.0);
 
   // -------------------------
   // 9. Insertar pagos
