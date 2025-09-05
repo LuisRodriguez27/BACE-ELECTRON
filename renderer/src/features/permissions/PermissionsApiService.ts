@@ -22,11 +22,11 @@ export const PermissionsApiService = {
     return window.api.createPermission(permission);
   },
 
-  update: async (id: number, permission: EditPermissionForm): Promise<{ success: boolean; message: string; data?: Permission }> => {
+  update: async (id: number, permission: EditPermissionForm): Promise<Permission> => {
     return window.api.updatePermission(id, permission);
   },
 
-  delete: async (id: number): Promise<{ success: boolean; message: string }> => {
+  delete: async (id: number): Promise<void> => {
     return window.api.deletePermission(id);
   },
 
