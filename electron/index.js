@@ -12,7 +12,7 @@ const productService = require('./services/productService');
 const productTemplatesService = require('./services/productTemplateService');
 const orderService = require('./services/orderService');
 const paymentService = require('./services/paymentsService');
-const authService = require('./repositories/auth')
+const authService = require('./services/authService');
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -49,22 +49,13 @@ ipcMain.handle('users:verifyPassword', async (event, data) => await userService.
 ipcMain.handle('users:checkUsername', async (event, username, excludeUserId) => await userService.checkUsernameExists(username, excludeUserId));
 
 // Manejo de eventos IPC para autenticacion
-ipcMain.handle('auth:login', (event, { username, password }) => 
-  authService.login(username, password)
-);
-ipcMain.handle('auth:logout', () => authService.logout());
-ipcMain.handle('auth:getCurrentUser', () => authService.getCurrentUser());
-ipcMain.handle('auth:isAuthenticated', () => authService.isAuthenticated());
-ipcMain.handle('auth:getUserWithPermissions', () => 
-  authService.getUserWithPermissions()
-);
+ipcMain.handle('auth:login', async (event, { username, password }) => await authService.login(username, password));
+ipcMain.handle('auth:logout', async () => await authService.logout());
+ipcMain.handle('auth:getCurrentUser', async () => await authService.getCurrentUser());
+ipcMain.handle('auth:isAuthenticated', async () => await authService.isAuthenticated());
+ipcMain.handle('auth:getUserWithPermissions', async () => await authService.getUserWithPermissions());
 // Middleware para verificar autenticación
-ipcMain.handle('auth:requireAuth', (event, operation) => {
-  if (!authService.isAuthenticated()) {
-    return { success: false, message: 'No autorizado' };
-  }
-  return { success: true };
-});
+ipcMain.handle('auth:requireAuth', async (event, operation) => await authService.requireAuth());
 
 // Manejo de eventos IPC para permisos
 ipcMain.handle('permissions:getAll', async () => await permissionService.getAllPermissions());
