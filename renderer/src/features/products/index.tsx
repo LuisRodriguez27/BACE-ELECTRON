@@ -1,5 +1,4 @@
 import { Button } from '@/components/ui/button';
-import type { ProductTemplate } from '@/features/productTemplates/types';
 import { DollarSign, Edit3, Filter, Hash, Package, Plus, Search, Trash2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
