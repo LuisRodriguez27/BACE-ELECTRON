@@ -37,6 +37,14 @@ function seed() {
   const adminInfo = insertUser.run("admin", passwordHash, 1);
   const adminId = adminInfo.lastInsertRowid;
 
+  const passwordHash2 = bcrypt.hashSync("user123", saltRounds);
+  const insertUser2 = db.prepare(`
+    INSERT INTO users (username, password, active)
+    VALUES (?, ?, ?)
+  `);
+  const userInfo = insertUser2.run("user", passwordHash2, 1);
+  const userId = userInfo.lastInsertRowid;
+
   // -------------------------
   // 3. Insertar permisos
   // -------------------------
@@ -46,10 +54,38 @@ function seed() {
   `);
 
   const permissions = [
-    ["manage_users", "Permite administrar usuarios", 1],
-    ["manage_orders", "Permite gestionar órdenes", 1],
-    ["manage_products", "Permite gestionar productos", 1],
-    ["view_reports", "Permite visualizar reportes", 1],
+    // Usuarios y permisos
+  ["Gestionar Usuario", "Permite crear, editar o desactivar usuarios", 1],
+  ["Gestionar Permisos", "Permite asignar o revocar permisos a los usuarios", 1],
+
+  // Clientes
+  ["Ver Clientes", "Permite visualizar la información de los clientes", 1],
+  ["Crear Cliente", "Permite registrar nuevos clientes", 1],
+  ["Editar Cliente", "Permite modificar datos de clientes", 1],
+  ["Eliminar Cliente", "Permite eliminar o desactivar clientes", 1],
+
+  // Productos
+  ["Ver Productos", "Permite visualizar la lista de productos", 1],
+  ["Crear Producto", "Permite registrar nuevos productos", 1],
+  ["Editar Producto", "Permite modificar información de productos", 1],
+  ["Eliminar Producto", "Permite eliminar o desactivar productos", 1],
+
+  // Plantillas de productos
+  ["Crear Plantilla", "Permite crear plantillas de productos", 1],
+  ["Ver Plantillas", "Permite visualizar plantillas de productos", 1],
+  ["Editar Plantilla", "Permite modificar plantillas de productos", 1],
+  ["Eliminar Plantilla", "Permite eliminar plantillas de productos", 1],
+
+  // Órdenes
+  ["Ver Órdenes", "Permite visualizar las órdenes existentes", 1],
+  ["Crear Órdenes", "Permite registrar nuevas órdenes", 1],
+  ["Editar Órdenes", "Permite modificar órdenes", 1],
+  ["Cancelar Órdenes", "Permite cancelar órdenes", 1],
+
+  // Pagos
+  ["Registrar Pagos", "Permite registrar pagos en órdenes", 1],
+  ["Ver Pagos", "Permite visualizar los pagos realizados", 1],
+  ["Eliminar Pagos", "Permite eliminar o anular pagos", 1],
   ];
   permissions.forEach((perm) => insertPermission.run(...perm));
 
