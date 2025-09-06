@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Search, Filter, Users, Phone, MapPin, Edit3, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ClientApiService } from './ClientApiService';
-import { CreateClientModal, EditClientModal, DeleteClientModal } from './components';
+import { CreateClientModal, EditClientModal, DeleteClientModal, ClientColorIndicator } from './components';
 import { toast } from 'sonner';
 import type { Client } from './types';
 
@@ -199,7 +199,10 @@ const ClientsPage: React.FC = () => {
               {filteredClients.map((client) => (
                 <div key={client.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between mb-3">
-                    <h3 className="font-semibold text-gray-900 truncate">{client.name}</h3>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <ClientColorIndicator color={client.color} size="md" />
+                      <h3 className="font-semibold text-gray-900 truncate">{client.name}</h3>
+                    </div>
                     <div className="flex items-center gap-1">
                       <Button 
                         variant="ghost" 

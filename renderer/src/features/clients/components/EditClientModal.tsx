@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { X, User as UserIcon, Phone, MapPin, FileText, Loader } from 'lucide-react';
 import { toast } from 'sonner';
@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { ClientApiService } from '../ClientApiService';
 import { editClientSchema, type EditClientForm, type Client } from '../types';
 import { extractErrorMessage } from '@/utils/errorHandling';
+import ColorSelector from './ColorSelector';
 
 interface EditClientModalProps {
   isOpen: boolean;
@@ -31,7 +32,8 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
     handleSubmit,
     formState: { errors },
     reset,
-    setValue
+    setValue,
+    control
   } = useForm<EditClientForm>({
     resolver: zodResolver(editClientSchema)
   });
@@ -42,6 +44,7 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
       setValue('phone', client.phone);
       setValue('address', client.address || '');
       setValue('description', client.description || '');
+      setValue('color', client.color || undefined);
       setError(null);
     }
   }, [client, isOpen, setValue]);
@@ -149,6 +152,29 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
               </div>
               {errors.phone && (
                 <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
+              )}
+            </div>
+
+            {/* Color */}
+            <div>
+              <Label className="text-sm font-medium text-gray-700">
+                Color de identificación
+              </Label>
+              <div className="mt-1">
+                <Controller
+                  name="color"
+                  control={control}
+                  render={({ field }) => (
+                    <ColorSelector
+                      value={field.value || null}
+                      onChange={field.onChange}
+                      placeholder="Seleccionar color (opcional)"
+                    />
+                  )}
+                />
+              </div>
+              {errors.color && (
+                <p className="mt-1 text-sm text-red-600">{errors.color.message}</p>
               )}
             </div>
 
