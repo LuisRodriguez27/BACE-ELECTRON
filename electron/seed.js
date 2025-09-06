@@ -114,7 +114,30 @@ function seed() {
   });
 
   // -------------------------
-  // 7. Insertar órdenes
+  // 7. Insertar plantillas de productos
+  // -------------------------
+  const insertTemplate = db.prepare(`
+    INSERT INTO product_templates 
+    (product_id, final_price, width, height, colors, position, texts, description, created_by, active)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  const templates = [
+    [productIds["TZ-001"], 60.0, 9.5, 8.0, "blanco, rojo", "frente", "Feliz Cumpleaños", "Taza personalizada con frase", adminId, 1],
+    [productIds["GP-001"], 100.0, null, null, "azul, negro", "frente", "Logo empresa", "Gorra con logo bordado", adminId, 1],
+    [productIds["PY-001"], 120.0, null, null, "rojo, blanco", "frente", "Texto promocional", "Playera con texto publicitario", adminId, 1],
+    [productIds["LP-001"], 150.0, 200.0, 100.0, "full color", "horizontal", "Gran apertura", "Lona publicitaria con diseño", adminId, 1],
+    [productIds["VP-001"], 1.2, 10.0, 20.0, "full color", "frente", "Descuento especial", "Volante con promoción", adminId, 1],
+  ];
+
+  const templateIds = {};
+  templates.forEach((t, i) => {
+    const result = insertTemplate.run(...t);
+    templateIds[`TEMPLATE-${i + 1}`] = result.lastInsertRowid;
+  });
+
+  // -------------------------
+  // 8. Insertar órdenes
   // -------------------------
   const insertOrder = db.prepare(`
     INSERT INTO orders (client_id, user_id, edited_by, date, estimated_delivery_date, status, total)
@@ -155,7 +178,7 @@ function seed() {
   ).lastInsertRowid;
 
   // -------------------------
-  // 8. Insertar productos de órdenes
+  // 9. Insertar productos de órdenes
   // -------------------------
   const insertOrderProduct = db.prepare(`
     INSERT INTO order_products (order_id, product_id, template_id, quantity, unit_price, total_price)
@@ -169,7 +192,7 @@ function seed() {
   insertOrderProduct.run(order3, productIds["VP-001"], null, 100, 0.8, 80.0);
 
   // -------------------------
-  // 9. Insertar pagos
+  // 10. Insertar pagos
   // -------------------------
   const insertPayment = db.prepare(`
     INSERT INTO payments (order_id, amount, date, descripcion)
