@@ -1,6 +1,7 @@
 import { Button, Input, Label } from "@/components/ui";
 import { ProductTemplatesApiService } from "@/features/productTemplates/ProductTemplatesApiService";
 import { createProductTemplateSchema, type CreateProductTemplateForm, type ProductTemplate } from "@/features/productTemplates/types";
+import type { Product } from "../types";
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FileText, Loader, MapPin, Package, Palette, Ruler, X } from "lucide-react";
 import React, { useState } from "react";
@@ -11,7 +12,7 @@ interface CreateTemplateModalProps {
   isOpen: boolean;
   onClose: () => void;
   onTemplateCreated: (template: ProductTemplate) => void;
-  product: ProductTemplate;
+  product: Product;
 }
 
 const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
@@ -31,19 +32,16 @@ const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
     resolver: zodResolver(createProductTemplateSchema),
     defaultValues: {
       product_id: product.id,
-      width: product.width,
-      height: product.height,
-      position: product.position || '',
+      final_price: product.price,
     }
   });
 
-  // Set initial colors from product
+  // Set default values from product
   React.useEffect(() => {
-    if (product.colors) {
-      // Ahora colors es texto plano, no necesitamos parsing
-      setColorsInput(product.colors);
+    if (product && isOpen) {
+      setValue('final_price', product.price);
     }
-  }, [product.colors]);
+  }, [product, isOpen, setValue]);
 
   const onSubmit = async (data: CreateProductTemplateForm) => {
     try {
@@ -78,16 +76,7 @@ const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
     onClose();
   };
 
-  const handleUseProductDefaults = () => {
-    setValue('width', product.width);
-    setValue('height', product.height);
-    setValue('position', product.position || '');
-    
-    // Ahora colors es texto plano
-    if (product.colors) {
-      setColorsInput(product.colors);
-    }
-  };
+
 
   if (!isOpen) return null;
 
@@ -106,7 +95,7 @@ const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Nueva Plantilla</h2>
               <p className="text-sm text-gray-500">
-                Crear plantilla para: <span className="font-medium">{product.product_name}</span>
+                Crear plantilla para: <span className="font-medium">{product.name}</span>
               </p>
             </div>
           </div>
@@ -130,36 +119,41 @@ const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
 
           {/* Product Reference */}
           <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-gray-700">Valores del producto base</h3>
-              <Button 
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleUseProductDefaults}
-                className="text-xs"
-              >
-                Usar valores base
-              </Button>
-            </div>
             <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
               <div>
-                <span className="font-medium">Dimensiones:</span> 
-                {product.width && product.height 
-                  ? ` ${product.width}m × ${product.height}m`
-                  : ' No especificadas'
-                }
+                <span className="font-medium">Producto:</span> {product.name}
               </div>
               <div>
-                <span className="font-medium">Posición:</span> 
-                {product.position ? ` ${product.position}` : ' No especificada'}
+                <span className="font-medium">Precio base:</span> ${product.price.toFixed(2)} MXN
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Final Price */}
+            <div>
+              <Label htmlFor="final_price" className="text-sm font-medium text-gray-700">
+                Precio Final *
+              </Label>
+              <div className="mt-1 relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">$</span>
+                <Input
+                  id="final_price"
+                  type="number"
+                  step='0.01'
+                  min='0'
+                  placeholder="0.00"
+                  className="pl-8"
+                  {...register('final_price', { valueAsNumber: true })}
+                />
+              </div>
+              {errors.final_price && (
+                <p className="mt-1 text-sm text-red-600">{errors.final_price.message}</p>
+              )}
+            </div>
+
             {/* Description */}
-            <div className="md:col-span-2">
+            <div>
               <Label htmlFor="description" className="text-sm font-medium text-gray-700">
                 Descripción de la Plantilla *
               </Label>

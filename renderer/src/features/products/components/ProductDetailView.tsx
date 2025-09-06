@@ -1,6 +1,7 @@
 import { Button, Input } from '@/components/ui';
 import { ProductTemplatesApiService } from '@/features/productTemplates/ProductTemplatesApiService';
 import type { ProductTemplate } from '@/features/productTemplates/types';
+import TemplateStats from '@/features/productTemplates/components/TemplateStats';
 import {
   ArrowLeft,
   BarChart3,
@@ -217,6 +218,11 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
         </div>
       </div>
 
+      {/* Template Statistics */}
+      {templates.length > 0 && (
+        <TemplateStats templates={templates} />
+      )}
+
       {/* Templates Section */}
       <div className="bg-white rounded-lg shadow">
         {/* Templates Header */}
@@ -338,6 +344,13 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
 
                     {/* Template Specifications */}
                     <div className="space-y-2 text-sm text-gray-600 mb-4">
+                      <div className="flex items-center gap-2">
+                        <DollarSign size={14} />
+                        <span className="font-semibold text-green-600">
+                          ${template.final_price.toFixed(2)} MXN
+                        </span>
+                      </div>
+                      
                       {(template.width || template.height) && (
                         <div className="flex items-center gap-2">
                           <Ruler size={14} />

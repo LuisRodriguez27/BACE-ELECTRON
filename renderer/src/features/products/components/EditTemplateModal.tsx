@@ -34,6 +34,7 @@ const EditTemplateModal: React.FC<EditTemplateModalProps> = ({
   // Set form values when template changes
   useEffect(() => {
     if (template && isOpen) {
+      setValue('final_price', template.final_price);
       setValue('description', template.description || '');
       setValue('width', template.width);
       setValue('height', template.height);
@@ -120,8 +121,30 @@ const EditTemplateModal: React.FC<EditTemplateModalProps> = ({
 
           {/* Template Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Final Price */}
+            <div>
+              <Label htmlFor="final_price" className="text-sm font-medium text-gray-700">
+                Precio Final *
+              </Label>
+              <div className="mt-1 relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">$</span>
+                <Input
+                  id="final_price"
+                  type="number"
+                  step='0.01'
+                  min='0'
+                  placeholder="0.00"
+                  className="pl-8"
+                  {...register('final_price', { valueAsNumber: true })}
+                />
+              </div>
+              {errors.final_price && (
+                <p className="mt-1 text-sm text-red-600">{errors.final_price.message}</p>
+              )}
+            </div>
+
             {/* Description */}
-            <div className="md:col-span-2">
+            <div>
               <Label htmlFor="description" className="text-sm font-medium text-gray-700">
                 Descripción de la Plantilla *
               </Label>

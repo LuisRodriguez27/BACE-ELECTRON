@@ -2,6 +2,7 @@ import { Button, Input } from '@/components/ui';
 import { ProductsApiService } from '@/features/products/ProductsApiService';
 import type { Product } from '@/features/products/types';
 import {
+  DollarSign,
   Grid, List,
   MapPin,
   Package,
@@ -276,6 +277,13 @@ const ProductTemplatesPage: React.FC = () => {
 
                       {/* Specifications */}
                       <div className={`${viewMode === 'list' ? 'flex items-center gap-6' : 'space-y-2'} text-sm text-gray-600 mb-4`}>
+                        <div className="flex items-center gap-2">
+                          <DollarSign size={14} className="text-green-600" />
+                          <span className="font-semibold text-green-600">
+                            ${template.final_price.toFixed(2)} MXN
+                          </span>
+                        </div>
+                        
                         {(template.width || template.height) && (
                           <div className="flex items-center gap-2">
                             <Ruler size={14} />

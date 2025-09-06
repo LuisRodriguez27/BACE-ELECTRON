@@ -29,4 +29,8 @@ export const ProductTemplatesApiService = {
   delete: async (id: number): Promise<void> => {
     return window.api.deleteTemplate(id);
   },
+
+  search: async (searchTerm: string): Promise<ProductTemplate[]> => {
+    return window.api.searchTemplates(searchTerm);
+  },
 };

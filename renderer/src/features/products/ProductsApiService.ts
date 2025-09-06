@@ -1,4 +1,5 @@
 import type { Product, CreateProductForm, EditProductForm } from "./types";
+import type { ProductTemplate } from "@/features/productTemplates/types";
 
 export const ProductsApiService = {
   findAll: async (): Promise<Product[]> => {
@@ -9,6 +10,9 @@ export const ProductsApiService = {
     return window.api.getProductById(id);
   },
 
+  findWithTemplates: async (id: number): Promise<Product & { templates: ProductTemplate[] }> => {
+    return window.api.getProductWithTemplates(id);
+  },
 
   create: async (product: CreateProductForm): Promise<Product> => {
     return window.api.createProduct(product);
@@ -20,5 +24,9 @@ export const ProductsApiService = {
 
   delete: async (id: number): Promise<void> => {
     return window.api.deleteProduct(id);
+  },
+
+  search: async (searchTerm: string): Promise<Product[]> => {
+    return window.api.searchProducts(searchTerm);
   },
 };

@@ -122,11 +122,19 @@ const ProductsPage: React.FC = () => {
   const handleTemplateCreated = () => {
     toast.success('Plantilla creada exitosamente');
     setShowCreateTemplateModal(false);
+    // Refrescar la vista actual si estamos en detalles
+    if (currentView === 'detail' && detailProductId) {
+      // El ProductDetailView se refrescará automáticamente
+    }
   };
 
   const handleTemplateUpdated = () => {
     toast.success('Plantilla actualizada exitosamente');
     setShowEditTemplateModal(false);
+    // Refrescar la vista actual si estamos en detalles
+    if (currentView === 'detail' && detailProductId) {
+      // El ProductDetailView se refrescará automáticamente
+    }
   };
 
   const closeModals = () => {
@@ -344,7 +352,7 @@ const ProductsPage: React.FC = () => {
           isOpen={showCreateTemplateModal}
           onClose={closeModals}
           onTemplateCreated={handleTemplateCreated}
-          product={selectedTemplate!}
+          product={selectedProduct}
         />
       )}
       
