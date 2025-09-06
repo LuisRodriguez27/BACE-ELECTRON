@@ -3,7 +3,7 @@ import type { ProductTemplate } from '@/features/productTemplates/types';
 import { DollarSign, Edit3, Filter, Hash, Package, Plus, Search, Trash2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { CreateProductModal, CreateTemplateModal, DeleteProductModal, EditProductModal, EditTemplateModal, ProductDetailView } from './components';
+import { CreateProductModal, DeleteProductModal, EditProductModal, ProductDetailView } from './components';
 import { ProductsApiService } from './ProductsApiService';
 import type { Product } from './types';
 
@@ -18,12 +18,9 @@ const ProductsPage: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   
-  // Estados para vista detallada y plantillas
+  // Estados para vista detallada
   const [currentView, setCurrentView] = useState<'list' | 'detail'>('list');
   const [detailProductId, setDetailProductId] = useState<number | null>(null);
-  const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
-  const [showEditTemplateModal, setShowEditTemplateModal] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<ProductTemplate | null>(null);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -106,45 +103,11 @@ const ProductsPage: React.FC = () => {
     setDetailProductId(null);
   };
 
-  const openCreateTemplateModal = (productId: number) => {
-    const product = products.find(p => p.id === productId);
-    if (product) {
-      setSelectedProduct(product);
-      setShowCreateTemplateModal(true);
-    }
-  };
-
-  const openEditTemplateModal = (template: ProductTemplate) => {
-    setSelectedTemplate(template);
-    setShowEditTemplateModal(true);
-  };
-
-  const handleTemplateCreated = () => {
-    toast.success('Plantilla creada exitosamente');
-    setShowCreateTemplateModal(false);
-    // Refrescar la vista actual si estamos en detalles
-    if (currentView === 'detail' && detailProductId) {
-      // El ProductDetailView se refrescará automáticamente
-    }
-  };
-
-  const handleTemplateUpdated = () => {
-    toast.success('Plantilla actualizada exitosamente');
-    setShowEditTemplateModal(false);
-    // Refrescar la vista actual si estamos en detalles
-    if (currentView === 'detail' && detailProductId) {
-      // El ProductDetailView se refrescará automáticamente
-    }
-  };
-
   const closeModals = () => {
     setShowCreateModal(false);
     setShowEditModal(false);
     setShowDeleteModal(false);
-    setShowCreateTemplateModal(false);
-    setShowEditTemplateModal(false);
     setSelectedProduct(null);
-    setSelectedTemplate(null);
   };
 
   // Si estamos en vista detallada, mostrar el componente correspondiente
@@ -153,9 +116,7 @@ const ProductsPage: React.FC = () => {
       <ProductDetailView
         productId={detailProductId}
         onBack={closeProductDetail}
-        onEditProduct={openEditModal}
-        onCreateTemplate={openCreateTemplateModal}
-        onEditTemplate={openEditTemplateModal}
+        onProductUpdated={handleProductUpdated}
       />
     );
   }
@@ -344,23 +305,6 @@ const ProductsPage: React.FC = () => {
         onClose={closeModals}
         onProductDeleted={handleProductDeleted}
         product={selectedProduct}
-      />
-      
-      {/* Modales de Plantillas */}
-      {selectedProduct && (
-        <CreateTemplateModal
-          isOpen={showCreateTemplateModal}
-          onClose={closeModals}
-          onTemplateCreated={handleTemplateCreated}
-          product={selectedProduct}
-        />
-      )}
-      
-      <EditTemplateModal
-        isOpen={showEditTemplateModal}
-        onClose={closeModals}
-        onTemplateUpdated={handleTemplateUpdated}
-        template={selectedTemplate}
       />
       
     </div>

@@ -2,6 +2,7 @@ import { Button, Input } from '@/components/ui';
 import { ProductTemplatesApiService } from '@/features/productTemplates/ProductTemplatesApiService';
 import type { ProductTemplate } from '@/features/productTemplates/types';
 import TemplateStats from '@/features/productTemplates/components/TemplateStats';
+import { CreateTemplateModal, EditTemplateModal, EditProductModal } from '../components';
 import {
   ArrowLeft,
   BarChart3,
@@ -28,13 +29,11 @@ import type { Product } from '../types';
 interface ProductDetailViewProps {
   productId: number;
   onBack: () => void;
-  onEditProduct: (product: Product) => void;
-  onCreateTemplate: (productId: number) => void;
-  onEditTemplate: (template: ProductTemplate) => void;
+  onProductUpdated?: (product: Product) => void;
 }
 
 const ProductDetailView: React.FC<ProductDetailViewProps> = ({
-  productId, onBack, onEditProduct, onCreateTemplate, onEditTemplate
+  productId, onBack, onProductUpdated
 }) => {
   const [product, setProduct] = useState<Product | null>(null);
   const [templates, setTemplates] = useState<ProductTemplate[]>([]);
@@ -43,6 +42,14 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  // Estados para modales de plantillas
+  const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
+  const [showEditTemplateModal, setShowEditTemplateModal] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<ProductTemplate | null>(null);
+
+  // Estados para modal de producto
+  const [showEditProductModal, setShowEditProductModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -89,6 +96,52 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
     } catch (error) {
       console.error('Error deleting template:', error);
       toast.error('Error al eliminar la plantilla');
+    }
+  };
+
+  const openCreateTemplateModal = () => {
+    setShowCreateTemplateModal(true);
+  };
+
+  const openEditTemplateModal = (template: ProductTemplate) => {
+    setSelectedTemplate(template);
+    setShowEditTemplateModal(true);
+  };
+
+  const handleTemplateCreated = (newTemplate: ProductTemplate) => {
+    setTemplates(prev => [...prev, newTemplate]);
+    toast.success('Plantilla creada exitosamente');
+    setShowCreateTemplateModal(false);
+  };
+
+  const handleTemplateUpdated = (updatedTemplate: ProductTemplate) => {
+    setTemplates(prev => 
+      prev.map(t => t.id === updatedTemplate.id ? updatedTemplate : t)
+    );
+    toast.success('Plantilla actualizada exitosamente');
+    setShowEditTemplateModal(false);
+    setSelectedTemplate(null);
+  };
+
+  const closeModals = () => {
+    setShowCreateTemplateModal(false);
+    setShowEditTemplateModal(false);
+    setSelectedTemplate(null);
+    setShowEditProductModal(false);
+  };
+
+  const openEditProductModal = () => {
+    setShowEditProductModal(true);
+  };
+
+  const handleProductUpdated = (updatedProduct: Product) => {
+    setProduct(updatedProduct);
+    toast.success(`Producto ${updatedProduct.name} actualizado exitosamente`);
+    setShowEditProductModal(false);
+    
+    // Notificar al componente padre si hay callback
+    if (onProductUpdated) {
+      onProductUpdated(updatedProduct);
     }
   };
 
@@ -154,7 +207,7 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
           <p className="text-gray-600">Gestión de producto y plantillas</p>
         </div>
         <Button 
-          onClick={() => onEditProduct(product)}
+          onClick={openEditProductModal}
           className="flex items-center gap-2"
         >
           <Edit3 size={16} />
@@ -237,7 +290,7 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
               </p>
             </div>
             <Button 
-              onClick={() => onCreateTemplate(productId)}
+              onClick={openCreateTemplateModal}
               className="flex items-center gap-2"
             >
               <Plus size={16} />
@@ -306,7 +359,7 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
               </p>
               {!searchTerm && (
                 <Button 
-                  onClick={() => onCreateTemplate(productId)}
+                  onClick={openCreateTemplateModal}
                   className="flex items-center gap-2 mx-auto"
                 >
                   <Plus size={16} />
@@ -398,7 +451,7 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => onEditTemplate(template)}
+                        onClick={() => openEditTemplateModal(template)}
                         className="flex-1 flex items-center gap-1"
                       >
                         <Edit3 size={14} />
@@ -420,6 +473,31 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
           )}
         </div>
       </div>
+
+      {/* Modales de Plantillas */}
+      {product && (
+        <CreateTemplateModal
+          isOpen={showCreateTemplateModal}
+          onClose={closeModals}
+          onTemplateCreated={handleTemplateCreated}
+          product={product}
+        />
+      )}
+      
+      <EditTemplateModal
+        isOpen={showEditTemplateModal}
+        onClose={closeModals}
+        onTemplateUpdated={handleTemplateUpdated}
+        template={selectedTemplate}
+      />
+
+      {/* Modal de Producto */}
+      <EditProductModal
+        isOpen={showEditProductModal}
+        onClose={closeModals}
+        onProductUpdated={handleProductUpdated}
+        product={product}
+      />
     </div>
   );
 };
