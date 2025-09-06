@@ -1,11 +1,11 @@
+import { Button, Input, Label } from "@/components/ui";
+import { extractErrorMessage } from '@/utils/errorHandling';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { CircleDollarSign, FileText, Loader, ScanBarcode, ShoppingBag, X } from "lucide-react";
 import React, { useState } from "react";
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Input, Label } from "@/components/ui";
-import { createProductSchema, type CreateProductForm, type Product } from "../types";
-import { Loader, X, ShoppingBag, ScanBarcode, CircleDollarSign, FileText, Ruler, Palette, MapPin } from "lucide-react";
 import { ProductsApiService } from "../ProductsApiService";
-import { extractErrorMessage } from '@/utils/errorHandling';
+import { createProductSchema, type CreateProductForm, type Product } from "../types";
 
 
 interface CreateProductModalProps {
@@ -19,7 +19,6 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [colorsInput, setColorsInput] = useState('');
 
   const {
     register,
@@ -40,7 +39,6 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
       const newProduct = await ProductsApiService.create(processedData);
       onProductCreated(newProduct);
       reset();
-      setColorsInput('');
       onClose();
     } catch (err: any) {
       console.error('Error creating product:', err);
@@ -53,7 +51,6 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
 
   const handleClose = () => {
     reset();
-    setColorsInput('');
     setError(null);
     onClose();
   };
@@ -116,26 +113,6 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
               )}
             </div>
 
-            {/* Serial Number */}
-            <div>
-              <Label htmlFor="serial_number" className="text-sm font-medium text-gray-700">
-                Número de Serie
-              </Label>
-              <div className="mt-1 relative">
-                <ScanBarcode className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                <Input
-                  id="serial_number"
-                  type="text"
-                  placeholder="Ej: TZ-001"
-                  className="pl-10"
-                  {...register('serial_number')}
-                />
-              </div>
-              {errors.serial_number && (
-                <p className="mt-1 text-sm text-red-600">{errors.serial_number.message}</p>
-              )}
-            </div>
-
             {/* Price */}
             <div>
               <Label htmlFor="price" className="text-sm font-medium text-gray-700">
@@ -158,81 +135,24 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
               )}
             </div>
 
-            {/* Width */}
+            {/* Serial Number */}
             <div>
-              <Label htmlFor="width" className="text-sm font-medium text-gray-700">
-                Ancho (m)
+              <Label htmlFor="serial_number" className="text-sm font-medium text-gray-700">
+                Número de Serie
               </Label>
               <div className="mt-1 relative">
-                <Ruler className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <ScanBarcode className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                 <Input
-                  id="width"
-                  type="number"
-                  step='0.1'
-                  min='0'
-                  placeholder="Ej: 2.0"
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
-            {/* Height */}
-            <div>
-              <Label htmlFor="height" className="text-sm font-medium text-gray-700">
-                Alto (m)
-              </Label>
-              <div className="mt-1 relative">
-                <Ruler className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                <Input
-                  id="height"
-                  type="number"
-                  step='0.1'
-                  min='0'
-                  placeholder="Ej: 3.0"
-                  className="pl-10"
-                />
-              </div>
-            </div>
-
-            {/* Colors */}
-            <div>
-              <Label htmlFor="colors" className="text-sm font-medium text-gray-700">
-                Colores
-              </Label>
-              <div className="mt-1 relative">
-                <Palette className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                <Input
-                  id="colors"
+                  id="serial_number"
                   type="text"
-                  placeholder="rojo, azul, blanco"
+                  placeholder="Ej: TZ-001"
                   className="pl-10"
-                  value={colorsInput}
-                  onChange={(e) => setColorsInput(e.target.value)}
+                  {...register('serial_number')}
                 />
               </div>
-              <p className="mt-1 text-xs text-gray-500">Separa los colores con comas</p>
-            </div>
-
-            {/* Position */}
-            <div>
-              <Label htmlFor="position" className="text-sm font-medium text-gray-700">
-                Posición
-              </Label>
-              <div className="mt-1 relative">
-                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                <select
-                  id="position"
-                  className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  
-                >
-                  <option value="">Seleccionar posición</option>
-                  <option value="centro">Centro</option>
-                  <option value="superior">Superior</option>
-                  <option value="inferior">Inferior</option>
-                  <option value="izquierda">Izquierda</option>
-                  <option value="derecha">Derecha</option>
-                </select>
-              </div>
+              {errors.serial_number && (
+                <p className="mt-1 text-sm text-red-600">{errors.serial_number.message}</p>
+              )}
             </div>
 
             {/* Description */}
