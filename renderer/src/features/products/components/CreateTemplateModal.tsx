@@ -152,26 +152,6 @@ const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
               )}
             </div>
 
-            {/* Description */}
-            <div>
-              <Label htmlFor="description" className="text-sm font-medium text-gray-700">
-                Descripción de la Plantilla *
-              </Label>
-              <div className="mt-1 relative">
-                <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                <Input
-                  id="description"
-                  type="text"
-                  placeholder="Ej: PROMOCIONES - Lona roja comercial"
-                  className="pl-10"
-                  {...register('description')}
-                />
-              </div>
-              {errors.description && (
-                <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
-              )}
-            </div>
-
             {/* Width */}
             <div>
               <Label htmlFor="width" className="text-sm font-medium text-gray-700">
@@ -260,6 +240,46 @@ const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
               </div>
               {errors.position && (
                 <p className="mt-1 text-sm text-red-600">{errors.position.message}</p>
+              )}
+            </div>
+            
+            {/* Texts */}
+            <div>
+              <Label htmlFor="texts" className="text-sm font-medium text-gray-700">
+                Texto que se puede agregar
+              </Label>
+              <div className="mt-1 relative">
+                <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <Input
+                  id="texts"
+                  type="text"
+                  placeholder="Ej: SE RENTA - VENTA - PROMOCIONES"
+                  className="pl-10"
+                  {...register('texts')}
+                />
+              </div>
+              {errors.texts && (
+                <p className="mt-1 text-sm text-red-600">{errors.texts.message}</p>
+              )}
+            </div>
+
+            {/* Description */}
+            <div>
+              <Label htmlFor="description" className="text-sm font-medium text-gray-700">
+                Descripción de la Plantilla
+              </Label>
+              <div className="mt-1 relative">
+                <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <Input
+                  id="description"
+                  type="text"
+                  placeholder="Ej: PROMOCIONES - Lona roja comercial"
+                  className="pl-10"
+                  {...register('description')}
+                />
+              </div>
+              {errors.description && (
+                <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
               )}
             </div>
           </div>

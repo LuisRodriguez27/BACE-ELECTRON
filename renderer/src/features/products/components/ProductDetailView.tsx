@@ -64,6 +64,9 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
         
         setProduct(productData);
         setTemplates(templatesData);
+
+        console.log('Fetched product data:', productData);
+        console.log('Fetched templates data:', templatesData);
       } catch (err) {
         console.error('Error fetching product data:', err);
         setError('Error al cargar los datos del producto');
@@ -79,8 +82,10 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
     }
   }, [productId]);
 
+
+  // Corregir esto para que busque en los campos correctos
   const filteredTemplates = templates.filter(template =>
-    template.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    template.final_price?.toString().includes(searchTerm.toLowerCase())
   );
 
   const handleDeleteTemplate = async (templateId: number) => {
