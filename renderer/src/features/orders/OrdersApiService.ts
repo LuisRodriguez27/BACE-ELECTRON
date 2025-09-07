@@ -1,7 +1,8 @@
 import type { 
   Order, 
   CreateOrderForm, 
-  EditOrderForm, 
+  EditOrderForm,
+  OrderProduct, 
 } from "./types";
 
 export const OrdersApiService = {
@@ -28,4 +29,16 @@ export const OrdersApiService = {
   delete: async (id: number): Promise<void> => {
     return window.api.deleteOrder(id);
   },
+
+  recalculateTotal: async (id: number): Promise<number> => {
+    return window.api.recalculateOrderTotal(id);
+  },
+
+  getSales: async (): Promise<Order[]> => {
+    return window.api.getSales();
+  },
+
+  getOrderProducts: async (orderId: number): Promise<OrderProduct[]> => {
+    return window.api.getOrderProducts(orderId);
+  }
 };
