@@ -24,6 +24,7 @@ function seed() {
     DELETE FROM clients;
     DELETE FROM users;
     DELETE FROM permissions;
+    DELETE FROM sqlite_sequence;
   `);
 
   // -------------------------
