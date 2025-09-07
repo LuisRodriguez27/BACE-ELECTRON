@@ -4,6 +4,10 @@ import type {
 } from "./types";
 
 export const PaymentsApiService = {
+  getAll: async (): Promise<Payment[]> => {
+    return window.api.getAllPayments();
+  },
+
   findByOrderId: async (orderId: number): Promise<Payment[]> => {
     return window.api.getPaymentsByOrderId(orderId);
   },
@@ -22,5 +26,9 @@ export const PaymentsApiService = {
 
   delete: async (id: number): Promise<void> => {
     return window.api.deletePayment(id);
+  },
+
+  findByClientId: async (clientId: number): Promise<Payment[]> => {
+    return window.api.getPaymentsByClientId(clientId);
   }
 };
