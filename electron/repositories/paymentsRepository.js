@@ -158,6 +158,17 @@ class PaymentsRepository {
         : null
     }));
   }
+
+  getTotalPaymentsByOrderId(orderId) {
+    const stmt = db.prepare(`
+      SELECT COALESCE(SUM(amount), 0) as total
+      FROM payments 
+      WHERE order_id = ?
+    `);
+
+    const result = stmt.get(orderId);
+    return result ? parseFloat(result.total) || 0 : 0;
+  }
 }
 
 module.exports = new PaymentsRepository();
