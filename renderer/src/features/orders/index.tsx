@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Search, Filter, ShoppingCart, Calendar, DollarSign, Eye } from 'lucide-react';
+import { Plus, Search, Filter, ShoppingCart, Calendar, DollarSign, Eye, CheckCircle, AlertCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { OrdersApiService } from './OrdersApiService';
+import { PaymentsApiService } from '../payments/PaymentsApiService';
 import type { Order } from './types';
+import type { Payment } from '../payments/types';
 import { toast } from 'sonner';
 import CreateOrderModal from './components/CreateOrderModal';
 import OrderDetailsModal from './components/OrderDetailsModal';
@@ -10,6 +12,7 @@ import { useAuthStore } from '@/store/auth';
 
 const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [orderPayments, setOrderPayments] = useState<Record<number, Payment[]>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,6 +26,25 @@ const OrdersPage: React.FC = () => {
         setLoading(true);
         const data = await OrdersApiService.findAll();
         setOrders(data);
+        
+        // Cargar pagos para cada orden
+        const paymentsPromises = data.map(async (order) => {
+          try {
+            const payments = await PaymentsApiService.findByOrderId(order.id);
+            return { orderId: order.id, payments };
+          } catch (err) {
+            console.error(`Error fetching payments for order ${order.id}:`, err);
+            return { orderId: order.id, payments: [] };
+          }
+        });
+        
+        const paymentsResults = await Promise.all(paymentsPromises);
+        const paymentsMap = paymentsResults.reduce((acc, { orderId, payments }) => {
+          acc[orderId] = payments;
+          return acc;
+        }, {} as Record<number, Payment[]>);
+        
+        setOrderPayments(paymentsMap);
       } catch (err) {
         console.error('Error fetching orders:', err);
         setError('Error al cargar órdenes');
@@ -97,7 +119,50 @@ const OrdersPage: React.FC = () => {
     }
   };
 
-  const { user } = useAuthStore()
+  const { user } = useAuthStore();
+
+  // Funciones auxiliares para pagos
+  const getOrderPayments = (orderId: number): Payment[] => {
+    return orderPayments[orderId] || [];
+  };
+
+  const getTotalPaid = (orderId: number): number => {
+    const payments = getOrderPayments(orderId);
+    return payments.reduce((sum, payment) => sum + payment.amount, 0);
+  };
+
+  const getRemainingAmount = (order: Order): number => {
+    const totalPaid = getTotalPaid(order.id);
+    return order.total - totalPaid;
+  };
+
+  const getPaymentStatus = (order: Order): { status: 'paid' | 'partial' | 'pending'; icon: React.ReactNode; color: string; text: string } => {
+    const totalPaid = getTotalPaid(order.id);
+    const remaining = order.total - totalPaid;
+    
+    if (remaining <= 0) {
+      return {
+        status: 'paid',
+        icon: <CheckCircle className="h-4 w-4" />,
+        color: 'text-green-600',
+        text: 'Pagado'
+      };
+    } else if (totalPaid > 0) {
+      return {
+        status: 'partial',
+        icon: <AlertCircle className="h-4 w-4" />,
+        color: 'text-orange-600',
+        text: 'Pago parcial'
+      };
+    } else {
+      return {
+        status: 'pending',
+        icon: <Clock className="h-4 w-4" />,
+        color: 'text-gray-500',
+        text: 'Sin pagos'
+      };
+    }
+  };
 
   if (loading) {
     return (
@@ -193,86 +258,119 @@ const OrdersPage: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {orders.map((order) => (
-                <div key={order.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold text-gray-900">Orden #{order.id}</h3>
-                        <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(order.status)}`}>
-                          {getStatusText(order.status)}
-                        </span>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
-                        <div className="flex items-center gap-2">
-                          <Calendar size={14} />
-                          <span>Fecha: {formatDate(order.date)}</span>
+              {orders.map((order) => {
+                const paymentStatus = getPaymentStatus(order);
+                const totalPaid = getTotalPaid(order.id);
+                const remaining = getRemainingAmount(order);
+                const paymentsCount = getOrderPayments(order.id).length;
+                
+                return (
+                  <div key={order.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-semibold text-gray-900">Orden #{order.id}</h3>
+                          <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(order.status)}`}>
+                            {getStatusText(order.status)}
+                          </span>
+                          <div className={`flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-gray-100 ${paymentStatus.color}`}>
+                            {paymentStatus.icon}
+                            {paymentStatus.text}
+                          </div>
                         </div>
                         
-                        {order.estimated_delivery_date && (
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-gray-600">
                           <div className="flex items-center gap-2">
                             <Calendar size={14} />
-                            <span>Entrega: {formatDate(order.estimated_delivery_date)}</span>
+                            <span>Fecha: {formatDate(order.date)}</span>
                           </div>
-                        )}
-                        
-                        <div className="flex items-center gap-2">
-                          <DollarSign size={14} />
-                          <span className="font-semibold text-green-600">
-                            ${order.total.toFixed(2)} MXN
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleViewDetails(order.id)}
-                        className="flex items-center gap-2"
-                      >
-                        <Eye size={14} />
-                        Ver Detalles
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  {/* Información adicional */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
-                    {order.client && (
-                      <div>
-                        <span className="text-sm font-medium text-gray-700">Cliente:</span>
-                        <p className="text-sm text-gray-600">{order.client.name}</p>
-                        {order.client.phone && (
-                          <p className="text-xs text-gray-500">{order.client.phone}</p>
-                        )}
-                      </div>
-                    )}
-                    
-                    {order.user && (
-                      <div>
-                        <span className="text-sm font-medium text-gray-700">Creado por:</span>
-                        <p className="text-sm text-gray-600">{order.user.username}</p>
-                      </div>
-                    )}
-                    
-                    {order.orderProducts && order.orderProducts.length > 0 && (
-                      <div className="md:col-span-2">
-                        <span className="text-sm font-medium text-gray-700">Productos:</span>
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          {order.orderProducts.map((op, index) => (
-                            <span key={index} className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded">
-                              {op.product_name} (x{op.quantity})
+                          
+                          {order.estimated_delivery_date && (
+                            <div className="flex items-center gap-2">
+                              <Calendar size={14} />
+                              <span>Entrega: {formatDate(order.estimated_delivery_date)}</span>
+                            </div>
+                          )}
+                          
+                          <div className="flex items-center gap-2">
+                            <DollarSign size={14} />
+                            <span className="font-semibold text-blue-600">
+                              Total: ${order.total.toFixed(2)}
                             </span>
-                          ))}
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <DollarSign size={14} />
+                            <span className={`font-semibold ${paymentStatus.status === 'paid' ? 'text-green-600' : paymentStatus.status === 'partial' ? 'text-orange-600' : 'text-gray-500'}`}>
+                              Pagado: ${totalPaid.toFixed(2)}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    )}
+                      
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleViewDetails(order.id)}
+                          className="flex items-center gap-2"
+                        >
+                          <Eye size={14} />
+                          Ver Detalles
+                        </Button>
+                      </div>
+                    </div>
+                  
+                    {/* Información adicional */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                      {order.client && (
+                        <div>
+                          <span className="text-sm font-medium text-gray-700">Cliente:</span>
+                          <p className="text-sm text-gray-600">{order.client.name}</p>
+                          {order.client.phone && (
+                            <p className="text-xs text-gray-500">{order.client.phone}</p>
+                          )}
+                        </div>
+                      )}
+                      
+                      {order.user && (
+                        <div>
+                          <span className="text-sm font-medium text-gray-700">Creado por:</span>
+                          <p className="text-sm text-gray-600">{order.user.username}</p>
+                        </div>
+                      )}
+                      
+                      {/* Información de pagos */}
+                      {paymentsCount > 0 && (
+                        <div>
+                          <span className="text-sm font-medium text-gray-700">Pagos:</span>
+                          <p className="text-sm text-gray-600">
+                            {paymentsCount} pago{paymentsCount !== 1 ? 's' : ''} registrado{paymentsCount !== 1 ? 's' : ''}
+                          </p>
+                          {remaining > 0 && (
+                            <p className="text-xs text-orange-600">
+                              Pendiente: ${remaining.toFixed(2)}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      
+                      {order.orderProducts && order.orderProducts.length > 0 && (
+                        <div className={paymentsCount > 0 ? "" : "md:col-span-2"}>
+                          <span className="text-sm font-medium text-gray-700">Productos:</span>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {order.orderProducts.map((op, index) => (
+                              <span key={index} className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded">
+                                {op.product_name} (x{op.quantity})
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

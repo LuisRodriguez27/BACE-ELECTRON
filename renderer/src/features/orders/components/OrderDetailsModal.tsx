@@ -24,6 +24,9 @@ import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { OrdersApiService } from '../OrdersApiService';
 import { getOrderItemDisplayName, getOrderItemType, type Order, type OrderProduct } from '../types';
+import { PaymentsApiService } from '../../payments/PaymentsApiService';
+import { PaymentsList } from '../../payments/components';
+import type { Payment } from '../../payments/types';
 
 interface OrderDetailsModalProps {
   isOpen: boolean;
@@ -40,6 +43,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 }) => {
   const [order, setOrder] = useState<Order | null>(null);
   const [orderProducts, setOrderProducts] = useState<OrderProduct[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -63,14 +67,16 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       setLoading(true);
       setError(null);
       
-      // Cargar orden y productos en paralelo
-      const [orderData, productsData] = await Promise.all([
+      // Cargar orden, productos y pagos en paralelo
+      const [orderData, productsData, paymentsData] = await Promise.all([
         OrdersApiService.findById(orderId),
-        OrdersApiService.getOrderProducts(orderId)
+        OrdersApiService.getOrderProducts(orderId),
+        PaymentsApiService.findByOrderId(orderId)
       ]);
       
       setOrder(orderData);
       setOrderProducts(productsData);
+      setPayments(paymentsData);
       
       // Inicializar datos del formulario de edición
       setEditFormData({
@@ -84,6 +90,18 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       toast.error('Error al cargar los detalles de la orden');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadPayments = async () => {
+    if (!orderId) return;
+    
+    try {
+      const paymentsData = await PaymentsApiService.findByOrderId(orderId);
+      setPayments(paymentsData);
+    } catch (err) {
+      console.error('Error loading payments:', err);
+      toast.error('Error al cargar los pagos');
     }
   };
 
@@ -138,15 +156,6 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     });
   };
 
-  const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString('es-MX', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -200,6 +209,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const handleClose = () => {
     setOrder(null);
     setOrderProducts([]);
+    setPayments([]);
     setIsEditing(false);
     setError(null);
     onClose();
@@ -547,36 +557,14 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 )}
               </div>
 
-              {/* Información de pagos (si existe) */}
-              {order.payments && order.payments.length > 0 && (
-                <div className="bg-white border border-gray-200 rounded-lg">
-                  <div className="px-6 py-4 border-b border-gray-200">
-                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                      <DollarSign className="h-5 w-5" />
-                      Pagos Registrados
-                    </h3>
-                  </div>
-                  <div className="p-6">
-                    <div className="space-y-3">
-                      {order.payments.map((payment, index) => (
-                        <div key={payment.id} className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                          <div>
-                            <span className="font-medium text-green-800">Pago #{index + 1}</span>
-                            {payment.date && (
-                              <p className="text-sm text-green-600">
-                                {formatDateTime(payment.date)}
-                              </p>
-                            )}
-                          </div>
-                          <span className="font-semibold text-green-700">
-                            ${payment.amount.toFixed(2)} MXN
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
+              {/* Sección de Pagos */}
+              <PaymentsList
+                payments={payments}
+                orderId={order.id}
+                orderTotal={order.total}
+                clientName={order.client?.name || 'Cliente'}
+                onPaymentsChange={loadPayments}
+              />
             </div>
           )}
         </div>
