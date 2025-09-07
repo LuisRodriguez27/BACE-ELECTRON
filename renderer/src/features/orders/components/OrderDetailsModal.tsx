@@ -224,12 +224,12 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 {order ? `Orden #${order.id}` : 'Detalles de la Orden'}
               </h2>
               <p className="text-sm text-gray-500">
-                {loading ? 'Cargando detalles...' : 'Información completa de la orden'}
+                {loading ? 'Cargando detalles...' : onOrderUpdated ? 'Información completa de la orden' : 'Vista de solo lectura - Historial'}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {order && !isEditing && (
+            {order && !isEditing && onOrderUpdated && (
               <Button
                 variant="outline"
                 size="sm"

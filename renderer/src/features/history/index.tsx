@@ -1,13 +1,16 @@
 import { Button } from '@/components/ui/button';
-import { Calendar, DollarSign, Filter, Search, ShoppingCart } from 'lucide-react';
+import { Calendar, DollarSign, Filter, Search, ShoppingCart, Eye } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import type { Order } from '../orders/types';
 import { SalesApiService } from './SalesApiService';
+import OrderDetailsModal from '../orders/components/OrderDetailsModal';
 
 const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -46,6 +49,16 @@ const OrdersPage: React.FC = () => {
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const handleViewDetails = (orderId: number) => {
+    setSelectedOrderId(orderId);
+    setShowDetailsModal(true);
+  };
+
+  const closeModal = () => {
+    setShowDetailsModal(false);
+    setSelectedOrderId(null);
   };
 
   if (loading) {
@@ -165,11 +178,14 @@ const OrdersPage: React.FC = () => {
                     </div>
                     
                     <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleViewDetails(order.id)}
+                        className="flex items-center gap-2"
+                      >
+                        <Eye size={14} />
                         Ver Detalles
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        Editar
                       </Button>
                     </div>
                   </div>
@@ -214,7 +230,12 @@ const OrdersPage: React.FC = () => {
       </div>
 
       {/* Modals */}
-      
+      <OrderDetailsModal
+        isOpen={showDetailsModal}
+        onClose={closeModal}
+        orderId={selectedOrderId}
+        // No pasamos onOrderUpdated para deshabilitar edición en historial
+      />
 
     </div>
   );
