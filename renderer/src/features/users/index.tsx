@@ -261,29 +261,6 @@ const UsersPage: React.FC = () => {
                       </div>
                     </div>
                   )}
-                  
-                  {user.userPermissions && user.userPermissions.length > 0 && (
-                    <div className="mt-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Shield size={14} className="text-gray-400" />
-                        <span className="text-sm font-medium text-gray-700">Permisos Detallados:</span>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {user.userPermissions.map((userPerm, index) => (
-                          <span
-                            key={index}
-                            className={`px-2 py-1 text-xs rounded-md ${
-                              userPerm.active === 1 
-                                ? 'bg-green-50 text-green-700' 
-                                : 'bg-gray-50 text-gray-500'
-                            }`}
-                          >
-                            {userPerm.permission_name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
