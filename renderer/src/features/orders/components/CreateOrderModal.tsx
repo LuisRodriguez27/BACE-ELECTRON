@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { type CreateOrderForm, createOrderSchema, type Order } from "../types";
-import { useForm, useFieldArray } from 'react-hook-form';
+import { type CreateOrderForm, createOrderSchema, type Order, type OrderFormItem, createOrderItemFromFormItem, calculateOrderTotal } from "../types";
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { OrdersApiService } from '../OrdersApiService';
 import { Button, Input, Label } from '@/components/ui';
-import { Calendar, ReceiptText, X, DollarSign, Loader, CalendarDays, Plus, Trash2, Package, Search } from 'lucide-react';
+import { Calendar, ReceiptText, X, DollarSign, Loader, CalendarDays, Plus, Trash2, Package, Search, Layers } from 'lucide-react';
 import type { Product } from '@/features/products/types';
 import QuickCreateProductModal from '@/features/products/components/QuickCreateProductModal';
 import { extractErrorMessage } from '@/utils/errorHandling';
@@ -17,11 +17,25 @@ interface Client {
   description?: string;
 }
 
+interface ProductTemplate {
+  id: number;
+  product_id: number;
+  final_price: number;
+  width?: number;
+  height?: number;
+  colors?: string;
+  position?: string;
+  texts?: string;
+  description?: string;
+  created_by?: number;
+  active: number;
+}
+
 interface CreateOrderModalProps {
   isOpen: boolean;
   onClose: () => void;
   onOrderCreated: (order: Order) => void;
-  currentUserId: number; // ID del usuario actual logueado
+  currentUserId: number;
 }
 
 const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
@@ -34,61 +48,65 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [templates, setTemplates] = useState<ProductTemplate[]>([]);
   const [loadingClients, setLoadingClients] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [showCreateProductModal, setShowCreateProductModal] = useState(false);
-  const [productSearchTerms, setProductSearchTerms] = useState<{[key: number]: string}>({});
-  const [prefilledProductName, setPrefilledProductName] = useState<string>('');
+  
+  // Estado de los items de la orden (productos y plantillas)
+  const [orderItems, setOrderItems] = useState<OrderFormItem[]>([]);
+  const [searchTerms, setSearchTerms] = useState<{[key: number]: string}>({});
+  const [showDropdowns, setShowDropdowns] = useState<{[key: number]: boolean}>({});
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
-    setValue,
-    watch,
-    control
+    setValue
   } = useForm<CreateOrderForm>({
     resolver: zodResolver(createOrderSchema),
     defaultValues: {
       user_id: currentUserId,
       date: new Date().toISOString().split('T')[0],
       status: 'pendiente',
-      total: 0,
-      products: []
+      items: []
     }
   });
 
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: "products"
-  });
-
-  const watchedProducts = watch("products");
+  // Actualizar el formulario cuando cambien los items
+  useEffect(() => {
+    const items = orderItems.map(createOrderItemFromFormItem);
+    setValue('items', items);
+  }, [orderItems, setValue]);
 
   // Calcular total automáticamente
-  const calculateTotal = () => {
-    if (!watchedProducts) return 0;
-    return watchedProducts.reduce((total, product) => {
-      return total + ((product?.quantity || 0) * (product?.unit_price || 0));
-    }, 0);
-  };
+  const total = calculateOrderTotal(orderItems);
+
+  // Cargar datos al abrir el modal
+  useEffect(() => {
+    if (isOpen) {
+      loadClients();
+      loadProducts();
+      loadTemplates();
+    }
+  }, [isOpen]);
 
   // Cerrar dropdowns al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
       
-      // Verificar cada dropdown individualmente
-      fields.forEach((_, index) => {
-        const dropdown = document.getElementById(`product-dropdown-${index}`);
+      orderItems.forEach((_, index) => {
+        const dropdown = document.getElementById(`item-dropdown-${index}`);
         const inputContainer = dropdown?.parentElement;
         
-        if (dropdown && dropdown.style.display === 'block') {
+        if (dropdown && showDropdowns[index]) {
           const isClickInsideContainer = inputContainer?.contains(target);
           
           if (!isClickInsideContainer) {
-            dropdown.style.display = 'none';
+            setShowDropdowns(prev => ({ ...prev, [index]: false }));
           }
         }
       });
@@ -98,21 +116,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [fields]);
-
-  // Actualizar total cuando cambien los productos
-  useEffect(() => {
-    const total = calculateTotal();
-    setValue('total', total);
-  }, [watchedProducts, setValue]);
-
-  // Cargar clientes y productos al abrir el modal
-  useEffect(() => {
-    if (isOpen) {
-      loadClients();
-      loadProducts();
-    }
-  }, [isOpen]);
+  }, [orderItems, showDropdowns]);
 
   const loadClients = async () => {
     try {
@@ -131,7 +135,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     try {
       setLoadingProducts(true);
       const response = await window.api.getAllProducts();
-      setProducts(response.filter(p => p.active === 1)); // Solo productos activos
+      setProducts(response.filter(p => p.active === 1));
     } catch (err) {
       console.error('Error loading products:', err);
       setError('Error al cargar los productos');
@@ -140,79 +144,175 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     }
   };
 
-  const addProduct = () => {
-    append({
-      product_id: 0,
+  const loadTemplates = async () => {
+    try {
+      setLoadingTemplates(true);
+      // Asumiendo que tienes un API para obtener plantillas
+      const response = await window.api.getAllTemplates();
+      setTemplates(response.filter((t: ProductTemplate) => t.active === 1));
+    } catch (err) {
+      console.error('Error loading templates:', err);
+      setError('Error al cargar las plantillas');
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  // Agregar nuevo item vacío
+  const addOrderItem = () => {
+    const newItem: OrderFormItem = {
+      type: 'product',
+      id: 0,
+      name: '',
       quantity: 1,
-      unit_price: 0,
-      height: undefined,
-      width: undefined,
-      position: '',
-      colors: '',
-      description: ''
+      unit_price: 0
+    };
+    setOrderItems(prev => [...prev, newItem]);
+  };
+
+  // Remover item
+  const removeOrderItem = (index: number) => {
+    setOrderItems(prev => prev.filter((_, i) => i !== index));
+    setSearchTerms(prev => {
+      const newTerms = { ...prev };
+      delete newTerms[index];
+      return newTerms;
+    });
+    setShowDropdowns(prev => {
+      const newDropdowns = { ...prev };
+      delete newDropdowns[index];
+      return newDropdowns;
     });
   };
 
-  // Filtrar productos basado en el término de búsqueda para un índice específico
-  const getFilteredProducts = (index: number) => {
-    const searchTerm = productSearchTerms[index] || '';
-    if (!searchTerm) return products;
+  // Actualizar item específico
+  const updateOrderItem = (index: number, updates: Partial<OrderFormItem>) => {
+    setOrderItems(prev => prev.map((item, i) => 
+      i === index ? { ...item, ...updates } : item
+    ));
+  };
+
+  // Obtener items filtrados (productos + plantillas) para búsqueda
+  const getFilteredItems = (index: number) => {
+    const searchTerm = searchTerms[index] || '';
+    const items: Array<{type: 'product' | 'template', item: Product | ProductTemplate}> = [];
     
-    return products.filter(product => 
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (product.serial_number && product.serial_number.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  };
-
-  // Actualizar término de búsqueda para un producto específico
-  const updateProductSearchTerm = (index: number, term: string) => {
-    setProductSearchTerms(prev => ({
-      ...prev,
-      [index]: term
-    }));
-  };
-
-  // Manejar la creación de un nuevo producto
-  const handleProductCreated = (newProduct: Product) => {
-    setProducts(prev => [...prev, newProduct]);
-    // También podemos seleccionar automáticamente el producto recién creado
-    // en el último campo de producto agregado si está vacío
-    if (fields.length > 0) {
-      const lastIndex = fields.length - 1;
-      const lastProductId = watchedProducts?.[lastIndex]?.product_id;
-      if (!lastProductId || lastProductId === 0) {
-        setValue(`products.${lastIndex}.product_id` as const, newProduct.id);
-        setValue(`products.${lastIndex}.unit_price` as const, newProduct.price);
+    // Agregar productos
+    products.forEach(product => {
+      if (!searchTerm || 
+          product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (product.serial_number && product.serial_number.toLowerCase().includes(searchTerm.toLowerCase()))) {
+        items.push({ type: 'product', item: product });
       }
-    }
-    setPrefilledProductName(''); // Limpiar el nombre prellenado
+    });
+
+    // Agregar plantillas
+    templates.forEach(template => {
+      // Buscar el producto base de la plantilla
+      const baseProduct = products.find(p => p.id === template.product_id);
+      const templateName = baseProduct ? `${baseProduct.name} (Plantilla)` : `Plantilla #${template.id}`;
+      
+      if (!searchTerm || templateName.toLowerCase().includes(searchTerm.toLowerCase())) {
+        items.push({ type: 'template', item: { ...template, name: templateName } as any });
+      }
+    });
+
+    return items;
   };
 
-  // Función para abrir el modal de crear producto con nombre prellenado
-  const openCreateProductModal = (productName?: string) => {
-    if (productName) {
-      setPrefilledProductName(productName);
+  // Seleccionar item (producto o plantilla)
+  const selectItem = (index: number, type: 'product' | 'template', item: Product | ProductTemplate) => {
+    if (type === 'product') {
+      const product = item as Product;
+      updateOrderItem(index, {
+        type: 'product',
+        id: product.id,
+        name: product.name,
+        unit_price: product.price,
+        description: product.description,
+        serial_number: product.serial_number
+      });
+      setSearchTerms(prev => ({ ...prev, [index]: `${product.name}${product.serial_number ? ` (${product.serial_number})` : ''}` }));
+    } else {
+      const template = item as ProductTemplate;
+      const baseProduct = products.find(p => p.id === template.product_id);
+      const templateName = baseProduct ? `${baseProduct.name} (Plantilla)` : `Plantilla #${template.id}`;
+      
+      updateOrderItem(index, {
+        type: 'template',
+        id: template.id,
+        name: templateName,
+        unit_price: template.final_price,
+        description: template.description,
+        width: template.width,
+        height: template.height,
+        colors: template.colors,
+        position: template.position,
+        texts: template.texts
+      });
+      setSearchTerms(prev => ({ ...prev, [index]: templateName }));
     }
-    setShowCreateProductModal(true);
+    
+    setShowDropdowns(prev => ({ ...prev, [index]: false }));
   };
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (formData: any) => {
     try {
       setIsSubmitting(true);
       setError(null);
 
-      // Formatear las fechas y datos
-      const orderData = {
-        ...data,
-        date: data.date,
-        estimated_delivery_date: data.estimated_delivery_date || undefined,
-        total: data.total || 0
+      // Validar que hay items
+      if (orderItems.length === 0) {
+        setError('Debe agregar al menos un producto o plantilla');
+        return;
+      }
+
+      // Validar que todos los items tienen selección válida
+      const invalidItems = orderItems.filter(item => !item.id || item.id === 0);
+      if (invalidItems.length > 0) {
+        setError('Todos los productos/plantillas deben estar seleccionados');
+        return;
+      }
+
+      // Convertir orderItems a formato del backend
+      const items = orderItems.map(createOrderItemFromFormItem);
+      
+      // Debug: Mostrar el estado actual antes de enviar
+      console.log('orderItems estado:', orderItems);
+      console.log('Items convertidos:', items);
+      
+      // Validar que los items convertidos son válidos
+      if (items.length === 0) {
+        setError('Error: Los items no se convertieron correctamente');
+        return;
+      }
+
+      // Verificar que cada item tiene la estructura correcta
+      for (const item of items) {
+        if (!item.product_id && !item.template_id) {
+          console.error('Item inválido:', item);
+          setError('Error: Item sin product_id ni template_id');
+          return;
+        }
+      }
+
+      // Crear datos de la orden con los items del estado local
+      const orderData: CreateOrderForm = {
+        client_id: formData.client_id,
+        user_id: currentUserId,
+        date: formData.date,
+        estimated_delivery_date: formData.estimated_delivery_date || undefined,
+        status: formData.status || 'pendiente',
+        notes: formData.notes || undefined,
+        items // Usar los items del estado local, no del formulario
       };
+
+      console.log('Datos a enviar:', orderData); // Para debugging
+      console.log('Items:', items); // Para debugging
 
       const newOrder = await OrdersApiService.create(orderData);
       onOrderCreated(newOrder);
-      reset();
-      onClose();
+      handleClose();
     } catch (err: any) {
       console.error('Error creating order', err);
       const errorMessage = extractErrorMessage(err);
@@ -224,18 +324,25 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
 
   const handleClose = () => {
     reset();
+    setOrderItems([]);
+    setSearchTerms({});
+    setShowDropdowns({});
     setError(null);
     onClose();
   };
 
-  if(!isOpen) return null;
+  const handleProductCreated = (newProduct: Product) => {
+    setProducts(prev => [...prev, newProduct]);
+  };
+
+  if (!isOpen) return null;
 
   return (
     <div 
       className="fixed inset-0 flex items-center justify-center z-50"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-5xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
@@ -244,7 +351,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
             </div>
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Nueva Orden</h2>
-              <p className="text-sm text-gray-500">Agregar una nueva orden al sistema</p>
+              <p className="text-sm text-gray-500">Crear orden con productos y/o plantillas</p>
             </div>
           </div>
           <Button
@@ -344,12 +451,11 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                 <select
                   {...register('status')}
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  defaultValue="pending"
                 >
-                  <option value="pending">Pendiente</option>
-                  <option value="in_progress">En progreso</option>
-                  <option value="completed">Completado</option>
-                  <option value="cancelled">Cancelado</option>
+                  <option value="pendiente">Pendiente</option>
+                  <option value="en proceso">En Proceso</option>
+                  <option value="completado">Completado</option>
+                  <option value="cancelado">Cancelado</option>
                 </select>
               </div>
               {errors.status && (
@@ -357,7 +463,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
               )}
             </div>
 
-            {/* Total */}
+            {/* Total (solo lectura) */}
             <div>
               <Label htmlFor="total" className="text-sm font-medium text-gray-700">
                 Total (calculado automáticamente)
@@ -366,32 +472,40 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                 <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                 <Input
                   id="total"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
+                  type="text"
+                  value={`$${total.toFixed(2)}`}
                   className="pl-10 bg-gray-50"
-                  {...register('total', { valueAsNumber: true })}
                   readOnly
                 />
               </div>
-              {errors.total && (
-                <p className="mt-1 text-sm text-red-600">{errors.total.message}</p>
-              )}
+            </div>
+
+            {/* Notas */}
+            <div className="md:col-span-2">
+              <Label htmlFor="notes" className="text-sm font-medium text-gray-700">
+                Notas
+              </Label>
+              <textarea
+                {...register('notes')}
+                className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                rows={3}
+                placeholder="Notas adicionales sobre la orden..."
+              />
             </div>
           </div>
 
-          {/* Sección de Productos */}
+          {/* Sección de Items (Productos y Plantillas) */}
           <div className="mt-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <Package className="h-5 w-5 text-gray-600" />
-                <h3 className="text-lg font-medium text-gray-900">Productos</h3>
+                <h3 className="text-lg font-medium text-gray-900">Productos y Plantillas</h3>
+                <span className="text-sm text-gray-500">({orderItems.length} items)</span>
               </div>
               <div className="flex items-center gap-2">
                 <Button
                   type="button"
-                  onClick={() => openCreateProductModal()}
+                  onClick={() => setShowCreateProductModal(true)}
                   variant="outline"
                   size="sm"
                   className="flex items-center gap-2"
@@ -401,46 +515,50 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                 </Button>
                 <Button
                   type="button"
-                  onClick={addProduct}
+                  onClick={addOrderItem}
                   className="flex items-center gap-2"
                   size="sm"
-                  disabled={loadingProducts}
+                  disabled={loadingProducts || loadingTemplates}
                 >
                   <Plus size={16} />
-                  Agregar a Orden
+                  Agregar Item
                 </Button>
               </div>
             </div>
 
-            {loadingProducts ? (
+            {(loadingProducts || loadingTemplates) ? (
               <div className="flex items-center justify-center p-8 border border-dashed rounded-lg">
                 <Loader className="animate-spin" size={24} />
-                <span className="ml-2 text-gray-500">Cargando productos...</span>
+                <span className="ml-2 text-gray-500">Cargando productos y plantillas...</span>
               </div>
             ) : (
               <div className="space-y-4">
-                {fields.length === 0 ? (
+                {orderItems.length === 0 ? (
                   <div className="text-center p-8 border border-dashed rounded-lg text-gray-500">
-                    <Package className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-                    <p>No hay productos agregados</p>
-                    <p className="text-sm">Haz clic en "Agregar Producto" para comenzar</p>
+                    <div className="flex items-center justify-center gap-2 mb-4">
+                      <Package className="h-12 w-12 text-gray-300" />
+                      <Layers className="h-12 w-12 text-gray-300" />
+                    </div>
+                    <p>No hay productos o plantillas agregados</p>
+                    <p className="text-sm">Haz clic en "Agregar Item" para comenzar</p>
                   </div>
                 ) : (
-                  fields.map((field, index) => (
-                    <div key={field.id} className="p-4 border rounded-lg bg-gray-50">
+                  orderItems.map((item, index) => (
+                    <div key={index} className="p-4 border rounded-lg bg-gray-50">
                       <div className="flex justify-between items-start mb-4">
-                        <h4 className="font-medium text-gray-700">Producto #{index + 1}</h4>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-medium text-gray-700">Item #{index + 1}</h4>
+                          <span className={`px-2 py-1 text-xs rounded ${
+                            item.type === 'product' 
+                              ? 'bg-blue-100 text-blue-800' 
+                              : 'bg-purple-100 text-purple-800'
+                          }`}>
+                            {item.type === 'product' ? 'Producto' : 'Plantilla'}
+                          </span>
+                        </div>
                         <Button
                           type="button"
-                          onClick={() => {
-                            remove(index);
-                            // Limpiar el término de búsqueda para este índice
-                            setProductSearchTerms(prev => {
-                              const newTerms = { ...prev };
-                              delete newTerms[index];
-                              return newTerms;
-                            });
-                          }}
+                          onClick={() => removeOrderItem(index)}
                           variant="outline"
                           size="sm"
                           className="text-red-600 hover:text-red-700"
@@ -449,122 +567,91 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                         </Button>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {/* Producto con autocompletado integrado */}
-                        <div>
-                          <Label className="text-sm font-medium text-gray-700">Producto *</Label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {/* Selector de Producto/Plantilla */}
+                        <div className="lg:col-span-2">
+                          <Label className="text-sm font-medium text-gray-700">
+                            Producto o Plantilla *
+                          </Label>
                           
                           <div className="mt-1 relative">
-                            {/* Input de búsqueda/autocompletado */}
                             <div className="relative">
                               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 z-10" size={16} />
                               <Input
                                 type="text"
-                                placeholder="Buscar o seleccionar producto..."
-                                value={productSearchTerms[index] || ''}
+                                placeholder="Buscar producto o plantilla..."
+                                value={searchTerms[index] || ''}
                                 onChange={(e) => {
                                   const searchTerm = e.target.value;
-                                  updateProductSearchTerm(index, searchTerm);
+                                  setSearchTerms(prev => ({ ...prev, [index]: searchTerm }));
                                   
-                                  // Si el usuario está escribiendo, limpiar la selección
-                                  if (searchTerm !== '') {
-                                    setValue(`products.${index}.product_id` as const, 0);
+                                  if (searchTerm !== item.name) {
+                                    updateOrderItem(index, { id: 0, name: '', unit_price: 0 });
                                   }
                                   
-                                  // Mostrar dropdown si hay texto o al hacer foco
-                                  const dropdown = document.getElementById(`product-dropdown-${index}`);
-                                  if (dropdown) {
-                                    dropdown.style.display = searchTerm || getFilteredProducts(index).length > 0 ? 'block' : 'none';
-                                  }
+                                  setShowDropdowns(prev => ({ ...prev, [index]: true }));
                                 }}
                                 onFocus={() => {
-                                  // Mostrar dropdown al hacer foco
-                                  const dropdown = document.getElementById(`product-dropdown-${index}`);
-                                  if (dropdown) dropdown.style.display = 'block';
+                                  setShowDropdowns(prev => ({ ...prev, [index]: true }));
                                 }}
                                 className="pl-10 pr-4"
                               />
                             </div>
                             
-                            {/* Dropdown de productos */}
-                            <div 
-                              id={`product-dropdown-${index}`}
-                              className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto hidden"
-                              onMouseLeave={() => {
-                                // Ocultar dropdown al salir con el mouse
-                                setTimeout(() => {
-                                  const dropdown = document.getElementById(`product-dropdown-${index}`);
-                                  if (dropdown && !dropdown.matches(':hover')) {
-                                    dropdown.style.display = 'none';
-                                  }
-                                }, 100);
-                              }}
-                            >
-                              {getFilteredProducts(index).length > 0 ? (
-                                getFilteredProducts(index).map((product) => (
-                                  <div
-                                    key={product.id}
-                                    className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                                    onClick={() => {
-                                      // Seleccionar producto
-                                      setValue(`products.${index}.product_id` as const, product.id);
-                                      setValue(`products.${index}.unit_price` as const, product.price);
-                                      updateProductSearchTerm(index, `${product.name}${product.serial_number ? ` (${product.serial_number})` : ''}`);
-                                      
-                                      // Ocultar dropdown
-                                      const dropdown = document.getElementById(`product-dropdown-${index}`);
-                                      if (dropdown) dropdown.style.display = 'none';
-                                    }}
-                                  >
-                                    <div className="flex justify-between items-center">
-                                      <div>
-                                        <div className="font-medium text-sm text-gray-900">
-                                          {product.name}
-                                        </div>
-                                        {product.serial_number && (
-                                          <div className="text-xs text-gray-500">
-                                            {product.serial_number}
+                            {/* Dropdown de productos y plantillas */}
+                            {showDropdowns[index] && (
+                              <div 
+                                id={`item-dropdown-${index}`}
+                                className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto"
+                              >
+                                {getFilteredItems(index).length > 0 ? (
+                                  getFilteredItems(index).map((filteredItem, _) => (
+                                    <div
+                                      key={`${filteredItem.type}-${filteredItem.item.id}`}
+                                      className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                                      onClick={() => selectItem(index, filteredItem.type, filteredItem.item)}
+                                    >
+                                      <div className="flex justify-between items-center">
+                                        <div className="flex-1">
+                                          <div className="flex items-center gap-2">
+                                            {filteredItem.type === 'product' ? (
+                                              <Package className="h-4 w-4 text-blue-500" />
+                                            ) : (
+                                              <Layers className="h-4 w-4 text-purple-500" />
+                                            )}
+                                            <div className="font-medium text-sm text-gray-900">
+                                              {filteredItem.type === 'product' 
+                                                ? (filteredItem.item as Product).name
+                                                : (filteredItem.item as any).name
+                                              }
+                                            </div>
                                           </div>
-                                        )}
-                                      </div>
-                                      <div className="text-sm font-semibold text-green-600">
-                                        ${product.price}
+                                          {filteredItem.type === 'product' && (filteredItem.item as Product).serial_number && (
+                                            <div className="text-xs text-gray-500 ml-6">
+                                              {(filteredItem.item as Product).serial_number}
+                                            </div>
+                                          )}
+                                        </div>
+                                        <div className="text-sm font-semibold text-green-600">
+                                          ${filteredItem.type === 'product' 
+                                            ? (filteredItem.item as Product).price
+                                            : (filteredItem.item as ProductTemplate).final_price
+                                          }
+                                        </div>
                                       </div>
                                     </div>
+                                  ))
+                                ) : (
+                                  <div className="px-3 py-4 text-center">
+                                    <p className="text-sm text-gray-500 mb-2">No se encontraron items</p>
                                   </div>
-                                ))
-                              ) : (
-                                <div className="px-3 py-4 text-center">
-                                  <p className="text-sm text-gray-500 mb-2">No se encontraron productos</p>
-                                  {productSearchTerms[index] && (
-                                    <Button
-                                      type="button"
-                                      size="sm"
-                                      onClick={() => {
-                                        openCreateProductModal(productSearchTerms[index]);
-                                        // Ocultar dropdown
-                                        const dropdown = document.getElementById(`product-dropdown-${index}`);
-                                        if (dropdown) dropdown.style.display = 'none';
-                                      }}
-                                      className="text-xs"
-                                    >
-                                      <Plus size={12} className="mr-1" />
-                                      Crear "{productSearchTerms[index]}"
-                                    </Button>
-                                  )}
-                                </div>
-                              )}
-                            </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                           
-                          {/* Input hidden para el formulario */}
-                          <input
-                            type="hidden"
-                            {...register(`products.${index}.product_id` as const, { valueAsNumber: true })}
-                          />
-
-                          {errors.products?.[index]?.product_id && (
-                            <p className="mt-1 text-sm text-red-600">{errors.products[index]?.product_id?.message}</p>
+                          {!item.id && (
+                            <p className="mt-1 text-sm text-red-600">Seleccione un producto o plantilla</p>
                           )}
                         </div>
 
@@ -574,12 +661,10 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                           <Input
                             type="number"
                             min="1"
+                            value={item.quantity}
+                            onChange={(e) => updateOrderItem(index, { quantity: parseInt(e.target.value) || 1 })}
                             className="mt-1"
-                            {...register(`products.${index}.quantity` as const, { valueAsNumber: true })}
                           />
-                          {errors.products?.[index]?.quantity && (
-                            <p className="mt-1 text-sm text-red-600">{errors.products[index]?.quantity?.message}</p>
-                          )}
                         </div>
 
                         {/* Precio */}
@@ -589,70 +674,49 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                             type="number"
                             step="0.01"
                             min="0"
+                            value={item.unit_price}
+                            onChange={(e) => updateOrderItem(index, { unit_price: parseFloat(e.target.value) || 0 })}
                             className="mt-1"
-                            {...register(`products.${index}.unit_price` as const, { valueAsNumber: true })}
-                          />
-                          {errors.products?.[index]?.unit_price && (
-                            <p className="mt-1 text-sm text-red-600">{errors.products[index]?.unit_price?.message}</p>
-                          )}
-                        </div>
-
-                        {/* Alto */}
-                        <div>
-                          <Label className="text-sm font-medium text-gray-700">Alto (cm)</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            className="mt-1"
-                            {...register(`products.${index}.height` as const, { valueAsNumber: true })}
                           />
                         </div>
 
-                        {/* Ancho */}
-                        <div>
-                          <Label className="text-sm font-medium text-gray-700">Ancho (cm)</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            className="mt-1"
-                            {...register(`products.${index}.width` as const, { valueAsNumber: true })}
-                          />
-                        </div>
-
-                        {/* Posición */}
-                        <div>
-                          <Label className="text-sm font-medium text-gray-700">Posición</Label>
-                          <Input
-                            type="text"
-                            className="mt-1"
-                            placeholder="Ej: Esquina superior izquierda"
-                            {...register(`products.${index}.position` as const)}
-                          />
-                        </div>
-
-                        {/* Colores */}
-                        <div className="md:col-span-2">
-                          <Label className="text-sm font-medium text-gray-700">Colores</Label>
-                          <Input
-                            type="text"
-                            className="mt-1"
-                            placeholder="Ej: Rojo, Azul, Verde"
-                            {...register(`products.${index}.colors` as const)}
-                          />
-                        </div>
-
-                        {/* Descripción */}
-                        <div className="md:col-span-3">
-                          <Label className="text-sm font-medium text-gray-700">Descripción</Label>
-                          <textarea
-                            className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                            rows={2}
-                            placeholder="Detalles adicionales del producto"
-                            {...register(`products.${index}.description` as const)}
-                          />
-                        </div>
+                        {/* Información adicional del item */}
+                        {item.id > 0 && (
+                          <div className="lg:col-span-4 pt-4 border-t border-gray-200">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                              {item.serial_number && (
+                                <div>
+                                  <span className="font-medium text-gray-600">Número de serie:</span>
+                                  <p className="text-gray-700">{item.serial_number}</p>
+                                </div>
+                              )}
+                              {item.width && item.height && (
+                                <div>
+                                  <span className="font-medium text-gray-600">Dimensiones:</span>
+                                  <p className="text-gray-700">{item.width} x {item.height} cm</p>
+                                </div>
+                              )}
+                              {item.colors && (
+                                <div>
+                                  <span className="font-medium text-gray-600">Colores:</span>
+                                  <p className="text-gray-700">{item.colors}</p>
+                                </div>
+                              )}
+                              {item.position && (
+                                <div>
+                                  <span className="font-medium text-gray-600">Posición:</span>
+                                  <p className="text-gray-700">{item.position}</p>
+                                </div>
+                              )}
+                              {item.description && (
+                                <div className="md:col-span-3">
+                                  <span className="font-medium text-gray-600">Descripción:</span>
+                                  <p className="text-gray-700">{item.description}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))
@@ -673,11 +737,11 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || orderItems.length === 0}
               className="flex items-center gap-2"
             >
               {isSubmitting && <Loader className="animate-spin" size={16} />}
-              {isSubmitting ? 'Creando...' : 'Crear Orden'}
+              {isSubmitting ? 'Creando...' : `Crear Orden (${orderItems.length} items)`}
             </Button>
           </div>
         </form>
@@ -686,12 +750,9 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       {/* Modal de crear producto */}
       <QuickCreateProductModal
         isOpen={showCreateProductModal}
-        onClose={() => {
-          setShowCreateProductModal(false);
-          setPrefilledProductName('');
-        }}
+        onClose={() => setShowCreateProductModal(false)}
         onProductCreated={handleProductCreated}
-        prefilledName={prefilledProductName}
+        prefilledName=""
       />
     </div>
   );
