@@ -46,7 +46,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   const [orderItems, setOrderItems] = useState<OrderFormItem[]>([]);
   const [searchTerms, setSearchTerms] = useState<{[key: number]: string}>({});
   const [showDropdowns, setShowDropdowns] = useState<{[key: number]: boolean}>({});
-  const [dropdownPositions, setDropdownPositions] = useState<{[key: number]: {top: number, left: number, width: number}}>({});
+  const [dropdownPositions, setDropdownPositions] = useState<{[key: number]: {top: number, left: number, width: number, maxHeight?: number}}>({});
   const [selectedCategory, setSelectedCategory] = useState<{[key: number]: 'all' | 'products' | 'templates'}>({});
   const [favoriteItems, setFavoriteItems] = useState<{[key: string]: boolean}>({});
   const [clientSearchTerm, setClientSearchTerm] = useState('');
@@ -81,12 +81,26 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     const inputElement = document.getElementById(`item-input-${index}`);
     if (inputElement) {
       const rect = inputElement.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      // Ajustar posición horizontal para no salirse de la pantalla
+      let left = rect.left + window.scrollX;
+      if (rect.right > viewportWidth - 20) {
+        left = viewportWidth - rect.width - 20 + window.scrollX;
+      }
+      
+      // Calcular altura máxima disponible hacia abajo
+      const spaceBelow = viewportHeight - rect.bottom - 20;
+      const maxHeight = Math.max(150, Math.min(300, spaceBelow));
+      
       setDropdownPositions(prev => ({
         ...prev,
         [index]: {
           top: rect.bottom + window.scrollY,
-          left: rect.left + window.scrollX,
-          width: rect.width
+          left: left,
+          width: rect.width,
+          maxHeight: maxHeight
         }
       }));
     }
@@ -957,12 +971,12 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                             {showDropdowns[index] && dropdownPositions[index] && createPortal(
                               <div 
                                 id={`item-dropdown-${index}`}
-                                className="fixed z-[9999] bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto"
+                                className="fixed z-[9999] bg-white border border-gray-300 rounded-md shadow-lg overflow-y-auto"
                                 style={{
                                   top: `${dropdownPositions[index].top}px`,
                                   left: `${dropdownPositions[index].left}px`,
                                   width: `${dropdownPositions[index].width}px`,
-                                  maxHeight: '200px'
+                                  maxHeight: `${dropdownPositions[index].maxHeight || 200}px`
                                 }}
                               >
                                 {getFilteredItems(index).length > 0 ? (
