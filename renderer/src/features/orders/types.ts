@@ -35,7 +35,7 @@ export const createOrderSchema = z.object({
   user_id: z.number().int().min(1, 'El ID del usuario es obligatorio'),
   date: z.string().min(1, 'La fecha es obligatoria'), 
   estimated_delivery_date: z.string().optional(), 
-  status: orderStatusSchema.default('pendiente'),
+  status: orderStatusSchema,
   notes: z.string().optional(),
   items: z.array(orderItemSchema).min(1, 'La orden debe tener al menos un producto o plantilla')
 });
