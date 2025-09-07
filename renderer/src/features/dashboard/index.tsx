@@ -13,7 +13,7 @@ export function Dashboard() {
             <h1 className="text-2xl font-bold text-gray-900">
               Bienvenido, {user?.username}
             </h1>
-            <p className="text-gray-600">Sistema de gestión empresarial</p>
+            <p className="text-gray-600">Sistema de Ordenes BACE</p>
           </div>
           <button
             onClick={() => authService.logout()}
