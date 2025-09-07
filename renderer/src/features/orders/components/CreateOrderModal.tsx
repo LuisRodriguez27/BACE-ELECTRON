@@ -9,6 +9,7 @@ import { extractErrorMessage } from '@/utils/errorHandling';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Calendar, CalendarDays, DollarSign, Layers, Loader, Package, Plus, ReceiptText, Search, ShoppingBag, Trash2, X } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { OrdersApiService } from '../OrdersApiService';
 import { calculateOrderTotal, type CreateOrderForm, createOrderItemFromFormItem, createOrderSchema, type Order, type OrderFormItem } from "../types";
@@ -41,6 +42,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   const [orderItems, setOrderItems] = useState<OrderFormItem[]>([]);
   const [searchTerms, setSearchTerms] = useState<{[key: number]: string}>({});
   const [showDropdowns, setShowDropdowns] = useState<{[key: number]: boolean}>({});
+  const [dropdownPositions, setDropdownPositions] = useState<{[key: number]: {top: number, left: number, width: number}}>({});
   const [selectedCategory, setSelectedCategory] = useState<{[key: number]: 'all' | 'products' | 'templates'}>({});
   const [favoriteItems, setFavoriteItems] = useState<{[key: string]: boolean}>({});
 
@@ -66,6 +68,28 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     setValue('items', items);
   }, [orderItems, setValue]);
 
+  // Función para calcular posición del dropdown
+  const updateDropdownPosition = (index: number) => {
+    const inputElement = document.getElementById(`item-input-${index}`);
+    if (inputElement) {
+      const rect = inputElement.getBoundingClientRect();
+      setDropdownPositions(prev => ({
+        ...prev,
+        [index]: {
+          top: rect.bottom + window.scrollY,
+          left: rect.left + window.scrollX,
+          width: rect.width
+        }
+      }));
+    }
+  };
+
+  // Función mejorada para mostrar dropdown
+  const showDropdown = (index: number) => {
+    updateDropdownPosition(index);
+    setShowDropdowns(prev => ({ ...prev, [index]: true }));
+  };
+
   // Calcular total automáticamente
   const total = calculateOrderTotal(orderItems);
 
@@ -78,6 +102,25 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     }
   }, [isOpen]);
 
+  // Recalcular posiciones cuando cambie el tamaño de la ventana
+  useEffect(() => {
+    const handleResize = () => {
+      Object.keys(showDropdowns).forEach(key => {
+        if (showDropdowns[parseInt(key)]) {
+          updateDropdownPosition(parseInt(key));
+        }
+      });
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleResize);
+    };
+  }, [showDropdowns]);
+
   // Cerrar dropdowns al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -85,12 +128,13 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       
       orderItems.forEach((_, index) => {
         const dropdown = document.getElementById(`item-dropdown-${index}`);
-        const inputContainer = dropdown?.parentElement;
+        const inputElement = document.getElementById(`item-input-${index}`);
         
         if (dropdown && showDropdowns[index]) {
-          const isClickInsideContainer = inputContainer?.contains(target);
+          const isClickInsideDropdown = dropdown.contains(target);
+          const isClickInsideInput = inputElement?.contains(target);
           
-          if (!isClickInsideContainer) {
+          if (!isClickInsideDropdown && !isClickInsideInput) {
             setShowDropdowns(prev => ({ ...prev, [index]: false }));
           }
         }
@@ -177,6 +221,11 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       const newDropdowns = { ...prev };
       delete newDropdowns[index];
       return newDropdowns;
+    });
+    setDropdownPositions(prev => {
+      const newPositions = { ...prev };
+      delete newPositions[index];
+      return newPositions;
     });
   };
 
@@ -345,6 +394,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     setOrderItems([]);
     setSearchTerms({});
     setShowDropdowns({});
+    setDropdownPositions({});
     setSelectedCategory({});
     setFavoriteItems({});
     setSelectedProductForTemplate(null);
@@ -367,7 +417,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       className="fixed inset-0 flex items-center justify-center z-50"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-5xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full mx-4 max-h-[95vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
@@ -646,7 +696,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                               variant={selectedCategory[index] === 'all' || !selectedCategory[index] ? 'default' : 'outline'}
                               onClick={() => {
                                 setSelectedCategory(prev => ({ ...prev, [index]: 'all' }));
-                                setShowDropdowns(prev => ({ ...prev, [index]: true }));
+                                showDropdown(index);
                               }}
                               className="text-xs px-2 py-1 h-7"
                             >
@@ -659,7 +709,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                               variant={selectedCategory[index] === 'products' ? 'default' : 'outline'}
                               onClick={() => {
                                 setSelectedCategory(prev => ({ ...prev, [index]: 'products' }));
-                                setShowDropdowns(prev => ({ ...prev, [index]: true }));
+                                showDropdown(index);
                               }}
                               className="text-xs px-2 py-1 h-7"
                             >
@@ -672,7 +722,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                               variant={selectedCategory[index] === 'templates' ? 'default' : 'outline'}
                               onClick={() => {
                                 setSelectedCategory(prev => ({ ...prev, [index]: 'templates' }));
-                                setShowDropdowns(prev => ({ ...prev, [index]: true }));
+                                showDropdown(index);
                               }}
                               className="text-xs px-2 py-1 h-7"
                             >
@@ -685,6 +735,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                             <div className="relative">
                               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 z-10" size={16} />
                               <Input
+                                id={`item-input-${index}`}
                                 type="text"
                                 placeholder={`Buscar ${selectedCategory[index] === 'products' ? 'productos' : selectedCategory[index] === 'templates' ? 'plantillas' : 'productos o plantillas'}...`}
                                 value={searchTerms[index] || ''}
@@ -696,20 +747,26 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                                     updateOrderItem(index, { id: 0, name: '', unit_price: 0 });
                                   }
                                   
-                                  setShowDropdowns(prev => ({ ...prev, [index]: true }));
+                                  showDropdown(index);
                                 }}
                                 onFocus={() => {
-                                  setShowDropdowns(prev => ({ ...prev, [index]: true }));
+                                  showDropdown(index);
                                 }}
                                 className="pl-10 pr-4"
                               />
                             </div>
                             
                             {/* Dropdown de productos y plantillas */}
-                            {showDropdowns[index] && (
+                            {showDropdowns[index] && dropdownPositions[index] && createPortal(
                               <div 
                                 id={`item-dropdown-${index}`}
-                                className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto"
+                                className="fixed z-[9999] bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto"
+                                style={{
+                                  top: `${dropdownPositions[index].top}px`,
+                                  left: `${dropdownPositions[index].left}px`,
+                                  width: `${dropdownPositions[index].width}px`,
+                                  maxHeight: '200px'
+                                }}
                               >
                                 {getFilteredItems(index).length > 0 ? (
                                   getFilteredItems(index).map((filteredItem, _) => (
@@ -794,7 +851,8 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                                     </div>
                                   </div>
                                 )}
-                              </div>
+                              </div>,
+                              document.body
                             )}
                           </div>
                           
