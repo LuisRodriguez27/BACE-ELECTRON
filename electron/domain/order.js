@@ -160,8 +160,38 @@ class Order {
       Order.isValidStatus(this.status) &&
       typeof this.total === 'number' && 
       this.total >= 0 && 
-      !isNaN(this.total)
+      !isNaN(this.total) &&
+      this.hasProducts() // Una orden siempre debe tener productos
     );
+  }
+
+  // Validar que la orden tenga items (productos o plantillas)
+  hasItems() {
+    return this.hasProducts();
+  }
+
+  // Contar productos directos
+  getProductsCount() {
+    if (!this.orderProducts) return 0;
+    return this.orderProducts.filter(item => item.product_id !== null).length;
+  }
+
+  // Contar plantillas
+  getTemplatesCount() {
+    if (!this.orderProducts) return 0;
+    return this.orderProducts.filter(item => item.template_id !== null).length;
+  }
+
+  // Obtener total de items
+  getTotalItemsCount() {
+    if (!this.orderProducts) return 0;
+    return this.orderProducts.length;
+  }
+
+  // Obtener total de cantidad (suma de todas las cantidades)
+  getTotalQuantity() {
+    if (!this.orderProducts) return 0;
+    return this.orderProducts.reduce((sum, item) => sum + (item.quantity || 0), 0);
   }
 
   // Estado de la orden
@@ -191,9 +221,27 @@ class Order {
   }
 
   getDisplaySummary() {
-    const productsCount = this.orderProducts?.length || 0;
-    const productsText = productsCount === 1 ? 'producto' : 'productos';
-    return `${productsCount} ${productsText} - ${this.getFormattedTotal()}`;
+    const totalItems = this.getTotalItemsCount();
+    const totalQuantity = this.getTotalQuantity();
+    const productsCount = this.getProductsCount();
+    const templatesCount = this.getTemplatesCount();
+    
+    let summary = '';
+    if (productsCount > 0 && templatesCount > 0) {
+      summary = `${productsCount} productos, ${templatesCount} plantillas`;
+    } else if (productsCount > 0) {
+      const text = productsCount === 1 ? 'producto' : 'productos';
+      summary = `${productsCount} ${text}`;
+    } else if (templatesCount > 0) {
+      const text = templatesCount === 1 ? 'plantilla' : 'plantillas';
+      summary = `${templatesCount} ${text}`;
+    }
+    
+    if (totalQuantity > totalItems) {
+      summary += ` (${totalQuantity} unidades)`;
+    }
+    
+    return `${summary} - ${this.getFormattedTotal()}`;
   }
 
   // Para búsquedas y filtros
@@ -213,6 +261,11 @@ class Order {
   // Verificaciones de negocio
   canEdit() {
     return !this.isCompleted() && !this.isCancelled();
+  }
+
+  canEditProducts() {
+    // Los productos NUNCA se pueden editar una vez creada la orden
+    return false;
   }
 
   canCancel() {

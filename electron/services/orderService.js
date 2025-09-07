@@ -60,8 +60,32 @@ class OrderService {
     }
   }  
 
-  async createOrder({ client_id, user_id, date, estimated_delivery_date, status, products, notes }) {
+  /**
+   * Crear nueva orden con la estructura actualizada que soporta productos y plantillas
+   * NUEVA IMPLEMENTACIÓN - soporta tanto 'products' (legacy) como 'items' (nuevo)
+   */
+  async createOrder(orderData) {
     try {
+      const { client_id, user_id, date, estimated_delivery_date, status, notes } = orderData;
+      
+      // Detectar si usa la estructura legacy (products) o nueva (items)
+      let items;
+      if (orderData.items) {
+        // Nueva estructura con items
+        items = orderData.items;
+      } else if (orderData.products) {
+        // Estructura legacy - convertir products a items
+        console.warn('Usando estructura legacy "products". Considera migrar a "items"');
+        items = orderData.products.map(product => ({
+          product_id: product.product_id,
+          template_id: product.template_id || null,
+          quantity: product.quantity,
+          unit_price: product.unit_price || 0
+        }));
+      } else {
+        throw new Error('Se requiere "items" o "products" en los datos de la orden');
+      }
+
       // Validaciones de negocio
       if (!client_id || isNaN(client_id)) {
         throw new Error('ID de cliente inválido');
@@ -75,17 +99,17 @@ class OrderService {
         throw new Error('La fecha es requerida');
       }
 
-      if (!products || !Array.isArray(products) || products.length === 0) {
-        throw new Error('La orden debe contener al menos un producto');
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        throw new Error('La orden debe contener al menos un producto o plantilla');
       }
 
-      // Verificar que el cliente exists
+      // Verificar que el cliente existe
       const client = clientRepository.findById(parseInt(client_id));
       if (!client) {
         throw new Error('El cliente especificado no existe');
       }
 
-      // Verificar que el usuario exists
+      // Verificar que el usuario existe
       const user = userRepository.findById(parseInt(user_id));
       if (!user) {
         throw new Error('El usuario especificado no existe');
@@ -114,48 +138,64 @@ class OrderService {
         throw new Error('Estado de orden inválido');
       }
 
-      // Validar productos
-      for (const [index, product] of products.entries()) {
-        if (!product.product_id || isNaN(product.product_id)) {
-          throw new Error(`Producto ${index + 1}: ID de producto inválido`);
+      // Validar items (productos y plantillas)
+      for (const [index, item] of items.entries()) {
+        // Verificar que tenga product_id O template_id (no ambos, no ninguno)
+        const hasProduct = item.product_id !== null && item.product_id !== undefined;
+        const hasTemplate = item.template_id !== null && item.template_id !== undefined;
+        
+        if (!hasProduct && !hasTemplate) {
+          throw new Error(`Item ${index + 1}: Debe especificar un product_id o template_id`);
+        }
+        
+        if (hasProduct && hasTemplate) {
+          throw new Error(`Item ${index + 1}: No puede tener tanto product_id como template_id`);
         }
 
-        if (!product.quantity || isNaN(product.quantity) || product.quantity < 1) {
-          throw new Error(`Producto ${index + 1}: Cantidad inválida`);
+        // Validar cantidad
+        if (!item.quantity || isNaN(item.quantity) || item.quantity < 1) {
+          throw new Error(`Item ${index + 1}: Cantidad inválida`);
         }
 
-        // Verificar que el producto exists
-        const productExists = productRepository.findById(parseInt(product.product_id));
-        if (!productExists) {
-          throw new Error(`Producto ${index + 1}: El producto especificado no existe`);
+        // Validar precio unitario
+        if (item.unit_price === undefined || item.unit_price === null || isNaN(item.unit_price) || item.unit_price < 0) {
+          throw new Error(`Item ${index + 1}: Precio unitario inválido`);
         }
 
-        // Si hay template_id, verificar que exists
-        if (product.template_id) {
-          if (isNaN(product.template_id)) {
-            throw new Error(`Producto ${index + 1}: ID de plantilla inválido`);
+        // Verificar que el producto o plantilla existe
+        if (hasProduct) {
+          const productExists = productRepository.findById(parseInt(item.product_id));
+          if (!productExists) {
+            throw new Error(`Item ${index + 1}: El producto especificado no existe`);
           }
-          const templateExists = productTemplateRepository.findById(parseInt(product.template_id));
+        }
+
+        if (hasTemplate) {
+          const templateExists = productTemplateRepository.findById(parseInt(item.template_id));
           if (!templateExists) {
-            throw new Error(`Producto ${index + 1}: La plantilla especificada no existe`);
+            throw new Error(`Item ${index + 1}: La plantilla especificada no existe`);
           }
         }
       }
 
-      // Crear orden
-      const order = orderRepository.create({
+      // Preparar datos para el repository (nueva estructura)
+      const orderToCreate = {
         client_id: parseInt(client_id),
         user_id: parseInt(user_id),
         date: orderDate.toISOString(),
         estimated_delivery_date: estimated_delivery_date ? new Date(estimated_delivery_date).toISOString() : null,
         status: validStatus,
         notes: notes?.trim() || null,
-        products: products.map(p => ({
-          product_id: parseInt(p.product_id),
-          template_id: p.template_id ? parseInt(p.template_id) : null,
-          quantity: parseInt(p.quantity)
+        items: items.map(item => ({
+          product_id: item.product_id ? parseInt(item.product_id) : null,
+          template_id: item.template_id ? parseInt(item.template_id) : null,
+          quantity: parseInt(item.quantity),
+          unit_price: parseFloat(item.unit_price)
         }))
-      });
+      };
+
+      // Crear orden usando el repository actualizado
+      const order = orderRepository.create(orderToCreate);
 
       return order.toPlainObject();
 
@@ -212,7 +252,7 @@ class OrderService {
         }
       }
 
-      // Actualizar orden
+      // Actualizar orden (solo campos permitidos)
       const updated = orderRepository.update(orderId, {
         estimated_delivery_date: estimated_delivery_date ? new Date(estimated_delivery_date).toISOString() : null,
         status: status || null,
