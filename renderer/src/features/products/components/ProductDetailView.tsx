@@ -1,17 +1,14 @@
 import { Button, Input } from '@/components/ui';
+import TemplateStats from '@/features/productTemplates/components/TemplateStats';
 import { ProductTemplatesApiService } from '@/features/productTemplates/ProductTemplatesApiService';
 import type { ProductTemplate } from '@/features/productTemplates/types';
-import TemplateStats from '@/features/productTemplates/components/TemplateStats';
-import { CreateTemplateModal, EditTemplateModal, EditProductModal } from '../components';
 import {
   ArrowLeft,
   BarChart3,
   DollarSign,
   Edit3,
   FileText,
-  Grid,
   Hash,
-  List,
   MapPin,
   Package,
   Palette,
@@ -23,6 +20,7 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { CreateTemplateModal, EditProductModal, EditTemplateModal } from '../components';
 import { ProductsApiService } from '../ProductsApiService';
 import type { Product } from '../types';
 
@@ -41,7 +39,6 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   const [templatesLoading, setTemplatesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Estados para modales de plantillas
   const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
@@ -319,24 +316,6 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                 />
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant={viewMode === 'grid' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode('grid')}
-                className="p-2"
-              >
-                <Grid size={16} />
-              </Button>
-              <Button
-                variant={viewMode === 'list' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode('list')}
-                className="p-2"
-              >
-                <List size={16} />
-              </Button>
-            </div>
           </div>
         </div>
 
@@ -373,11 +352,7 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
               )}
             </div>
           ) : (
-            <div className={`grid gap-4 ${
-              viewMode === 'grid' 
-                ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
-                : 'grid-cols-1'
-            }`}>
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               {filteredTemplates.map((template) => {
                 const colors = formatColors(template.colors);
                 
