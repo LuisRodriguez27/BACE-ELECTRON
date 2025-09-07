@@ -1,36 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { type CreateOrderForm, createOrderSchema, type Order, type OrderFormItem, createOrderItemFromFormItem, calculateOrderTotal } from "../types";
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { OrdersApiService } from '../OrdersApiService';
 import { Button, Input, Label } from '@/components/ui';
-import { Calendar, ReceiptText, X, DollarSign, Loader, CalendarDays, Plus, Trash2, Package, Search, Layers } from 'lucide-react';
-import type { Product } from '@/features/products/types';
+import type { Client } from '@/features/clients/types';
+import CreateTemplateModal from '@/features/products/components/CreateTemplateModal';
 import QuickCreateProductModal from '@/features/products/components/QuickCreateProductModal';
+import type { Product } from '@/features/products/types';
+import { ProductTemplatesApiService } from '@/features/productTemplates/ProductTemplatesApiService';
+import type { ProductTemplate } from '@/features/productTemplates/types';
 import { extractErrorMessage } from '@/utils/errorHandling';
-
-interface Client {
-  id: number;
-  name: string;
-  phone: string;
-  address?: string;
-  description?: string;
-}
-
-interface ProductTemplate {
-  id: number;
-  product_id: number;
-  final_price: number;
-  width?: number;
-  height?: number;
-  colors?: string;
-  position?: string;
-  texts?: string;
-  description?: string;
-  created_by?: number;
-  active: number;
-}
-
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Calendar, CalendarDays, DollarSign, Layers, Loader, Package, Plus, ReceiptText, Search, ShoppingBag, Trash2, X } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { OrdersApiService } from '../OrdersApiService';
+import { calculateOrderTotal, type CreateOrderForm, createOrderItemFromFormItem, createOrderSchema, type Order, type OrderFormItem } from "../types";
 interface CreateOrderModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -53,11 +34,15 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [showCreateProductModal, setShowCreateProductModal] = useState(false);
+  const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
+  const [selectedProductForTemplate, setSelectedProductForTemplate] = useState<Product | null>(null);
   
   // Estado de los items de la orden (productos y plantillas)
   const [orderItems, setOrderItems] = useState<OrderFormItem[]>([]);
   const [searchTerms, setSearchTerms] = useState<{[key: number]: string}>({});
   const [showDropdowns, setShowDropdowns] = useState<{[key: number]: boolean}>({});
+  const [selectedCategory, setSelectedCategory] = useState<{[key: number]: 'all' | 'products' | 'templates'}>({});
+  const [favoriteItems, setFavoriteItems] = useState<{[key: string]: boolean}>({});
 
   const {
     register,
@@ -147,8 +132,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   const loadTemplates = async () => {
     try {
       setLoadingTemplates(true);
-      // Asumiendo que tienes un API para obtener plantillas
-      const response = await window.api.getAllTemplates();
+      const response = await ProductTemplatesApiService.findAll();
       setTemplates(response.filter((t: ProductTemplate) => t.active === 1));
     } catch (err) {
       console.error('Error loading templates:', err);
@@ -167,7 +151,18 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       quantity: 1,
       unit_price: 0
     };
+    const newIndex = orderItems.length;
     setOrderItems(prev => [...prev, newItem]);
+    setSelectedCategory(prev => ({ ...prev, [newIndex]: 'all' }));
+  };
+
+  // Crear plantilla desde producto seleccionado
+  const createTemplateFromProduct = (productId: number) => {
+    const product = products.find(p => p.id === productId);
+    if (product) {
+      setSelectedProductForTemplate(product);
+      setShowCreateTemplateModal(true);
+    }
   };
 
   // Remover item
@@ -193,32 +188,55 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   };
 
   // Obtener items filtrados (productos + plantillas) para búsqueda
-  const getFilteredItems = (index: number) => {
+  const getFilteredItems = useCallback((index: number) => {
     const searchTerm = searchTerms[index] || '';
+    const category = selectedCategory[index] || 'all';
     const items: Array<{type: 'product' | 'template', item: Product | ProductTemplate}> = [];
     
-    // Agregar productos
-    products.forEach(product => {
-      if (!searchTerm || 
+    // Agregar productos si corresponde
+    if (category === 'all' || category === 'products') {
+      products.forEach(product => {
+        const matchesSearch = !searchTerm || 
           product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (product.serial_number && product.serial_number.toLowerCase().includes(searchTerm.toLowerCase()))) {
-        items.push({ type: 'product', item: product });
-      }
-    });
+          (product.serial_number && product.serial_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
+        
+        if (matchesSearch) {
+          items.push({ 
+            type: 'product', 
+            item: product,
+          });
+        }
+      });
+    }
 
-    // Agregar plantillas
-    templates.forEach(template => {
-      // Buscar el producto base de la plantilla
-      const baseProduct = products.find(p => p.id === template.product_id);
-      const templateName = baseProduct ? `${baseProduct.name} (Plantilla)` : `Plantilla #${template.id}`;
-      
-      if (!searchTerm || templateName.toLowerCase().includes(searchTerm.toLowerCase())) {
-        items.push({ type: 'template', item: { ...template, name: templateName } as any });
-      }
-    });
+    // Agregar plantillas si corresponde
+    if (category === 'all' || category === 'templates') {
+      templates.forEach(template => {
+        const baseProduct = products.find(p => p.id === template.product_id);
+        const templateName = baseProduct ? `${baseProduct.name} (Plantilla)` : `Plantilla #${template.id}`;
+        
+        const matchesSearch = !searchTerm || 
+          templateName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (template.description && template.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (template.colors && template.colors.toLowerCase().includes(searchTerm.toLowerCase()));
+        
+        if (matchesSearch) {
+          items.push({ 
+            type: 'template', 
+            item: { ...template, name: templateName, product_name: baseProduct?.name } as any
+          });
+        }
+      });
+    }
 
-    return items;
-  };
+    // Ordenar: favoritos primero, luego por nombre
+    return items.sort((a, b) => {
+      const nameA = a.type === 'product' ? (a.item as Product).name : (a.item as any).name;
+      const nameB = b.type === 'product' ? (b.item as Product).name : (b.item as any).name;
+      return nameA.localeCompare(nameB);
+    });
+  }, [searchTerms, selectedCategory, products, templates, favoriteItems]);
 
   // Seleccionar item (producto o plantilla)
   const selectItem = (index: number, type: 'product' | 'template', item: Product | ProductTemplate) => {
@@ -327,12 +345,19 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     setOrderItems([]);
     setSearchTerms({});
     setShowDropdowns({});
+    setSelectedCategory({});
+    setFavoriteItems({});
+    setSelectedProductForTemplate(null);
     setError(null);
     onClose();
   };
 
   const handleProductCreated = (newProduct: Product) => {
     setProducts(prev => [...prev, newProduct]);
+  };
+
+  const handleTemplateCreated = (newTemplate: ProductTemplate) => {
+    setTemplates(prev => [...prev, newTemplate]);
   };
 
   if (!isOpen) return null;
@@ -390,7 +415,9 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                     {...register('client_id', { valueAsNumber: true })}
                     className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value="">Seleccionar cliente</option>
+                    <option value="" disabled selected>
+                      Seleccionar cliente
+                    </option>
                     {clients.map((client) => (
                       <option key={client.id} value={client.id}>
                         {client.name} - {client.phone}
@@ -501,6 +528,14 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                 <Package className="h-5 w-5 text-gray-600" />
                 <h3 className="text-lg font-medium text-gray-900">Productos y Plantillas</h3>
                 <span className="text-sm text-gray-500">({orderItems.length} items)</span>
+                {orderItems.length > 0 && (
+                  <div className="flex items-center gap-2 ml-4 px-3 py-1 bg-green-50 rounded-full">
+                    <DollarSign className="h-4 w-4 text-green-600" />
+                    <span className="text-sm font-semibold text-green-700">
+                      Subtotal: ${total.toFixed(2)}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -539,8 +574,14 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                       <Package className="h-12 w-12 text-gray-300" />
                       <Layers className="h-12 w-12 text-gray-300" />
                     </div>
-                    <p>No hay productos o plantillas agregados</p>
-                    <p className="text-sm">Haz clic en "Agregar Item" para comenzar</p>
+                    <p className="text-lg font-medium text-gray-700 mb-2">No hay productos o plantillas agregados</p>
+                    <p className="text-sm mb-4">Haz clic en "Agregar Item" para comenzar a crear tu orden</p>
+                    <div className="flex flex-col items-center gap-2 text-xs text-gray-400">
+                      <p>💡 <strong>Tip:</strong> Puedes crear productos y plantillas sobre la marcha</p>
+                      <div className="flex items-center gap-4">
+                        <span>🏷️ Filtra por tipo de item</span>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   orderItems.map((item, index) => (
@@ -555,16 +596,39 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                           }`}>
                             {item.type === 'product' ? 'Producto' : 'Plantilla'}
                           </span>
+                          {item.id > 0 && (
+                            <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
+                              ${(item.quantity * item.unit_price).toFixed(2)}
+                            </span>
+                          )}
                         </div>
-                        <Button
-                          type="button"
-                          onClick={() => removeOrderItem(index)}
-                          variant="outline"
-                          size="sm"
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 size={16} />
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          {item.id > 0 && (
+                            <>
+                              {item.type === 'product' && (
+                                <Button
+                                  type="button"
+                                  onClick={() => createTemplateFromProduct(item.id)}
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-purple-600 hover:text-purple-700"
+                                  title="Crear plantilla desde este producto"
+                                >
+                                  <Layers size={16} />
+                                </Button>
+                              )}
+                            </>
+                          )}
+                          <Button
+                            type="button"
+                            onClick={() => removeOrderItem(index)}
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </div>
                       </div>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -574,12 +638,55 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                             Producto o Plantilla *
                           </Label>
                           
-                          <div className="mt-1 relative">
+                          {/* Filtros de categoría */}
+                          <div className="mt-1 mb-2 flex gap-1">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={selectedCategory[index] === 'all' || !selectedCategory[index] ? 'default' : 'outline'}
+                              onClick={() => {
+                                setSelectedCategory(prev => ({ ...prev, [index]: 'all' }));
+                                setShowDropdowns(prev => ({ ...prev, [index]: true }));
+                              }}
+                              className="text-xs px-2 py-1 h-7"
+                            >
+                              <ShoppingBag size={12} className="mr-1" />
+                              Todos
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={selectedCategory[index] === 'products' ? 'default' : 'outline'}
+                              onClick={() => {
+                                setSelectedCategory(prev => ({ ...prev, [index]: 'products' }));
+                                setShowDropdowns(prev => ({ ...prev, [index]: true }));
+                              }}
+                              className="text-xs px-2 py-1 h-7"
+                            >
+                              <Package size={12} className="mr-1" />
+                              Productos ({products.length})
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={selectedCategory[index] === 'templates' ? 'default' : 'outline'}
+                              onClick={() => {
+                                setSelectedCategory(prev => ({ ...prev, [index]: 'templates' }));
+                                setShowDropdowns(prev => ({ ...prev, [index]: true }));
+                              }}
+                              className="text-xs px-2 py-1 h-7"
+                            >
+                              <Layers size={12} className="mr-1" />
+                              Plantillas ({templates.length})
+                            </Button>
+                          </div>
+                          
+                          <div className="relative">
                             <div className="relative">
                               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 z-10" size={16} />
                               <Input
                                 type="text"
-                                placeholder="Buscar producto o plantilla..."
+                                placeholder={`Buscar ${selectedCategory[index] === 'products' ? 'productos' : selectedCategory[index] === 'templates' ? 'plantillas' : 'productos o plantillas'}...`}
                                 value={searchTerms[index] || ''}
                                 onChange={(e) => {
                                   const searchTerm = e.target.value;
@@ -608,42 +715,83 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                                   getFilteredItems(index).map((filteredItem, _) => (
                                     <div
                                       key={`${filteredItem.type}-${filteredItem.item.id}`}
-                                      className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                                      onClick={() => selectItem(index, filteredItem.type, filteredItem.item)}
+                                      className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 group"
                                     >
                                       <div className="flex justify-between items-center">
-                                        <div className="flex-1">
-                                          <div className="flex items-center gap-2">
+                                        <div 
+                                          className="flex-1 flex items-start gap-2"
+                                          onClick={() => selectItem(index, filteredItem.type, filteredItem.item)}
+                                        >
+                                          <div className="flex items-center gap-2 flex-1">
                                             {filteredItem.type === 'product' ? (
                                               <Package className="h-4 w-4 text-blue-500" />
                                             ) : (
                                               <Layers className="h-4 w-4 text-purple-500" />
                                             )}
-                                            <div className="font-medium text-sm text-gray-900">
-                                              {filteredItem.type === 'product' 
-                                                ? (filteredItem.item as Product).name
-                                                : (filteredItem.item as any).name
-                                              }
+                                            <div className="flex-1">
+                                              <div className="font-medium text-sm text-gray-900">
+                                                {filteredItem.type === 'product' 
+                                                  ? (filteredItem.item as Product).name
+                                                  : (filteredItem.item as any).name
+                                                }
+                                              </div>
+                                              {filteredItem.type === 'product' && (filteredItem.item as Product).serial_number && (
+                                                <div className="text-xs text-gray-500">
+                                                  SN: {(filteredItem.item as Product).serial_number}
+                                                </div>
+                                              )}
+                                              {filteredItem.type === 'template' && (
+                                                <div className="text-xs text-gray-500">
+                                                  {(filteredItem.item as ProductTemplate).description && (
+                                                    <span>{(filteredItem.item as ProductTemplate).description}</span>
+                                                  )}
+                                                  {(filteredItem.item as ProductTemplate).width && (filteredItem.item as ProductTemplate).height && (
+                                                    <span className="ml-2">{(filteredItem.item as ProductTemplate).width}x{(filteredItem.item as ProductTemplate).height}cm</span>
+                                                  )}
+                                                </div>
+                                              )}
                                             </div>
                                           </div>
-                                          {filteredItem.type === 'product' && (filteredItem.item as Product).serial_number && (
-                                            <div className="text-xs text-gray-500 ml-6">
-                                              {(filteredItem.item as Product).serial_number}
-                                            </div>
-                                          )}
                                         </div>
-                                        <div className="text-sm font-semibold text-green-600">
-                                          ${filteredItem.type === 'product' 
-                                            ? (filteredItem.item as Product).price
-                                            : (filteredItem.item as ProductTemplate).final_price
-                                          }
+                                        <div className="flex items-center gap-2">
+                                          <div className="text-sm font-semibold text-green-600">
+                                            ${filteredItem.type === 'product' 
+                                              ? (filteredItem.item as Product).price.toFixed(2)
+                                              : (filteredItem.item as ProductTemplate).final_price.toFixed(2)
+                                            }
+                                          </div>
                                         </div>
                                       </div>
                                     </div>
                                   ))
                                 ) : (
                                   <div className="px-3 py-4 text-center">
-                                    <p className="text-sm text-gray-500 mb-2">No se encontraron items</p>
+                                    <div className="flex flex-col items-center gap-2">
+                                      <div className="text-gray-400">
+                                        {selectedCategory[index] === 'products' ? (
+                                          <Package className="h-8 w-8" />
+                                        ) : selectedCategory[index] === 'templates' ? (
+                                          <Layers className="h-8 w-8" />
+                                        ) : (
+                                          <Search className="h-8 w-8" />
+                                        )}
+                                      </div>
+                                      <p className="text-sm text-gray-500 mb-2">No se encontraron items</p>
+                                      {searchTerms[index] && (
+                                        <Button
+                                          type="button"
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() => {
+                                            setSearchTerms(prev => ({ ...prev, [index]: '' }));
+                                            setSelectedCategory(prev => ({ ...prev, [index]: 'all' }));
+                                          }}
+                                          className="text-xs"
+                                        >
+                                          Limpiar búsqueda
+                                        </Button>
+                                      )}
+                                    </div>
                                   </div>
                                 )}
                               </div>
@@ -754,6 +902,19 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         onProductCreated={handleProductCreated}
         prefilledName=""
       />
+      
+      {/* Modal de crear plantilla */}
+      {selectedProductForTemplate && (
+        <CreateTemplateModal
+          isOpen={showCreateTemplateModal}
+          onClose={() => {
+            setShowCreateTemplateModal(false);
+            setSelectedProductForTemplate(null);
+          }}
+          onTemplateCreated={handleTemplateCreated}
+          product={selectedProductForTemplate}
+        />
+      )}
     </div>
   );
 };
