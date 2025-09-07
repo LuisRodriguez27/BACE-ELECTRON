@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Search, Filter, ShoppingCart, Calendar, DollarSign } from 'lucide-react';
+import { Plus, Search, Filter, ShoppingCart, Calendar, DollarSign, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { OrdersApiService } from './OrdersApiService';
 import type { Order } from './types';
 import { toast } from 'sonner';
 import CreateOrderModal from './components/CreateOrderModal';
+import OrderDetailsModal from './components/OrderDetailsModal';
 import { useAuthStore } from '@/store/auth';
 
 const OrdersPage: React.FC = () => {
@@ -12,7 +13,9 @@ const OrdersPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const[showCreateModal, setShowCreateModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -30,14 +33,30 @@ const OrdersPage: React.FC = () => {
     fetchOrders();
   }, []);
 
-  const handleOrderCrated = (newOrder: Order) => {
+  const handleOrderCreated = (newOrder: Order) => {
     setOrders(prevOrders => [...prevOrders, newOrder]);
     toast.success('Orden creada exitosamente');
+  };
+
+  const handleOrderUpdated = (updatedOrder: Order) => {
+    setOrders(prevOrders => 
+      prevOrders.map(order => 
+        order.id === updatedOrder.id ? updatedOrder : order
+      )
+    );
+    toast.success('Orden actualizada exitosamente');
+  };
+
+  const handleViewDetails = (orderId: number) => {
+    setSelectedOrderId(orderId);
+    setShowDetailsModal(true);
   };
 
 
   const closeModals = () => {
     setShowCreateModal(false);
+    setShowDetailsModal(false);
+    setSelectedOrderId(null);
   }
 
   const formatDate = (dateString: string) => {
@@ -208,11 +227,14 @@ const OrdersPage: React.FC = () => {
                     </div>
                     
                     <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleViewDetails(order.id)}
+                        className="flex items-center gap-2"
+                      >
+                        <Eye size={14} />
                         Ver Detalles
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        Editar
                       </Button>
                     </div>
                   </div>
@@ -258,10 +280,17 @@ const OrdersPage: React.FC = () => {
 
       {/* Modals */}
       <CreateOrderModal
-        isOpen = {showCreateModal}
-        onClose = {closeModals}
-        onOrderCreated = {handleOrderCrated}
+        isOpen={showCreateModal}
+        onClose={closeModals}
+        onOrderCreated={handleOrderCreated}
         currentUserId={user?.id!}
+      />
+      
+      <OrderDetailsModal
+        isOpen={showDetailsModal}
+        onClose={closeModals}
+        orderId={selectedOrderId}
+        onOrderUpdated={handleOrderUpdated}
       />  
 
     </div>
