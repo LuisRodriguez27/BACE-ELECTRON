@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Search, Filter, Users, Phone, MapPin, Edit3, Trash2, ShoppingBag } from 'lucide-react';
+import { Plus, Search, Filter, Users, Phone, MapPin, Edit3, Trash2, ShoppingBag, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ClientApiService } from './ClientApiService';
-import { CreateClientModal, EditClientModal, DeleteClientModal, ClientColorIndicator, ClientOrdersModal } from './components';
+import { CreateClientModal, EditClientModal, DeleteClientModal, ClientColorIndicator, ClientOrdersModal, ClientPaymentsModal } from './components';
 import { toast } from 'sonner';
 import type { Client } from './types';
 
@@ -17,6 +17,7 @@ const ClientsPage: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showOrdersModal, setShowOrdersModal] = useState(false);
+  const [showPaymentsModal, setShowPaymentsModal] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
   useEffect(() => {
@@ -89,11 +90,17 @@ const ClientsPage: React.FC = () => {
     setShowOrdersModal(true);
   };
 
+  const openPaymentsModal = (client: Client) => {
+    setSelectedClient(client);
+    setShowPaymentsModal(true);
+  };
+
   const closeModals = () => {
     setShowCreateModal(false);
     setShowEditModal(false);
     setShowDeleteModal(false);
     setShowOrdersModal(false);
+    setShowPaymentsModal(false);
     setSelectedClient(null);
   };
 
@@ -223,6 +230,15 @@ const ClientsPage: React.FC = () => {
                       <Button 
                         variant="ghost" 
                         size="sm"
+                        onClick={() => openPaymentsModal(client)}
+                        className="p-1 h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                        title="Ver pagos"
+                      >
+                        <CreditCard size={14} />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
                         onClick={() => openEditModal(client)}
                         className="p-1 h-8 w-8"
                         title="Editar cliente"
@@ -290,6 +306,12 @@ const ClientsPage: React.FC = () => {
 
       <ClientOrdersModal
         isOpen={showOrdersModal}
+        onClose={closeModals}
+        client={selectedClient}
+      />
+
+      <ClientPaymentsModal
+        isOpen={showPaymentsModal}
         onClose={closeModals}
         client={selectedClient}
       />
