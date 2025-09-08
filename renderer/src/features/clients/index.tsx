@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Search, Filter, Users, Phone, MapPin, Edit3, Trash2 } from 'lucide-react';
+import { Plus, Search, Filter, Users, Phone, MapPin, Edit3, Trash2, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ClientApiService } from './ClientApiService';
-import { CreateClientModal, EditClientModal, DeleteClientModal, ClientColorIndicator } from './components';
+import { CreateClientModal, EditClientModal, DeleteClientModal, ClientColorIndicator, ClientOrdersModal } from './components';
 import { toast } from 'sonner';
 import type { Client } from './types';
 
@@ -16,6 +16,7 @@ const ClientsPage: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showOrdersModal, setShowOrdersModal] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
   useEffect(() => {
@@ -83,10 +84,16 @@ const ClientsPage: React.FC = () => {
     setShowDeleteModal(true);
   };
 
+  const openOrdersModal = (client: Client) => {
+    setSelectedClient(client);
+    setShowOrdersModal(true);
+  };
+
   const closeModals = () => {
     setShowCreateModal(false);
     setShowEditModal(false);
     setShowDeleteModal(false);
+    setShowOrdersModal(false);
     setSelectedClient(null);
   };
 
@@ -207,8 +214,18 @@ const ClientsPage: React.FC = () => {
                       <Button 
                         variant="ghost" 
                         size="sm"
+                        onClick={() => openOrdersModal(client)}
+                        className="p-1 h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        title="Ver órdenes"
+                      >
+                        <ShoppingBag size={14} />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
                         onClick={() => openEditModal(client)}
                         className="p-1 h-8 w-8"
+                        title="Editar cliente"
                       >
                         <Edit3 size={14} />
                       </Button>
@@ -217,6 +234,7 @@ const ClientsPage: React.FC = () => {
                         size="sm"
                         onClick={() => openDeleteModal(client)}
                         className="p-1 h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        title="Eliminar cliente"
                       >
                         <Trash2 size={14} />
                       </Button>
@@ -267,6 +285,12 @@ const ClientsPage: React.FC = () => {
         isOpen={showDeleteModal}
         onClose={closeModals}
         onClientDeleted={handleClientDeleted}
+        client={selectedClient}
+      />
+
+      <ClientOrdersModal
+        isOpen={showOrdersModal}
+        onClose={closeModals}
         client={selectedClient}
       />
     </div>

@@ -3,3 +3,4 @@ export { default as EditClientModal } from './EditClientModal';
 export { default as DeleteClientModal } from './DeleteClientModal';
 export { default as ColorSelector } from './ColorSelector';
 export { default as ClientColorIndicator } from './ClientColorIndicator';
+export { default as ClientOrdersModal } from './ClientOrdersModal';
