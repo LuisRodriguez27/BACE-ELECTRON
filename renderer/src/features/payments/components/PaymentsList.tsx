@@ -204,7 +204,7 @@ const PaymentsList: React.FC<PaymentsListProps> = ({
                       {index + 1}
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-900">Pago #{payment.id}</h4>
+                      <h4 className="font-medium text-gray-900">Pago</h4>
                       <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
                         <div className="flex items-center gap-1">
                           <Calendar size={14} />
