@@ -56,7 +56,7 @@ const OrdersPage: React.FC = () => {
   }, []);
 
   const handleOrderCreated = (newOrder: Order) => {
-    setOrders(prevOrders => [...prevOrders, newOrder]);
+    setOrders(prevOrders => [newOrder, ...prevOrders]);
     toast.success('Orden creada exitosamente');
   };
 
