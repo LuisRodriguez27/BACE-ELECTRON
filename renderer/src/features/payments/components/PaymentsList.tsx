@@ -1,17 +1,16 @@
-import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { 
-  DollarSign, 
-  Calendar, 
-  Edit3, 
-  Receipt, 
-  Plus,
-  CheckCircle,
+import {
   AlertCircle,
-  Clock
+  Calendar,
+  CheckCircle,
+  Clock,
+  DollarSign,
+  Edit3,
+  Plus
 } from 'lucide-react';
-import { CreatePaymentModal, EditPaymentModal } from './';
+import React, { useState } from 'react';
 import type { Payment } from '../types';
+import { CreatePaymentModal, EditPaymentModal } from './';
 
 interface PaymentsListProps {
   payments: Payment[];
@@ -221,14 +220,14 @@ const PaymentsList: React.FC<PaymentsListProps> = ({
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <Button 
+                    {/* <Button 
                       variant="outline" 
                       size="sm"
                       className="flex items-center gap-2"
                     >
                       <Receipt size={14} />
                       Recibo
-                    </Button>
+                    </Button> */}
                     <Button 
                       variant="outline" 
                       size="sm"
