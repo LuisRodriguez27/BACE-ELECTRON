@@ -55,7 +55,7 @@ class OrderRepository {
       JOIN users u ON o.user_id = u.id
       LEFT JOIN users ue ON o.edited_by = ue.id
       WHERE o.client_id = ? AND o.active = 1
-      ORDER BY o.date DESC
+      ORDER BY o.id DESC
     `);
 
     const orders = stmt.all(clientId);
@@ -74,7 +74,7 @@ class OrderRepository {
       JOIN users u ON o.user_id = u.id
       LEFT JOIN users ue ON o.edited_by = ue.id
       WHERE o.active = 1 AND o.status = 'completado'
-      ORDER BY o.date DESC
+      ORDER BY o.id DESC
     `);
     
     const orders = stmt.all();
