@@ -1,12 +1,14 @@
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/auth';
-import { AlertCircle, Calendar, CheckCircle, Clock, DollarSign, Eye, Plus, Search, ShoppingCart } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle, Clock, DollarSign, Edit3, Eye, Plus, Search, ShoppingCart } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { PaymentsApiService } from '../payments/PaymentsApiService';
+import CreatePaymentModal from '../payments/components/CreatePaymentModal';
 import type { Payment } from '../payments/types';
 import CreateOrderModal from './components/CreateOrderModal';
 import OrderDetailsModal from './components/OrderDetailsModal';
+import OrderEditModal from './components/OrderEditModal';
 import { OrdersApiService } from './OrdersApiService';
 import type { Order } from './types';
 
@@ -18,6 +20,8 @@ const OrdersPage: React.FC = () => {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -66,7 +70,6 @@ const OrdersPage: React.FC = () => {
         order.id === updatedOrder.id ? updatedOrder : order
       )
     );
-    toast.success('Orden actualizada exitosamente');
   };
 
   const handleViewDetails = (orderId: number) => {
@@ -74,10 +77,22 @@ const OrdersPage: React.FC = () => {
     setShowDetailsModal(true);
   };
 
+  const handleEditOrder = (orderId: number) => {
+    setSelectedOrderId(orderId);
+    setShowEditModal(true);
+  };
+
+  const handleAddPayment = (orderId: number) => {
+    setSelectedOrderId(orderId);
+    setShowPaymentModal(true);
+  };
+
 
   const closeModals = () => {
     setShowCreateModal(false);
     setShowDetailsModal(false);
+    setShowEditModal(false);
+    setShowPaymentModal(false);
     setSelectedOrderId(null);
   }
 
@@ -134,6 +149,15 @@ const OrdersPage: React.FC = () => {
   const getRemainingAmount = (order: Order): number => {
     const totalPaid = getTotalPaid(order.id);
     return order.total - totalPaid;
+  };
+
+  const handlePaymentCreated = (newPayment: Payment) => {
+    // Actualizar los pagos de la orden específica
+    setOrderPayments(prev => ({
+      ...prev,
+      [newPayment.order_id]: [...(prev[newPayment.order_id] || []), newPayment]
+    }));
+    toast.success('Pago registrado exitosamente');
   };
 
   const getPaymentStatus = (order: Order): { status: 'paid' | 'partial' | 'pending'; icon: React.ReactNode; color: string; text: string } => {
@@ -308,6 +332,25 @@ const OrdersPage: React.FC = () => {
                         <Button 
                           variant="outline" 
                           size="sm"
+                          onClick={() => handleAddPayment(order.id)}
+                          className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+                          disabled={getRemainingAmount(order) <= 0}
+                        >
+                          <DollarSign size={14} />
+                          Agregar Pago
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleEditOrder(order.id)}
+                          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        >
+                          <Edit3 size={14} />
+                          Edición
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
                           onClick={() => handleViewDetails(order.id)}
                           className="flex items-center gap-2"
                         >
@@ -385,7 +428,26 @@ const OrdersPage: React.FC = () => {
         onClose={closeModals}
         orderId={selectedOrderId}
         onOrderUpdated={handleOrderUpdated}
-      />  
+      />
+
+      <OrderEditModal
+        isOpen={showEditModal}
+        onClose={closeModals}
+        orderId={selectedOrderId}
+        onOrderUpdated={handleOrderUpdated}
+      />
+
+      {selectedOrderId && (
+        <CreatePaymentModal
+          isOpen={showPaymentModal}
+          onClose={closeModals}
+          orderId={selectedOrderId}
+          orderTotal={orders.find(o => o.id === selectedOrderId)?.total || 0}
+          currentPayments={getTotalPaid(selectedOrderId)}
+          clientName={orders.find(o => o.id === selectedOrderId)?.client?.name || 'Cliente'}
+          onPaymentCreated={handlePaymentCreated}
+        />
+      )}  
 
     </div>
   );
