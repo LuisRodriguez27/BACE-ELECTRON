@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { Plus, Search, Filter, Users, Phone, MapPin, Edit3, Trash2, ShoppingBag, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ClientApiService } from './ClientApiService';
-import { CreateClientModal, EditClientModal, DeleteClientModal, ClientColorIndicator, ClientOrdersModal, ClientPaymentsModal } from './components';
+import { CreditCard, Edit3, MapPin, Phone, Plus, Search, ShoppingBag, Trash2, Users } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { ClientApiService } from './ClientApiService';
+import { ClientColorIndicator, ClientOrdersModal, ClientPaymentsModal, CreateClientModal, DeleteClientModal, EditClientModal } from './components';
 import type { Client } from './types';
 
 const ClientsPage: React.FC = () => {
@@ -171,10 +171,6 @@ const ClientsPage: React.FC = () => {
               />
             </div>
           </div>
-          <Button variant="outline" className="flex items-center gap-2">
-            <Filter size={16} />
-            Filtros
-          </Button>
         </div>
       </div>
 

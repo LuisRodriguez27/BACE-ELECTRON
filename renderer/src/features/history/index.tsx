@@ -1,11 +1,11 @@
 import { Button } from '@/components/ui/button';
-import { Calendar, DollarSign, Filter, Search, ShoppingCart, Eye, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle, Clock, DollarSign, Eye, Search, ShoppingCart } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import OrderDetailsModal from '../orders/components/OrderDetailsModal';
 import type { Order } from '../orders/types';
+import { PaymentsApiService } from '../payments/PaymentsApiService';
 import type { Payment } from '../payments/types';
 import { SalesApiService } from './SalesApiService';
-import { PaymentsApiService } from '../payments/PaymentsApiService';
-import OrderDetailsModal from '../orders/components/OrderDetailsModal';
 
 const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -184,10 +184,6 @@ const OrdersPage: React.FC = () => {
               />
             </div>
           </div>
-          <Button variant="outline" className="flex items-center gap-2">
-            <Filter size={16} />
-            Filtros
-          </Button>
         </div>
       </div>
 

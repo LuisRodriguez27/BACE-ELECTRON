@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { DollarSign, Edit3, Filter, Hash, Package, Plus, Search, Trash2 } from 'lucide-react';
+import { DollarSign, Edit3, Hash, Package, Plus, Search, Trash2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { CreateProductModal, DeleteProductModal, EditProductModal, ProductDetailView } from './components';
@@ -187,10 +187,6 @@ const ProductsPage: React.FC = () => {
               />
             </div>
           </div>
-          <Button variant="outline" className="flex items-center gap-2">
-            <Filter size={16} />
-            Filtros
-          </Button>
         </div>
       </div>
 

@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { Plus, Search, Filter, UserCog, Shield, User, Edit3, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { UsersApiService } from './UsersApiService';
-import { CreateUserModal, EditUserModal, DeleteUserModal, UserPermissionsModal } from './components';
-import type { User as UserType } from './types';
+import { Edit3, Plus, Search, Shield, Trash2, User, UserCog } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { UsersApiService } from './UsersApiService';
+import { CreateUserModal, DeleteUserModal, EditUserModal, UserPermissionsModal } from './components';
+import type { User as UserType } from './types';
 
 const UsersPage: React.FC = () => {
   const [users, setUsers] = useState<UserType[]>([]);
@@ -153,10 +153,6 @@ const UsersPage: React.FC = () => {
               />
             </div>
           </div>
-          <Button variant="outline" className="flex items-center gap-2">
-            <Filter size={16} />
-            Filtros
-          </Button>
         </div>
       </div>
 
