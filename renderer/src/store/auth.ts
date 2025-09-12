@@ -4,6 +4,14 @@ interface User {
   id: number;
   username: string;
   active: number; // SQLite usa number (0 o 1)
+  permissions?: string[]; // Permisos del usuario
+  userPermissions?: UserPermission[]; // Información detallada de permisos
+}
+
+interface UserPermission {
+  permission_id: number;
+  permission_name: string;
+  active: number;
 }
 
 interface Business {

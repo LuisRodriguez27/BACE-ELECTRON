@@ -58,6 +58,19 @@ class AuthService {
     }
   }
 
+  async getCurrentUserWithPermissions(): Promise<User | null> {
+    try {
+      const user = await window.api.getUserWithPermissions();
+      if (user) {
+        this.authStore.getState().setUser(user);
+      }
+      return user;
+    } catch (error) {
+      console.error('Error getting current user with permissions:', error);
+      return null;
+    }
+  }
+
   async isAuthenticated(): Promise<boolean> {
     try {
       return await window.api.isAuthenticated();
@@ -79,7 +92,7 @@ class AuthService {
       // Si está autenticado pero no tenemos usuario en el store, lo obtenemos
       const currentState = this.authStore.getState();
       if (!currentState.user) {
-        const user = await this.getCurrentUser();
+        const user = await this.getCurrentUserWithPermissions();
         return !!user;
       }
 

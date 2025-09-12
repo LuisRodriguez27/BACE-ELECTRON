@@ -12,7 +12,7 @@ export function useAuth() {
         const isAuth = await authService.isAuthenticated()
         if (isAuth && !authStore.user) {
           // Si está autenticado pero no tenemos el usuario en el store
-          await authService.getCurrentUser()
+          await authService.getCurrentUserWithPermissions()
         } else if (!isAuth && authStore.user) {
           // Si no está autenticado pero tenemos usuario en el store
           authStore.reset()
