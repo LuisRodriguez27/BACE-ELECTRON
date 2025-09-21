@@ -102,6 +102,14 @@ function seed() {
     insertUserPermission.run(adminId, perm.id, 1);
   });
 
+  // Asignar algunos permisos al usuario normal
+  const userPermissions = db.prepare(`
+    SELECT id FROM permissions WHERE name IN (?)
+  `).all("Crear Cliente");
+  userPermissions.forEach((perm) => {
+    insertUserPermission.run(userId, perm.id, 1);
+  });
+
   // -------------------------
   // 5. Insertar clientes
   // -------------------------
