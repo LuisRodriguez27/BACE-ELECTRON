@@ -19,7 +19,11 @@ class OrderRepository {
     `);
     
     const orders = stmt.all();
-    return orders.map(order => new Order(order));
+    return orders.map(order => {
+      // Cargar productos para cada orden
+      const orderProducts = this.getOrderProducts(order.id);
+      return new Order({ ...order, orderProducts });
+    });
   }
 
   findById(id) {
@@ -59,7 +63,11 @@ class OrderRepository {
     `);
 
     const orders = stmt.all(clientId);
-    return orders.map(order => new Order(order));
+    return orders.map(order => {
+      // Cargar productos para cada orden
+      const orderProducts = this.getOrderProducts(order.id);
+      return new Order({ ...order, orderProducts });
+    });
   }
 
   findCompleted() {
@@ -78,7 +86,11 @@ class OrderRepository {
     `);
     
     const orders = stmt.all();
-    return orders.map(order => new Order(order));
+    return orders.map(order => {
+      // Cargar productos para cada orden
+      const orderProducts = this.getOrderProducts(order.id);
+      return new Order({ ...order, orderProducts });
+    });
   }
 
   /**
