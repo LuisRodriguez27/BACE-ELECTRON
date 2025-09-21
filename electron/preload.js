@@ -69,6 +69,7 @@ contextBridge.exposeInMainWorld('api', {
   deleteOrder: (id) => ipcRenderer.invoke('orders:delete', id),
   recalculateOrderTotal: (orderId) => ipcRenderer.invoke('orders:recalculateTotal', orderId),
   getSales: () => ipcRenderer.invoke('sales:getAll'),
+  getSalesPaginated: (page, limit) => ipcRenderer.invoke('sales:getPaginated', page, limit),
   getOrderProducts: (orderId) => ipcRenderer.invoke('orders:getProducts', orderId),
 
   // Pagos

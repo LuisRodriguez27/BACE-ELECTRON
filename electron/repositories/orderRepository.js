@@ -93,6 +93,52 @@ class OrderRepository {
     });
   }
 
+  findCompletedPaginated(page = 1, limit = 10) {
+    const offset = (page - 1) * limit;
+    
+    // Obtener total de registros
+    const countStmt = db.prepare(`
+      SELECT COUNT(*) as total
+      FROM orders o
+      WHERE o.active = 1 AND o.status = 'completado'
+    `);
+    const { total } = countStmt.get();
+    
+    // Obtener registros paginados
+    const stmt = db.prepare(`
+      SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
+            o.estimated_delivery_date, o.status, o.total, o.notes, o.active,
+            c.name as client_name, c.phone as client_phone,
+            u.username as user_username,
+            ue.username as edited_by_username
+      FROM orders o
+      JOIN clients c ON o.client_id = c.id
+      JOIN users u ON o.user_id = u.id
+      LEFT JOIN users ue ON o.edited_by = ue.id
+      WHERE o.active = 1 AND o.status = 'completado'
+      ORDER BY o.id DESC
+      LIMIT ? OFFSET ?
+    `);
+    
+    const orders = stmt.all(limit, offset);
+    const ordersWithProducts = orders.map(order => {
+      const orderProducts = this.getOrderProducts(order.id);
+      return new Order({ ...order, orderProducts });
+    });
+    
+    return {
+      data: ordersWithProducts,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1
+      }
+    };
+  }
+
   /**
    * Crear una nueva orden con productos/plantillas obligatorios
    * La orden NUNCA se crea vacía, siempre debe tener al menos un producto o plantilla

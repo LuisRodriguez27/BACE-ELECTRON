@@ -58,6 +58,23 @@ class OrderService {
       console.error('Error al obtener ventas:', error);
       throw new Error('Error al obtener ventas');
     }
+  }
+
+  async getSalesPaginated(page = 1, limit = 10) {
+    try {
+      if (page < 1) page = 1;
+      if (limit < 1 || limit > 100) limit = 10;
+      
+      const result = orderRepository.findCompletedPaginated(page, limit);
+      
+      return {
+        data: result.data.map(sale => sale.toPlainObject()),
+        pagination: result.pagination
+      };
+    } catch (error) {
+      console.error('Error al obtener ventas paginadas:', error);
+      throw new Error('Error al obtener ventas paginadas');
+    }
   }  
 
   /**
