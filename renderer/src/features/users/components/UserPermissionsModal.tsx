@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PermissionsApiService } from '../../permissions/PermissionsApiService';
 import type { User as UserType } from '../types';
 
 interface Permission {
@@ -27,47 +28,33 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
   user
 }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isUpdatingPermission, setIsUpdatingPermission] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [availablePermissions, setAvailablePermissions] = useState<Permission[]>([]);
-  const [userPermissions, setUserPermissions] = useState<number[]>([]);
+  const [userPermissions, setUserPermissions] = useState<Permission[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     if (user && isOpen) {
-      fetchPermissions();
+      fetchData();
     }
   }, [user, isOpen]);
 
-  const fetchPermissions = async () => {
+  const fetchData = async () => {
     if (!user) return;
 
     try {
       setIsLoading(true);
       setError(null);
       
-      // Simular llamada a API para obtener permisos disponibles
-      // En la implementación real, esto vendría de window.api.getAllPermissions()
-      const mockPermissions: Permission[] = [
-        { id: 1, name: 'users.create', description: 'Crear usuarios', active: 1 },
-        { id: 2, name: 'users.read', description: 'Ver usuarios', active: 1 },
-        { id: 3, name: 'users.update', description: 'Editar usuarios', active: 1 },
-        { id: 4, name: 'users.delete', description: 'Eliminar usuarios', active: 1 },
-        { id: 5, name: 'admin.system', description: 'Administración del sistema', active: 1 },
-        { id: 6, name: 'reports.view', description: 'Ver reportes', active: 1 },
-        { id: 7, name: 'reports.export', description: 'Exportar reportes', active: 1 },
-        { id: 8, name: 'settings.manage', description: 'Gestionar configuración', active: 1 },
-      ];
+      // Obtener todos los permisos disponibles
+      const allPermissions = await PermissionsApiService.findAll();
+      setAvailablePermissions(allPermissions);
 
-      setAvailablePermissions(mockPermissions);
-
-      // Obtener permisos actuales del usuario
-      const currentUserPermissions = user.userPermissions || [];
-      const activePermissionIds = currentUserPermissions
-        .filter(up => up.active === 1)
-        .map(up => up.permission_id);
+      // Obtener permisos del usuario
+      const currentUserPermissions = await PermissionsApiService.findByUserId(user.id);
+      setUserPermissions(currentUserPermissions);
       
-      setUserPermissions(activePermissionIds);
     } catch (err) {
       console.error('Error fetching permissions:', err);
       setError('Error al cargar los permisos');
@@ -76,46 +63,45 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
     }
   };
 
-  const handlePermissionToggle = (permissionId: number) => {
-    setUserPermissions(prev => 
-      prev.includes(permissionId)
-        ? prev.filter(id => id !== permissionId)
-        : [...prev, permissionId]
-    );
-  };
-
-  const handleSave = async () => {
+  const handlePermissionToggle = async (permission: Permission) => {
     if (!user) return;
 
+    const hasPermission = userPermissions.some(up => up.id === permission.id);
+    
     try {
-      setIsSaving(true);
+      setIsUpdatingPermission(permission.id);
       setError(null);
 
-      // En la implementación real, esto sería:
-      // await window.api.updateUserPermissions(user.id, userPermissions);
-      
-      // Simular actualización exitosa
-      console.log('Updating permissions for user:', user.id, 'with permissions:', userPermissions);
-      
-      // Simular respuesta con usuario actualizado
-      const updatedUser: UserType = {
-        ...user,
-        userPermissions: availablePermissions
-          .filter(p => userPermissions.includes(p.id))
-          .map(p => ({
-            permission_id: p.id,
-            permission_name: p.name,
-            active: 1
-          }))
-      };
+      let updatedUser: UserType;
 
+      if (hasPermission) {
+        // Remover permiso
+        updatedUser = await PermissionsApiService.removeFromUser({
+          user_id: user.id,
+          permission_id: permission.id
+        });
+        
+        // Actualizar estado local
+        setUserPermissions(prev => prev.filter(p => p.id !== permission.id));
+      } else {
+        // Agregar permiso
+        updatedUser = await PermissionsApiService.assignToUser({
+          user_id: user.id,
+          permission_id: permission.id
+        });
+        
+        // Actualizar estado local
+        setUserPermissions(prev => [...prev, permission]);
+      }
+
+      // Notificar al componente padre del usuario actualizado
       onPermissionsUpdated(updatedUser);
-      onClose();
-    } catch (err) {
-      console.error('Error updating permissions:', err);
-      setError('Error al actualizar los permisos');
+      
+    } catch (err: any) {
+      console.error('Error updating permission:', err);
+      setError(err.message || 'Error al actualizar el permiso');
     } finally {
-      setIsSaving(false);
+      setIsUpdatingPermission(null);
     }
   };
 
@@ -129,6 +115,8 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
     permission.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (permission.description && permission.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  const getUserPermissionIds = () => userPermissions.map(p => p.id);
 
   if (!isOpen || !user) return null;
 
@@ -192,7 +180,7 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
                 <div>
                   <h3 className="font-medium text-gray-900">{user.username}</h3>
                   <p className="text-sm text-gray-500">
-                    {userPermissions.length} permisos seleccionados
+                    {userPermissions.length} de {availablePermissions.length} permisos asignados
                   </p>
                 </div>
               </div>
@@ -211,32 +199,45 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {filteredPermissions.map((permission) => (
-                    <div
-                      key={permission.id}
-                      className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
-                    >
-                      <Checkbox
-                        id={`permission-${permission.id}`}
-                        checked={userPermissions.includes(permission.id)}
-                        onCheckedChange={() => handlePermissionToggle(permission.id)}
-                      />
-                      <div className="flex-1">
-                        <Label
-                          htmlFor={`permission-${permission.id}`}
-                          className="text-sm font-medium text-gray-900 cursor-pointer"
-                        >
-                          {permission.name}
-                        </Label>
-                        {permission.description && (
-                          <p className="text-xs text-gray-500">{permission.description}</p>
-                        )}
+                  {filteredPermissions.map((permission) => {
+                    const hasPermission = getUserPermissionIds().includes(permission.id);
+                    const isUpdating = isUpdatingPermission === permission.id;
+                    
+                    return (
+                      <div
+                        key={permission.id}
+                        className={`flex items-center space-x-3 p-3 border border-gray-200 rounded-lg transition-colors ${
+                          isUpdating ? 'bg-blue-50' : 'hover:bg-gray-50'
+                        }`}
+                      >
+                        <Checkbox
+                          id={`permission-${permission.id}`}
+                          checked={hasPermission}
+                          onCheckedChange={() => handlePermissionToggle(permission)}
+                          disabled={isUpdating}
+                        />
+                        <div className="flex-1">
+                          <Label
+                            htmlFor={`permission-${permission.id}`}
+                            className="text-sm font-medium text-gray-900 cursor-pointer"
+                          >
+                            {permission.name}
+                          </Label>
+                          {permission.description && (
+                            <p className="text-xs text-gray-500">{permission.description}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {isUpdating && (
+                            <Loader className="h-4 w-4 text-blue-600 animate-spin" />
+                          )}
+                          {hasPermission && !isUpdating && (
+                            <Check className="h-4 w-4 text-green-600" />
+                          )}
+                        </div>
                       </div>
-                      {userPermissions.includes(permission.id) && (
-                        <Check className="h-4 w-4 text-green-600" />
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                   
                   {filteredPermissions.length === 0 && (
                     <div className="text-center py-8 text-gray-500">
@@ -253,25 +254,16 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
         {/* Actions */}
         <div className="flex justify-between items-center p-6 border-t border-gray-200">
           <div className="text-sm text-gray-500">
-            {userPermissions.length} de {availablePermissions.length} permisos seleccionados
+            {userPermissions.length} de {availablePermissions.length} permisos asignados
           </div>
           <div className="flex gap-3">
             <Button
               type="button"
               variant="outline"
               onClick={handleClose}
-              disabled={isSaving}
+              disabled={isUpdatingPermission !== null}
             >
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              onClick={handleSave}
-              disabled={isSaving || isLoading}
-              className="flex items-center gap-2"
-            >
-              {isSaving && <Loader className="animate-spin" size={16} />}
-              {isSaving ? 'Guardando...' : 'Guardar Permisos'}
+              {isUpdatingPermission !== null ? 'Actualizando...' : 'Cerrar'}
             </Button>
           </div>
         </div>
