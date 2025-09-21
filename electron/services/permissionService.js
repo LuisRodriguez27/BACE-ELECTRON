@@ -66,11 +66,6 @@ class PermissionService {
         throw new Error('Nombre de permiso inválido. Debe contener solo letras, números y guiones bajos (2-50 caracteres)');
       }
 
-      // Verificar que no exista un permiso con el mismo nombre
-      if (permissionRepository.existsByName(trimmedName)) {
-        throw new Error('Ya existe un permiso con este nombre');
-      }
-
       // Crear permiso
       const permission = permissionRepository.create({
         name: trimmedName,
@@ -114,11 +109,6 @@ class PermissionService {
         
         if (!Permission.isValidPermissionName(trimmedName)) {
           throw new Error('Nombre de permiso inválido. Debe contener solo letras, números y guiones bajos (2-50 caracteres)');
-        }
-
-        // Verificar que no exista otro permiso con el mismo nombre
-        if (permissionRepository.existsByName(trimmedName, permissionId)) {
-          throw new Error('Ya existe otro permiso con este nombre');
         }
       }
 

@@ -13,8 +13,8 @@ class PermissionRepository {
     
     const permissions = stmt.all();
     return permissions.map(permission => {
-      const users = this.getUsersByPermissionId(permission.id);
-      return new Permission({ ...permission, users });
+      // No cargar usuarios por defecto para mejorar performance
+      return new Permission({ ...permission, users: [] });
     });
   }
 
@@ -27,7 +27,8 @@ class PermissionRepository {
 
     if (!permissionData) return null;
 
-    const users = this.getUsersByPermissionId(id);
+    // Solo cargar usuarios si específicamente se necesita
+    const users = this.getUsersByPermissionId ? this.getUsersByPermissionId(id) : [];
     return new Permission({ ...permissionData, users });
   }
 
@@ -42,9 +43,44 @@ class PermissionRepository {
 
     const permissions = stmt.all(userId);
     return permissions.map(permission => {
-      const users = this.getUsersByPermissionId(permission.id);
-      return new Permission({ ...permission, users });
+      // No necesitamos la lista de usuarios para los permisos del usuario
+      return new Permission({ ...permission, users: [] });
     });
+  }
+
+  // Método que faltaba
+  getUsersByPermissionId(permissionId) {
+    try {
+      const stmt = db.prepare(`
+        SELECT u.id, u.username
+        FROM users u
+        JOIN user_permissions up ON u.id = up.user_id
+        WHERE up.permission_id = ? AND up.active = 1 AND u.active = 1
+        ORDER BY u.username ASC
+      `);
+      
+      return stmt.all(permissionId) || [];
+    } catch (error) {
+      console.error('Error getting users by permission id:', error);
+      return [];
+    }
+  }
+
+  // Método para verificar si un usuario tiene un permiso específico
+  userHasPermission(userId, permissionId) {
+    try {
+      const stmt = db.prepare(`
+        SELECT COUNT(*) as count
+        FROM user_permissions 
+        WHERE user_id = ? AND permission_id = ? AND active = 1
+      `);
+      
+      const result = stmt.get(userId, permissionId);
+      return result.count > 0;
+    } catch (error) {
+      console.error('Error checking user permission:', error);
+      return false;
+    }
   }
 
   create(permissionData) {
