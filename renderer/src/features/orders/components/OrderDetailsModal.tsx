@@ -27,6 +27,7 @@ import { getOrderItemDisplayName, getOrderItemType, type Order, type OrderProduc
 import { PaymentsApiService } from '../../payments/PaymentsApiService';
 import { PaymentsList } from '../../payments/components';
 import type { Payment } from '../../payments/types';
+import { usePermissions } from '@/hooks/use-permissions';
 
 interface OrderDetailsModalProps {
   isOpen: boolean;
@@ -52,6 +53,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     estimated_delivery_date: '',
     notes: ''
   });
+  const { checkPermission } = usePermissions();
 
   // Cargar datos de la orden al abrir el modal
   useEffect(() => {
@@ -91,6 +93,13 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditOrder = () => {
+    if (!checkPermission("Editar Órdenes")) {
+      return;
+    }
+    setIsEditing(true);
   };
 
   const loadPayments = async () => {
@@ -243,7 +252,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setIsEditing(true)}
+                onClick={handleEditOrder}
                 className="flex items-center gap-2"
               >
                 <Edit3 size={16} />

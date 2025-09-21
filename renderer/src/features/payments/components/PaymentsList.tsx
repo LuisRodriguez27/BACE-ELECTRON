@@ -11,6 +11,7 @@ import {
 import React, { useState } from 'react';
 import type { Payment } from '../types';
 import { CreatePaymentModal, EditPaymentModal } from './';
+import { usePermissions } from '@/hooks/use-permissions';
 
 interface PaymentsListProps {
   payments: Payment[];
@@ -32,14 +33,25 @@ const PaymentsList: React.FC<PaymentsListProps> = ({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const { checkPermission } = usePermissions();
 
   const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
   const remainingAmount = orderTotal - totalPaid;
   const isFullyPaid = remainingAmount <= 0;
 
   const handleEditPayment = (payment: Payment) => {
+    if (!checkPermission("Eliminar Pagos")) { // Usando este permiso para editar también
+      return;
+    }
     setSelectedPayment(payment);
     setShowEditModal(true);
+  };
+
+  const openCreatePaymentModal = () => {
+    if (!checkPermission("Registrar Pagos")) {
+      return;
+    }
+    setShowCreateModal(true);
   };
 
   const handlePaymentCreated = () => {
@@ -130,7 +142,7 @@ const PaymentsList: React.FC<PaymentsListProps> = ({
           {!isFullyPaid && (
             <Button
               size="sm"
-              onClick={() => setShowCreateModal(true)}
+              onClick={openCreatePaymentModal}
               className="flex items-center gap-2"
             >
               <Plus size={16} />
@@ -186,7 +198,7 @@ const PaymentsList: React.FC<PaymentsListProps> = ({
               Esta orden aún no tiene pagos registrados
             </p>
             <Button 
-              onClick={() => setShowCreateModal(true)}
+              onClick={openCreatePaymentModal}
               className="flex items-center gap-2 mx-auto"
             >
               <Plus size={16} />
