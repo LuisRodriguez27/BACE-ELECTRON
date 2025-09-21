@@ -5,12 +5,14 @@ import { toast } from 'sonner';
 import { UsersApiService } from './UsersApiService';
 import { CreateUserModal, DeleteUserModal, EditUserModal, UserPermissionsModal } from './components';
 import type { User as UserType } from './types';
+import { usePermissions } from '@/hooks/use-permissions';
 
 const UsersPage: React.FC = () => {
   const [users, setUsers] = useState<UserType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const { checkPermission } = usePermissions();
   
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -64,18 +66,34 @@ const UsersPage: React.FC = () => {
   };
 
   const openEditModal = (user: UserType) => {
+    if (!checkPermission("Gestionar Usuario")) {
+      return;
+    }
     setSelectedUser(user);
     setShowEditModal(true);
   };
 
   const openDeleteModal = (user: UserType) => {
+    if (!checkPermission("Gestionar Usuario")) {
+      return;
+    }
     setSelectedUser(user);
     setShowDeleteModal(true);
   };
 
   const openPermissionsModal = (user: UserType) => {
+    if (!checkPermission("Gestionar Permisos")) {
+      return;
+    }
     setSelectedUser(user);
     setShowPermissionsModal(true);
+  };
+
+  const openCreateModal = () => {
+    if (!checkPermission("Gestionar Usuario")) {
+      return;
+    }
+    setShowCreateModal(true);
   };
 
   const closeModals = () => {
@@ -131,7 +149,7 @@ const UsersPage: React.FC = () => {
         </div>
         <Button 
           className="flex items-center gap-2"
-          onClick={() => setShowCreateModal(true)}
+          onClick={openCreateModal}
         >
           <Plus size={16} />
           Nuevo Usuario
@@ -179,7 +197,7 @@ const UsersPage: React.FC = () => {
               {!searchTerm && (
                 <Button 
                   className="flex items-center gap-2 mx-auto"
-                  onClick={() => setShowCreateModal(true)}
+                  onClick={openCreateModal}
                 >
                   <Plus size={16} />
                   Agregar Primer Usuario

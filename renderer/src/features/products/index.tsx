@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { CreateProductModal, DeleteProductModal, EditProductModal, ProductDetailView } from './components';
 import { ProductsApiService } from './ProductsApiService';
 import type { Product } from './types';
+import { usePermissions } from '@/hooks/use-permissions';
 
 const ProductsPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -20,6 +21,8 @@ const ProductsPage: React.FC = () => {
   // Estados para vista detallada
   const [currentView, setCurrentView] = useState<'list' | 'detail'>('list');
   const [detailProductId, setDetailProductId] = useState<number | null>(null);
+
+  const { checkPermission } = usePermissions();
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -82,12 +85,25 @@ const ProductsPage: React.FC = () => {
     toast.success(`Producto ${deletedProduct?.name} eliminado exitosamente`);
   };
 
+  const openCreateModal = () => {
+    if (!checkPermission("Crear Producto")) {
+      return;
+    }
+    setShowCreateModal(true);
+  };
+
   const openEditModal = (product: Product) => {
+    if (!checkPermission("Editar Producto")) {
+      return;
+    }
     setSelectedProduct(product);
     setShowEditModal(true);
   };
 
   const openDeleteModal = (product: Product) => {
+    if (!checkPermission("Eliminar Producto")) {
+      return;
+    }
     setSelectedProduct(product);
     setShowDeleteModal(true);
   };
@@ -165,7 +181,7 @@ const ProductsPage: React.FC = () => {
         </div>
         <Button 
           className="flex items-center gap-2"
-          onClick={() => setShowCreateModal(true)}
+          onClick={openCreateModal}
         >
           <Plus size={16} />
           Nuevo Producto
@@ -205,7 +221,10 @@ const ProductsPage: React.FC = () => {
               <p className="text-gray-500 mb-4">
                 Comienza agregando tu primer producto al catálogo
               </p>
-              <Button className="flex items-center gap-2 mx-auto">
+              <Button 
+                className="flex items-center gap-2 mx-auto"
+                onClick={openCreateModal}
+              >
                 <Plus size={16} />
                 Agregar Primer Producto
               </Button>

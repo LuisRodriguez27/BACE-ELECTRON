@@ -15,6 +15,7 @@ import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ProductTemplatesApiService } from './ProductTemplatesApiService';
 import type { ProductTemplate } from './types';
+import { usePermissions } from '@/hooks/use-permissions';
 
 const ProductTemplatesPage: React.FC = () => {
   const [templates, setTemplates] = useState<ProductTemplate[]>([]);
@@ -25,6 +26,7 @@ const ProductTemplatesPage: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<string>('all');
   const [selectedUser, setSelectedUser] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const { checkPermission } = usePermissions();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -57,6 +59,11 @@ const ProductTemplatesPage: React.FC = () => {
   });
 
   const handleDeleteTemplate = async (templateId: number) => {
+    // Validar permiso antes de proceder
+    if (!checkPermission("Eliminar Plantilla")) {
+      return;
+    }
+
     if (!confirm('¿Estás seguro de eliminar esta plantilla? Esta acción no se puede deshacer.')) {
       return;
     }

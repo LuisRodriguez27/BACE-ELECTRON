@@ -5,12 +5,14 @@ import { toast } from 'sonner';
 import { ClientApiService } from './ClientApiService';
 import { ClientColorIndicator, ClientOrdersModal, ClientPaymentsModal, CreateClientModal, DeleteClientModal, EditClientModal } from './components';
 import type { Client } from './types';
+import { usePermissions } from '@/hooks/use-permissions';
 
 const ClientsPage: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const { checkPermission } = usePermissions();
   
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -76,23 +78,42 @@ const ClientsPage: React.FC = () => {
   };
 
   const openEditModal = (client: Client) => {
+    if (!checkPermission("Editar Cliente")) {
+      return;
+    }
     setSelectedClient(client);
     setShowEditModal(true);
   };
 
   const openDeleteModal = (client: Client) => {
+    if (!checkPermission("Eliminar Cliente")) {
+      return;
+    }
     setSelectedClient(client);
     setShowDeleteModal(true);
   };
 
   const openOrdersModal = (client: Client) => {
+    if (!checkPermission("Ver Órdenes")) {
+      return;
+    }
     setSelectedClient(client);
     setShowOrdersModal(true);
   };
 
   const openPaymentsModal = (client: Client) => {
+    if (!checkPermission("Ver Pagos")) {
+      return;
+    }
     setSelectedClient(client);
     setShowPaymentsModal(true);
+  };
+
+  const openCreateModal = () => {
+    if (!checkPermission("Crear Cliente")) {
+      return;
+    }
+    setShowCreateModal(true);
   };
 
   const closeModals = () => {
@@ -149,7 +170,7 @@ const ClientsPage: React.FC = () => {
         </div>
         <Button 
           className="flex items-center gap-2"
-          onClick={() => setShowCreateModal(true)}
+          onClick={openCreateModal}
         >
           <Plus size={16} />
           Nuevo Cliente
@@ -197,7 +218,7 @@ const ClientsPage: React.FC = () => {
               {!searchTerm && (
                 <Button 
                   className="flex items-center gap-2 mx-auto"
-                  onClick={() => setShowCreateModal(true)}
+                  onClick={openCreateModal}
                 >
                   <Plus size={16} />
                   Agregar Primer Cliente

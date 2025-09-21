@@ -5,6 +5,7 @@ import { PaymentsApiService } from './PaymentsApiService';
 import { OrdersApiService } from '../orders/OrdersApiService';
 import type { Payment } from './types';
 import type { Order } from '../orders/types';
+import { usePermissions } from '@/hooks/use-permissions';
 
 const PaymentsPage: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -12,6 +13,7 @@ const PaymentsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const { checkPermission } = usePermissions();
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -52,6 +54,23 @@ const PaymentsPage: React.FC = () => {
   const handleOrderChange = (orderId: number) => {
     setSelectedOrderId(orderId);
     fetchPaymentsByOrder(orderId);
+  };
+
+  const openCreatePaymentModal = () => {
+    if (!selectedOrderId) return;
+    if (!checkPermission("Registrar Pagos")) {
+      return;
+    }
+    // Aquí deberías abrir el modal de crear pago
+    console.log('Crear pago para orden:', selectedOrderId);
+  };
+
+  const handleEditPayment = (paymentId: number) => {
+    if (!checkPermission("Eliminar Pagos")) { // Usando este permiso para editar también
+      return;
+    }
+    // Aquí deberías abrir el modal de editar pago
+    console.log('Editar pago:', paymentId);
   };
 
   const formatDate = (dateString?: string) => {
@@ -122,7 +141,11 @@ const PaymentsPage: React.FC = () => {
             Administra los pagos de las órdenes y consulta el historial de pagos
           </p>
         </div>
-        <Button className="flex items-center gap-2" disabled={!selectedOrderId}>
+        <Button 
+          className="flex items-center gap-2" 
+          disabled={!selectedOrderId}
+          onClick={openCreatePaymentModal}
+        >
           <Plus size={16} />
           Nuevo Pago
         </Button>
@@ -230,7 +253,10 @@ const PaymentsPage: React.FC = () => {
               <p className="text-gray-500 mb-4">
                 Esta orden aún no tiene pagos registrados
               </p>
-              <Button className="flex items-center gap-2 mx-auto">
+              <Button 
+                className="flex items-center gap-2 mx-auto"
+                onClick={openCreatePaymentModal}
+              >
                 <Plus size={16} />
                 Registrar Primer Pago
               </Button>
@@ -266,7 +292,11 @@ const PaymentsPage: React.FC = () => {
                       <Button variant="outline" size="sm">
                         Ver Recibo
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleEditPayment(payment.id)}
+                      >
                         Editar
                       </Button>
                     </div>

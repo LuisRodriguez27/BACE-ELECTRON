@@ -11,12 +11,14 @@ import OrderDetailsModal from './components/OrderDetailsModal';
 import OrderEditModal from './components/OrderEditModal';
 import { OrdersApiService } from './OrdersApiService';
 import type { Order } from './types';
+import { usePermissions } from '@/hooks/use-permissions';
 
 const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [orderPayments, setOrderPayments] = useState<Record<number, Payment[]>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { checkPermission } = usePermissions();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -78,13 +80,26 @@ const OrdersPage: React.FC = () => {
   };
 
   const handleEditOrder = (orderId: number) => {
+    if (!checkPermission("Editar Órdenes")) {
+      return;
+    }
     setSelectedOrderId(orderId);
     setShowEditModal(true);
   };
 
   const handleAddPayment = (orderId: number) => {
+    if (!checkPermission("Registrar Pagos")) {
+      return;
+    }
     setSelectedOrderId(orderId);
     setShowPaymentModal(true);
+  };
+
+  const openCreateModal = () => {
+    if (!checkPermission("Crear Órdenes")) {
+      return;
+    }
+    setShowCreateModal(true);
   };
 
 
@@ -233,7 +248,7 @@ const OrdersPage: React.FC = () => {
         </div>
         <Button 
           className="flex items-center gap-2"
-          onClick={() => setShowCreateModal(true)}
+          onClick={openCreateModal}
         >
           <Plus size={16} />
           Nueva Orden
@@ -271,7 +286,10 @@ const OrdersPage: React.FC = () => {
               <p className="text-gray-500 mb-4">
                 Comienza creando tu primera orden de producción
               </p>
-              <Button className="flex items-center gap-2 mx-auto">
+              <Button 
+                className="flex items-center gap-2 mx-auto"
+                onClick={openCreateModal}
+              >
                 <Plus size={16} />
                 Crear Primera Orden
               </Button>
