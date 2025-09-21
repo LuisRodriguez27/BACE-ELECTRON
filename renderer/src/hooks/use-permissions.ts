@@ -1,4 +1,5 @@
 import { useAuthStore } from '@/store/auth';
+import { toast } from 'sonner';
 
 export function usePermissions() {
   const hasPermission = useAuthStore((state) => state.hasPermission);
@@ -19,8 +20,7 @@ export function usePermissions() {
     console.log('🏁 Resultado:', hasAccess ? '✅ PERMITIDO' : '❌ DENEGADO');
     
     if (!hasAccess && showAlert) {
-      // Usando alert nativo por simplicidad - puedes cambiarlo por tu librería de notificaciones
-      alert('No tienes permiso para realizar esta acción');
+      toast.error('No tienes permiso para realizar esta acción');
     }
     
     return hasAccess;
