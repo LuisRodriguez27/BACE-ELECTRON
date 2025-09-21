@@ -35,8 +35,8 @@ declare global {
       updatePermission: (id: number, data: EditPermissionForm) => Promise<Permission>;
       deletePermission: (id: number) => Promise<void>;
       // Corregidos los tipos de parámetros - deben ser objetos, no strings
-      assignPermissionToUser: (data: { userId: number; permissionId: number }) => Promise<{ success: boolean; message: string }>;
-      removePermissionFromUser: (data: { userId: number; permissionId: number }) => Promise<{ success: boolean; message: string }>;
+      assignPermissionToUser: (data: { userId: number; permissionId: number }) => Promise<User>;
+      removePermissionFromUser: (data: { userId: number; permissionId: number }) => Promise<User>;
 
       // Clientes
       getAllClients: () => Promise<Client[]>;

@@ -1,3 +1,4 @@
+import type { User } from "../auth";
 import type { 
   Permission, 
   CreatePermissionForm, 
@@ -25,13 +26,13 @@ export const PermissionsApiService = {
   update: async (id: number, permission: EditPermissionForm): Promise<Permission> => {
     return window.api.updatePermission(id, permission);
   },
-
+  
   delete: async (id: number): Promise<void> => {
     return window.api.deletePermission(id);
   },
 
   // User-Permission assignment methods
-  assignToUser: async (assignment: AssignPermissionForm): Promise<{ success: boolean; message: string }> => {
+  assignToUser: async (assignment: AssignPermissionForm): Promise<User> => {
     // Convertir snake_case a camelCase para la API
     return window.api.assignPermissionToUser({
       userId: assignment.user_id,
@@ -39,7 +40,7 @@ export const PermissionsApiService = {
     });
   },
 
-  removeFromUser: async (assignment: AssignPermissionForm): Promise<{ success: boolean; message: string }> => {
+  removeFromUser: async (assignment: AssignPermissionForm): Promise<User> => {
     // Convertir snake_case a camelCase para la API  
     return window.api.removePermissionFromUser({
       userId: assignment.user_id,
