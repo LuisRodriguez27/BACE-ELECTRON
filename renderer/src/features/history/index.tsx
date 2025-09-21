@@ -1,54 +1,132 @@
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Calendar, CheckCircle, Clock, DollarSign, Eye, Search, ShoppingCart } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { AlertCircle, Calendar, CheckCircle, Clock, DollarSign, Eye, Loader2, Search, ShoppingCart } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import OrderDetailsModal from '../orders/components/OrderDetailsModal';
 import type { Order } from '../orders/types';
 import { PaymentsApiService } from '../payments/PaymentsApiService';
 import type { Payment } from '../payments/types';
 import { SalesApiService } from './SalesApiService';
 
+interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
 const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [orderPayments, setOrderPayments] = useState<Record<number, Payment[]>>({});
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false
+  });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
+  
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const lastOrderElementRef = useCallback((node: HTMLDivElement) => {
+    if (loadingMore) return;
+    if (observerRef.current) observerRef.current.disconnect();
+    observerRef.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && pagination.hasNext) {
+        loadMoreOrders();
+      }
+    });
+    if (node) observerRef.current.observe(node);
+  }, [loadingMore, pagination.hasNext]);
+
+  const loadOrders = async (page: number = 1, reset: boolean = true) => {
+    try {
+      if (page === 1) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+      
+      const response = await SalesApiService.findAllPaginated(page, 10);
+      
+      // Validar que la respuesta tenga la estructura esperada
+      if (!response || !response.data || !Array.isArray(response.data)) {
+        console.error('Respuesta de API inválida:', response);
+        throw new Error('Formato de respuesta inválido');
+      }
+      
+      if (reset) {
+        setOrders(response.data);
+      } else {
+        setOrders(prev => [...prev, ...response.data]);
+      }
+      
+      setPagination(response.pagination);
+      
+      // Cargar pagos para las nuevas órdenes
+      const paymentsPromises = response.data.map(async (order) => {
+        try {
+          const payments = await PaymentsApiService.findByOrderId(order.id);
+          return { orderId: order.id, payments };
+        } catch (err) {
+          console.error(`Error fetching payments for order ${order.id}:`, err);
+          return { orderId: order.id, payments: [] };
+        }
+      });
+      
+      const paymentsResults = await Promise.all(paymentsPromises);
+      const newPaymentsMap = paymentsResults.reduce((acc, { orderId, payments }) => {
+        acc[orderId] = payments;
+        return acc;
+      }, {} as Record<number, Payment[]>);
+      
+      if (reset) {
+        setOrderPayments(newPaymentsMap);
+      } else {
+        setOrderPayments(prev => ({ ...prev, ...newPaymentsMap }));
+      }
+      
+    } catch (err) {
+      console.error('Error fetching orders:', err);
+      setError('Error al cargar órdenes');
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMoreOrders = () => {
+    if (!loadingMore && pagination.hasNext) {
+      loadOrders(pagination.page + 1, false);
+    }
+  };
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        setLoading(true);
-        const data = await SalesApiService.findAll();
-        setOrders(data);
-        
-        // Cargar pagos para cada orden
-        const paymentsPromises = data.map(async (order) => {
-          try {
-            const payments = await PaymentsApiService.findByOrderId(order.id);
-            return { orderId: order.id, payments };
-          } catch (err) {
-            console.error(`Error fetching payments for order ${order.id}:`, err);
-            return { orderId: order.id, payments: [] };
-          }
-        });
-        
-        const paymentsResults = await Promise.all(paymentsPromises);
-        const paymentsMap = paymentsResults.reduce((acc, { orderId, payments }) => {
-          acc[orderId] = payments;
-          return acc;
-        }, {} as Record<number, Payment[]>);
-        
-        setOrderPayments(paymentsMap);
-      } catch (err) {
-        console.error('Error fetching orders:', err);
-        setError('Error al cargar órdenes');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchOrders();
+    loadOrders();
   }, []);
+
+  // Filtrar órdenes basado en la búsqueda
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredOrders(orders);
+    } else {
+      const filtered = orders.filter(order => 
+        order.id.toString().includes(searchTerm) ||
+        order.client?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.client?.phone?.includes(searchTerm) ||
+        order.user?.username?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredOrders(filtered);
+    }
+  }, [orders, searchTerm]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-MX', {
@@ -180,6 +258,8 @@ const OrdersPage: React.FC = () => {
               <input
                 type="text"
                 placeholder="Buscar órdenes..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -191,28 +271,57 @@ const OrdersPage: React.FC = () => {
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">
-            Órdenes ({orders.length})
+            Órdenes ({searchTerm ? filteredOrders.length : pagination.total})
+            {searchTerm && (
+              <span className="text-sm font-normal text-gray-500 ml-2">
+                (filtrado de {pagination.total})
+              </span>
+            )}
           </h2>
         </div>
         <div className="p-6">
-          {orders.length === 0 ? (
+          {filteredOrders.length === 0 && !loading ? (
             <div className="text-center py-12">
-              <ShoppingCart className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No hay órdenes para mostrar en el historial</h3>
-              <p className="text-gray-500 mb-4">
-                Crea tu primera orden desde la ventana 'Ordenes'
-              </p>
+              {searchTerm ? (
+                <>
+                  <Search className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No se encontraron órdenes</h3>
+                  <p className="text-gray-500 mb-4">
+                    No hay órdenes que coincidan con "<strong>{searchTerm}</strong>"
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setSearchTerm('')}
+                    size="sm"
+                  >
+                    Limpiar búsqueda
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No hay órdenes para mostrar en el historial</h3>
+                  <p className="text-gray-500 mb-4">
+                    Crea tu primera orden desde la ventana 'Ordenes'
+                  </p>
+                </>
+              )}
             </div>
           ) : (
-            <div className="space-y-4">
-              {orders.map((order) => {
+            <>
+              <div className="space-y-4">
+                {filteredOrders.map((order, index) => {
                 const paymentStatus = getPaymentStatus(order);
                 const totalPaid = getTotalPaid(order.id);
                 const remaining = getRemainingAmount(order);
                 const paymentsCount = getOrderPayments(order.id).length;
                 
                 return (
-                  <div key={order.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                <div 
+                      key={order.id} 
+                      ref={index === filteredOrders.length - 1 ? lastOrderElementRef : null}
+                      className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
+                    >
                     <div className="flex items-start justify-between mb-4">
                       <div>
                         <div className="flex items-center gap-3 mb-2">
@@ -326,6 +435,22 @@ const OrdersPage: React.FC = () => {
                 );
               })}
             </div>
+            
+            {/* Loading indicator para scroll infinito */}
+            {!searchTerm && loadingMore && (
+              <div className="flex justify-center items-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                <span className="ml-2 text-gray-600">Cargando más órdenes...</span>
+              </div>
+            )}
+            
+            {/* Mensaje cuando se han cargado todas las órdenes */}
+            {!searchTerm && !loadingMore && !pagination.hasNext && orders.length > 0 && (
+              <div className="text-center py-8">
+                <p className="text-gray-500">Has visto todas las órdenes ({pagination.total})</p>
+              </div>
+            )}
+          </>
           )}
         </div>
       </div>

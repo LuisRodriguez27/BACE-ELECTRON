@@ -75,6 +75,7 @@ declare global {
       deleteOrder: (id: number) => Promise<void>;
       recalculateOrderTotal: (id: number) => Promise<number>;
       getSales: () => Promise<Order[]>;
+      getSalesPaginated: (page: number, limit: number) => Promise<{data: Order[], pagination: {page: number, limit: number, total: number, totalPages: number, hasNext: boolean, hasPrev: boolean}}>;
       getOrderProducts: (orderId: number) => Promise<OrderProduct[]>;
 
       // Pagos
