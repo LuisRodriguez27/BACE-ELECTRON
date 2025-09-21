@@ -29,6 +29,7 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdatingPermission, setIsUpdatingPermission] = useState<number | null>(null);
+  const [isSelectingAll, setIsSelectingAll] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [availablePermissions, setAvailablePermissions] = useState<Permission[]>([]);
   const [userPermissions, setUserPermissions] = useState<Permission[]>([]);
@@ -60,6 +61,86 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
       setError('Error al cargar los permisos');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSelectAll = async () => {
+    if (!user || isLoading) return;
+
+    try {
+      setIsSelectingAll(true);
+      setError(null);
+
+      // Obtener permisos que el usuario NO tiene actualmente
+      const userPermissionIds = getUserPermissionIds();
+      const permissionsToAssign = filteredPermissions.filter(
+        permission => !userPermissionIds.includes(permission.id)
+      );
+
+      // Asignar todos los permisos faltantes
+      for (const permission of permissionsToAssign) {
+        try {
+          const updatedUser = await PermissionsApiService.assignToUser({
+            user_id: user.id,
+            permission_id: permission.id
+          });
+          
+          // Actualizar estado local
+          setUserPermissions(prev => [...prev, permission]);
+          
+          // Notificar al componente padre del usuario actualizado
+          onPermissionsUpdated(updatedUser);
+        } catch (err: any) {
+          console.error(`Error assigning permission ${permission.name}:`, err);
+          // Continuar con el siguiente permiso aunque uno falle
+        }
+      }
+
+    } catch (err: any) {
+      console.error('Error in select all:', err);
+      setError('Error al asignar todos los permisos');
+    } finally {
+      setIsSelectingAll(false);
+    }
+  };
+
+  const handleDeselectAll = async () => {
+    if (!user || isLoading) return;
+
+    try {
+      setIsSelectingAll(true);
+      setError(null);
+
+      // Obtener permisos que el usuario SI tiene actualmente (de los filtrados)
+      const userPermissionIds = getUserPermissionIds();
+      const permissionsToRemove = filteredPermissions.filter(
+        permission => userPermissionIds.includes(permission.id)
+      );
+
+      // Remover todos los permisos
+      for (const permission of permissionsToRemove) {
+        try {
+          const updatedUser = await PermissionsApiService.removeFromUser({
+            user_id: user.id,
+            permission_id: permission.id
+          });
+          
+          // Actualizar estado local
+          setUserPermissions(prev => prev.filter(p => p.id !== permission.id));
+          
+          // Notificar al componente padre del usuario actualizado
+          onPermissionsUpdated(updatedUser);
+        } catch (err: any) {
+          console.error(`Error removing permission ${permission.name}:`, err);
+          // Continuar con el siguiente permiso aunque uno falle
+        }
+      }
+
+    } catch (err: any) {
+      console.error('Error in deselect all:', err);
+      setError('Error al remover todos los permisos');
+    } finally {
+      setIsSelectingAll(false);
     }
   };
 
@@ -118,6 +199,22 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
 
   const getUserPermissionIds = () => userPermissions.map(p => p.id);
 
+  // Verificar si todos los permisos filtrados están seleccionados
+  const allFilteredSelected = () => {
+    const userPermissionIds = getUserPermissionIds();
+    return filteredPermissions.every(permission => 
+      userPermissionIds.includes(permission.id)
+    );
+  };
+
+  // Verificar si ningún permiso filtrado está seleccionado
+  const noneFilteredSelected = () => {
+    const userPermissionIds = getUserPermissionIds();
+    return !filteredPermissions.some(permission => 
+      userPermissionIds.includes(permission.id)
+    );
+  };
+
   if (!isOpen || !user) return null;
 
   return (
@@ -156,19 +253,71 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
               </div>
             )}
 
-            {/* Search */}
-            <div className="mb-4">
-              <Label htmlFor="search" className="text-sm font-medium text-gray-700">
-                Buscar permisos
-              </Label>
-              <Input
-                id="search"
-                type="text"
-                placeholder="Buscar por nombre o descripción..."
-                value={searchTerm}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                className="mt-1"
-              />
+            {/* Search and Select All */}
+            <div className="space-y-4">
+              {/* Search */}
+              <div>
+                <Label htmlFor="search" className="text-sm font-medium text-gray-700">
+                  Buscar permisos
+                </Label>
+                <Input
+                  id="search"
+                  type="text"
+                  placeholder="Buscar por nombre o descripción..."
+                  value={searchTerm}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+
+              {/* Select All Controls */}
+              {filteredPermissions.length > 0 && (
+                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <Shield className="h-4 w-4 text-blue-600" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-blue-900">
+                      Acciones masivas para {filteredPermissions.length} permisos
+                      {searchTerm && ' (filtrados)'}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={handleSelectAll}
+                      disabled={isSelectingAll || isUpdatingPermission !== null || allFilteredSelected()}
+                      className="text-xs"
+                    >
+                      {isSelectingAll ? (
+                        <>
+                          <Loader className="h-3 w-3 animate-spin mr-1" />
+                          Asignando...
+                        </>
+                      ) : (
+                        'Seleccionar todos'
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={handleDeselectAll}
+                      disabled={isSelectingAll || isUpdatingPermission !== null || noneFilteredSelected()}
+                      className="text-xs"
+                    >
+                      {isSelectingAll ? (
+                        <>
+                          <Loader className="h-3 w-3 animate-spin mr-1" />
+                          Removiendo...
+                        </>
+                      ) : (
+                        'Deseleccionar todos'
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* User Info */}
@@ -187,7 +336,7 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
             </div>
 
             {/* Permissions List */}
-            <div className="space-y-2 max-h-96 overflow-y-auto">
+            <div className="space-y-2 max-h-96 overflow-y-auto mt-4">
               <Label className="text-sm font-medium text-gray-700">
                 Permisos disponibles
               </Label>
@@ -208,13 +357,13 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
                         key={permission.id}
                         className={`flex items-center space-x-3 p-3 border border-gray-200 rounded-lg transition-colors ${
                           isUpdating ? 'bg-blue-50' : 'hover:bg-gray-50'
-                        }`}
+                        } ${isSelectingAll ? 'opacity-60' : ''}`}
                       >
                         <Checkbox
                           id={`permission-${permission.id}`}
                           checked={hasPermission}
                           onCheckedChange={() => handlePermissionToggle(permission)}
-                          disabled={isUpdating}
+                          disabled={isUpdating || isSelectingAll}
                         />
                         <div className="flex-1">
                           <Label
@@ -261,9 +410,9 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
               type="button"
               variant="outline"
               onClick={handleClose}
-              disabled={isUpdatingPermission !== null}
+              disabled={isUpdatingPermission !== null || isSelectingAll}
             >
-              {isUpdatingPermission !== null ? 'Actualizando...' : 'Cerrar'}
+              {isUpdatingPermission !== null || isSelectingAll ? 'Actualizando...' : 'Cerrar'}
             </Button>
           </div>
         </div>
