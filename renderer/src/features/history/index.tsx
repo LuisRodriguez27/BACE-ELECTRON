@@ -49,6 +49,8 @@ const OrdersPage: React.FC = () => {
 
   const loadOrders = async (page: number = 1, reset: boolean = true) => {
     try {
+      console.log(`🔄 Cargando órdenes - Página: ${page}, Límite: 10, Reset: ${reset}`);
+      
       if (page === 1) {
         setLoading(true);
       } else {
@@ -70,6 +72,8 @@ const OrdersPage: React.FC = () => {
       }
       
       setPagination(response.pagination);
+      
+      console.log(`✅ Órdenes cargadas: ${response.data.length} | Total en BD: ${response.pagination.total} | Página actual: ${response.pagination.page}/${response.pagination.totalPages} | Hay más: ${response.pagination.hasNext}`);
       
       // Cargar pagos para las nuevas órdenes
       const paymentsPromises = response.data.map(async (order) => {
@@ -105,6 +109,7 @@ const OrdersPage: React.FC = () => {
 
   const loadMoreOrders = () => {
     if (!loadingMore && pagination.hasNext) {
+      console.log(`🔄 Scroll infinito detectado - Cargando página ${pagination.page + 1}`);
       loadOrders(pagination.page + 1, false);
     }
   };
