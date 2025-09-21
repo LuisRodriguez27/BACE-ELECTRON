@@ -94,17 +94,11 @@ const ClientsPage: React.FC = () => {
   };
 
   const openOrdersModal = (client: Client) => {
-    if (!checkPermission("Ver Órdenes")) {
-      return;
-    }
     setSelectedClient(client);
     setShowOrdersModal(true);
   };
 
   const openPaymentsModal = (client: Client) => {
-    if (!checkPermission("Ver Pagos")) {
-      return;
-    }
     setSelectedClient(client);
     setShowPaymentsModal(true);
   };
