@@ -13,6 +13,8 @@ class AuthService {
       
       if (response.success && response.user) {
         this.authStore.getState().setUser(response.user);
+        // Obtener permisos del usuario
+        await this.loadUserPermissions(response.user.id);
         return response;
       } else {
         this.authStore.getState().setError(response.message);
@@ -50,11 +52,33 @@ class AuthService {
       const user = await window.api.getCurrentUser();
       if (user) {
         this.authStore.getState().setUser(user);
+        // Cargar permisos al obtener usuario actual
+        await this.loadUserPermissions(user.id);
       }
       return user;
     } catch (error) {
       console.error('Error getting current user:', error);
       return null;
+    }
+  }
+
+  private async loadUserPermissions(userId: number): Promise<void> {
+    try {
+      // Obtener permisos reales del usuario desde la API
+      const userWithPermissions = await window.api.getUserWithPermissions();
+      
+      console.log('🔑 Permisos obtenidos de la API:', userWithPermissions);
+      
+      if (userWithPermissions && userWithPermissions.permissions) {
+        console.log('✅ Seteando permisos:', userWithPermissions.permissions);
+        this.authStore.getState().setUserPermissions(userWithPermissions.permissions);
+      } else {
+        console.log('❌ No se encontraron permisos, seteando array vacío');
+        this.authStore.getState().setUserPermissions([]);
+      }
+    } catch (error) {
+      console.error('Error loading user permissions:', error);
+      this.authStore.getState().setUserPermissions([]);
     }
   }
 

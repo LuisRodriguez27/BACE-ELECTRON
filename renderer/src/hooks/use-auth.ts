@@ -28,9 +28,11 @@ export function useAuth() {
 
   return {
     user: authStore.user,
+    userPermissions: authStore.userPermissions,
     isLoading: authStore.isLoading,
     error: authStore.error,
     isAuthenticated: authStore.isAuthenticated,
+    hasPermission: authStore.hasPermission,
     login: authService.login.bind(authService),
     logout: authService.logout.bind(authService),
     checkAuthStatus: authService.checkAuthStatus.bind(authService)
