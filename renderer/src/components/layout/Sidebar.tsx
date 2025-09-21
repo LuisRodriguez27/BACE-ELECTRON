@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { useSidebarStore } from '@/store/sidebar'
 import { cn } from '@/lib/utils'
+import { usePermissions } from '@/hooks/use-permissions'
 
 interface MenuItem {
   id: string
@@ -63,6 +64,7 @@ const menuItems: MenuItem[] = [
 const Sidebar: React.FC = () => {
   const { isExpanded, toggleSidebar } = useSidebarStore()
   const location = useLocation()
+  const { canAccess } = usePermissions()
 
   return (
     <div className={cn(
@@ -90,6 +92,11 @@ const Sidebar: React.FC = () => {
       {/* Navigation Menu */}
       <nav className="flex-1 px-2 py-4 space-y-2">
         {menuItems.map((item) => {
+          // Solo ocultar la opción de Usuarios si no tiene permiso
+          if (item.id === 'users' && !canAccess('Gestionar Usuario')) {
+            return null
+          }
+
           const Icon = item.icon
           const isActive = location.pathname === item.path
           
