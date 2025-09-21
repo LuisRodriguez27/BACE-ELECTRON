@@ -18,6 +18,7 @@ const OrdersPage: React.FC = () => {
   const [orderPayments, setOrderPayments] = useState<Record<number, Payment[]>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const { checkPermission } = usePermissions();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -151,6 +152,27 @@ const OrdersPage: React.FC = () => {
 
   const { user } = useAuthStore();
 
+  // Función de filtrado
+  const filteredOrders = orders.filter(order => {
+    if (!searchTerm.trim()) return true;
+    
+    const searchLower = searchTerm.toLowerCase().trim();
+    
+    // Buscar por ID (número exacto o parcial)
+    const idMatch = order.id.toString().includes(searchLower);
+    
+    // Buscar por notas (si existen)
+    const notesMatch = order.notes && order.notes.toLowerCase().includes(searchLower);
+    
+    // Buscar por nombre del cliente
+    const clientNameMatch = order.client && order.client.name.toLowerCase().includes(searchLower);
+    
+    // Buscar por teléfono del cliente
+    const clientPhoneMatch = order.client && order.client.phone && order.client.phone.includes(searchLower);
+    
+    return idMatch || notesMatch || clientNameMatch || clientPhoneMatch;
+  });
+
   // Funciones auxiliares para pagos
   const getOrderPayments = (orderId: number): Payment[] => {
     return orderPayments[orderId] || [];
@@ -263,9 +285,19 @@ const OrdersPage: React.FC = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
               <input
                 type="text"
-                placeholder="Buscar órdenes..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Buscar por ID, notas, cliente o teléfono..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  ×
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -275,7 +307,7 @@ const OrdersPage: React.FC = () => {
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">
-            Órdenes ({orders.length})
+            Órdenes ({filteredOrders.length}{orders.length !== filteredOrders.length ? ` de ${orders.length}` : ''})
           </h2>
         </div>
         <div className="p-6">
@@ -294,9 +326,24 @@ const OrdersPage: React.FC = () => {
                 Crear Primera Orden
               </Button>
             </div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="text-center py-12">
+              <Search className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No se encontraron órdenes</h3>
+              <p className="text-gray-500 mb-4">
+                No hay órdenes que coincidan con tu búsqueda: "{searchTerm}"
+              </p>
+              <Button 
+                variant="outline"
+                onClick={() => setSearchTerm('')}
+                className="mx-auto"
+              >
+                Limpiar búsqueda
+              </Button>
+            </div>
           ) : (
             <div className="space-y-4">
-              {orders.map((order) => {
+              {filteredOrders.map((order) => {
                 const paymentStatus = getPaymentStatus(order);
                 const totalPaid = getTotalPaid(order.id);
                 const remaining = getRemainingAmount(order);
@@ -378,7 +425,15 @@ const OrdersPage: React.FC = () => {
                       </div>
                     </div>
                   
-                    {/* Información adicional */}
+                    {/* Notas de la orden */}
+                    {order.notes && (
+                    <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <span className="text-sm font-medium text-yellow-800">Notas:</span>
+                    <p className="text-sm text-yellow-700 mt-1">{order.notes}</p>
+                    </div>
+                    )}
+                    
+                      {/* Información adicional */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
                       {order.client && (
                         <div>
@@ -390,7 +445,7 @@ const OrdersPage: React.FC = () => {
                         </div>
                       )}
                       
-                      {order.user && (
+                      {/* {order.user && (
                         <div>
                           <span className="text-sm font-medium text-gray-700">Creado por:</span>
                           <p className="text-sm text-gray-600">{order.user.username}</p>
@@ -402,7 +457,7 @@ const OrdersPage: React.FC = () => {
                           <span className="text-sm font-medium text-gray-700">Editado por:</span>
                           <p className="text-sm text-gray-600">{order.editedByUser.username}</p>
                         </div>
-                      )}
+                      )} */}
                       
                       {/* Información de pagos */}
                       {paymentsCount > 0 && (
