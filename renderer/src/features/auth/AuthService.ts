@@ -67,13 +67,9 @@ class AuthService {
       // Obtener permisos reales del usuario desde la API
       const userWithPermissions = await window.api.getUserWithPermissions();
       
-      console.log('🔑 Permisos obtenidos de la API:', userWithPermissions);
-      
       if (userWithPermissions && userWithPermissions.permissions) {
-        console.log('✅ Seteando permisos:', userWithPermissions.permissions);
         this.authStore.getState().setUserPermissions(userWithPermissions.permissions);
       } else {
-        console.log('❌ No se encontraron permisos, seteando array vacío');
         this.authStore.getState().setUserPermissions([]);
       }
     } catch (error) {
