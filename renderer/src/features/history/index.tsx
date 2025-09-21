@@ -287,6 +287,13 @@ const OrdersPage: React.FC = () => {
                       </div>
                     )}
                     
+                    {order.editedByUser && (
+                      <div>
+                        <span className="text-sm font-medium text-gray-700">Editado por:</span>
+                        <p className="text-sm text-gray-600">{order.editedByUser.username}</p>
+                      </div>
+                    )}
+                    
                     {/* Información de pagos */}
                     {paymentsCount > 0 && (
                       <div>
