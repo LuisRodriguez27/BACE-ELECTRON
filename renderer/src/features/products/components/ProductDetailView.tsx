@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { CreateTemplateModal, EditProductModal, EditTemplateModal } from '../components';
 import { ProductsApiService } from '../ProductsApiService';
 import type { Product } from '../types';
+import { usePermissions } from '@/hooks/use-permissions';
 
 interface ProductDetailViewProps {
   productId: number;
@@ -39,6 +40,7 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   const [templatesLoading, setTemplatesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const { checkPermission } = usePermissions();
 
   // Estados para modales de plantillas
   const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
@@ -86,6 +88,10 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   );
 
   const handleDeleteTemplate = async (templateId: number) => {
+    if (!checkPermission("Eliminar Plantilla")) {
+      return;
+    }
+
     if (!confirm('¿Estás seguro de eliminar esta plantilla? Esta acción no se puede deshacer.')) {
       return;
     }
@@ -102,10 +108,16 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   };
 
   const openCreateTemplateModal = () => {
+    if (!checkPermission("Crear Plantilla")) {
+      return;
+    }
     setShowCreateTemplateModal(true);
   };
 
   const openEditTemplateModal = (template: ProductTemplate) => {
+    if (!checkPermission("Editar Plantilla")) {
+      return;
+    }
     setSelectedTemplate(template);
     setShowEditTemplateModal(true);
   };
@@ -133,6 +145,9 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   };
 
   const openEditProductModal = () => {
+    if (!checkPermission("Editar Producto")) {
+      return;
+    }
     setShowEditProductModal(true);
   };
 
