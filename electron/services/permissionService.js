@@ -247,16 +247,9 @@ class PermissionService {
         throw new Error('Error al asignar permiso al usuario');
       }
 
-      return {
-        success: true,
-        message: 'Permiso asignado exitosamente',
-        data: {
-          userId: userIdInt,
-          permissionId: permissionIdInt,
-          userName: user.username,
-          permissionName: permission.name
-        }
-      };
+      // Retornar el usuario actualizado
+      const updatedUser = userRepository.findById(userIdInt);
+      return updatedUser.toPlainObject();
 
     } catch (error) {
       console.error('Error al asignar permiso a usuario:', error);
@@ -311,16 +304,9 @@ class PermissionService {
         throw new Error('Error al remover permiso del usuario');
       }
 
-      return {
-        success: true,
-        message: 'Permiso removido exitosamente',
-        data: {
-          userId: userIdInt,
-          permissionId: permissionIdInt,
-          userName: user.username,
-          permissionName: permission.name
-        }
-      };
+      // Retornar el usuario actualizado
+      const updatedUser = userRepository.findById(userIdInt);
+      return updatedUser.toPlainObject();
 
     } catch (error) {
       console.error('Error al remover permiso de usuario:', error);
