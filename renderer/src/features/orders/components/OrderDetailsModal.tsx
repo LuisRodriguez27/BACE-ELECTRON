@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/use-auth';
 import { OrdersApiService } from '../OrdersApiService';
 import { getOrderItemDisplayName, getOrderItemType, type Order, type OrderProduct } from '../types';
 import { PaymentsApiService } from '../../payments/PaymentsApiService';
@@ -53,6 +54,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     estimated_delivery_date: '',
     notes: ''
   });
+  const { user } = useAuth();
   const { checkPermission } = usePermissions();
 
   // Cargar datos de la orden al abrir el modal
@@ -115,7 +117,10 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   };
 
   const handleSaveEdit = async () => {
-    if (!order) return;
+    if (!order || !user) {
+      toast.error('Error: No se puede actualizar la orden');
+      return;
+    }
     
     try {
       setLoading(true);
@@ -123,7 +128,8 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       const updateData = {
         status: editFormData.status as any,
         estimated_delivery_date: editFormData.estimated_delivery_date || undefined,
-        notes: editFormData.notes || undefined
+        notes: editFormData.notes || undefined,
+        edited_by: user.id // ← SIEMPRE pasar el ID del usuario loggeado
       };
       
       const updatedOrder = await OrdersApiService.update(order.id, updateData);

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, Input, Label } from '@/components/ui';
 import { X, Edit3, Calendar, AlertCircle, CheckCircle2, Clock, XCircle, Loader } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/use-auth';
 import { OrdersApiService } from '../OrdersApiService';
 import { extractErrorMessage } from '@/utils/errorHandling';
 import type { Order, OrderStatusType } from '../types';
@@ -19,6 +20,7 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({
   orderId,
   onOrderUpdated
 }) => {
+  const { user } = useAuth();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +63,10 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!order) return;
+    if (!order || !user) {
+      toast.error('Error: No se puede actualizar la orden');
+      return;
+    }
     
     try {
       setLoading(true);
@@ -69,7 +74,8 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({
       
       const updateData = {
         status: formData.status,
-        estimated_delivery_date: formData.estimated_delivery_date || undefined
+        estimated_delivery_date: formData.estimated_delivery_date || undefined,
+        edited_by: user.id // ← SIEMPRE pasar el ID del usuario loggeado
       };
       
       const updatedOrder = await OrdersApiService.update(order.id, updateData);
@@ -187,6 +193,12 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({
 
         {/* Content */}
         <div className="p-6">
+          {!user && (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg mb-4">
+              <p className="text-yellow-800 text-sm">No hay usuario autenticado. No se puede editar la orden.</p>
+            </div>
+          )}
+
           {loading && !order && (
             <div className="flex items-center justify-center py-8">
               <Loader className="animate-spin h-6 w-6 text-blue-600 mr-3" />
@@ -307,7 +319,7 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({
                 </Button>
                 <Button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !user}
                   className="flex items-center gap-2"
                 >
                   {loading && <Loader className="animate-spin" size={16} />}
