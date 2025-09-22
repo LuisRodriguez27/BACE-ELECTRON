@@ -16,14 +16,12 @@ interface CreateBudgetModalProps {
   isOpen: boolean;
   onClose: () => void;
   onBudgetCreated: (budget: Budget) => void;
-  currentUserId: number;
 }
 
 const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
   isOpen,
   onClose,
-  onBudgetCreated,
-  currentUserId
+  onBudgetCreated
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
