@@ -180,42 +180,53 @@ function seed() {
   // 8. Insertar órdenes
   // -------------------------
   const insertOrder = db.prepare(`
-    INSERT INTO orders (client_id, user_id, edited_by, date, estimated_delivery_date, status, total)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO orders (client_id, user_id, edited_by, date, estimated_delivery_date, status, total, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const panaderia = db.prepare("SELECT id FROM clients WHERE name = ?").get("Panadería San José").id;
   const restaurant = db.prepare("SELECT id FROM clients WHERE name = ?").get("Restaurant El Buen Sabor").id;
+  const farmacia = db.prepare("SELECT id FROM clients WHERE name = ?").get("Farmacia Santa María").id;
+  const taller = db.prepare("SELECT id FROM clients WHERE name = ?").get("Taller Mecánico López").id;
+  const eventos = db.prepare("SELECT id FROM clients WHERE name = ?").get("Eventos Sociales Oaxaca").id;
 
-  const order1 = insertOrder.run(
-    panaderia,
-    adminId,
-    null,
-    new Date().toISOString(),
-    new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-    "pendiente",
-    200.0
-  ).lastInsertRowid;
+  // Función para generar descripción aleatoria
+  function generateRandomDescription() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 ';
+    const length = Math.floor(Math.random() * 50) + 20; // Entre 20 y 70 caracteres
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result.trim();
+  }
 
-  const order2 = insertOrder.run(
-    restaurant,
-    adminId,
-    adminId,
-    new Date().toISOString(),
-    new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-    "en proceso",
-    300.0
-  ).lastInsertRowid;
-  
-  const order3 = insertOrder.run(
-    restaurant,
-    adminId,
-    adminId,
-    new Date().toISOString(),
-    new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
-    "completado",
-    300.0
-  ).lastInsertRowid;
+  // Crear 30 órdenes completadas
+  const orderIds = [];
+  const clientIds = [panaderia, restaurant, farmacia, taller, eventos];
+  const totals = [200.0, 300.0, 150.0, 400.0, 250.0, 350.0, 180.0, 450.0, 280.0, 320.0];
+
+  for (let i = 1; i <= 30; i++) {
+    const clientId = clientIds[i % clientIds.length];
+    const total = totals[i % totals.length];
+    const daysAgo = Math.floor(Math.random() * 90); // Órdenes de los últimos 90 días
+    const orderDate = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
+    const deliveryDate = new Date(orderDate.getTime() + (3 + Math.floor(Math.random() * 7)) * 24 * 60 * 60 * 1000);
+    const description = generateRandomDescription();
+
+    const orderId = insertOrder.run(
+      clientId,
+      adminId,
+      adminId,
+      orderDate.toISOString(),
+      deliveryDate.toISOString(),
+      "completado",
+      total,
+      description
+    ).lastInsertRowid;
+
+    orderIds.push(orderId);
+  }
 
   // -------------------------
   // 9. Insertar productos de órdenes
@@ -225,11 +236,30 @@ function seed() {
     VALUES (?, ?, ?, ?, ?, ?)
   `);
 
-  insertOrderProduct.run(order1, productIds["LP-001"], null, 1, 130.0, 130.0);
-  insertOrderProduct.run(order1, productIds["TP-001"], null, 100, 2.5, 250.0);
-  insertOrderProduct.run(order2, productIds["MV-001"], null, 1, 200.0, 200.0);
-  insertOrderProduct.run(order2, productIds["VP-001"], null, 100, 0.8, 80.0);
-  insertOrderProduct.run(order3, productIds["VP-001"], null, 100, 0.8, 80.0);
+  // Productos disponibles para asignar a las órdenes
+  const availableProducts = [
+    { id: productIds["LP-001"], price: 130.0 },
+    { id: productIds["TP-001"], price: 2.5 },
+    { id: productIds["MV-001"], price: 200.0 },
+    { id: productIds["VP-001"], price: 0.8 },
+    { id: productIds["TZ-001"], price: 45.0 },
+    { id: productIds["GP-001"], price: 85.0 },
+    { id: productIds["PY-001"], price: 95.0 },
+    { id: productIds["BP-001"], price: 75.0 }
+  ];
+
+  // Asignar productos a cada orden
+  orderIds.forEach((orderId, index) => {
+    const numProducts = Math.floor(Math.random() * 3) + 1; // 1-3 productos por orden
+    
+    for (let j = 0; j < numProducts; j++) {
+      const product = availableProducts[j % availableProducts.length];
+      const quantity = Math.floor(Math.random() * 50) + 1; // 1-50 cantidad
+      const totalPrice = product.price * quantity;
+      
+      insertOrderProduct.run(orderId, product.id, null, quantity, product.price, totalPrice);
+    }
+  });
 
   // -------------------------
   // 10. Insertar pagos
@@ -239,8 +269,17 @@ function seed() {
     VALUES (?, ?, ?, ?)
   `);
 
-  insertPayment.run(order1, 100.0, new Date().toISOString(), "Anticipo");
-  insertPayment.run(order2, 150.0, new Date().toISOString(), "Anticipo");
+  // Agregar pagos para algunas órdenes (aproximadamente 70% de las órdenes tendrán pagos)
+  orderIds.forEach((orderId, index) => {
+    if (Math.random() < 0.7) { // 70% de probabilidad de tener pago
+      const paymentAmount = Math.floor(Math.random() * 300) + 50; // Entre 50 y 350
+      const paymentDate = new Date(Date.now() - Math.floor(Math.random() * 60) * 24 * 60 * 60 * 1000);
+      const descriptions = ["Anticipo", "Pago completo", "Pago parcial", "Liquidación"];
+      const description = descriptions[Math.floor(Math.random() * descriptions.length)];
+      
+      insertPayment.run(orderId, paymentAmount, paymentDate.toISOString(), description);
+    }
+  });
 
   console.log("✅ Base de datos inicializada con datos de ejemplo");
   console.log("👤 Usuario admin: admin / admin123");
