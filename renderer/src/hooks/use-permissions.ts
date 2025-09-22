@@ -15,9 +15,9 @@ export function usePermissions() {
   const checkPermission = (permission: string, showAlert: boolean = true): boolean => {
     const hasAccess = hasPermission(permission);
     
-    console.log(`🔍 Verificando permiso: "${permission}"`);
-    console.log('📋 Permisos del usuario:', userPermissions);
-    console.log('🏁 Resultado:', hasAccess ? '✅ PERMITIDO' : '❌ DENEGADO');
+    // console.log(`🔍 Verificando permiso: "${permission}"`);
+    // console.log('📋 Permisos del usuario:', userPermissions);
+    // console.log('🏁 Resultado:', hasAccess ? '✅ PERMITIDO' : '❌ DENEGADO');
     
     if (!hasAccess && showAlert) {
       toast.error('No tienes permiso para realizar esta acción');
