@@ -93,19 +93,38 @@ class OrderRepository {
     });
   }
 
-  findCompletedPaginated(page = 1, limit = 10) {
+  findCompletedPaginated(page = 1, limit = 10, searchTerm = '') {
     const offset = (page - 1) * limit;
     
-    // Obtener total de registros
-    const countStmt = db.prepare(`
+    // Construir la condición de búsqueda
+    let searchCondition = '';
+    let searchParams = [];
+    
+    if (searchTerm && searchTerm.trim()) {
+      const term = `%${searchTerm.trim()}%`;
+      searchCondition = `
+        AND (
+          CAST(o.id AS TEXT) LIKE ?
+          OR o.notes LIKE ?
+          OR c.name LIKE ?
+          OR c.phone LIKE ?
+        )
+      `;
+      searchParams = [term, term, term, term];
+    }
+    
+    // Obtener total de registros con búsqueda
+    const countQuery = `
       SELECT COUNT(*) as total
       FROM orders o
-      WHERE o.active = 1 AND o.status = 'completado'
-    `);
-    const { total } = countStmt.get();
+      JOIN clients c ON o.client_id = c.id
+      WHERE o.active = 1 AND o.status = 'completado' ${searchCondition}
+    `;
+    const countStmt = db.prepare(countQuery);
+    const { total } = countStmt.get(...searchParams);
     
-    // Obtener registros paginados
-    const stmt = db.prepare(`
+    // Obtener registros paginados con búsqueda
+    const dataQuery = `
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
             o.estimated_delivery_date, o.status, o.total, o.notes, o.active,
             c.name as client_name, c.phone as client_phone,
@@ -115,12 +134,13 @@ class OrderRepository {
       JOIN clients c ON o.client_id = c.id
       JOIN users u ON o.user_id = u.id
       LEFT JOIN users ue ON o.edited_by = ue.id
-      WHERE o.active = 1 AND o.status = 'completado'
+      WHERE o.active = 1 AND o.status = 'completado' ${searchCondition}
       ORDER BY o.id DESC
       LIMIT ? OFFSET ?
-    `);
+    `;
+    const stmt = db.prepare(dataQuery);
+    const orders = stmt.all(...searchParams, limit, offset);
     
-    const orders = stmt.all(limit, offset);
     const ordersWithProducts = orders.map(order => {
       const orderProducts = this.getOrderProducts(order.id);
       return new Order({ ...order, orderProducts });
@@ -135,7 +155,8 @@ class OrderRepository {
         totalPages: Math.ceil(total / limit),
         hasNext: page < Math.ceil(total / limit),
         hasPrev: page > 1
-      }
+      },
+      searchTerm
     };
   }
 

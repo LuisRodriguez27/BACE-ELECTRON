@@ -60,16 +60,17 @@ class OrderService {
     }
   }
 
-  async getSalesPaginated(page = 1, limit = 10) {
+  async getSalesPaginated(page = 1, limit = 10, searchTerm = '') {
     try {
       if (page < 1) page = 1;
       if (limit < 1 || limit > 100) limit = 10;
       
-      const result = orderRepository.findCompletedPaginated(page, limit);
+      const result = orderRepository.findCompletedPaginated(page, limit, searchTerm);
       
       return {
         data: result.data.map(sale => sale.toPlainObject()),
-        pagination: result.pagination
+        pagination: result.pagination,
+        searchTerm: result.searchTerm
       };
     } catch (error) {
       console.error('Error al obtener ventas paginadas:', error);

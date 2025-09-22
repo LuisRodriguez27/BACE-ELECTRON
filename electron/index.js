@@ -106,7 +106,8 @@ ipcMain.handle('orders:update', async (event, id, data) => await orderService.up
 ipcMain.handle('orders:delete', async (event, id) => await orderService.deleteOrder(id));
 ipcMain.handle('orders:recalculateTotal', async (event, orderId) => await orderService.recalculateOrderTotal(orderId));
 ipcMain.handle('sales:getAll', async () => await orderService.getSales());
-ipcMain.handle('sales:getPaginated', async (event, page, limit) => await orderService.getSalesPaginated(page, limit));
+ipcMain.handle('sales:getPaginated', async (event, page, limit, searchTerm) => await orderService.getSalesPaginated(page, limit, searchTerm));
+ipcMain.handle('sales:search', async (event, page, limit, searchTerm) => await orderService.getSalesPaginated(page, limit, searchTerm));
 ipcMain.handle('orders:getProducts', async (event, orderId) => await orderService.getOrderProducts(orderId));
 
 // Manejo de eventos IPC para pagos
