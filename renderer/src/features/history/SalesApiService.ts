@@ -10,6 +10,7 @@ interface PaginatedResponse<T> {
     hasNext: boolean;
     hasPrev: boolean;
   };
+  searchTerm?: string;
 }
 
 export const SalesApiService = {
@@ -17,7 +18,11 @@ export const SalesApiService = {
     return window.api.getSales();
   },
 
-  findAllPaginated: async (page: number, limit: number): Promise<PaginatedResponse<Order>> => {
-    return window.api.getSalesPaginated(page, limit);
+  findAllPaginated: async (page: number, limit: number, searchTerm: string = ''): Promise<PaginatedResponse<Order>> => {
+    return window.api.getSalesPaginated(page, limit, searchTerm);
+  },
+
+  searchPaginated: async (page: number, limit: number, searchTerm: string): Promise<PaginatedResponse<Order>> => {
+    return window.api.searchSales(page, limit, searchTerm);
   }
 }

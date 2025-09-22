@@ -33,7 +33,8 @@ const OrdersPage: React.FC = () => {
     hasPrev: false
   });
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
+  const [currentSearchTerm, setCurrentSearchTerm] = useState(''); // Para saber qué término se está usando actualmente
+  const [searchDebounceTimer, setSearchDebounceTimer] = useState<number | null>(null);
   
   const observerRef = useRef<IntersectionObserver | null>(null);
   const lastOrderElementRef = useCallback((node: HTMLDivElement) => {
@@ -47,9 +48,9 @@ const OrdersPage: React.FC = () => {
     if (node) observerRef.current.observe(node);
   }, [loadingMore, pagination.hasNext]);
 
-  const loadOrders = async (page: number = 1, reset: boolean = true) => {
+  const loadOrders = async (page: number = 1, reset: boolean = true, searchQuery: string = '') => {
     try {
-      console.log(`🔄 Cargando órdenes - Página: ${page}, Límite: 10, Reset: ${reset}`);
+      console.log(`🔍 Cargando órdenes - Página: ${page}, Límite: 10, Reset: ${reset}, Búsqueda: "${searchQuery}"`);
       
       if (page === 1) {
         setLoading(true);
@@ -57,7 +58,7 @@ const OrdersPage: React.FC = () => {
         setLoadingMore(true);
       }
       
-      const response = await SalesApiService.findAllPaginated(page, 10);
+      const response = await SalesApiService.findAllPaginated(page, 10, searchQuery);
       
       // Validar que la respuesta tenga la estructura esperada
       if (!response || !response.data || !Array.isArray(response.data)) {
@@ -72,6 +73,7 @@ const OrdersPage: React.FC = () => {
       }
       
       setPagination(response.pagination);
+      setCurrentSearchTerm(searchQuery);
       
       console.log(`✅ Órdenes cargadas: ${response.data.length} | Total en BD: ${response.pagination.total} | Página actual: ${response.pagination.page}/${response.pagination.totalPages} | Hay más: ${response.pagination.hasNext}`);
       
@@ -109,8 +111,8 @@ const OrdersPage: React.FC = () => {
 
   const loadMoreOrders = () => {
     if (!loadingMore && pagination.hasNext) {
-      console.log(`🔄 Scroll infinito detectado - Cargando página ${pagination.page + 1}`);
-      loadOrders(pagination.page + 1, false);
+      console.log(`🔄 Scroll infinito detectado - Cargando página ${pagination.page + 1} con búsqueda: "${currentSearchTerm}"`);
+      loadOrders(pagination.page + 1, false, currentSearchTerm);
     }
   };
 
@@ -118,20 +120,25 @@ const OrdersPage: React.FC = () => {
     loadOrders();
   }, []);
 
-  // Filtrar órdenes basado en la búsqueda
+  // Manejar búsqueda con debounce
   useEffect(() => {
-    if (!searchTerm.trim()) {
-      setFilteredOrders(orders);
-    } else {
-      const filtered = orders.filter(order => 
-        order.id.toString().includes(searchTerm) ||
-        order.client?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.client?.phone?.includes(searchTerm) ||
-        order.user?.username?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredOrders(filtered);
+    if (searchDebounceTimer) {
+      clearTimeout(searchDebounceTimer);
     }
-  }, [orders, searchTerm]);
+
+    const timer = window.setTimeout(() => {
+      if (searchTerm !== currentSearchTerm) {
+        console.log(`🔍 Realizando búsqueda: "${searchTerm}"`);
+        loadOrders(1, true, searchTerm);
+      }
+    }, 500); // Debounce de 500ms
+
+    setSearchDebounceTimer(timer);
+
+    return () => {
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [searchTerm]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-MX', {
@@ -262,11 +269,19 @@ const OrdersPage: React.FC = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
               <input
                 type="text"
-                placeholder="Buscar órdenes..."
+                placeholder="Buscar por ID, notas, cliente o teléfono..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  ×
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -276,23 +291,23 @@ const OrdersPage: React.FC = () => {
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">
-            Órdenes ({searchTerm ? filteredOrders.length : pagination.total})
-            {searchTerm && (
+            Órdenes ({pagination.total})
+            {currentSearchTerm && (
               <span className="text-sm font-normal text-gray-500 ml-2">
-                (filtrado de {pagination.total})
+                (buscando: "{currentSearchTerm}")
               </span>
             )}
           </h2>
         </div>
         <div className="p-6">
-          {filteredOrders.length === 0 && !loading ? (
+          {orders.length === 0 && !loading ? (
             <div className="text-center py-12">
-              {searchTerm ? (
+              {currentSearchTerm ? (
                 <>
                   <Search className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">No se encontraron órdenes</h3>
                   <p className="text-gray-500 mb-4">
-                    No hay órdenes que coincidan con "<strong>{searchTerm}</strong>"
+                    No hay órdenes que coincidan con "<strong>{currentSearchTerm}</strong>"
                   </p>
                   <Button 
                     variant="outline" 
@@ -315,7 +330,7 @@ const OrdersPage: React.FC = () => {
           ) : (
             <>
               <div className="space-y-4">
-                {filteredOrders.map((order, index) => {
+                {orders.map((order, index) => {
                 const paymentStatus = getPaymentStatus(order);
                 const totalPaid = getTotalPaid(order.id);
                 const remaining = getRemainingAmount(order);
@@ -324,7 +339,7 @@ const OrdersPage: React.FC = () => {
                 return (
                 <div 
                       key={order.id} 
-                      ref={index === filteredOrders.length - 1 ? lastOrderElementRef : null}
+                      ref={index === orders.length - 1 ? lastOrderElementRef : null}
                       className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
                     >
                     <div className="flex items-start justify-between mb-4">
@@ -381,6 +396,14 @@ const OrdersPage: React.FC = () => {
                       </Button>
                     </div>
                   </div>
+                  
+                    {/* Notas de la orden */}
+                    {order.notes && (
+                    <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <span className="text-sm font-medium text-yellow-800">Notas:</span>
+                    <p className="text-sm text-yellow-700 mt-1">{order.notes}</p>
+                    </div>
+                    )}
                   
                   {/* Información adicional */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
@@ -442,7 +465,7 @@ const OrdersPage: React.FC = () => {
             </div>
             
             {/* Loading indicator para scroll infinito */}
-            {!searchTerm && loadingMore && (
+            {loadingMore && (
               <div className="flex justify-center items-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
                 <span className="ml-2 text-gray-600">Cargando más órdenes...</span>
@@ -450,9 +473,14 @@ const OrdersPage: React.FC = () => {
             )}
             
             {/* Mensaje cuando se han cargado todas las órdenes */}
-            {!searchTerm && !loadingMore && !pagination.hasNext && orders.length > 0 && (
+            {!loadingMore && !pagination.hasNext && orders.length > 0 && (
               <div className="text-center py-8">
-                <p className="text-gray-500">Has visto todas las órdenes ({pagination.total})</p>
+                <p className="text-gray-500">
+                  {currentSearchTerm 
+                    ? `Se encontraron ${pagination.total} resultado${pagination.total !== 1 ? 's' : ''} para "${currentSearchTerm}"`
+                    : `Has visto todas las órdenes (${pagination.total})`
+                  }
+                </p>
               </div>
             )}
           </>
