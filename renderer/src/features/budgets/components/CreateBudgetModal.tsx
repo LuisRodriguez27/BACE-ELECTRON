@@ -6,11 +6,12 @@ import { ProductTemplatesApiService } from '@/features/productTemplates/ProductT
 import type { ProductTemplate } from '@/features/productTemplates/types';
 import { extractErrorMessage } from '@/utils/errorHandling';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Calendar, DollarSign, Layers, Loader, Package, Plus, ReceiptText, Search, ShoppingBag, Trash2, X, User } from 'lucide-react';
+import { Calendar, DollarSign, Layers, Loader, Package, Plus, Printer, ReceiptText, Search, ShoppingBag, Trash2, X, User } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { calculateBudgetTotal, type CreateBudgetForm, createBudgetItemFromFormItem, createBudgetSchema, type Budget, type BudgetFormItem } from "../types";
+import { generateBudgetPrintHTML } from './budgetPrintTemplate';
 import { toast } from 'sonner';
 interface CreateBudgetModalProps {
   isOpen: boolean;
@@ -382,6 +383,73 @@ const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
     setTemplates(prev => [...prev, newTemplate]);
   };
 
+  // Función para imprimir el presupuesto actual
+  const handlePrint = () => {
+    // Obtener los datos del formulario
+    const formData = {
+      client_name: (document.getElementById('client_name') as HTMLInputElement)?.value || '',
+      client_phone: (document.getElementById('client_phone') as HTMLInputElement)?.value || '',
+      date: (document.getElementById('date') as HTMLInputElement)?.value || new Date().toISOString().split('T')[0],
+      notes: (document.querySelector('textarea[name="notes"]') as HTMLTextAreaElement)?.value || '',
+      total: total,
+      items: budgetItems
+    };
+
+    // Validar que hay datos básicos para imprimir
+    if (!formData.client_name.trim()) {
+      toast.error('Debe ingresar el nombre del cliente para imprimir');
+      return;
+    }
+
+    if (!formData.client_phone.trim()) {
+      toast.error('Debe ingresar el teléfono del cliente para imprimir');
+      return;
+    }
+
+    if (budgetItems.length === 0) {
+      toast.error('Debe agregar al menos un producto o plantilla para imprimir');
+      return;
+    }
+
+    // Validar que todos los items tienen datos válidos
+    const invalidItems = budgetItems.filter(item => !item.id || item.id === 0 || !item.name.trim());
+    if (invalidItems.length > 0) {
+      toast.error('Todos los productos/plantillas deben estar seleccionados antes de imprimir');
+      return;
+    }
+
+    try {
+      // Generar el HTML para impresión
+      const printHTML = generateBudgetPrintHTML(formData);
+      
+      // Crear una nueva ventana para impresión
+      const printWindow = window.open('', '_blank', 'width=800,height=600');
+      
+      if (!printWindow) {
+        toast.error('No se pudo abrir la ventana de impresión. Verifica que no esté bloqueada por el navegador.');
+        return;
+      }
+      
+      // Escribir el HTML en la nueva ventana
+      printWindow.document.write(printHTML);
+      printWindow.document.close();
+      
+      // Esperar a que se cargue el contenido y luego imprimir
+      printWindow.onload = () => {
+        printWindow.focus();
+        printWindow.print();
+        // Cerrar la ventana después de imprimir (opcional)
+        printWindow.onafterprint = () => {
+          printWindow.close();
+        };
+      };
+      
+    } catch (error) {
+      console.error('Error al generar impresión del presupuesto:', error);
+      toast.error('Error al generar el documento de impresión');
+    }
+  };
+
 
 
 
@@ -405,14 +473,27 @@ const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
               <p className="text-sm text-gray-500">Crear presupuesto con productos y/o plantillas</p>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClose}
-            className="h-8 w-8 p-0"
-          >
-            <X size={16} />
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handlePrint}
+              className="flex items-center gap-2"
+              disabled={budgetItems.length === 0}
+            >
+              <Printer size={16} />
+              Imprimir Presupuesto
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClose}
+              className="h-8 w-8 p-0"
+            >
+              <X size={16} />
+            </Button>
+          </div>
         </div>
 
         {/* Content */}
