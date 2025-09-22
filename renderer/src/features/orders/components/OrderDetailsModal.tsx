@@ -15,12 +15,15 @@ import {
   Loader,
   Package,
   Phone,
+  Printer,
   Receipt,
   User,
   X,
   XCircle
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import './OrderDetailsModal.css';
+import { generatePrintHTML } from './printTemplate';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 import { OrdersApiService } from '../OrdersApiService';
@@ -221,6 +224,44 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     return orderProducts.reduce((sum, product) => sum + product.total_price, 0);
   };
 
+  const handlePrint = () => {
+    if (!order || !orderProducts) {
+      toast.error('No hay datos para imprimir');
+      return;
+    }
+
+    try {
+      // Generar el HTML para impresión
+      const printHTML = generatePrintHTML(order, orderProducts, payments);
+      
+      // Crear una nueva ventana para impresión
+      const printWindow = window.open('', '_blank', 'width=800,height=600');
+      
+      if (!printWindow) {
+        toast.error('No se pudo abrir la ventana de impresión. Verifica que no esté bloqueada por el navegador.');
+        return;
+      }
+      
+      // Escribir el HTML en la nueva ventana
+      printWindow.document.write(printHTML);
+      printWindow.document.close();
+      
+      // Esperar a que se cargue el contenido y luego imprimir
+      printWindow.onload = () => {
+        printWindow.focus();
+        printWindow.print();
+        // Cerrar la ventana después de imprimir (opcional)
+        printWindow.onafterprint = () => {
+          printWindow.close();
+        };
+      };
+      
+    } catch (error) {
+      console.error('Error al generar impresión:', error);
+      toast.error('Error al generar el documento de impresión');
+    }
+  };
+
   const handleClose = () => {
     setOrder(null);
     setOrderProducts([]);
@@ -239,7 +280,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     >
       <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full mx-4 max-h-[95vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 print-hidden">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
               <Receipt className="h-5 w-5 text-blue-600" />
@@ -253,7 +294,16 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePrint}
+              className="flex items-center gap-2"
+            >
+              <Printer size={16} />
+              Imprimir Orden
+            </Button>
             {order && !isEditing && onOrderUpdated && (
               <Button
                 variant="outline"
@@ -275,6 +325,16 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             </Button>
           </div>
         </div>
+
+        {/* Título para impresión */}
+        {/* <div className="print-only" style={{display: 'none'}}>
+          <div className="text-center mb-6">
+            <h1 className="text-xl font-bold">ORDEN DE TRABAJO</h1>
+            {order && (
+              <p className="text-lg">Orden #{order.id}</p>
+            )}
+          </div>
+        </div> */}
 
         {/* Content */}
         <div className="p-6">
@@ -586,7 +646,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
         {/* Footer con acciones */}
         {order && (
-          <div className="flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+          <div className="flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50 print-hidden">
             {isEditing ? (
               <>
                 <Button
