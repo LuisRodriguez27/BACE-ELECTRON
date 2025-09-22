@@ -79,6 +79,9 @@ function seed() {
   ["Editar Órdenes", "Permite modificar órdenes", 1],
   ["Cancelar Órdenes", "Permite cancelar órdenes", 1],
 
+  // Presupuestos
+  ["Crear Presupuestos", "Permite registrar nuevos presupuestos", 1],
+
   // Pagos
   ["Registrar Pagos", "Permite registrar pagos en órdenes", 1],
   ["Eliminar Pagos", "Permite eliminar o anular pagos", 1],
