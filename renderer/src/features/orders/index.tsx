@@ -11,6 +11,7 @@ import OrderDetailsModal from './components/OrderDetailsModal';
 import OrderEditModal from './components/OrderEditModal';
 import { OrdersApiService } from './OrdersApiService';
 import type { Order } from './types';
+import { CreateBudgetModal } from '@/features/budgets';
 import { usePermissions } from '@/hooks/use-permissions';
 
 const OrdersPage: React.FC = () => {
@@ -26,6 +27,7 @@ const OrdersPage: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const [isBudget, setIsBudget] = useState(false);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -96,6 +98,10 @@ const OrdersPage: React.FC = () => {
     setShowPaymentModal(true);
   };
 
+  const handleBudgetCreated = () => {
+    toast.success('Presupuesto creado exitosamente');
+  };
+
   const openCreateModal = () => {
     if (!checkPermission("Crear Órdenes")) {
       return;
@@ -103,6 +109,13 @@ const OrdersPage: React.FC = () => {
     setShowCreateModal(true);
   };
 
+  const openBudgetModal = () => {
+    if (!checkPermission("Crear Presupuestos")) {
+      return;
+    }
+    setIsBudget(true);
+    setShowCreateModal(true);
+  };
 
   const closeModals = () => {
     setShowCreateModal(false);
@@ -110,6 +123,7 @@ const OrdersPage: React.FC = () => {
     setShowEditModal(false);
     setShowPaymentModal(false);
     setSelectedOrderId(null);
+    setIsBudget(false);
   }
 
   const formatDate = (dateString: string) => {
@@ -268,13 +282,23 @@ const OrdersPage: React.FC = () => {
             Administra las órdenes de producción y su estado
           </p>
         </div>
-        <Button 
-          className="flex items-center gap-2"
-          onClick={openCreateModal}
-        >
-          <Plus size={16} />
-          Nueva Orden
-        </Button>
+        <div className='flex gap-2'>
+          <Button 
+            className="flex items-center gap-2"
+            onClick={openBudgetModal}
+          >
+            <Plus size={16} />
+            Nuevo Presupuesto
+          </Button>
+
+          <Button 
+            className="flex items-center gap-2"
+            onClick={openCreateModal}
+          >
+            <Plus size={16} />
+            Nueva Orden
+          </Button>
+        </div>
       </div>
 
       {/* Filtros y búsqueda */}
@@ -496,12 +520,20 @@ const OrdersPage: React.FC = () => {
       </div>
 
       {/* Modals */}
-      <CreateOrderModal
-        isOpen={showCreateModal}
-        onClose={closeModals}
-        onOrderCreated={handleOrderCreated}
-        currentUserId={user?.id!}
-      />
+      {isBudget ? (
+        <CreateBudgetModal
+          isOpen={showCreateModal}
+          onClose={closeModals}
+          onBudgetCreated={handleBudgetCreated}
+        />
+      ) : (
+        <CreateOrderModal
+          isOpen={showCreateModal}
+          onClose={closeModals}
+          onOrderCreated={handleOrderCreated}
+          currentUserId={user?.id!}
+        />
+      )}
       
       <OrderDetailsModal
         isOpen={showDetailsModal}
