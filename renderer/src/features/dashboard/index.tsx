@@ -1,5 +1,6 @@
 import { useAuthStore } from '@/store/auth'
 import { authService } from '@/features/auth/AuthService'
+import logo from '@/assets/LOGO.jpg'
 
 export function Dashboard() {
   const { user } = useAuthStore()
@@ -22,6 +23,9 @@ export function Dashboard() {
             Cerrar sesión
           </button>
         </div>
+      </div>
+      <div className='py-10'>
+        <img src={logo} alt="LOGO" />        
       </div>
 
       
