@@ -24,8 +24,14 @@ export function Dashboard() {
           </button>
         </div>
       </div>
-      <div className='py-10'>
-        <img src={logo} alt="LOGO" />        
+      
+      {/* Logo centrado y responsivo */}
+      <div className="flex justify-center items-center py-10">
+        <img 
+          src={logo} 
+          alt="LOGO" 
+          
+        />        
       </div>
 
       
