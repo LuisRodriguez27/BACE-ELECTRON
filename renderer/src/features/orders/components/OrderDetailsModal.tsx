@@ -262,6 +262,39 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     }
   };
 
+  // const handlePrint = () => {
+  //   if (!order || !orderProducts) {
+  //     toast.error('No hay datos para imprimir');
+  //     return;
+  //   }
+
+  //   try {
+  //     const printHTML = generatePrintHTML(order, orderProducts, payments);
+      
+  //     // Configurar la ventana para minimizar su visibilidad
+  //     const printWindow = window.open('', '_blank', 'width=1,height=1,left=-1000,top=-1000');
+      
+  //     if (!printWindow) {
+  //       toast.error('No se pudo abrir la ventana de impresión.');
+  //       return;
+  //     }
+      
+  //     printWindow.document.write(printHTML);
+  //     printWindow.document.close();
+      
+  //     printWindow.onload = () => {
+  //       setTimeout(() => {
+  //         printWindow.print();
+  //         printWindow.close(); // Cerrar inmediatamente después de imprimir
+  //       }, 100);
+  //     };
+      
+  //   } catch (error) {
+  //     console.error('Error al generar impresión:', error);
+  //     toast.error('Error al generar el documento de impresión');
+  //   }
+  // };
+
   const handleClose = () => {
     setOrder(null);
     setOrderProducts([]);
