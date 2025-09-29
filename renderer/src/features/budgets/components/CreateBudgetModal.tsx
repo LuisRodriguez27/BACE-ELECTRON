@@ -11,8 +11,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { calculateBudgetTotal, type CreateBudgetForm, createBudgetItemFromFormItem, createBudgetSchema, type Budget, type BudgetFormItem } from "../types";
-import { generateBudgetPrintHTML } from './budgetPrintTemplate';
 import { toast } from 'sonner';
+import BudgetPrintPreviewModal from './BudgetPrintPreviewModal';
 interface CreateBudgetModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -33,6 +33,7 @@ const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
   const [showCreateProductModal, setShowCreateProductModal] = useState(false);
   const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
   const [selectedProductForTemplate, setSelectedProductForTemplate] = useState<Product | null>(null);
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
   
   // Estado de los items de la orden (productos y plantillas)
   const [budgetItems, setBudgetItems] = useState<BudgetFormItem[]>([]);
@@ -383,25 +384,19 @@ const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
     setTemplates(prev => [...prev, newTemplate]);
   };
 
-  // Función para imprimir el presupuesto actual
+  // Función para abrir la vista previa de impresión
   const handlePrint = () => {
     // Obtener los datos del formulario
-    const formData = {
-      client_name: (document.getElementById('client_name') as HTMLInputElement)?.value || '',
-      client_phone: (document.getElementById('client_phone') as HTMLInputElement)?.value || '',
-      date: (document.getElementById('date') as HTMLInputElement)?.value || new Date().toISOString().split('T')[0],
-      notes: (document.querySelector('textarea[name="notes"]') as HTMLTextAreaElement)?.value || '',
-      total: total,
-      items: budgetItems
-    };
+    const client_name = (document.getElementById('client_name') as HTMLInputElement)?.value || '';
+    const client_phone = (document.getElementById('client_phone') as HTMLInputElement)?.value || '';
 
     // Validar que hay datos básicos para imprimir
-    if (!formData.client_name.trim()) {
+    if (!client_name.trim()) {
       toast.error('Debe ingresar el nombre del cliente para imprimir');
       return;
     }
 
-    if (!formData.client_phone.trim()) {
+    if (!client_phone.trim()) {
       toast.error('Debe ingresar el teléfono del cliente para imprimir');
       return;
     }
@@ -418,36 +413,8 @@ const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
       return;
     }
 
-    try {
-      // Generar el HTML para impresión
-      const printHTML = generateBudgetPrintHTML(formData);
-      
-      // Crear una nueva ventana para impresión
-      const printWindow = window.open('', '_blank', 'width=800,height=600');
-      
-      if (!printWindow) {
-        toast.error('No se pudo abrir la ventana de impresión. Verifica que no esté bloqueada por el navegador.');
-        return;
-      }
-      
-      // Escribir el HTML en la nueva ventana
-      printWindow.document.write(printHTML);
-      printWindow.document.close();
-      
-      // Esperar a que se cargue el contenido y luego imprimir
-      printWindow.onload = () => {
-        printWindow.focus();
-        printWindow.print();
-        // Cerrar la ventana después de imprimir (opcional)
-        printWindow.onafterprint = () => {
-          printWindow.close();
-        };
-      };
-      
-    } catch (error) {
-      console.error('Error al generar impresión del presupuesto:', error);
-      toast.error('Error al generar el documento de impresión');
-    }
+    // Abrir el modal de vista previa
+    setShowPrintPreview(true);
   };
 
 
@@ -966,14 +933,14 @@ const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
             >
               Cancelar
             </Button>
-            <Button
+            {/* <Button
               type="submit"
               disabled={isSubmitting || budgetItems.length === 0}
               className="flex items-center gap-2"
             >
               {isSubmitting && <Loader className="animate-spin" size={16} />}
               {isSubmitting ? 'Creando...' : `Crear Presupuesto (${budgetItems.length} items)`}
-            </Button>
+            </Button> */}
           </div>
         </form>
       </div>
@@ -998,6 +965,20 @@ const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
           product={selectedProductForTemplate}
         />
       )}
+      
+      {/* Modal de vista previa de impresión */}
+      <BudgetPrintPreviewModal
+        isOpen={showPrintPreview}
+        onClose={() => setShowPrintPreview(false)}
+        budgetData={{
+          client_name: (document.getElementById('client_name') as HTMLInputElement)?.value || '',
+          client_phone: (document.getElementById('client_phone') as HTMLInputElement)?.value || '',
+          date: (document.getElementById('date') as HTMLInputElement)?.value || new Date().toISOString().split('T')[0],
+          notes: (document.querySelector('textarea[name="notes"]') as HTMLTextAreaElement)?.value || '',
+          total: total,
+          items: budgetItems
+        }}
+      />
     </div>
   );
 };
