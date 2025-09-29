@@ -1,30 +1,21 @@
 export const generatePrintHTML = (orderData: any, productsData: any[], paymentsData: any[]) => {
-	const formatDate = (dateString: string) => {
-		return new Date(dateString).toLocaleDateString('es-MX', {
-			year: 'numeric',
-			month: 'long',
-			day: 'numeric'
-		});
-	};
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear().toString();
 
-	const getStatusText = (status: string) => {
-		switch (status.toLowerCase()) {
-			case 'pendiente': return 'Pendiente';
-			case 'completado': return 'Completada';
-			case 'cancelado': return 'Cancelada';
-			case 'en proceso': return 'En Proceso';
-			default: return status;
-		}
-	};
+    return `${day} &nbsp;&nbsp; ${month} &nbsp;&nbsp; ${year}`;
+  };
 
-	const calculateSubtotal = () => {
-		return productsData.reduce((sum, product) => sum + product.total_price, 0);
-	};
+  const calculateSubtotal = () => {
+    return productsData.reduce((sum, product) => sum + product.total_price, 0);
+  };
 
-	const totalPagos = paymentsData.reduce((sum, payment) => sum + payment.amount, 0);
-	const saldoPendiente = orderData.total - totalPagos;
+  const totalPagos = paymentsData.reduce((sum, payment) => sum + payment.amount, 0);
+  const saldoPendiente = orderData.total - totalPagos;
 
-	return `
+  return `
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -33,8 +24,8 @@ export const generatePrintHTML = (orderData: any, productsData: any[], paymentsD
     <title>Orden #${orderData.id}</title>
     <style>
         @page {
-            size: 5.5in 8.5in;
-            margin: 0.4in;
+            size: 4.25in 5.5in;
+            margin: 0.3in;
         }
         * {
             margin: 0;
@@ -64,9 +55,7 @@ export const generatePrintHTML = (orderData: any, productsData: any[], paymentsD
         }
         .content-overlay {
             /* Sin fondo ni blur, solo espaciado si lo deseas */
-            padding: 20px;
-            margin: 20px;
-            border-radius: 8px;
+            
         }
         @media print {
             .content-overlay {
@@ -76,34 +65,20 @@ export const generatePrintHTML = (orderData: any, productsData: any[], paymentsD
         }
     </style>
 </head>
-<body class="font-sans text-[10px] leading-tight text-black">
-    <div class="content-overlay">
-        <div class="text-center mb-4 border-b-2 border-black pb-2">
-            <h1 class="text-[16px] font-bold mb-1">Orden #${orderData.id}</h1>
-        </div>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 10px; line-height: 1.25; color: #000;">
+    <div style="position: relative; z-index: 10;">
 
         <!-- Información General -->
-        <div class="mb-3">
-            <div class="text-[11px] font-bold mb-1 border-b border-black pb-0.5">INFORMACIÓN GENERAL</div>
-            <div class="grid grid-cols-2 gap-2 mb-2">
-                <div>
-                    <div class="mb-1">
-                        <span class="font-bold inline-block w-20">Estado:</span>
-                        <span class="inline-block px-1 py-0.5 border border-black rounded text-[9px] font-bold">${getStatusText(orderData.status)}</span>
-                    </div>
-                    <div class="mb-1">
-                        <span class="font-bold inline-block w-20">Fecha:</span>
+        <div style="margin-bottom: 12px;">
+            <div style="display: flex; gap: 20px; margin-bottom: 8px;">
+                <div style="flex: 1; padding-left: 527px; padding-top: 20px;">
+                    <div>
                         ${formatDate(orderData.date)}
                     </div>
-                </div>
-                <div>
-                    <div class="mb-1">
-                        <span class="font-bold inline-block w-20">Fecha de Entrega:</span>
-                        ${orderData.estimated_delivery_date ? formatDate(orderData.estimated_delivery_date) : 'No definida'}
-                    </div>
-                    <div class="mb-1">
-                        <span class="font-bold inline-block w-20">Total:</span>
-                        <strong>$${orderData.total.toFixed(2)} MXN</strong>
+                </div>                
+                <div style="flex: 1; padding-top: 20px; margin-left: -40px;">
+                    <div>
+                        ${orderData.estimated_delivery_date ? formatDate(orderData.estimated_delivery_date) : ''}
                     </div>
                 </div>
             </div>
@@ -111,15 +86,12 @@ export const generatePrintHTML = (orderData: any, productsData: any[], paymentsD
 
         <!-- Información del Cliente -->
         ${orderData.client ? `
-        <div class="mb-3">
-            <div class="text-[11px] font-bold mb-1 border-b border-black pb-0.5">CLIENTE</div>
-            <div class="bg-gray-100 p-1.5 border border-black mb-2">
-                <div class="mb-1">
-                    <span class="font-bold inline-block w-20">Nombre:</span>
+        <div>
+            <div style="display: flex; gap: 20px; margin-bottom: 8px; padding-top: 28px; ">
+                <div style="padding-left: 100px;">
                     ${orderData.client.name}
                 </div>
-                <div class="mb-1">
-                    <span class="font-bold inline-block w-20">Teléfono:</span>
+                <div style="padding-left: 330px;">
                     ${orderData.client.phone}
                 </div>
             </div>
@@ -127,23 +99,22 @@ export const generatePrintHTML = (orderData: any, productsData: any[], paymentsD
         ` : ''}
 
         <!-- Productos y Servicios -->
-        <div class="mb-3">
-            <div class="text-[11px] font-bold mb-1 border-b border-black pb-0.5">PRODUCTOS Y SERVICIOS</div>
-            <table class="w-full border-collapse mb-2 text-[9px]">
+        <div>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 9px;">
                 <thead>
                     <tr>
-                        <th class="w-[5%] bg-gray-100 font-bold text-[9px] border border-black px-1 py-0.5 text-center">#</th>
-                        <th class="w-[45%] bg-gray-100 font-bold text-[9px] border border-black px-1 py-0.5 text-left">Descripción</th>
-                        <th class="w-[10%] bg-gray-100 font-bold text-[9px] border border-black px-1 py-0.5 text-center">Cant.</th>
-                        <th class="w-[15%] bg-gray-100 font-bold text-[9px] border border-black px-1 py-0.5 text-right">Precio Unit.</th>
-                        <th class="w-[15%] bg-gray-100 font-bold text-[9px] border border-black px-1 py-0.5 text-right">Total</th>
+                        <th style="width: 5%; background-color: #f3f4f6; font-weight: bold; font-size: 9px; border: 1px solid #000; padding: 2px 4px; text-align: center;">#</th>
+                        <th style="width: 45%; background-color: #f3f4f6; font-weight: bold; font-size: 9px; border: 1px solid #000; padding: 2px 4px; text-align: left;">Descripción</th>
+                        <th style="width: 10%; background-color: #f3f4f6; font-weight: bold; font-size: 9px; border: 1px solid #000; padding: 2px 4px; text-align: center;">Cant.</th>
+                        <th style="width: 15%; background-color: #f3f4f6; font-weight: bold; font-size: 9px; border: 1px solid #000; padding: 2px 4px; text-align: right;">Precio Unit.</th>
+                        <th style="width: 15%; background-color: #f3f4f6; font-weight: bold; font-size: 9px; border: 1px solid #000; padding: 2px 4px; text-align: right;">Total</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${productsData.map((product, index) => `
                     <tr>
-                        <td class="border border-black px-1 py-0.5 text-center">${index + 1}</td>
-                        <td class="border border-black px-1 py-0.5">
+                        <td style="border: 1px solid #000; padding: 2px 4px; text-align: center;">${index + 1}</td>
+                        <td style="border: 1px solid #000; padding: 2px 4px;">
                             <strong>${product.product_name || product.template_name || 'Producto'}</strong>
                             ${product.serial_number ? `<br><small>SN: ${product.serial_number}</small>` : ''}
                             ${product.product_description ? `<br><small>${product.product_description}</small>` : ''}
@@ -152,20 +123,20 @@ export const generatePrintHTML = (orderData: any, productsData: any[], paymentsD
                             ${product.template_colors ? `<br><small>Colores: ${product.template_colors}</small>` : ''}
                             ${product.template_width && product.template_height ? `<br><small>Dimensiones: ${product.template_width} × ${product.template_height} cm</small>` : ''}
                         </td>
-                        <td class="border border-black px-1 py-0.5 text-center">${product.quantity}</td>
-                        <td class="border border-black px-1 py-0.5 text-right">$${product.unit_price.toFixed(2)}</td>
-                        <td class="border border-black px-1 py-0.5 text-right">$${product.total_price.toFixed(2)}</td>
+                        <td style="border: 1px solid #000; padding: 2px 4px; text-align: center;">${product.quantity}</td>
+                        <td style="border: 1px solid #000; padding: 2px 4px; text-align: right;">$${product.unit_price.toFixed(2)}</td>
+                        <td style="border: 1px solid #000; padding: 2px 4px; text-align: right;">$${product.total_price.toFixed(2)}</td>
                     </tr>
                     `).join('')}
                 </tbody>
             </table>
 
-            <div class="mt-2 border-t-2 border-black pt-1">
-                <div class="flex justify-between mb-0.5">
+            <div style="margin-top: 8px; border-top: 2px solid #000; padding-top: 4px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
                     <span>Subtotal:</span>
                     <span>$${calculateSubtotal().toFixed(2)} MXN</span>
                 </div>
-                <div class="flex justify-between mb-0.5 font-bold text-[11px] border-t border-black pt-0.5">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 2px; font-weight: bold; font-size: 11px; border-top: 1px solid #000; padding-top: 2px;">
                     <span>TOTAL:</span>
                     <span>$${orderData.total.toFixed(2)} MXN</span>
                 </div>
@@ -174,32 +145,32 @@ export const generatePrintHTML = (orderData: any, productsData: any[], paymentsD
 
         <!-- Pagos -->
         ${paymentsData.length > 0 ? `
-        <div class="mb-3">
-            <div class="text-[11px] font-bold mb-1 border-b border-black pb-0.5">PAGOS REALIZADOS</div>
-            <table class="w-full border-collapse text-[9px]">
+        <div style="margin-bottom: 12px;">
+            <div style="font-size: 11px; font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid #000; padding-bottom: 2px;">PAGOS REALIZADOS</div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
                 <thead>
                     <tr>
-                        <th class="w-[25%] bg-gray-100 font-bold border border-black px-1 py-0.5 text-left">Fecha</th>
-                        <th class="w-[35%] bg-gray-100 font-bold border border-black px-1 py-0.5 text-left">Método</th>
-                        <th class="w-[40%] bg-gray-100 font-bold border border-black px-1 py-0.5 text-right">Monto</th>
+                        <th style="width: 25%; background-color: #f3f4f6; font-weight: bold; border: 1px solid #000; padding: 2px 4px; text-align: left;">Fecha</th>
+                        <th style="width: 35%; background-color: #f3f4f6; font-weight: bold; border: 1px solid #000; padding: 2px 4px; text-align: left;">Método</th>
+                        <th style="width: 40%; background-color: #f3f4f6; font-weight: bold; border: 1px solid #000; padding: 2px 4px; text-align: right;">Monto</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${paymentsData.map(payment => `
                     <tr>
-                        <td class="border border-black px-1 py-0.5">${formatDate(payment.date)}</td>
-                        <td class="border border-black px-1 py-0.5">${payment.method}</td>
-                        <td class="border border-black px-1 py-0.5 text-right">$${payment.amount.toFixed(2)}</td>
+                        <td style="border: 1px solid #000; padding: 2px 4px;">${formatDate(payment.date)}</td>
+                        <td style="border: 1px solid #000; padding: 2px 4px;">${payment.method}</td>
+                        <td style="border: 1px solid #000; padding: 2px 4px; text-align: right;">$${payment.amount.toFixed(2)}</td>
                     </tr>
                     `).join('')}
                 </tbody>
             </table>
-            <div class="mt-2 border-t-2 border-black pt-1">
-                <div class="flex justify-between mb-0.5">
+            <div style="margin-top: 8px; border-top: 2px solid #000; padding-top: 4px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
                     <span>Total Pagado:</span>
                     <span>$${totalPagos.toFixed(2)} MXN</span>
                 </div>
-                <div class="flex justify-between mb-0.5 ${saldoPendiente > 0 ? 'font-bold text-[11px] border-t border-black pt-0.5' : ''}">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 2px; ${saldoPendiente > 0 ? 'font-weight: bold; font-size: 11px; border-top: 1px solid #000; padding-top: 2px;' : ''}">
                     <span>Saldo Pendiente:</span>
                     <span>$${saldoPendiente.toFixed(2)} MXN</span>
                 </div>
@@ -209,26 +180,13 @@ export const generatePrintHTML = (orderData: any, productsData: any[], paymentsD
 
         <!-- Notas -->
         ${orderData.notes ? `
-        <div class="mb-3">
-            <div class="text-[11px] font-bold mb-1 border-b border-black pb-0.5">NOTAS</div>
-            <div class="bg-gray-50 p-1.5 border border-black text-[9px] min-h-[30px]">
+        <div style="margin-bottom: 12px;">
+            <div style="font-size: 11px; font-weight: bold; margin-bottom: 4px; border-bottom: 1px solid #000; padding-bottom: 2px;">NOTAS</div>
+            <div style="background-color: #f9fafb; padding: 6px; border: 1px solid #000; font-size: 9px; min-height: 30px;">
                 ${orderData.notes}
             </div>
         </div>
         ` : ''}
-
-        <!-- Historial -->
-        <div class="mb-3">
-            <div class="text-[11px] font-bold mb-1 border-b border-black pb-0.5">HISTORIAL</div>
-            <div class="text-[8px]">
-                ${orderData.user ? `<div>Creado por: ${orderData.user.username}</div>` : ''}
-                ${orderData.editedByUser ? `<div>Última edición: ${orderData.editedByUser.username}</div>` : ''}
-            </div>
-        </div>
-
-        <div class="mt-4 border-t border-black pt-1 text-[8px] text-center">
-            Documento generado el ${new Date().toLocaleDateString('es-MX')} a las ${new Date().toLocaleTimeString('es-MX')}
-        </div>
     </div>
 </body>
 </html>

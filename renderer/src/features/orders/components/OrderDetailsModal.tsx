@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import './OrderDetailsModal.css';
-import { generatePrintHTML } from './printTemplate';
+import PrintPreviewModal from './PrintPreviewModal';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 import { OrdersApiService } from '../OrdersApiService';
@@ -52,6 +52,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [editFormData, setEditFormData] = useState({
     status: '',
     estimated_delivery_date: '',
@@ -230,76 +231,18 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       return;
     }
 
-    try {
-      // Generar el HTML para impresión
-      const printHTML = generatePrintHTML(order, orderProducts, payments);
-      
-      // Crear una nueva ventana para impresión
-      const printWindow = window.open('', '_blank', 'width=800,height=600');
-      
-      if (!printWindow) {
-        toast.error('No se pudo abrir la ventana de impresión. Verifica que no esté bloqueada por el navegador.');
-        return;
-      }
-      
-      // Escribir el HTML en la nueva ventana
-      printWindow.document.write(printHTML);
-      printWindow.document.close();
-      
-      // Esperar a que se cargue el contenido y luego imprimir
-      printWindow.onload = () => {
-        printWindow.focus();
-        printWindow.print();
-        // Cerrar la ventana después de imprimir (opcional)
-        printWindow.onafterprint = () => {
-          printWindow.close();
-        };
-      };
-      
-    } catch (error) {
-      console.error('Error al generar impresión:', error);
-      toast.error('Error al generar el documento de impresión');
-    }
+    // Abrir el modal de previsualización
+    setShowPrintPreview(true);
   };
 
-  // const handlePrint = () => {
-  //   if (!order || !orderProducts) {
-  //     toast.error('No hay datos para imprimir');
-  //     return;
-  //   }
 
-  //   try {
-  //     const printHTML = generatePrintHTML(order, orderProducts, payments);
-      
-  //     // Configurar la ventana para minimizar su visibilidad
-  //     const printWindow = window.open('', '_blank', 'width=1,height=1,left=-1000,top=-1000');
-      
-  //     if (!printWindow) {
-  //       toast.error('No se pudo abrir la ventana de impresión.');
-  //       return;
-  //     }
-      
-  //     printWindow.document.write(printHTML);
-  //     printWindow.document.close();
-      
-  //     printWindow.onload = () => {
-  //       setTimeout(() => {
-  //         printWindow.print();
-  //         printWindow.close(); // Cerrar inmediatamente después de imprimir
-  //       }, 100);
-  //     };
-      
-  //   } catch (error) {
-  //     console.error('Error al generar impresión:', error);
-  //     toast.error('Error al generar el documento de impresión');
-  //   }
-  // };
 
   const handleClose = () => {
     setOrder(null);
     setOrderProducts([]);
     setPayments([]);
     setIsEditing(false);
+    setShowPrintPreview(false);
     setError(null);
     onClose();
   };
@@ -709,6 +652,15 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
           </div>
         )}
       </div>
+      
+      {/* Modal de Previsualización de Impresión */}
+      <PrintPreviewModal
+        isOpen={showPrintPreview}
+        onClose={() => setShowPrintPreview(false)}
+        orderData={order}
+        productsData={orderProducts}
+        paymentsData={payments}
+      />
     </div>
   );
 };
