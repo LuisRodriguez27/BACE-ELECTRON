@@ -1,6 +1,7 @@
 const path = require("path");
 const Database = require("better-sqlite3");
 const bcrypt = require("bcryptjs");
+const { log } = require("console");
 require("./db"); // asegura la creación de tablas
 
 // Configuración
@@ -284,8 +285,37 @@ function seed() {
     }
   });
 
-  console.log("✅ Base de datos inicializada con datos de ejemplo");
-  console.log("👤 Usuario admin: admin / admin123");
+  // -------------------------
+  // 12. Insertar 3 presupuestos de ejemplo
+  // -------------------------
+  const insertBudget = db.prepare(`
+    INSERT INTO budgets (client_id, user_id, date, total)
+    VALUES (?, ?, ?, ?)
+  `);
+
+  const insertBudgetProduct = db.prepare(`
+    INSERT INTO budget_products (budget_id, product_id, quantity, unit_price, total_price)
+    VALUES (?, ?, ?, ?, ?)
+  `);
+
+  // Presupuesto 1 - Panadería
+  const budget1 = insertBudget.run(panaderia, adminId, new Date().toISOString(), 195.0);
+  insertBudgetProduct.run(budget1.lastInsertRowid, productIds["LP-001"], 1, 130.0, 130.0);
+  insertBudgetProduct.run(budget1.lastInsertRowid, productIds["TP-001"], 26, 2.5, 65.0);
+
+  // Presupuesto 2 - Restaurant
+  const budget2 = insertBudget.run(restaurant, adminId, new Date().toISOString(), 320.0);
+  insertBudgetProduct.run(budget2.lastInsertRowid, productIds["MV-001"], 1, 200.0, 200.0);
+  insertBudgetProduct.run(budget2.lastInsertRowid, productIds["VP-001"], 150, 0.8, 120.0);
+
+  // Presupuesto 3 - Farmacia
+  const budget3 = insertBudget.run(farmacia, adminId, new Date().toISOString(), 240.0);
+  insertBudgetProduct.run(budget3.lastInsertRowid, productIds["RL-001"], 1, 450.0, 450.0);
+
+  console.log("Base de datos inicializada con datos de ejemplo");
+  console.log("Usuario admin: admin / admin123");
+  console.log("Fin del seed");
+  
 }
 
 seed();
