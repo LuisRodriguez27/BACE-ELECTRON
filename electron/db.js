@@ -102,6 +102,7 @@ db.exec(`
     edited_by INTEGER,
     date TIMESTAMP NOT NULL,
     total REAL DEFAULT 0,
+    converted_to_order INTEGER NOT NULL DEFAULT 0, -- 1 si fue convertido
     converted_to_order_id INTEGER, -- Si fue convertido, guarda el ID de la orden
     active INTEGER NOT NULL DEFAULT 1,
     FOREIGN KEY (client_id) REFERENCES clients(id),
