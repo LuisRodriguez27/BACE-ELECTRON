@@ -13,6 +13,7 @@ const productTemplatesService = require('./services/productTemplateService');
 const orderService = require('./services/orderService');
 const paymentService = require('./services/paymentsService');
 const authService = require('./services/authService');
+const budgetService = require('./services/budgetService');
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -119,7 +120,15 @@ ipcMain.handle('payments:update', async (event, id, data) => await paymentServic
 ipcMain.handle('payments:delete', async (event, id) => await paymentService.deletePayment(id));
 ipcMain.handle('payments:getByClientId', async (event, clientId) => await paymentService.getPaymentsByClientId(clientId));
 
-
+// Manejo de eventos IPC para presupuestos
+ipcMain.handle('budgets:getAll', async () => await budgetService.getAllBudgets());
+ipcMain.handle('budgets:getById', async (event, id) => await budgetService.getBudgetById(id));
+ipcMain.handle('budgets:getByClientId', async (event, clientId) => await budgetService.getBudgetByClientId(clientId));
+ipcMain.handle('budgets:create', async (event, data) => await budgetService.createBudget(data));
+ipcMain.handle('budgets:delete', async (event, id) => await budgetService.deleteBudget(id));
+ipcMain.handle('budgets:getProducts', async (event, budgetId) => await budgetService.getBudgetProducts(budgetId));
+ipcMain.handle('budgets:recalculateTotal', async (event, budgetId) => await budgetService.recalculateBudgetTotal(budgetId));
+ipcMain.handle('budgets:transformToOrder', async (event, budgetId, userId) => await budgetService.transformToOrder(budgetId, userId));
 
 app.whenReady().then(createWindow);
 

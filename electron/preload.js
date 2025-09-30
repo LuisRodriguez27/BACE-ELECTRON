@@ -81,4 +81,14 @@ contextBridge.exposeInMainWorld('api', {
   updatePayment: (id, data) => ipcRenderer.invoke('payments:update', id, data),
   deletePayment: (id) => ipcRenderer.invoke('payments:delete', id),
   getPaymentsByClientId: (clientId) => ipcRenderer.invoke('payments:getByClientId', clientId),
+
+  // Presupuestos
+  getAllBudgets: () => ipcRenderer.invoke('budgets:getAll'),
+  getBudgetById: (id) => ipcRenderer.invoke('budgets:getById', id),
+  getBudgetByClientId: (clientId) => ipcRenderer.invoke('budgets:getByClientId', clientId),
+  createBudget: (data) => ipcRenderer.invoke('budgets:create', data),
+  deleteBudget: (id) => ipcRenderer.invoke('budgets:delete', id),
+  getBudgetProducts: (budgetId) => ipcRenderer.invoke('budgets:getProducts', budgetId),
+  recalculateBudgetTotal: (budgetId) => ipcRenderer.invoke('budgets:recalculateTotal', budgetId),
+  transformToOrder: (budgetId, userId) => ipcRenderer.invoke('budgets:transformToOrder', budgetId, userId),
 });
