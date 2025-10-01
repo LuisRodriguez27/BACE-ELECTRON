@@ -266,13 +266,7 @@ class BudgetService {
       const orderRepository = require('../repositories/orderRepository');
       const order = orderRepository.findById(orderId);
 
-      return {
-        success: true,
-        orderId: orderId,
-        budgetId: parsedBudgetId,
-        message: `Presupuesto #${parsedBudgetId} convertido exitosamente a orden #${orderId}`,
-        order: order ? order.toPlainObject() : null
-      };
+      return order.toPlainObject();
     } catch (error) {
       console.error('Error al transformar presupuesto a orden:', error);
       throw error;
