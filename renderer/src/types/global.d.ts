@@ -6,6 +6,7 @@ import { ProductTemplate, CreateProductTemplateForm, EditProductTemplateForm } f
 import { Order, CreateOrderForm, EditOrderForm, OrderProduct, CreateOrderProductForm, EditOrderProductForm } from "../features/orders/types";
 import { Payment, CreatePaymentForm, EditPaymentForm } from "../features/payments/types";
 import type { LoginCredentials, LoginResponse } from "@/features/auth/types";
+import type { Budget, BudgetProduct, CreateBudgetForm } from "@/features/budgets";
 
 declare global {
   interface Window {
@@ -87,6 +88,16 @@ declare global {
       updatePayment: (id: number, data: EditPaymentForm) => Promise<Payment>;
       deletePayment: (id: number) => Promise<void>;
       getPaymentsByClientId: (clientId: number) => Promise<Payment[]>;
+
+      // Presupuestos
+      getAllBudgets: () => Promise<Budget[]>;
+      getBudgetById: (id: number) => Promise<Budget>;
+      getBudgetByClientId: (clientId: number) => Promise<Budget[]>;
+      createBudget: (data: CreateBudgetForm) => Promise<Budget>;
+      deleteBudget: (budgetId: number) => Promise<void>;
+      getBudgetProducts: (budgetId: number) => Promise<BudgetProduct[]>;
+      recalculateBudgetTotal: (budgetId: number) => Promise<number>;
+      transformToOrder: (budgetId, userId) => Promise<Order>;
     };
   }
 }
