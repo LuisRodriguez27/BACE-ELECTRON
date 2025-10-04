@@ -13,7 +13,7 @@ class BudgetRepository {
       JOIN clients c ON b.client_id = c.id
       JOIN users u ON b.user_id = u.id
       LEFT JOIN users ue ON b.edited_by = ue.id
-      WHERE b.active = 1
+      WHERE b.active = 1 AND b.converted_to_order = 0
       ORDER BY b.id DESC 
     `);
 
