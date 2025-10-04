@@ -84,6 +84,8 @@ contextBridge.exposeInMainWorld('api', {
 
   // Presupuestos
   getAllBudgets: () => ipcRenderer.invoke('budgets:getAll'),
+  getBudgetsPaginated: (page, limit, searchTerm) => ipcRenderer.invoke('budgets:getPaginated', page, limit, searchTerm),
+  searchBudgets: (page, limit, searchTerm) => ipcRenderer.invoke('budgets:search', page, limit, searchTerm),
   getBudgetById: (id) => ipcRenderer.invoke('budgets:getById', id),
   getBudgetByClientId: (clientId) => ipcRenderer.invoke('budgets:getByClientId', clientId),
   createBudget: (data) => ipcRenderer.invoke('budgets:create', data),

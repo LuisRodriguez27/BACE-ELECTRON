@@ -13,7 +13,24 @@ class BudgetService {
     } catch (error) {
       console.error('Error al obtener presupuestos:', error);
       throw new Error('No se pudieron obtener los presupuestos.');
+    }
+  }
 
+  async getBudgetsPaginated(page = 1, limit = 10, searchTerm = '') {
+    try {
+      if (page < 1) page = 1;
+      if (limit < 1 || limit > 100) limit = 10;
+      
+      const result = budgetRepository.findAllPaginated(page, limit, searchTerm);
+      
+      return {
+        data: result.data.map(budget => budget.toPlainObject()),
+        pagination: result.pagination,
+        searchTerm: result.searchTerm
+      };
+    } catch (error) {
+      console.error('Error al obtener presupuestos paginados:', error);
+      throw new Error('Error al obtener presupuestos paginados');
     }
   }
 

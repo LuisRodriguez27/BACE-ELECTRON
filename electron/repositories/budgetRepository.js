@@ -66,6 +66,72 @@ class BudgetRepository {
     });
   }
 
+  findAllPaginated(page = 1, limit = 10, searchTerm = '') {
+    const offset = (page - 1) * limit;
+    
+    // Construir la condición de búsqueda
+    let searchCondition = '';
+    let searchParams = [];
+    
+    if (searchTerm && searchTerm.trim()) {
+      const term = `%${searchTerm.trim()}%`;
+      searchCondition = `
+        AND (
+          CAST(b.id AS TEXT) LIKE ?
+          OR c.name LIKE ?
+          OR c.phone LIKE ?
+        )
+      `;
+      searchParams = [term, term, term];
+    }
+    
+    // Obtener total de registros con búsqueda
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM budgets b
+      JOIN clients c ON b.client_id = c.id
+      WHERE b.active = 1 AND b.converted_to_order = 0 ${searchCondition}
+    `;
+    const countStmt = db.prepare(countQuery);
+    const { total } = countStmt.get(...searchParams);
+    
+    // Obtener registros paginados con búsqueda
+    const dataQuery = `
+      SELECT b.id, b.client_id, b.user_id, b.edited_by, b.date, 
+            b.total, b.converted_to_order, b.active,
+            c.name AS client_name, c.phone AS client_phone,
+            u.username AS user_username,
+            ue.username AS edited_by_username
+      FROM budgets b
+      JOIN clients c ON b.client_id = c.id
+      JOIN users u ON b.user_id = u.id
+      LEFT JOIN users ue ON b.edited_by = ue.id
+      WHERE b.active = 1 AND b.converted_to_order = 0 ${searchCondition}
+      ORDER BY b.id DESC
+      LIMIT ? OFFSET ?
+    `;
+    const stmt = db.prepare(dataQuery);
+    const budgets = stmt.all(...searchParams, limit, offset);
+    
+    const budgetsWithProducts = budgets.map(budget => {
+      const budgetProducts = this.getBudgetProducts(budget.id);
+      return new Budget({ ...budget, budgetProducts });
+    });
+    
+    return {
+      data: budgetsWithProducts,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1
+      },
+      searchTerm
+    };
+  }
+
   create(budgetData) {
     if (!budgetData.items || !Array.isArray(budgetData.items) || budgetData.items.length === 0) {
       throw new Error('El presupuesto debe tener al menos un producto o plantilla.');

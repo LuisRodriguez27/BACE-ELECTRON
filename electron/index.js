@@ -122,6 +122,8 @@ ipcMain.handle('payments:getByClientId', async (event, clientId) => await paymen
 
 // Manejo de eventos IPC para presupuestos
 ipcMain.handle('budgets:getAll', async () => await budgetService.getAllBudgets());
+ipcMain.handle('budgets:getPaginated', async (event, page, limit, searchTerm) => await budgetService.getBudgetsPaginated(page, limit, searchTerm));
+ipcMain.handle('budgets:search', async (event, page, limit, searchTerm) => await budgetService.getBudgetsPaginated(page, limit, searchTerm));
 ipcMain.handle('budgets:getById', async (event, id) => await budgetService.getBudgetById(id));
 ipcMain.handle('budgets:getByClientId', async (event, clientId) => await budgetService.getBudgetByClientId(clientId));
 ipcMain.handle('budgets:create', async (event, data) => await budgetService.createBudget(data));
