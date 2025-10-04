@@ -1,6 +1,6 @@
 import type { Order } from "../orders/types";
 
-interface PaginatedResponse<T> {
+export interface PaginatedResponse<T> {
   data: T[];
   pagination: {
     page: number;

@@ -1,4 +1,5 @@
-import type { Budget, CreateBudgetForm,BudgetProduct } from './types';
+import type { PaginatedResponse } from '../history/SalesApiService';
+import type { Budget, BudgetProduct, CreateBudgetForm } from './types';
 
 export const BudgetApiService = {
   findAll: async (): Promise<Budget[]> => {
@@ -31,5 +32,13 @@ export const BudgetApiService = {
 
   transformToOrder: async (budgetId: number, userId: number): Promise<any> => {
     return window.api.transformToOrder(budgetId, userId);
+  },
+
+  findAllPaginated: async (page: number, limit: number, searchTerm: string = ''): Promise<PaginatedResponse<Budget>> => {
+    return window.api.getBudgetsPaginated(page, limit, searchTerm);
+  },
+
+  searchPaginated: async (page: number, limit: number, searchTerm: string): Promise<PaginatedResponse<Budget>> => {
+    return window.api.searchBudgets(page, limit, searchTerm);
   }
 }  

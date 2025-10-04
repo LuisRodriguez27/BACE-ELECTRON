@@ -91,6 +91,8 @@ declare global {
 
       // Presupuestos
       getAllBudgets: () => Promise<Budget[]>;
+      getBudgetsPaginated: (page: number, limit: number, searchTerm: string) => Promise<{data: Budget[], pagination: {page: number, limit: number, total: number, totalPages: number, hasNext: boolean, hasPrev: boolean}}>;
+      searchBudgets: (page: number, limit: number, searchTerm: string) => Promise<{data: Budget[], pagination: {page: number, limit: number, total: number, totalPages: number, hasNext: boolean, hasPrev: boolean}}>;
       getBudgetById: (id: number) => Promise<Budget>;
       getBudgetByClientId: (clientId: number) => Promise<Budget[]>;
       createBudget: (data: CreateBudgetForm) => Promise<Budget>;
