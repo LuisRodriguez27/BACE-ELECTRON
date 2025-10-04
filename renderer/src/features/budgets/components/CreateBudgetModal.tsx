@@ -1,4 +1,6 @@
 import { Button, Input, Label } from '@/components/ui';
+import type { Client } from '@/features/clients/types';
+import CreateClientModal from '@/features/clients/components/CreateClientModal';
 import CreateTemplateModal from '@/features/products/components/CreateTemplateModal';
 import QuickCreateProductModal from '@/features/products/components/QuickCreateProductModal';
 import type { Product } from '@/features/products/types';
@@ -13,27 +15,36 @@ import { useForm } from 'react-hook-form';
 import { calculateBudgetTotal, type CreateBudgetForm, createBudgetItemFromFormItem, createBudgetSchema, type Budget, type BudgetFormItem } from "../types";
 import { toast } from 'sonner';
 import BudgetPrintPreviewModal from './BudgetPrintPreviewModal';
+import { BudgetApiService } from '../BudgetApiService';
 interface CreateBudgetModalProps {
   isOpen: boolean;
   onClose: () => void;
   onBudgetCreated: (budget: Budget) => void;
+  currentUserId: number;
 }
 
-const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
+export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
   isOpen,
   onClose,
-  onBudgetCreated
+  onBudgetCreated,
+  currentUserId
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [clients, setClients] = useState<Client[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [templates, setTemplates] = useState<ProductTemplate[]>([]);
+  const [loadingClients, setLoadingClients] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [showCreateProductModal, setShowCreateProductModal] = useState(false);
   const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
+  const [showCreateClientModal, setShowCreateClientModal] = useState(false);
   const [selectedProductForTemplate, setSelectedProductForTemplate] = useState<Product | null>(null);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
+  const [clientSearchTerm, setClientSearchTerm] = useState('');
+  const [showClientDropdown, setShowClientDropdown] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   
   // Estado de los items de la orden (productos y plantillas)
   const [budgetItems, setBudgetItems] = useState<BudgetFormItem[]>([]);
@@ -51,6 +62,7 @@ const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
   } = useForm<CreateBudgetForm>({
     resolver: zodResolver(createBudgetSchema),
     defaultValues: {
+      user_id: currentUserId,
       date: new Date().toISOString().split('T')[0],
       items: []
     }
@@ -104,10 +116,21 @@ const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
   // Cargar datos al abrir el modal
   useEffect(() => {
     if (isOpen) {
+      loadClients();
       loadProducts();
       loadTemplates();
     }
   }, [isOpen]);
+
+  // Efecto para sincronizar el cliente seleccionado con el estado de búsqueda
+  useEffect(() => {
+    if (selectedClientId && clients.length > 0) {
+      const selectedClient = clients.find(c => c.id === selectedClientId);
+      if (selectedClient && !clientSearchTerm) {
+        setClientSearchTerm(`${selectedClient.name} - ${selectedClient.phone}`);
+      }
+    }
+  }, [selectedClientId, clients, clientSearchTerm]);
 
 
 
@@ -150,13 +173,38 @@ const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
         }
       });
       
+      // Manejar dropdown de clientes
+      const clientDropdown = document.getElementById('client-dropdown');
+      const clientInput = document.getElementById('client-search-input');
+      
+      if (clientDropdown && showClientDropdown) {
+        const isClickInsideClientDropdown = clientDropdown.contains(target);
+        const isClickInsideClientInput = clientInput?.contains(target);
+        
+        if (!isClickInsideClientDropdown && !isClickInsideClientInput) {
+          setShowClientDropdown(false);
+        }
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [budgetItems, showDropdowns]);
+  }, [budgetItems, showDropdowns, showClientDropdown]);
+
+  const loadClients = async () => {
+    try {
+      setLoadingClients(true);
+      const response = await window.api.getAllClients();
+      setClients(response);
+    } catch (err) {
+      console.error('Error loading clients:', err);
+      setError('Error al cargar los clientes');
+    } finally {
+      setLoadingClients(false);
+    }
+  };
 
 
 
@@ -323,7 +371,7 @@ const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
     setShowDropdowns(prev => ({ ...prev, [index]: false }));
   };
 
-  const onSubmit = async (formData: any) => {
+  const onSubmit = async (formData: CreateBudgetForm) => {
     try {
       setIsSubmitting(true);
       setError(null);
@@ -341,18 +389,23 @@ const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
         return;
       }
 
-      // Crear presupuesto sin guardar nada
-      const budget: Budget = {
-        client_name: formData.client_name,
-        client_phone: formData.client_phone,
-        date: formData.date,
-        total: total,
-        notes: formData.notes,
-        items: budgetItems
+      // Validar que se seleccionó un cliente
+      if (!selectedClientId) {
+        setError('Debe seleccionar un cliente');
+        return;
+      }
+
+      // Crear el objeto de presupuesto
+      const budgetData: CreateBudgetForm = {
+        ...formData,
+        client_id: selectedClientId,
+        user_id: currentUserId
       };
 
-      onBudgetCreated(budget);
-      toast.success('Presupuesto creado exitosamente');
+      // Guardar en la base de datos
+      const newBudget = await BudgetApiService.create(budgetData);
+      
+      onBudgetCreated(newBudget);
       handleClose();
 
     } catch (err: any) {
@@ -372,8 +425,18 @@ const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
     setDropdownPositions({});
     setSelectedCategory({});
     setSelectedProductForTemplate(null);
+    setClientSearchTerm('');
+    setSelectedClientId(null);
+    setShowClientDropdown(false);
     setError(null);
     onClose();
+  };
+
+  const handleClientCreated = (newClient: Client) => {
+    setClients(prev => [...prev, newClient]);
+    setSelectedClientId(newClient.id);
+    setValue('client_id', newClient.id);
+    setClientSearchTerm(`${newClient.name} - ${newClient.phone}`);
   };
 
   const handleProductCreated = (newProduct: Product) => {
@@ -386,18 +449,9 @@ const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
 
   // Función para abrir la vista previa de impresión
   const handlePrint = () => {
-    // Obtener los datos del formulario
-    const client_name = (document.getElementById('client_name') as HTMLInputElement)?.value || '';
-    const client_phone = (document.getElementById('client_phone') as HTMLInputElement)?.value || '';
-
-    // Validar que hay datos básicos para imprimir
-    if (!client_name.trim()) {
-      toast.error('Debe ingresar el nombre del cliente para imprimir');
-      return;
-    }
-
-    if (!client_phone.trim()) {
-      toast.error('Debe ingresar el teléfono del cliente para imprimir');
+    // Validar que hay un cliente seleccionado
+    if (!selectedClientId) {
+      toast.error('Debe seleccionar un cliente para imprimir');
       return;
     }
 
@@ -415,6 +469,25 @@ const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
 
     // Abrir el modal de vista previa
     setShowPrintPreview(true);
+  };
+
+  // Obtener lista filtrada de clientes
+  const getFilteredClients = () => {
+    if (!clientSearchTerm.trim()) return clients;
+    
+    const searchLower = clientSearchTerm.toLowerCase();
+    return clients.filter(client => 
+      client.name.toLowerCase().includes(searchLower) ||
+      (client.phone && client.phone.includes(searchLower))
+    );
+  };
+
+  // Seleccionar un cliente
+  const selectClient = (client: Client) => {
+    setSelectedClientId(client.id);
+    setValue('client_id', client.id);
+    setClientSearchTerm(`${client.name} - ${client.phone}`);
+    setShowClientDropdown(false);
   };
 
 
@@ -473,41 +546,148 @@ const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
 
           {/* Información básica */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            {/* Nombre del cliente */}
-            <div>
-              <Label htmlFor="client_name" className="text-sm font-medium text-gray-700">
-                Nombre del cliente *
-              </Label>
-              <div className="mt-1 relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                <Input
-                  id="client_name"
-                  type="text"
-                  placeholder="Nombre del cliente"
-                  className="pl-10"
-                  {...register('client_name')}
-                />
+            {/* Cliente */}
+            <div className="md:col-span-2">
+              <div className="flex items-center justify-between mb-1">
+                <Label htmlFor="client_id" className="text-sm font-medium text-gray-700">
+                  Cliente *
+                </Label>
+                <Button
+                  type="button"
+                  onClick={() => setShowCreateClientModal(true)}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-1 text-xs px-3 py-1 h-7 border-blue-200 text-blue-600 hover:bg-blue-50"
+                >
+                  <User size={12} />
+                  Nuevo Cliente
+                </Button>
               </div>
-              {errors.client_name && (
-                <p className="mt-1 text-sm text-red-600">{errors.client_name.message}</p>
-              )}
-            </div>
-
-            {/* Teléfono del cliente */}
-            <div>
-              <Label htmlFor="client_phone" className="text-sm font-medium text-gray-700">
-                Teléfono del cliente *
-              </Label>
-              <div className="mt-1 relative">
-                <Input
-                  id="client_phone"
-                  type="tel"
-                  placeholder="Teléfono del cliente"
-                  {...register('client_phone')}
-                />
+              <div className="mt-1">
+                {loadingClients ? (
+                  <div className="flex items-center gap-2 p-2 border rounded-lg">
+                    <Loader className="animate-spin" size={16} />
+                    <span className="text-sm text-gray-500">Cargando clientes...</span>
+                  </div>
+                ) : clients.length === 0 ? (
+                  <div className="flex items-center justify-between p-3 border border-dashed border-gray-300 rounded-lg">
+                    <div className="flex items-center gap-2 text-gray-500">
+                      <User size={16} />
+                      <span className="text-sm">No hay clientes registrados</span>
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={() => setShowCreateClientModal(true)}
+                      size="sm"
+                      className="flex items-center gap-2"
+                    >
+                      <Plus size={14} />
+                      Crear Primer Cliente
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 z-10" size={16} />
+                      <Input
+                        id="client-search-input"
+                        type="text"
+                        placeholder="Buscar cliente por nombre o teléfono..."
+                        value={clientSearchTerm}
+                        onChange={(e) => {
+                          const searchTerm = e.target.value;
+                          setClientSearchTerm(searchTerm);
+                          setShowClientDropdown(true);
+                          
+                          // Si el texto no coincide con el cliente seleccionado, limpiar la selección
+                          if (selectedClientId) {
+                            const selectedClient = clients.find(c => c.id === selectedClientId);
+                            if (selectedClient && searchTerm !== `${selectedClient.name} - ${selectedClient.phone}`) {
+                              setSelectedClientId(null);
+                              setValue('client_id', 0);
+                            }
+                          }
+                        }}
+                        onFocus={() => setShowClientDropdown(true)}
+                        className="pl-10 pr-4"
+                      />
+                    </div>
+                    
+                    {/* Dropdown de clientes */}
+                    {showClientDropdown && (
+                      <div 
+                        id="client-dropdown"
+                        className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto"
+                      >
+                        {getFilteredClients().length > 0 ? (
+                          getFilteredClients().map((client) => (
+                            <div
+                              key={client.id}
+                              className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 group"
+                              onClick={() => selectClient(client)}
+                            >
+                              <div className="flex items-center gap-2">
+                                {client.color && (
+                                  <div 
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: client.color }}
+                                  />
+                                )}
+                                <User className="h-4 w-4 text-gray-400" />
+                                <div className="flex-1">
+                                  <div className="font-medium text-sm text-gray-900">
+                                    {client.name}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {client.phone}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-3 py-4 text-center">
+                            <div className="flex flex-col items-center gap-2">
+                              <User className="h-8 w-8 text-gray-400" />
+                              <p className="text-sm text-gray-500 mb-2">No se encontraron clientes</p>
+                              {clientSearchTerm && (
+                                <div className="flex flex-col gap-2">
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                      setClientSearchTerm('');
+                                      setShowClientDropdown(true);
+                                    }}
+                                    className="text-xs"
+                                  >
+                                    Limpiar búsqueda
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={() => {
+                                      setShowCreateClientModal(true);
+                                      setShowClientDropdown(false);
+                                    }}
+                                    className="text-xs"
+                                  >
+                                    <Plus size={12} className="mr-1" />
+                                    Crear cliente
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-              {errors.client_phone && (
-                <p className="mt-1 text-sm text-red-600">{errors.client_phone.message}</p>
+              {errors.client_id && (
+                <p className="mt-1 text-sm text-red-600">{errors.client_id.message}</p>
               )}
             </div>
 
@@ -542,24 +722,11 @@ const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
                 <Input
                   id="total"
                   type="text"
-                  value={`$${total.toFixed(2)}`}
+                  value={`${total.toFixed(2)}`}
                   className="pl-10 bg-gray-50"
                   readOnly
                 />
               </div>
-            </div>
-
-            {/* Notas */}
-            <div>
-              <Label htmlFor="notes" className="text-sm font-medium text-gray-700">
-                Notas
-              </Label>
-              <textarea
-                {...register('notes')}
-                className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                rows={3}
-                placeholder="Notas adicionales sobre la orden..."
-              />
             </div>
           </div>
 
@@ -933,17 +1100,24 @@ const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
             >
               Cancelar
             </Button>
-            {/* <Button
+            <Button
               type="submit"
-              disabled={isSubmitting || budgetItems.length === 0}
+              disabled={isSubmitting || budgetItems.length === 0 || !selectedClientId}
               className="flex items-center gap-2"
             >
               {isSubmitting && <Loader className="animate-spin" size={16} />}
               {isSubmitting ? 'Creando...' : `Crear Presupuesto (${budgetItems.length} items)`}
-            </Button> */}
+            </Button>
           </div>
         </form>
       </div>
+      
+      {/* Modal de crear cliente */}
+      <CreateClientModal
+        isOpen={showCreateClientModal}
+        onClose={() => setShowCreateClientModal(false)}
+        onClientCreated={handleClientCreated}
+      />
       
       {/* Modal de crear producto */}
       <QuickCreateProductModal
@@ -967,18 +1141,20 @@ const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
       )}
       
       {/* Modal de vista previa de impresión */}
-      <BudgetPrintPreviewModal
-        isOpen={showPrintPreview}
-        onClose={() => setShowPrintPreview(false)}
-        budgetData={{
-          client_name: (document.getElementById('client_name') as HTMLInputElement)?.value || '',
-          client_phone: (document.getElementById('client_phone') as HTMLInputElement)?.value || '',
-          date: (document.getElementById('date') as HTMLInputElement)?.value || new Date().toISOString().split('T')[0],
-          notes: (document.querySelector('textarea[name="notes"]') as HTMLTextAreaElement)?.value || '',
-          total: total,
-          items: budgetItems
-        }}
-      />
+      {showPrintPreview && selectedClientId && (
+        <BudgetPrintPreviewModal
+          isOpen={showPrintPreview}
+          onClose={() => setShowPrintPreview(false)}
+          budgetData={{
+            client_name: clients.find(c => c.id === selectedClientId)?.name || '',
+            client_phone: clients.find(c => c.id === selectedClientId)?.phone || '',
+            date: (document.getElementById('date') as HTMLInputElement)?.value || new Date().toISOString().split('T')[0],
+            notes: '',
+            total: total,
+            items: budgetItems
+          }}
+        />
+      )}
     </div>
   );
 };

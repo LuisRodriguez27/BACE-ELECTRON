@@ -17,7 +17,7 @@ interface BudgetPrintPreviewModalProps {
   };
 }
 
-const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = ({
+export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = ({
   isOpen,
   onClose,
   budgetData
