@@ -1,12 +1,13 @@
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useAuthStore } from '@/store/auth';
-import { Calendar, DollarSign, FileText, Plus, Search, Trash2 } from 'lucide-react';
+import { Calendar, DollarSign, FileText, Plus, Search, Trash2, ArrowRight } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { BudgetApiService } from './BudgetApiService';
 import CreateBudgetModal from './components/CreateBudgetModal';
 import type { Budget } from './types';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
 const BudgetsPage: React.FC = () => {
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -16,6 +17,10 @@ const BudgetsPage: React.FC = () => {
   const { checkPermission } = usePermissions();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showTransformDialog, setShowTransformDialog] = useState(false);
+  const [selectedBudgetId, setSelectedBudgetId] = useState<number | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const { user } = useAuthStore();
 
@@ -45,17 +50,25 @@ const BudgetsPage: React.FC = () => {
       return;
     }
 
-    if (!confirm('¿Estás seguro de eliminar este presupuesto? Esta acción no se puede deshacer.')) {
-      return;
-    }
+    setSelectedBudgetId(budgetId);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDeleteBudget = async () => {
+    if (!selectedBudgetId) return;
 
     try {
-      await BudgetApiService.delete(budgetId);
-      setBudgets(prevBudgets => prevBudgets.filter(b => b.id !== budgetId));
+      setIsProcessing(true);
+      await BudgetApiService.delete(selectedBudgetId);
+      setBudgets(prevBudgets => prevBudgets.filter(b => b.id !== selectedBudgetId));
       toast.success('Presupuesto eliminado exitosamente');
+      setShowDeleteDialog(false);
+      setSelectedBudgetId(null);
     } catch (err) {
       console.error('Error deleting budget:', err);
       toast.error('Error al eliminar presupuesto');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -64,18 +77,26 @@ const BudgetsPage: React.FC = () => {
       return;
     }
 
-    if (!confirm('¿Deseas convertir este presupuesto en una orden?')) {
-      return;
-    }
+    setSelectedBudgetId(budgetId);
+    setShowTransformDialog(true);
+  };
+
+  const confirmTransformToOrder = async () => {
+    if (!selectedBudgetId) return;
 
     try {
-      await BudgetApiService.transformToOrder(budgetId, user?.id!);
+      setIsProcessing(true);
+      await BudgetApiService.transformToOrder(selectedBudgetId, user?.id!);
       toast.success('Presupuesto convertido a orden exitosamente');
-      // Opcionalmente, eliminar el presupuesto de la lista
-      setBudgets(prevBudgets => prevBudgets.filter(b => b.id !== budgetId));
+      // Eliminar el presupuesto de la lista
+      setBudgets(prevBudgets => prevBudgets.filter(b => b.id !== selectedBudgetId));
+      setShowTransformDialog(false);
+      setSelectedBudgetId(null);
     } catch (err) {
       console.error('Error transforming budget to order:', err);
       toast.error('Error al convertir presupuesto a orden');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -265,7 +286,7 @@ const BudgetsPage: React.FC = () => {
                           onClick={() => handleTransformToOrder(budget.id)}
                           className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50"
                         >
-                          <FileText size={14} />
+                          <ArrowRight size={14} />
                           Convertir a Orden
                         </Button>
                         <Button 
@@ -319,6 +340,38 @@ const BudgetsPage: React.FC = () => {
         onClose={closeModals}
         onBudgetCreated={handleBudgetCreated}
         currentUserId={user?.id!}
+      />
+
+      {/* Diálogo de confirmación para eliminar */}
+      <ConfirmDialog
+        isOpen={showDeleteDialog}
+        onClose={() => {
+          setShowDeleteDialog(false);
+          setSelectedBudgetId(null);
+        }}
+        onConfirm={confirmDeleteBudget}
+        title="Eliminar Presupuesto"
+        message="¿Estás seguro de eliminar este presupuesto? Esta acción no se puede deshacer."
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        type="danger"
+        isLoading={isProcessing}
+      />
+
+      {/* Diálogo de confirmación para convertir a orden */}
+      <ConfirmDialog
+        isOpen={showTransformDialog}
+        onClose={() => {
+          setShowTransformDialog(false);
+          setSelectedBudgetId(null);
+        }}
+        onConfirm={confirmTransformToOrder}
+        title="Convertir a Orden"
+        message="¿Deseas convertir este presupuesto en una orden? El presupuesto se marcará como convertido."
+        confirmText="Convertir"
+        cancelText="Cancelar"
+        type="info"
+        isLoading={isProcessing}
       />
     </div>
   );
