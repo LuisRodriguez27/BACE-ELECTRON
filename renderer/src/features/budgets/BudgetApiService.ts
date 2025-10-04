@@ -34,7 +34,7 @@ export const BudgetApiService = {
     return window.api.transformToOrder(budgetId, userId);
   },
 
-  findAllPaginated: async (page: number, limit: number, searchTerm: string = ''): Promise<PaginatedResponse<Budget>> => {
+  getBudgetsPaginated: async (page: number, limit: number, searchTerm: string = ''): Promise<PaginatedResponse<Budget>> => {
     return window.api.getBudgetsPaginated(page, limit, searchTerm);
   },
 
