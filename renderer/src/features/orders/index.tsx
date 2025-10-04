@@ -11,7 +11,6 @@ import OrderDetailsModal from './components/OrderDetailsModal';
 import OrderEditModal from './components/OrderEditModal';
 import { OrdersApiService } from './OrdersApiService';
 import type { Order } from './types';
-import { CreateBudgetModal } from '@/features/budgets';
 import { usePermissions } from '@/hooks/use-permissions';
 
 const OrdersPage: React.FC = () => {
@@ -27,7 +26,6 @@ const OrdersPage: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
-  const [isBudget, setIsBudget] = useState(false);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -35,7 +33,7 @@ const OrdersPage: React.FC = () => {
         setLoading(true);
         const data = await OrdersApiService.findAll();
         setOrders(data);
-        
+
         // Cargar pagos para cada orden
         const paymentsPromises = data.map(async (order) => {
           try {
@@ -46,13 +44,13 @@ const OrdersPage: React.FC = () => {
             return { orderId: order.id, payments: [] };
           }
         });
-        
+
         const paymentsResults = await Promise.all(paymentsPromises);
         const paymentsMap = paymentsResults.reduce((acc, { orderId, payments }) => {
           acc[orderId] = payments;
           return acc;
         }, {} as Record<number, Payment[]>);
-        
+
         setOrderPayments(paymentsMap);
       } catch (err) {
         console.error('Error fetching orders:', err);
@@ -70,8 +68,8 @@ const OrdersPage: React.FC = () => {
   };
 
   const handleOrderUpdated = (updatedOrder: Order) => {
-    setOrders(prevOrders => 
-      prevOrders.map(order => 
+    setOrders(prevOrders =>
+      prevOrders.map(order =>
         order.id === updatedOrder.id ? updatedOrder : order
       )
     );
@@ -98,22 +96,10 @@ const OrdersPage: React.FC = () => {
     setShowPaymentModal(true);
   };
 
-  const handleBudgetCreated = () => {
-    toast.success('Presupuesto creado exitosamente');
-  };
-
   const openCreateModal = () => {
     if (!checkPermission("Crear Órdenes")) {
       return;
     }
-    setShowCreateModal(true);
-  };
-
-  const openBudgetModal = () => {
-    if (!checkPermission("Crear Presupuestos")) {
-      return;
-    }
-    setIsBudget(true);
     setShowCreateModal(true);
   };
 
@@ -123,7 +109,6 @@ const OrdersPage: React.FC = () => {
     setShowEditModal(false);
     setShowPaymentModal(false);
     setSelectedOrderId(null);
-    setIsBudget(false);
   }
 
   const formatDate = (dateString: string) => {
@@ -169,21 +154,21 @@ const OrdersPage: React.FC = () => {
   // Función de filtrado
   const filteredOrders = orders.filter(order => {
     if (!searchTerm.trim()) return true;
-    
+
     const searchLower = searchTerm.toLowerCase().trim();
-    
+
     // Buscar por ID (número exacto o parcial)
     const idMatch = order.id.toString().includes(searchLower);
-    
+
     // Buscar por notas (si existen)
     const notesMatch = order.notes && order.notes.toLowerCase().includes(searchLower);
-    
+
     // Buscar por nombre del cliente
     const clientNameMatch = order.client && order.client.name.toLowerCase().includes(searchLower);
-    
+
     // Buscar por teléfono del cliente
     const clientPhoneMatch = order.client && order.client.phone && order.client.phone.includes(searchLower);
-    
+
     return idMatch || notesMatch || clientNameMatch || clientPhoneMatch;
   });
 
@@ -214,7 +199,7 @@ const OrdersPage: React.FC = () => {
   const getPaymentStatus = (order: Order): { status: 'paid' | 'partial' | 'pending'; icon: React.ReactNode; color: string; text: string } => {
     const totalPaid = getTotalPaid(order.id);
     const remaining = order.total - totalPaid;
-    
+
     if (remaining <= 0) {
       return {
         status: 'paid',
@@ -260,8 +245,8 @@ const OrdersPage: React.FC = () => {
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">{error}</p>
-          <Button 
-            onClick={() => window.location.reload()} 
+          <Button
+            onClick={() => window.location.reload()}
             className="mt-2"
             size="sm"
           >
@@ -283,15 +268,7 @@ const OrdersPage: React.FC = () => {
           </p>
         </div>
         <div className='flex gap-2'>
-          <Button 
-            className="flex items-center gap-2"
-            onClick={openBudgetModal}
-          >
-            <Plus size={16} />
-            Nuevo Presupuesto
-          </Button>
-
-          <Button 
+          <Button
             className="flex items-center gap-2"
             onClick={openCreateModal}
           >
@@ -342,7 +319,7 @@ const OrdersPage: React.FC = () => {
               <p className="text-gray-500 mb-4">
                 Comienza creando tu primera orden de producción
               </p>
-              <Button 
+              <Button
                 className="flex items-center gap-2 mx-auto"
                 onClick={openCreateModal}
               >
@@ -357,7 +334,7 @@ const OrdersPage: React.FC = () => {
               <p className="text-gray-500 mb-4">
                 No hay órdenes que coincidan con tu búsqueda: "{searchTerm}"
               </p>
-              <Button 
+              <Button
                 variant="outline"
                 onClick={() => setSearchTerm('')}
                 className="mx-auto"
@@ -372,7 +349,7 @@ const OrdersPage: React.FC = () => {
                 const totalPaid = getTotalPaid(order.id);
                 const remaining = getRemainingAmount(order);
                 const paymentsCount = getOrderPayments(order.id).length;
-                
+
                 return (
                   <div key={order.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
                     <div className="flex items-start justify-between mb-4">
@@ -387,27 +364,27 @@ const OrdersPage: React.FC = () => {
                             {paymentStatus.text}
                           </div>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-gray-600">
                           <div className="flex items-center gap-2">
                             <Calendar size={14} />
                             <span>Fecha: {formatDate(order.date)}</span>
                           </div>
-                          
+
                           {order.estimated_delivery_date && (
                             <div className="flex items-center gap-2">
                               <Calendar size={14} />
                               <span>Entrega: {formatDate(order.estimated_delivery_date)}</span>
                             </div>
                           )}
-                          
+
                           <div className="flex items-center gap-2">
                             <DollarSign size={14} />
                             <span className="font-semibold text-blue-600">
                               Total: ${order.total.toFixed(2)}
                             </span>
                           </div>
-                          
+
                           <div className="flex items-center gap-2">
                             <DollarSign size={14} />
                             <span className={`font-semibold ${paymentStatus.status === 'paid' ? 'text-green-600' : paymentStatus.status === 'partial' ? 'text-orange-600' : 'text-gray-500'}`}>
@@ -416,10 +393,10 @@ const OrdersPage: React.FC = () => {
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-2">
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => handleAddPayment(order.id)}
                           className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50"
@@ -428,8 +405,8 @@ const OrdersPage: React.FC = () => {
                           <DollarSign size={14} />
                           Agregar Pago
                         </Button>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => handleEditOrder(order.id)}
                           className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
@@ -437,8 +414,8 @@ const OrdersPage: React.FC = () => {
                           <Edit3 size={14} />
                           Edición
                         </Button>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => handleViewDetails(order.id)}
                           className="flex items-center gap-2"
@@ -448,16 +425,16 @@ const OrdersPage: React.FC = () => {
                         </Button>
                       </div>
                     </div>
-                  
+
                     {/* Notas de la orden */}
                     {order.notes && (
-                    <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <span className="text-sm font-medium text-yellow-800">Notas:</span>
-                    <p className="text-sm text-yellow-700 mt-1">{order.notes}</p>
-                    </div>
+                      <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <span className="text-sm font-medium text-yellow-800">Notas:</span>
+                        <p className="text-sm text-yellow-700 mt-1">{order.notes}</p>
+                      </div>
                     )}
-                    
-                      {/* Información adicional */}
+
+                    {/* Información adicional */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
                       {order.client && (
                         <div>
@@ -468,7 +445,7 @@ const OrdersPage: React.FC = () => {
                           )}
                         </div>
                       )}
-                      
+
                       {/* {order.user && (
                         <div>
                           <span className="text-sm font-medium text-gray-700">Creado por:</span>
@@ -482,7 +459,7 @@ const OrdersPage: React.FC = () => {
                           <p className="text-sm text-gray-600">{order.editedByUser.username}</p>
                         </div>
                       )} */}
-                      
+
                       {/* Información de pagos */}
                       {paymentsCount > 0 && (
                         <div>
@@ -497,7 +474,7 @@ const OrdersPage: React.FC = () => {
                           )}
                         </div>
                       )}
-                      
+
                       {order.orderProducts && order.orderProducts.length > 0 && (
                         <div className={paymentsCount > 0 ? "" : "md:col-span-2"}>
                           <span className="text-sm font-medium text-gray-700">Productos:</span>
@@ -520,21 +497,13 @@ const OrdersPage: React.FC = () => {
       </div>
 
       {/* Modals */}
-      {isBudget ? (
-        <CreateBudgetModal
-          isOpen={showCreateModal}
-          onClose={closeModals}
-          onBudgetCreated={handleBudgetCreated}
-        />
-      ) : (
-        <CreateOrderModal
-          isOpen={showCreateModal}
-          onClose={closeModals}
-          onOrderCreated={handleOrderCreated}
-          currentUserId={user?.id!}
-        />
-      )}
-      
+      <CreateOrderModal
+        isOpen={showCreateModal}
+        onClose={closeModals}
+        onOrderCreated={handleOrderCreated}
+        currentUserId={user?.id!}
+      />
+
       <OrderDetailsModal
         isOpen={showDetailsModal}
         onClose={closeModals}
@@ -559,7 +528,7 @@ const OrdersPage: React.FC = () => {
           clientName={orders.find(o => o.id === selectedOrderId)?.client?.name || 'Cliente'}
           onPaymentCreated={handlePaymentCreated}
         />
-      )}  
+      )}
 
     </div>
   );
