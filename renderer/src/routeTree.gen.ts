@@ -20,6 +20,7 @@ import { Route as DashboardOrdersRouteImport } from './routes/dashboard.orders'
 import { Route as DashboardHistoryRouteImport } from './routes/dashboard.history'
 import { Route as DashboardConfigurationsRouteImport } from './routes/dashboard.configurations'
 import { Route as DashboardClientsRouteImport } from './routes/dashboard.clients'
+import { Route as DashboardBudgetsRouteImport } from './routes/dashboard.budgets'
 
 const LoginLazyRouteImport = createFileRoute('/login')()
 const Error503LazyRouteImport = createFileRoute('/error-503')()
@@ -103,6 +104,11 @@ const DashboardClientsRoute = DashboardClientsRouteImport.update({
   path: '/clients',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardBudgetsRoute = DashboardBudgetsRouteImport.update({
+  id: '/budgets',
+  path: '/budgets',
+  getParentRoute: () => DashboardRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -113,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/error-500': typeof Error500LazyRoute
   '/error-503': typeof Error503LazyRoute
   '/login': typeof LoginLazyRoute
+  '/dashboard/budgets': typeof DashboardBudgetsRoute
   '/dashboard/clients': typeof DashboardClientsRoute
   '/dashboard/configurations': typeof DashboardConfigurationsRoute
   '/dashboard/history': typeof DashboardHistoryRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/error-500': typeof Error500LazyRoute
   '/error-503': typeof Error503LazyRoute
   '/login': typeof LoginLazyRoute
+  '/dashboard/budgets': typeof DashboardBudgetsRoute
   '/dashboard/clients': typeof DashboardClientsRoute
   '/dashboard/configurations': typeof DashboardConfigurationsRoute
   '/dashboard/history': typeof DashboardHistoryRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/error-500': typeof Error500LazyRoute
   '/error-503': typeof Error503LazyRoute
   '/login': typeof LoginLazyRoute
+  '/dashboard/budgets': typeof DashboardBudgetsRoute
   '/dashboard/clients': typeof DashboardClientsRoute
   '/dashboard/configurations': typeof DashboardConfigurationsRoute
   '/dashboard/history': typeof DashboardHistoryRoute
@@ -166,6 +175,7 @@ export interface FileRouteTypes {
     | '/error-500'
     | '/error-503'
     | '/login'
+    | '/dashboard/budgets'
     | '/dashboard/clients'
     | '/dashboard/configurations'
     | '/dashboard/history'
@@ -182,6 +192,7 @@ export interface FileRouteTypes {
     | '/error-500'
     | '/error-503'
     | '/login'
+    | '/dashboard/budgets'
     | '/dashboard/clients'
     | '/dashboard/configurations'
     | '/dashboard/history'
@@ -199,6 +210,7 @@ export interface FileRouteTypes {
     | '/error-500'
     | '/error-503'
     | '/login'
+    | '/dashboard/budgets'
     | '/dashboard/clients'
     | '/dashboard/configurations'
     | '/dashboard/history'
@@ -326,10 +338,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardClientsRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/budgets': {
+      id: '/dashboard/budgets'
+      path: '/budgets'
+      fullPath: '/dashboard/budgets'
+      preLoaderRoute: typeof DashboardBudgetsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
   }
 }
 
 interface DashboardRouteChildren {
+  DashboardBudgetsRoute: typeof DashboardBudgetsRoute
   DashboardClientsRoute: typeof DashboardClientsRoute
   DashboardConfigurationsRoute: typeof DashboardConfigurationsRoute
   DashboardHistoryRoute: typeof DashboardHistoryRoute
@@ -340,6 +360,7 @@ interface DashboardRouteChildren {
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardBudgetsRoute: DashboardBudgetsRoute,
   DashboardClientsRoute: DashboardClientsRoute,
   DashboardConfigurationsRoute: DashboardConfigurationsRoute,
   DashboardHistoryRoute: DashboardHistoryRoute,

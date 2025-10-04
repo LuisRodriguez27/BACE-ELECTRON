@@ -8,7 +8,8 @@ import {
   UserCog, 
   Settings,
   Menu,
-  Home
+  Home,
+  Calculator
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSidebarStore } from '@/store/sidebar'
@@ -40,6 +41,12 @@ const menuItems: MenuItem[] = [
     label: 'Historial de Órdenes',
     icon: History,
     path: '/dashboard/history'
+  },
+  {
+    id: 'budgets',
+    label: 'Presupuestos',
+    icon: Calculator,
+    path: '/dashboard/budgets'
   },
   {
     id: 'products',
