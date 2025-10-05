@@ -1,11 +1,11 @@
 import { Button } from '@/components/ui/button';
-import { CreditCard, Edit3, MapPin, Phone, Plus, Search, ShoppingBag, Trash2, Users } from 'lucide-react';
+import { usePermissions } from '@/hooks/use-permissions';
+import { Calculator, CreditCard, Edit3, MapPin, Phone, Plus, Search, ShoppingBag, Trash2, Users } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ClientApiService } from './ClientApiService';
-import { ClientColorIndicator, ClientOrdersModal, ClientPaymentsModal, CreateClientModal, DeleteClientModal, EditClientModal } from './components';
+import { ClientColorIndicator, ClientOrdersModal, ClientPaymentsModal, CreateClientModal, DeleteClientModal, EditClientModal, ClientBudgetModal } from './components';
 import type { Client } from './types';
-import { usePermissions } from '@/hooks/use-permissions';
 
 const ClientsPage: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
@@ -20,6 +20,7 @@ const ClientsPage: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showOrdersModal, setShowOrdersModal] = useState(false);
   const [showPaymentsModal, setShowPaymentsModal] = useState(false);
+  const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
   useEffect(() => {
@@ -92,6 +93,11 @@ const ClientsPage: React.FC = () => {
     setSelectedClient(client);
     setShowDeleteModal(true);
   };
+
+  const openBudgetModal = (client: Client) => {
+    setSelectedClient(client);
+    setShowBudgetModal(true);
+  }
 
   const openOrdersModal = (client: Client) => {
     setSelectedClient(client);
@@ -232,6 +238,15 @@ const ClientsPage: React.FC = () => {
                       <Button 
                         variant="ghost" 
                         size="sm"
+                        onClick={() => openBudgetModal(client)}
+                        className="p-1 h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        title="Ver presupuesto"
+                      >
+                        <Calculator size={14} />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
                         onClick={() => openOrdersModal(client)}
                         className="p-1 h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                         title="Ver órdenes"
@@ -312,6 +327,12 @@ const ClientsPage: React.FC = () => {
         isOpen={showDeleteModal}
         onClose={closeModals}
         onClientDeleted={handleClientDeleted}
+        client={selectedClient}
+      />
+
+      <ClientBudgetModal
+        isOpen={showBudgetModal}
+        onClose={closeModals}
         client={selectedClient}
       />
 
