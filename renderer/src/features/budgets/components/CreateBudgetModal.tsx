@@ -1146,12 +1146,22 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
           isOpen={showPrintPreview}
           onClose={() => setShowPrintPreview(false)}
           budgetData={{
-            client_name: clients.find(c => c.id === selectedClientId)?.name || '',
-            client_phone: clients.find(c => c.id === selectedClientId)?.phone || '',
+            id: 0,
+            client_id: selectedClientId || 0,
+            user_id: currentUserId,
             date: (document.getElementById('date') as HTMLInputElement)?.value || new Date().toISOString().split('T')[0],
-            notes: '',
             total: total,
-            items: budgetItems
+            client: selectedClientId ? clients.find(c => c.id === selectedClientId) : undefined,
+            budgetProducts: budgetItems.map((item, index) => ({
+              id: index,
+              budget_id: 0,
+              product_id: item.type === 'product' ? item.id : null,
+              template_id: item.type === 'template' ? item.id : null,
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              total_price: item.quantity * item.unit_price,
+              product_name: item.name
+            }))
           }}
         />
       )}

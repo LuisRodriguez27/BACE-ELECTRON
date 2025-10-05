@@ -3,18 +3,12 @@ import { Button } from '@/components/ui';
 import { X, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import cotizacionImage from '@/assets/COTIZACION.jpg';
+import type { Budget } from '../types';
 
 interface BudgetPrintPreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  budgetData: {
-    client_name: string;
-    client_phone: string;
-    date: string;
-    total: number;
-    notes?: string;
-    items: any[];
-  };
+  budgetData: Budget;
 }
 
 export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = ({
@@ -42,6 +36,15 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
     return date.getFullYear().toString();
   };
 
+  // Función para formatear fecha como DD/MM/YYYY
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear().toString();
+    return `${day}/${month}/${year}`;
+  };
+
   const handlePrint = () => {
     setIsLoading(true);
 
@@ -53,7 +56,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Presupuesto - ${budgetData.client_name}</title>
+    <title>Presupuesto - ${budgetData.client?.name}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @page {
@@ -125,12 +128,12 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
             <div class="grid grid-cols-2 gap-42">
                 <!-- Cliente -->
                 <div>
-                    ${budgetData.client_name || 'Cliente no especificado'}
+                    ${budgetData.client?.name || 'Cliente no especificado'}
                 </div>
                 
                 <!-- Teléfono -->
                 <div className='ml-50'>
-                    ${budgetData.client_phone || ''}
+                    ${budgetData.client?.phone || ''}
                 </div>
             </div>
         </div>
@@ -143,12 +146,12 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
                 <div class="col-span-2 text-center">Cantidad</div>
                 <div class="col-span-3 text-right">Precio</div>
             </div>
-            ${budgetData.items.map((item, index) => `
+            ${budgetData.budgetProducts?.map((item, index) => `
                 <div class="grid grid-cols-12 gap-5 mb-5 text-4xl py-3">
                     <div class="col-span-1 text-center font-bold">${index + 1}</div>
-                    <div class="col-span-6">${item.name || 'Producto'}</div>
+                    <div class="col-span-6">${item.product_name || 'Producto'}</div>
                     <div class="col-span-2 text-center">${item.quantity}</div>
-                    <div class="col-span-3 text-right font-bold">${(item.quantity * item.unit_price).toFixed(2)}</div>
+                    <div class="col-span-3 text-right font-bold">${item.total_price.toFixed(2)}</div>
                 </div>
             `).join('')}
         </div>
@@ -262,22 +265,26 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
               }}
             >
 
+              <div className='absolute top-13 right-28 text-2xl font-bold text-red-600'>
+                {budgetData.id}
+              </div>
+
               {/* Cliente y Teléfono */}
-              <div className='absolute top-29 left-25 text-xl font-bold text-black'>
-                <div className="grid grid-cols-3 gap-20">
+              <div className='absolute top-30 left-25 text-l font-bold text-black'>
+                <div className="grid grid-cols-3 gap-1">
                   {/* Cliente */}
-                  <div>
-                    {budgetData.client_name || 'Cliente no especificado'}
+                  <div className="col-span-1">
+                    {budgetData.client?.name || 'Cliente no especificado'}
                   </div>
                   
                   {/* Numero de telefono */}
-                  <div className='ml-28'>
-                    {budgetData.client_phone || ''}
+                  <div className="col-span-1 text-center pl-31">
+                    {budgetData.client?.phone || ''}
                   </div>
 
                   {/* Fechas */}
-                  <div className="ml-10">
-                    {budgetData.date}
+                  <div className="col-span-1 text-left pl-25">
+                    {formatDate(budgetData.date)}
                   </div>
 
                 </div>
@@ -291,7 +298,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
                   <div className="col-span-2 text-center">Cantidad</div>
                   <div className="col-span-3 text-right">Precio</div>
                 </div>
-                {budgetData.items.map((item, index) => (
+                {budgetData.budgetProducts?.map((item, index) => (
                   <div
                     key={index}
                     className="grid grid-cols-12 gap-2 mb-2 text-lg py-1"
@@ -300,13 +307,13 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
                       {index + 1}
                     </div>
                     <div className="col-span-6">
-                      {item.name || 'Producto'}
+                      {item.product_name || 'Producto'}
                     </div>
                     <div className="col-span-2 text-center">
                       {item.quantity}
                     </div>
                     <div className="col-span-3 text-right font-medium">
-                      ${(item.quantity * item.unit_price).toFixed(2)}
+                      ${item.total_price.toFixed(2)}
                     </div>
                   </div>
                 ))}

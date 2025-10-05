@@ -2,12 +2,13 @@ import { Button } from '@/components/ui/button';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useAuthStore } from '@/store/auth';
-import { ArrowRight, Calendar, DollarSign, FileText, Loader2, Plus, Search, Trash2 } from 'lucide-react';
+import { ArrowRight, Calendar, DollarSign, FileText, Loader2, Plus, Printer, Search, Trash2 } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { BudgetApiService } from './BudgetApiService';
 import CreateBudgetModal from './components/CreateBudgetModal';
 import type { Budget } from './types';
+import BudgetPrintPreviewModal from './components/BudgetPrintPreviewModal';
 
 interface PaginationInfo {
   page: number;
@@ -41,6 +42,8 @@ const BudgetsPage: React.FC = () => {
   const [showTransformDialog, setShowTransformDialog] = useState(false);
   const [selectedBudgetId, setSelectedBudgetId] = useState<number | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
+  const [selectedBudgetForPrint, setSelectedBudgetForPrint] = useState<Budget | null>(null);
 
   const { user } = useAuthStore();
 
@@ -59,7 +62,7 @@ const BudgetsPage: React.FC = () => {
   const loadBudgets = async (page: number = 1, reset: boolean = true, searchQuery: string = '') => {
     try {
       console.log(`🔍 Cargando presupuestos - Página: ${page}, Límite: 10, Reset: ${reset}, Búsqueda: "${searchQuery}"`);
-      
+
       if (page === 1) {
         setLoading(true);
       } else {
@@ -72,18 +75,18 @@ const BudgetsPage: React.FC = () => {
         console.error('Respuesta de API inválida:', response);
         throw new Error('Formato de respuesta inválido');
       }
-      
+
       if (reset) {
         setBudgets(response.data);
       } else {
         setBudgets(prev => [...prev, ...response.data]);
       }
-      
+
       setPagination(response.pagination);
       setCurrentSearchTerm(searchQuery);
-      
+
       console.log(`✅ Presupuestos cargados: ${response.data.length} | Total en BD: ${response.pagination.total} | Página actual: ${response.pagination.page}/${response.pagination.totalPages} | Hay más: ${response.pagination.hasNext}`);
-      
+
     } catch (err) {
       console.error('Error fetching budgets:', err);
       setError('Error al cargar presupuestos');
@@ -123,7 +126,7 @@ const BudgetsPage: React.FC = () => {
     };
   }, [searchTerm]);
 
-  const handleBudgetCreated = (newBudget: Budget) => {
+  const handleBudgetCreated = () => {
     loadBudgets(1, true, currentSearchTerm);
     toast.success('Presupuesto creado exitosamente');
   };
@@ -143,9 +146,9 @@ const BudgetsPage: React.FC = () => {
     try {
       setIsProcessing(true);
       await BudgetApiService.delete(selectedBudgetId);
-      
+
       loadBudgets(1, true, currentSearchTerm);
-      
+
       toast.success('Presupuesto eliminado exitosamente');
       setShowDeleteDialog(false);
       setSelectedBudgetId(null);
@@ -173,9 +176,9 @@ const BudgetsPage: React.FC = () => {
       setIsProcessing(true);
       await BudgetApiService.transformToOrder(selectedBudgetId, user?.id!);
       toast.success('Presupuesto convertido a orden exitosamente');
-      
+
       loadBudgets(1, true, currentSearchTerm);
-      
+
       setShowTransformDialog(false);
       setSelectedBudgetId(null);
     } catch (err) {
@@ -205,6 +208,17 @@ const BudgetsPage: React.FC = () => {
     });
   };
 
+  const handlePrint = (budget: Budget) => {
+    if (!budget) {
+      toast.error('No hay datos para imprimir');
+      return;
+    }
+
+    // Establecer el presupuesto a imprimir y abrir el modal
+    setSelectedBudgetForPrint(budget);
+    setShowPrintPreview(true);
+  };
+
   if (loading) {
     return (
       <div className="p-6">
@@ -226,8 +240,8 @@ const BudgetsPage: React.FC = () => {
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">{error}</p>
-          <Button 
-            onClick={() => window.location.reload()} 
+          <Button
+            onClick={() => window.location.reload()}
             className="mt-2"
             size="sm"
           >
@@ -247,7 +261,7 @@ const BudgetsPage: React.FC = () => {
             Administra los presupuestos creados para clientes
           </p>
         </div>
-        <Button 
+        <Button
           className="flex items-center gap-2"
           onClick={openCreateModal}
         >
@@ -302,8 +316,8 @@ const BudgetsPage: React.FC = () => {
                   <p className="text-gray-500 mb-4">
                     No hay presupuestos que coincidan con "<strong>{currentSearchTerm}</strong>"
                   </p>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => setSearchTerm('')}
                     size="sm"
                   >
@@ -317,7 +331,7 @@ const BudgetsPage: React.FC = () => {
                   <p className="text-gray-500 mb-4">
                     Comienza creando tu primer presupuesto
                   </p>
-                  <Button 
+                  <Button
                     className="flex items-center gap-2 mx-auto"
                     onClick={openCreateModal}
                   >
@@ -332,8 +346,8 @@ const BudgetsPage: React.FC = () => {
               <div className="space-y-4">
                 {budgets.map((budget, index) => {
                   return (
-                    <div 
-                      key={budget.id} 
+                    <div
+                      key={budget.id}
                       ref={index === budgets.length - 1 ? lastBudgetElementRef : null}
                       className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
                     >
@@ -342,13 +356,13 @@ const BudgetsPage: React.FC = () => {
                           <div className="flex items-center gap-3 mb-2">
                             <h3 className="font-semibold text-gray-900">Presupuesto #{budget.id}</h3>
                           </div>
-                          
+
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
                             <div className="flex items-center gap-2">
                               <Calendar size={14} />
                               <span>Fecha: {formatDate(budget.date)}</span>
                             </div>
-                            
+
                             <div className="flex items-center gap-2">
                               <DollarSign size={14} />
                               <span className="font-semibold text-blue-600">
@@ -357,10 +371,18 @@ const BudgetsPage: React.FC = () => {
                             </div>
                           </div>
                         </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <Button 
-                            variant="outline" 
+
+                        <div className="flex items-center gap-3">
+                          <Button
+                            variant={"outline"}
+                            size="sm"
+                            onClick={() => handlePrint(budget)}
+                          >
+                            <Printer size={16} />
+                            Imprimir
+                          </Button>
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={() => handleTransformToOrder(budget.id)}
                             className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50"
@@ -368,8 +390,8 @@ const BudgetsPage: React.FC = () => {
                             <ArrowRight size={14} />
                             Convertir a Orden
                           </Button>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={() => handleDeleteBudget(budget.id)}
                             className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
@@ -379,7 +401,7 @@ const BudgetsPage: React.FC = () => {
                           </Button>
                         </div>
                       </div>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
                         {budget.client && (
                           <div>
@@ -390,14 +412,14 @@ const BudgetsPage: React.FC = () => {
                             )}
                           </div>
                         )}
-                        
+
                         {budget.user && (
                           <div>
                             <span className="text-sm font-medium text-gray-700">Creado por:</span>
                             <p className="text-sm text-gray-600">{budget.user.username}</p>
                           </div>
                         )}
-                        
+
                         {budget.budgetProducts && budget.budgetProducts.length > 0 && (
                           <div className="md:col-span-2">
                             <span className="text-sm font-medium text-gray-700">Productos:</span>
@@ -415,18 +437,18 @@ const BudgetsPage: React.FC = () => {
                   );
                 })}
               </div>
-              
+
               {loadingMore && (
                 <div className="flex justify-center items-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
                   <span className="ml-2 text-gray-600">Cargando más presupuestos...</span>
                 </div>
               )}
-              
+
               {!loadingMore && !pagination.hasNext && budgets.length > 0 && (
                 <div className="text-center py-8">
                   <p className="text-gray-500">
-                    {currentSearchTerm 
+                    {currentSearchTerm
                       ? `Se encontraron ${pagination.total} resultado${pagination.total !== 1 ? 's' : ''} para "${currentSearchTerm}"`
                       : `Has visto todos los presupuestos (${pagination.total})`
                     }
@@ -474,6 +496,17 @@ const BudgetsPage: React.FC = () => {
         type="info"
         isLoading={isProcessing}
       />
+
+      {selectedBudgetForPrint && (
+        <BudgetPrintPreviewModal
+          isOpen={showPrintPreview}
+          onClose={() => {
+            setShowPrintPreview(false);
+            setSelectedBudgetForPrint(null);
+          }}
+          budgetData={selectedBudgetForPrint}
+        />
+      )}
     </div>
   );
 };
