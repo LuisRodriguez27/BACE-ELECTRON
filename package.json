@@ -8,7 +8,8 @@
     "rebuild": "electron-rebuild -f -w better-sqlite3 --version 37.3.0",
     "frebuild": "electron-rebuild",
     "devg": "concurrently \"npm run dev\" \"cd renderer && npm run dev\"",
-    "buildg": "cd renderer && npm run build electron-rebuild"
+    "buildg": "cd renderer && npm run build electron-rebuild",
+    "build": "cd renderer && npm run build"
   },
   "keywords": [],
   "author": "",
