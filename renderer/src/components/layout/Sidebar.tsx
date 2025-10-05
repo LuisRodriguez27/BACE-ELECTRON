@@ -134,7 +134,7 @@ const Sidebar: React.FC = () => {
       </nav>
 
       {/* Configuraciones al final */}
-      <div className="px-2 py-4 border-t border-gray-700">
+      {/* <div className="px-2 py-4 border-t border-gray-700">
         <Link
           to="/dashboard/configurations"
           className={cn(
@@ -154,7 +154,7 @@ const Sidebar: React.FC = () => {
             Configuraciones
           </span>
         </Link>
-      </div>
+      </div> */}
     </div>
   )
 }
