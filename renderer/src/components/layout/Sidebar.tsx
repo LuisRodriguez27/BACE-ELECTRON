@@ -5,8 +5,7 @@ import {
   Users, 
   Package, 
   History, 
-  UserCog, 
-  Settings,
+  UserCog,
   Menu,
   Home,
   Calculator
