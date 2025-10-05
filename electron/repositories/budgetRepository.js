@@ -327,6 +327,14 @@ class BudgetRepository {
     return newTotal;
   }
 
+  getNextId() {
+    const result = db.prepare(`
+      SELECT COALESCE(MAX(id), 0) + 1 as next_id FROM budgets
+    `).get();
+    
+    return result.next_id;
+  }
+
 }
 
 module.exports = new BudgetRepository();

@@ -290,6 +290,15 @@ class BudgetService {
     }
   }
 
+  async getNextId() {
+    try {
+      return budgetRepository.getNextId();
+    } catch (error) {
+      console.error('Error al obtener el próximo ID de presupuesto:', error);
+      throw new Error('No se pudo obtener el próximo ID de presupuesto.');
+    }
+  }
+
 }
 
 module.exports = new BudgetService();

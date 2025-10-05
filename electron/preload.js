@@ -93,4 +93,5 @@ contextBridge.exposeInMainWorld('api', {
   getBudgetProducts: (budgetId) => ipcRenderer.invoke('budgets:getProducts', budgetId),
   recalculateBudgetTotal: (budgetId) => ipcRenderer.invoke('budgets:recalculateTotal', budgetId),
   transformToOrder: (budgetId, userId) => ipcRenderer.invoke('budgets:transformToOrder', budgetId, userId),
+  getBudgetNextId: () => ipcRenderer.invoke('budgets:getNextId'),
 });

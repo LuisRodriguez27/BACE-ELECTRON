@@ -131,6 +131,7 @@ ipcMain.handle('budgets:delete', async (event, id) => await budgetService.delete
 ipcMain.handle('budgets:getProducts', async (event, budgetId) => await budgetService.getBudgetProducts(budgetId));
 ipcMain.handle('budgets:recalculateTotal', async (event, budgetId) => await budgetService.recalculateBudgetTotal(budgetId));
 ipcMain.handle('budgets:transformToOrder', async (event, budgetId, userId) => await budgetService.transformToOrder(budgetId, userId));
+ipcMain.handle('budgets:getNextId', async () => await budgetService.getNextId());
 
 app.whenReady().then(createWindow);
 
