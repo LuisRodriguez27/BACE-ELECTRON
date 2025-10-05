@@ -82,6 +82,7 @@ function seed() {
 
   // Presupuestos
   ["Crear Presupuestos", "Permite registrar nuevos presupuestos", 1],
+  ["Eliminar Presupuestos", "Permite eliminar presupuestos", 1],
 
   // Pagos
   ["Registrar Pagos", "Permite registrar pagos en órdenes", 1],
