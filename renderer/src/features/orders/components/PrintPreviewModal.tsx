@@ -171,17 +171,17 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
         <div class="absolute print-totales-pagos text-7xl">
             <div class="grid grid-cols-3 gap-20">
                 <!-- Pagos -->
-                <div class="text-green-700 font-bold">
+                <div class="text-green-700 font-bold text-right" style="min-width: 200px;">
                     ${paymentsData.length > 0 ? `${totalPagos.toFixed(2)}` : ''}
                 </div>
                 
                 <!-- Saldo -->
-                <div class="font-bold text-red-600">
+                <div class="font-bold text-red-600 text-right" style="min-width: 200px;">
                     ${saldoPendiente.toFixed(2)}
                 </div>
                 
                 <!-- Total -->
-                <div class="text-black font-bold">
+                <div class="text-black font-bold text-right" style="min-width: 200px;">
                     ${orderData.total.toFixed(2)}
                 </div>
             </div>
@@ -360,20 +360,20 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                 ))}
               </div>
 
-              <div className="absolute bottom-14 left-51 text-2xl">
-                <div className="grid grid-cols-3 gap-15">
+              <div className="absolute bottom-14 left-44 text-2xl">
+                <div className="grid grid-cols-3 gap-10">
                   {/* Pagos - Columna 1 (siempre presente) */}
-                  <div className="text-green-700 font-bold">
+                  <div className="text-green-700 font-bold text-right min-w-[100px]">
                     {paymentsData.length > 0 ? `$${totalPagos.toFixed(2)}` : ''}
                   </div>
                   
                   {/* Saldo - Columna 2 (siempre presente) */}
-                  <div className="font-bold text-red-600">
+                  <div className="font-bold text-red-600 text-right min-w-[100px]">
                     ${saldoPendiente.toFixed(2)}
                   </div>
                   
                   {/* Total - Columna 3 (siempre presente) */}
-                  <div className="text-black font-bold">
+                  <div className="text-black font-bold text-right min-w-[100px]">
                     ${orderData.total.toFixed(2)}
                   </div>
                 </div>
