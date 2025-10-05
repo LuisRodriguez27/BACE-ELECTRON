@@ -52,6 +52,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
   const [showDropdowns, setShowDropdowns] = useState<{[key: number]: boolean}>({});
   const [dropdownPositions, setDropdownPositions] = useState<{[key: number]: {top: number, left: number, width: number, maxHeight?: number}}>({});
   const [selectedCategory, setSelectedCategory] = useState<{[key: number]: 'all' | 'products' | 'templates'}>({});
+  const [nextBudgetId, setNextBudgetId] = useState<number>(0);
 
   const {
     register,
@@ -73,6 +74,23 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
     const items = budgetItems.map(createBudgetItemFromFormItem);
     setValue('items', items);
   }, [budgetItems, setValue]);
+
+  // Efecto para cargar el próximo ID del presupuesto
+  useEffect(() => {
+    if (isOpen) {
+      const loadNextId = async () => {
+        try {
+          const nextId = await BudgetApiService.getNextId();
+          setNextBudgetId(nextId);
+        } catch (error) {
+          console.error('Error al obtener próximo ID:', error);
+          setNextBudgetId(0);
+        }
+      };
+      
+      loadNextId();
+    }
+  }, [isOpen]);
 
   // Función para calcular posición del dropdown
   const updateDropdownPosition = (index: number) => {
@@ -514,7 +532,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button
+            {/* <Button
               type="button"
               variant="outline"
               size="sm"
@@ -524,7 +542,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
             >
               <Printer size={16} />
               Imprimir Presupuesto
-            </Button>
+            </Button> */}
             <Button
               variant="ghost"
               size="sm"
@@ -1146,7 +1164,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
           isOpen={showPrintPreview}
           onClose={() => setShowPrintPreview(false)}
           budgetData={{
-            id: 0,
+            id: nextBudgetId,
             client_id: selectedClientId || 0,
             user_id: currentUserId,
             date: (document.getElementById('date') as HTMLInputElement)?.value || new Date().toISOString().split('T')[0],
@@ -1154,7 +1172,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
             client: selectedClientId ? clients.find(c => c.id === selectedClientId) : undefined,
             budgetProducts: budgetItems.map((item, index) => ({
               id: index,
-              budget_id: 0,
+              budget_id: nextBudgetId,
               product_id: item.type === 'product' ? item.id : null,
               template_id: item.type === 'template' ? item.id : null,
               quantity: item.quantity,

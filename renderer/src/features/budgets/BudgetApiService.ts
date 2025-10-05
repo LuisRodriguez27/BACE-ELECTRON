@@ -40,5 +40,9 @@ export const BudgetApiService = {
 
   searchPaginated: async (page: number, limit: number, searchTerm: string): Promise<PaginatedResponse<Budget>> => {
     return window.api.searchBudgets(page, limit, searchTerm);
+  },
+
+  getNextId: async (): Promise<number> => {
+    return window.api.getBudgetNextId();
   }
 }  

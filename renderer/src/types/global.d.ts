@@ -100,6 +100,7 @@ declare global {
       getBudgetProducts: (budgetId: number) => Promise<BudgetProduct[]>;
       recalculateBudgetTotal: (budgetId: number) => Promise<number>;
       transformToOrder: (budgetId, userId) => Promise<Order>;
+      getBudgetNextId: () => Promise<number>;
     };
   }
 }
