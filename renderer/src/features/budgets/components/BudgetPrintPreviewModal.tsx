@@ -20,22 +20,6 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
 
   if (!isOpen || !budgetData) return null;
 
-  // Funciones para obtener componentes de fecha por separado
-  const getDay = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.getDate().toString().padStart(1, '0');
-  };
-
-  const getMonth = (dateString: string) => {
-    const date = new Date(dateString);
-    return (date.getMonth() + 1).toString().padStart(1, '0');
-  };
-
-  const getYear = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.getFullYear().toString();
-  };
-
   // Función para formatear fecha como DD/MM/YYYY
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -45,11 +29,32 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
     return `${day}/${month}/${year}`;
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     setIsLoading(true);
 
     try {
-      // Generar HTML sin fondo para impresión
+      // Convertir imagen a base64 para que funcione en la ventana de impresión
+      const imageToBase64 = async (url: string): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL('image/jpeg'));
+          };
+          img.onerror = reject;
+          img.src = url;
+        });
+      };
+
+      // Obtener la imagen en base64
+      const base64Image = await imageToBase64(cotizacionImage);
+
+      // Generar HTML con el mismo diseño del preview visual
       const printHTML = `
 <!DOCTYPE html>
 <html lang="es">
@@ -59,113 +64,123 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
     <title>Presupuesto - ${budgetData.client?.name}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+        }
         @page {
-            size: 2102px 2368px portrait;
+            size: 21.6cm 17cm landscape;
             margin: 0;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
         }
         @media print {
             html, body {
-                width: 2102px !important;
-                height: 2368px !important;
+                width: 21.6cm !important;
+                height: 17cm !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 overflow: hidden !important;
-                transform-origin: top left;
-                -webkit-transform-origin: top left;
             }
             .print-container {
-                width: 2102px !important;
-                height: 2368px !important;
+                width: 21.6cm !important;
+                height: 17cm !important;
                 position: relative !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                transform: none !important;
+            }
+            .background-image {
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                object-fit: cover !important;
+                z-index: -1 !important;
             }
         }
         body {
-            width: 2102px;
-            height: 2368px;
+            width: 21.6cm;
+            height: 17cm;
             margin: 0;
             padding: 0;
             overflow: hidden;
         }
-        .print-fechas {
-            top: 572px;
-            right: 263px;
+        .print-container {
+            width: 21.6cm;
+            height: 17cm;
+            position: relative;
         }
-        .print-cliente-telefono {
-            top: 858px;
-            left: 263px;
-        }
-        .print-productos {
-            top: 1287px;
-            left: 105px;
-            right: 105px;
-        }
-        .print-totales {
-            bottom: 358px;
-            right: 263px;
+        .background-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
         }
     </style>
 </head>
-<body class="text-black font-sans text-xs leading-normal w-full h-full m-0 p-0">
-    <div class="print-container relative w-full h-full p-0 m-0">
-        <!-- Fechas -->
-        <div class="absolute print-fechas text-6xl font-bold">
-            <div class="text-right">
-                <div class="flex gap-10">
-                    <span>${getDay(budgetData.date)}</span>
-                    <span>${getMonth(budgetData.date)}</span>
-                    <span>${getYear(budgetData.date)}</span>
-                </div>
-            </div>
+<body>
+    <div class="print-container">
+        <!-- Imagen de fondo como elemento IMG en lugar de background-image -->
+        <img src="${base64Image}" alt="Fondo" class="background-image" />
+        <!-- ID del presupuesto -->
+        <div class="absolute" style="top: 2.25rem; right: 7rem; font-size: 1.5rem; line-height: 2rem; font-weight: 700; color: rgb(220, 38, 38);">
+            ${budgetData.id}
         </div>
 
-        <!-- Cliente y Teléfono -->
-        <div class="absolute print-cliente-telefono text-7xl font-bold">
-            <div class="grid grid-cols-2 gap-42">
+        <!-- Cliente, Teléfono y Fecha -->
+        <div class="absolute" style="top: 6.5rem; left: 6.25rem; font-size: 1rem; line-height: 1.5rem; font-weight: 700; color: rgb(0, 0, 0);">
+            <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.25rem;">
                 <!-- Cliente -->
-                <div>
+                <div style="grid-column: span 1 / span 1;">
                     ${budgetData.client?.name || 'Cliente no especificado'}
                 </div>
                 
                 <!-- Teléfono -->
-                <div className='ml-50'>
+                <div style="grid-column: span 1 / span 1; text-align: center; padding-left: 8rem;">
                     ${budgetData.client?.phone || ''}
                 </div>
+
+                <!-- Fecha -->
+                <div style="grid-column: span 1 / span 1; text-align: left; padding-left: 6.25rem;">
+                    ${formatDate(budgetData.date)}
+                </div>
             </div>
         </div>
-        
+
         <!-- Productos en formato de tabla -->
-        <div class="absolute print-productos">
-            <div class="grid grid-cols-12 gap-5 text-6xl font-bold mb-10 border-b-2 border-black pb-5">
-                <div class="col-span-1 text-center">#</div>
-                <div class="col-span-6">Producto</div>
-                <div class="col-span-2 text-center">Cantidad</div>
-                <div class="col-span-3 text-right">Precio</div>
+        <div class="absolute" style="top: 9rem; left: 2rem; right: 2.5rem; color: rgb(0, 0, 0);">
+            <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; font-size: 1.125rem; line-height: 1.75rem; font-weight: 600; margin-bottom: 0.5rem; border-bottom: 1px solid rgb(156, 163, 175); padding-bottom: 0.25rem;">
+                <div style="grid-column: span 1 / span 1; text-align: center;">#</div>
+                <div style="grid-column: span 6 / span 6;">Producto</div>
+                <div style="grid-column: span 2 / span 2; text-align: center;">Cantidad</div>
+                <div style="grid-column: span 3 / span 3; text-align: right;">Precio</div>
             </div>
             ${budgetData.budgetProducts?.map((item, index) => `
-                <div class="grid grid-cols-12 gap-5 mb-5 text-4xl py-3">
-                    <div class="col-span-1 text-center font-bold">${index + 1}</div>
-                    <div class="col-span-6">${item.product_name || 'Producto'}</div>
-                    <div class="col-span-2 text-center">${item.quantity}</div>
-                    <div class="col-span-3 text-right font-bold">${item.total_price.toFixed(2)}</div>
+                <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; margin-bottom: 0.5rem; font-size: 1.125rem; line-height: 1.75rem; padding-top: 0.25rem; padding-bottom: 0.25rem;">
+                    <div style="grid-column: span 1 / span 1; text-align: center; font-weight: 500;">
+                        ${index + 1}
+                    </div>
+                    <div style="grid-column: span 6 / span 6;">
+                        ${item.product_name || 'Producto'}
+                    </div>
+                    <div style="grid-column: span 2 / span 2; text-align: center;">
+                        ${item.quantity}
+                    </div>
+                    <div style="grid-column: span 3 / span 3; text-align: right; font-weight: 500;">
+                        $${item.total_price.toFixed(2)}
+                    </div>
                 </div>
             `).join('')}
-        </div>
-        
-        <!-- Total -->
-        <div class="absolute print-totales text-7xl font-bold text-black">
-            ${budgetData.total.toFixed(2)}
         </div>
     </div>
 </body>
 </html>`;
 
       // Crear ventana de impresión
-      const printWindow = window.open('', '_blank', 'width=800,height=600');
+      const printWindow = window.open('', '_blank', 'width=816,height=643');
 
       if (!printWindow) {
         toast.error('No se pudo abrir la ventana de impresión.');
@@ -179,24 +194,6 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
       printWindow.onload = () => {
         setTimeout(() => {
           printWindow.focus();
-          
-          // Configurar las opciones de impresión antes de abrir el diálogo
-          const style = printWindow.document.createElement('style');
-          style.textContent = `
-            @media print {
-              @page {
-                size: 2102px 2368px portrait !important;
-                margin: 0 !important;
-              }
-              body {
-                transform: none !important;
-                width: 2102px !important;
-                height: 2368px !important;
-              }
-            }
-          `;
-          printWindow.document.head.appendChild(style);
-          
           printWindow.print();
           printWindow.onafterprint = () => {
             printWindow.close();
