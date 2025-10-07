@@ -62,7 +62,6 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Presupuesto - ${budgetData.client?.name}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         * {
             -webkit-print-color-adjust: exact !important;
@@ -70,20 +69,20 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
             color-adjust: exact !important;
         }
         @page {
-            size: 21.6cm 17cm landscape;
+            size: 21.6cm 18.5cm landscape;
             margin: 0;
         }
         @media print {
             html, body {
                 width: 21.6cm !important;
-                height: 17cm !important;
+                height: 18.5cm !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 overflow: hidden !important;
             }
             .print-container {
                 width: 21.6cm !important;
-                height: 17cm !important;
+                height: 18.5cm !important;
                 position: relative !important;
                 margin: 0 !important;
                 padding: 0 !important;
@@ -100,14 +99,14 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
         }
         body {
             width: 21.6cm;
-            height: 17cm;
+            height: 18.5cm;
             margin: 0;
             padding: 0;
             overflow: hidden;
         }
         .print-container {
             width: 21.6cm;
-            height: 17cm;
+            height: 18.5cm;
             position: relative;
         }
         .background-image {
@@ -125,13 +124,14 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
     <div class="print-container">
         <!-- Imagen de fondo como elemento IMG en lugar de background-image -->
         <img src="${base64Image}" alt="Fondo" class="background-image" />
+        
         <!-- ID del presupuesto -->
-        <div class="absolute" style="top: 2.25rem; right: 7rem; font-size: 1.5rem; line-height: 2rem; font-weight: 700; color: rgb(220, 38, 38);">
+        <div style="position: absolute; top: 4.25rem; right: 7rem; font-size: 1.5rem; line-height: 2rem; font-weight: 700; color: rgb(220, 38, 38);">
             ${budgetData.id}
         </div>
 
         <!-- Cliente, Teléfono y Fecha -->
-        <div class="absolute" style="top: 6.5rem; left: 6.25rem; font-size: 1rem; line-height: 1.5rem; font-weight: 700; color: rgb(0, 0, 0);">
+        <div style="position: absolute; top: 8.5rem; left: 6.25rem; font-size: 1rem; line-height: 1.5rem; font-weight: 700; color: rgb(0, 0, 0);">
             <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.25rem;">
                 <!-- Cliente -->
                 <div style="grid-column: span 1 / span 1;">
@@ -139,7 +139,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
                 </div>
                 
                 <!-- Teléfono -->
-                <div style="grid-column: span 1 / span 1; text-align: center; padding-left: 8rem;">
+                <div style="grid-column: span 1 / span 1; text-align: center; padding-left: 9rem;">
                     ${budgetData.client?.phone || ''}
                 </div>
 
@@ -151,7 +151,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
         </div>
 
         <!-- Productos en formato de tabla -->
-        <div class="absolute" style="top: 9rem; left: 2rem; right: 2.5rem; color: rgb(0, 0, 0);">
+        <div style="position: absolute; top: 11rem; left: 2rem; right: 2.5rem; color: rgb(0, 0, 0);">
             <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; font-size: 1.125rem; line-height: 1.75rem; font-weight: 600; margin-bottom: 0.5rem; border-bottom: 1px solid rgb(156, 163, 175); padding-bottom: 0.25rem;">
                 <div style="grid-column: span 1 / span 1; text-align: center;">#</div>
                 <div style="grid-column: span 6 / span 6;">Producto</div>
@@ -180,7 +180,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
 </html>`;
 
       // Crear ventana de impresión
-      const printWindow = window.open('', '_blank', 'width=816,height=643');
+      const printWindow = window.open('', '_blank', 'width=800,height=600');
 
       if (!printWindow) {
         toast.error('No se pudo abrir la ventana de impresión.');
