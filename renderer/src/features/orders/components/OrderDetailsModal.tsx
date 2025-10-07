@@ -22,7 +22,6 @@ import {
   XCircle
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import './OrderDetailsModal.css';
 import PrintPreviewModal from './PrintPreviewModal';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';

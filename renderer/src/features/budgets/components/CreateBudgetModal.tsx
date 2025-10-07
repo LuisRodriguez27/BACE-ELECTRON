@@ -8,7 +8,7 @@ import { ProductTemplatesApiService } from '@/features/productTemplates/ProductT
 import type { ProductTemplate } from '@/features/productTemplates/types';
 import { extractErrorMessage } from '@/utils/errorHandling';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Calendar, DollarSign, Layers, Loader, Package, Plus, Printer, ReceiptText, Search, ShoppingBag, Trash2, X, User } from 'lucide-react';
+import { Calendar, DollarSign, Layers, Loader, Package, Plus, ReceiptText, Search, ShoppingBag, Trash2, X, User } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';

@@ -42,11 +42,32 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
   const totalPagos = paymentsData.reduce((sum, payment) => sum + payment.amount, 0);
   const saldoPendiente = orderData.total - totalPagos;
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     setIsLoading(true);
 
     try {
-      // Generar HTML sin fondo para impresión
+      // Convertir imagen a base64 para que funcione en la ventana de impresión
+      const imageToBase64 = async (url: string): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL('image/jpeg'));
+          };
+          img.onerror = reject;
+          img.src = url;
+        });
+      };
+
+      // Obtener la imagen en base64
+      const base64Image = await imageToBase64(notaImage);
+
+      // Generar HTML con el mismo diseño del preview visual
       const printHTML = `
 <!DOCTYPE html>
 <html lang="es">
@@ -54,67 +75,75 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Orden #${orderData.id}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+        }
         @page {
-            size: 2102px 2368px portrait;
+            size: 21.6cm 17cm landscape;
             margin: 0;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
         }
         @media print {
             html, body {
-                width: 2102px !important;
-                height: 2368px !important;
+                width: 21.6cm !important;
+                height: 17cm !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 overflow: hidden !important;
-                transform-origin: top left;
-                -webkit-transform-origin: top left;
             }
             .print-container {
-                width: 2102px !important;
-                height: 2368px !important;
+                width: 21.6cm !important;
+                height: 17cm !important;
                 position: relative !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                transform: none !important;
+            }
+            .background-image {
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                object-fit: cover !important;
+                z-index: -1 !important;
             }
         }
         body {
-            width: 2102px;
-            height: 2368px;
+            width: 21.6cm;
+            height: 17cm;
             margin: 0;
             padding: 0;
             overflow: hidden;
         }
-        .print-fechas {
-            top: 572px;  /* 320px * 1.788 */
-            right: 263px; /* 200px * 1.314 */
+        .print-container {
+            width: 21.6cm;
+            height: 17cm;
+            position: relative;
         }
-        .print-cliente-telefono {
-            top: 858px;  /* 480px * 1.788 */
-            left: 263px; /* 200px * 1.314 */
-        }
-        .print-productos {
-            top: 1287px; /* 720px * 1.788 */
-            left: 105px; /* 80px * 1.314 */
-            right: 105px; /* 80px * 1.314 */
-        }
-        .print-totales-pagos {
-            bottom: 358px; /* 200px * 1.788 */
-            left: 1051px; /* 800px * 1.314 */
+        .background-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
         }
     </style>
 </head>
-<body class="text-black font-sans text-xs leading-normal w-full h-full m-0 p-0">
-    <div class="print-container relative w-full h-full p-0 m-0">
+<body>
+    <div class="print-container">
+        <!-- Imagen de fondo como elemento IMG en lugar de background-image -->
+        <img src="${base64Image}" alt="Fondo" class="background-image" />
+        
         <!-- Fechas en dos columnas -->
-        <div class="absolute print-fechas text-6xl font-bold"> <!-- era text-4xl, ahora text-6xl -->
-            <div class="grid grid-cols-2 gap-32"> <!-- era gap-24, ahora gap-32 -->
+        <div style="position: absolute; top: 4rem; right: 3rem; font-size: 1rem; line-height: 1.25rem; font-weight: 700; color: rgb(0, 0, 0);">
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem;">
                 <!-- Columna 1: Fecha de Orden -->
-                <div class="text-right">
-                    <div class="flex gap-10"> <!-- era gap-8, ahora gap-10 -->
+                <div style="text-align: right;">
+                    <div style="display: flex; gap: 1.25rem;">
                         <span>${getDay(orderData.date)}</span>
                         <span>${getMonth(orderData.date)}</span>
                         <span>${getYear(orderData.date)}</span>
@@ -122,9 +151,9 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                 </div>
                 
                 <!-- Columna 2: Fecha de Entrega -->
-                <div class="text-right">
+                <div style="text-align: right;">
                     ${orderData.estimated_delivery_date ? `
-                        <div class="flex gap-10"> <!-- era gap-8, ahora gap-10 -->
+                        <div style="display: flex; gap: 1.25rem;">
                             <span>${getDay(orderData.estimated_delivery_date)}</span>
                             <span>${getMonth(orderData.estimated_delivery_date)}</span>
                             <span>${getYear(orderData.estimated_delivery_date)}</span>
@@ -135,54 +164,54 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
         </div>
 
         <!-- Cliente y Teléfono -->
-        <div class="absolute print-cliente-telefono text-7xl font-bold">
-            <div class="grid grid-cols-2 gap-42">
+        <div style="position: absolute; top: 7.5rem; left: 6.25rem; font-size: 1.25rem; line-height: 1; font-weight: 700; color: rgb(0, 0, 0);">
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5rem;">
                 <!-- Cliente -->
-                <div>
+                <div style="grid-column: span 1 / span 1;">
                     ${orderData.client?.name || 'Cliente no especificado'}
                 </div>
                 
                 <!-- Teléfono -->
-                <div className='ml-50'>
+                <div style="grid-column: span 1 / span 1; margin-left: 10.5rem;">
                     ${orderData.client?.phone || ''}
                 </div>
             </div>
         </div>
         
         <!-- Productos en formato de tabla -->
-        <div class="absolute print-productos">
-            <div class="grid grid-cols-12 gap-5 text-6xl font-bold mb-10 border-b-2 border-black pb-5">
-                <div class="col-span-1 text-center">#</div>
-                <div class="col-span-6">Producto</div>
-                <div class="col-span-2 text-center">Cantidad</div>
-                <div class="col-span-3 text-right">Precio</div>
+        <div style="position: absolute; top: 11rem; left: 2rem; right: 2.5rem; color: rgb(0, 0, 0);">
+            <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; font-size: 1.125rem; line-height: 1; font-weight: 600; margin-bottom: 0.5rem; border-bottom: 1px solid rgb(156, 163, 175); padding-bottom: 0.25rem;">
+                <div style="grid-column: span 1 / span 1; text-align: center;">#</div>
+                <div style="grid-column: span 6 / span 6;">Producto</div>
+                <div style="grid-column: span 2 / span 2; text-align: center;">Cantidad</div>
+                <div style="grid-column: span 3 / span 3; text-align: right;">Precio</div>
             </div>
             ${productsData.map((product, index) => `
-                <div class="grid grid-cols-12 gap-5 mb-5 text-4xl py-3">
-                    <div class="col-span-1 text-center font-bold">${index + 1}</div>
-                    <div class="col-span-6">${product.product_name || product.template_name || 'Producto'}</div>
-                    <div class="col-span-2 text-center">${product.quantity}</div>
-                    <div class="col-span-3 text-right font-bold">${product.total_price.toFixed(2)}</div>
+                <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; margin-bottom: 0.5rem; font-size: 1.125rem; line-height: 1.75rem; padding-top: 0.25rem; padding-bottom: 0.25rem;">
+                    <div style="grid-column: span 1 / span 1; text-align: center; font-weight: 500;">${index + 1}</div>
+                    <div style="grid-column: span 6 / span 6;">${product.product_name || product.template_name || 'Producto'}</div>
+                    <div style="grid-column: span 2 / span 2; text-align: center;">${product.quantity}</div>
+                    <div style="grid-column: span 3 / span 3; text-align: right; font-weight: 500;">${product.total_price.toFixed(2)}</div>
                 </div>
             `).join('')}
         </div>
         
         <!-- Totales, Pagos y Saldo en tres columnas -->
-        <div class="absolute print-totales-pagos text-7xl">
-            <div class="grid grid-cols-3 gap-20">
+        <div style="position: absolute; bottom: 3rem; left: 11rem; font-size: 1.5rem; line-height: 1;">
+            <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2.5rem;">
                 <!-- Pagos -->
-                <div class="text-green-700 font-bold text-right" style="min-width: 200px;">
-                    ${paymentsData.length > 0 ? `${totalPagos.toFixed(2)}` : ''}
+                <div style="color: rgb(21, 128, 61); font-weight: 700; text-align: right; min-width: 100px;">
+                    ${paymentsData.length > 0 ? `$${totalPagos.toFixed(2)}` : ''}
                 </div>
                 
                 <!-- Saldo -->
-                <div class="font-bold text-red-600 text-right" style="min-width: 200px;">
-                    ${saldoPendiente.toFixed(2)}
+                <div style="font-weight: 700; color: rgb(220, 38, 38); text-align: right; min-width: 100px;">
+                    $${saldoPendiente.toFixed(2)}
                 </div>
                 
                 <!-- Total -->
-                <div class="text-black font-bold text-right" style="min-width: 200px;">
-                    ${orderData.total.toFixed(2)}
+                <div style="color: rgb(0, 0, 0); font-weight: 700; text-align: right; min-width: 100px;">
+                    $${orderData.total.toFixed(2)}
                 </div>
             </div>
         </div>
@@ -205,29 +234,11 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
       printWindow.onload = () => {
         setTimeout(() => {
           printWindow.focus();
-          
-          // Configurar las opciones de impresión antes de abrir el diálogo
-          const style = printWindow.document.createElement('style');
-          style.textContent = `
-            @media print {
-              @page {
-                size: 2102px 2368px portrait !important;
-                margin: 0 !important;
-              }
-              body {
-                transform: none !important;
-                width: 2102px !important;
-                height: 2368px !important;
-              }
-            }
-          `;
-          printWindow.document.head.appendChild(style);
-          
           printWindow.print();
           printWindow.onafterprint = () => {
             printWindow.close();
           };
-        }, 500); // Aumentar el tiempo para asegurar que cargue completamente
+        }, 500);
       };
 
       toast.success('Documento enviado a impresión');
