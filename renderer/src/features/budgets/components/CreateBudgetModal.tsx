@@ -13,7 +13,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { calculateBudgetTotal, type CreateBudgetForm, createBudgetItemFromFormItem, createBudgetSchema, type Budget, type BudgetFormItem } from "../types";
-import { toast } from 'sonner';
+// import { toast } from 'sonner';
 import BudgetPrintPreviewModal from './BudgetPrintPreviewModal';
 import { BudgetApiService } from '../BudgetApiService';
 interface CreateBudgetModalProps {
@@ -466,28 +466,28 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
   };
 
   // Función para abrir la vista previa de impresión
-  const handlePrint = () => {
-    // Validar que hay un cliente seleccionado
-    if (!selectedClientId) {
-      toast.error('Debe seleccionar un cliente para imprimir');
-      return;
-    }
+  // const handlePrint = () => {
+  //   // Validar que hay un cliente seleccionado
+  //   if (!selectedClientId) {
+  //     toast.error('Debe seleccionar un cliente para imprimir');
+  //     return;
+  //   }
 
-    if (budgetItems.length === 0) {
-      toast.error('Debe agregar al menos un producto o plantilla para imprimir');
-      return;
-    }
+  //   if (budgetItems.length === 0) {
+  //     toast.error('Debe agregar al menos un producto o plantilla para imprimir');
+  //     return;
+  //   }
 
-    // Validar que todos los items tienen datos válidos
-    const invalidItems = budgetItems.filter(item => !item.id || item.id === 0 || !item.name.trim());
-    if (invalidItems.length > 0) {
-      toast.error('Todos los productos/plantillas deben estar seleccionados antes de imprimir');
-      return;
-    }
+  //   // Validar que todos los items tienen datos válidos
+  //   const invalidItems = budgetItems.filter(item => !item.id || item.id === 0 || !item.name.trim());
+  //   if (invalidItems.length > 0) {
+  //     toast.error('Todos los productos/plantillas deben estar seleccionados antes de imprimir');
+  //     return;
+  //   }
 
-    // Abrir el modal de vista previa
-    setShowPrintPreview(true);
-  };
+  //   // Abrir el modal de vista previa
+  //   setShowPrintPreview(true);
+  // };
 
   // Obtener lista filtrada de clientes
   const getFilteredClients = () => {

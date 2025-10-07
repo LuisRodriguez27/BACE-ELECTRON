@@ -14,7 +14,7 @@ class AuthService {
       if (response.success && response.user) {
         this.authStore.getState().setUser(response.user);
         // Obtener permisos del usuario
-        await this.loadUserPermissions(response.user.id);
+        await this.loadUserPermissions();
         return response;
       } else {
         this.authStore.getState().setError(response.message);
@@ -53,7 +53,7 @@ class AuthService {
       if (user) {
         this.authStore.getState().setUser(user);
         // Cargar permisos al obtener usuario actual
-        await this.loadUserPermissions(user.id);
+        await this.loadUserPermissions();
       }
       return user;
     } catch (error) {
@@ -62,7 +62,7 @@ class AuthService {
     }
   }
 
-  private async loadUserPermissions(userId: number): Promise<void> {
+  private async loadUserPermissions(): Promise<void> {
     try {
       // Obtener permisos reales del usuario desde la API
       const userWithPermissions = await window.api.getUserWithPermissions();
