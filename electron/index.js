@@ -21,7 +21,7 @@ function createWindow() {
     height: 768,
     show: false, // No mostrar hasta que esté listo
     backgroundColor: '#ffffff', // Fondo blanco para evitar pantallas negras
-    autoHideMenuBar: true,
+    // autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -36,8 +36,14 @@ function createWindow() {
     win.maximize(); // Maximizar después de mostrar
   });
 
-  win.loadURL('http://localhost:5173'); // Durante el desarrollo
-  // win.loadFile(../renderer/dist/index.html'); // Para producción
+  // Cargar la aplicación según el entorno
+  if (app.isPackaged) {
+    // Producción: cargar desde los archivos empaquetados
+    win.loadFile(path.join(__dirname, '../renderer/dist/index.html'));
+  } else {
+    // Desarrollo: cargar desde el servidor de Vite
+    win.loadURL('http://localhost:5173');
+  }
 }
 
 // Manejo de eventos IPC para usuarios

@@ -1,7 +1,29 @@
 const path = require('path');
 const Database = require('better-sqlite3');
+const { app } = require('electron');
+const fs = require('fs');
 
-const dbPath = path.join(__dirname, '../sqlite/data.db');
+// Determinar la ruta de la base de datos según el entorno
+let dbPath;
+
+if (app.isPackaged) {
+  // En producción: usar la carpeta de datos de usuario
+  const userDataPath = app.getPath('userData');
+  const dbDir = path.join(userDataPath, 'database');
+  
+  // Crear el directorio si no existe
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+  
+  dbPath = path.join(dbDir, 'data.db');
+} else {
+  // En desarrollo: usar la carpeta sqlite del proyecto
+  dbPath = path.join(__dirname, '../sqlite/data.db');
+}
+
+console.log('Database path:', dbPath);
+
 const db = new Database(dbPath);
 
 db.exec(`
