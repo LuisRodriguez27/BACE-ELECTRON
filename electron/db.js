@@ -1,6 +1,6 @@
 const path = require('path');
 const Database = require('better-sqlite3');
-const { app } = require('electron');
+const { app, dialog } = require('electron');
 const fs = require('fs');
 
 // ============================================
@@ -9,11 +9,11 @@ const fs = require('fs');
 const CONFIG = {
   // PARA PC SERVIDOR: modo = 'local'
   // PARA PC CLIENTES: modo = 'network'
-  modo: 'local',  // Cambia esto según el instalador que generes
+  modo: 'network',  // Cambia esto según el instalador que generes
   
   // Solo necesario para modo 'network'
-  serverIP: '192.168.50.1',
-  serverUser: 'Luis'  // Usuario de Windows de la PC servidor
+  serverIP: 'PCSITA',  // Nombre de la PC servidor (también puedes usar IP)
+  serverUser: 'corre'  // Usuario de Windows de la PC servidor
 };
 // ============================================
 
@@ -44,7 +44,7 @@ function getDatabasePath() {
 
   // Modo producción - NETWORK (PC Clientes)
   if (CONFIG.modo === 'network') {
-    const networkPath = `\\\\${CONFIG.serverIP}\\Users\\${CONFIG.serverUser}\\AppData\\Roaming\\bace-electron\\database\\data.db`;
+    const networkPath = `\\\\${CONFIG.serverIP}\\Users\\${CONFIG.serverUser}\\AppData\\Roaming\\bace\\database\\data.db`;
     console.log('🌐 MODO RED (CLIENTE):', networkPath);
     return networkPath;
   }
@@ -68,6 +68,44 @@ if (CONFIG.modo === 'local' && app.isPackaged) {
   }
 }
 
+// Validar acceso en modo network
+if (CONFIG.modo === 'network' && app.isPackaged) {
+  console.log('📁 Intentando acceder a:', dbPath);
+  
+  // Verificar si el archivo existe
+  if (!fs.existsSync(dbPath)) {
+    const errorMsg = `
+❌ ERROR DE CONEXIÓN A RED
+
+No se puede acceder a la base de datos del servidor.
+
+Ruta: ${dbPath}
+
+POSIBLES CAUSAS:
+1. La PC servidor (${CONFIG.serverIP}) está apagada
+2. La carpeta "bace-electron" no está compartida correctamente
+3. El usuario "${CONFIG.serverUser}" no es correcto
+4. El firewall está bloqueando la conexión
+
+SOLUCIÓN:
+Verifica que puedes abrir esta ruta en el Explorador de Windows:
+\\\\${CONFIG.serverIP}\\Users\\${CONFIG.serverUser}\\AppData\\Roaming\\bace
+
+Si no puedes abrirla, revisa la configuración de red en el servidor.
+    `.trim();
+    
+    console.error(errorMsg);
+    
+    // Mostrar diálogo de error al usuario
+    dialog.showErrorBox('Error de Conexión a Red', errorMsg);
+    
+    app.quit();
+    process.exit(1);
+  }
+  
+  console.log('✅ Archivo de base de datos encontrado');
+}
+
 console.log('📁 Ruta final de base de datos:', dbPath);
 
 // Configuración de SQLite optimizada
@@ -75,9 +113,19 @@ const db = new Database(dbPath, {
   timeout: 10000,
 });
 
-// Configuraciones para mejor rendimiento
-db.pragma('journal_mode = WAL');
-db.pragma('synchronous = NORMAL');
+// Configuraciones según el modo
+if (CONFIG.modo === 'network' && app.isPackaged) {
+  // En modo red, usar DELETE mode (más seguro para red)
+  console.log('⚙️ Configurando SQLite para modo RED');
+  db.pragma('journal_mode = DELETE');
+  db.pragma('synchronous = FULL');
+} else {
+  // En modo local, usar WAL (mejor rendimiento)
+  console.log('⚙️ Configurando SQLite para modo LOCAL');
+  db.pragma('journal_mode = WAL');
+  db.pragma('synchronous = NORMAL');
+}
+
 db.pragma('cache_size = -64000');
 db.pragma('temp_store = MEMORY');
 db.pragma('foreign_keys = ON');
