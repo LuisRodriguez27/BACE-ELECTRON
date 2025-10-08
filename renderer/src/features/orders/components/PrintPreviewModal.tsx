@@ -3,6 +3,7 @@ import { Button } from '@/components/ui';
 import { X, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import notaImage from '@/assets/NOTA.jpg';
+import { getOrderItemDisplayName } from '../types';
 
 interface PrintPreviewModalProps {
   isOpen: boolean;
@@ -189,7 +190,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
             ${productsData.map((product, index) => `
                 <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; margin-bottom: 0.5rem; font-size: 1.125rem; line-height: 1.75rem; padding-top: 0.25rem; padding-bottom: 0.25rem;">
                     <div style="grid-column: span 1 / span 1; text-align: center; font-weight: 500;">${index + 1}</div>
-                    <div style="grid-column: span 6 / span 6;">${product.product_name || product.template_name || 'Producto'}</div>
+                    <div style="grid-column: span 6 / span 6;">${getOrderItemDisplayName(product)}</div>
                     <div style="grid-column: span 2 / span 2; text-align: center;">${product.quantity}</div>
                     <div style="grid-column: span 3 / span 3; text-align: right; font-weight: 500;">${product.total_price.toFixed(2)}</div>
                 </div>
@@ -199,7 +200,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
         <div>
             <!-- Número de Orden en la parte inferior derecha -->
             <div style="position: absolute; bottom: 7.5rem; right: 5rem; font-size: 1.25rem; line-height: 1; font-weight: 700; color: rgb(220, 38, 38); text-align: center;">
-                No. ${orderData.id}°
+                No. ${orderData.id}
             </div>
         </div>
         
@@ -366,7 +367,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                       {index + 1}
                     </div>
                     <div className="col-span-6">
-                      {product.product_name || product.template_name || 'Producto'}
+                      {getOrderItemDisplayName(product)}
                     </div>
                     <div className="col-span-2 text-center">
                       {product.quantity}
@@ -380,7 +381,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
 
               <div className="absolute bottom-32 right-20 right-10 text-xl font-bold text-red-600">
                 <div className='text-center'>
-                  No. {orderData.id}°
+                  No. {orderData.id}
                 </div>
               </div>
 

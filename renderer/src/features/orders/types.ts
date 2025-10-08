@@ -110,6 +110,7 @@ export interface OrderProduct {
   template_description?: string;
   template_final_price?: number;
   template_created_by_username?: string;
+  template_base_product_name?: string;
 }
 
 // Tipos para el formulario del frontend
@@ -152,8 +153,8 @@ export const getOrderItemDisplayName = (orderProduct: OrderProduct): string => {
   if (orderProduct.product_id) {
     return orderProduct.product_name || `Producto #${orderProduct.product_id}`;
   } else if (orderProduct.template_id) {
-    const baseName = orderProduct.product_name || 'Producto';
-    return `${baseName} (Plantilla)`;
+    const baseName = orderProduct.template_base_product_name || orderProduct.product_name || 'Producto';
+    return baseName;
   }
   return 'Item desconocido';
 };

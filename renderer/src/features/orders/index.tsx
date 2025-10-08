@@ -11,6 +11,7 @@ import OrderDetailsModal from './components/OrderDetailsModal';
 import OrderEditModal from './components/OrderEditModal';
 import { OrdersApiService } from './OrdersApiService';
 import type { Order } from './types';
+import { getOrderItemDisplayName } from './types';
 import { usePermissions } from '@/hooks/use-permissions';
 
 const OrdersPage: React.FC = () => {
@@ -480,7 +481,7 @@ const OrdersPage: React.FC = () => {
                           <div className="flex flex-wrap gap-2 mt-1">
                             {order.orderProducts.map((op, index) => (
                               <span key={index} className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded">
-                                {op.product_name} (x{op.quantity})
+                                {getOrderItemDisplayName(op)} (x{op.quantity})
                               </span>
                             ))}
                           </div>
