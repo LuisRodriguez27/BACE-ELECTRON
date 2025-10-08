@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { ProductTemplatesApiService } from './ProductTemplatesApiService';
 import type { ProductTemplate } from './types';
 import { usePermissions } from '@/hooks/use-permissions';
+import DeleteTemplateModal from './components/DeleteTemplateModal';
 
 const ProductTemplatesPage: React.FC = () => {
   const [templates, setTemplates] = useState<ProductTemplate[]>([]);
@@ -27,6 +28,8 @@ const ProductTemplatesPage: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const { checkPermission } = usePermissions();
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<ProductTemplate | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -58,24 +61,18 @@ const ProductTemplatesPage: React.FC = () => {
     return matchesSearch && matchesProduct && matchesUser;
   });
 
-  const handleDeleteTemplate = async (templateId: number) => {
+  const openDeleteModal = (template: ProductTemplate) => {
     // Validar permiso antes de proceder
     if (!checkPermission("Eliminar Plantilla")) {
       return;
     }
+    setTemplateToDelete(template);
+    setDeleteModalOpen(true);
+  };
 
-    if (!confirm('¿Estás seguro de eliminar esta plantilla? Esta acción no se puede deshacer.')) {
-      return;
-    }
-
-    try {
-      await ProductTemplatesApiService.delete(templateId);
-      setTemplates(prev => prev.filter(t => t.id !== templateId));
-      toast.success('Plantilla eliminada exitosamente');
-    } catch (error) {
-      console.error('Error deleting template:', error);
-      toast.error('Error al eliminar la plantilla');
-    }
+  const handleTemplateDeleted = (templateId: number) => {
+    setTemplates(prev => prev.filter(t => t.id !== templateId));
+    toast.success('Plantilla eliminada exitosamente');
   };
 
   const formatColors = (colors?: string) => {
@@ -339,7 +336,7 @@ const ProductTemplatesPage: React.FC = () => {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => handleDeleteTemplate(template.id)}
+                        onClick={() => openDeleteModal(template)}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center gap-1"
                       >
                         <Trash2 size={14} />
@@ -353,6 +350,14 @@ const ProductTemplatesPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Delete Modal */}
+      <DeleteTemplateModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onTemplateDeleted={handleTemplateDeleted}
+        template={templateToDelete}
+      />
     </div>
   );
 };

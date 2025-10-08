@@ -2,6 +2,7 @@ import { Button, Input } from '@/components/ui';
 import TemplateStats from '@/features/productTemplates/components/TemplateStats';
 import { ProductTemplatesApiService } from '@/features/productTemplates/ProductTemplatesApiService';
 import type { ProductTemplate } from '@/features/productTemplates/types';
+import DeleteTemplateModal from '@/features/productTemplates/components/DeleteTemplateModal';
 import { usePermissions } from '@/hooks/use-permissions';
 import {
   ArrowLeft,
@@ -45,6 +46,8 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
   const [showEditTemplateModal, setShowEditTemplateModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<ProductTemplate | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<ProductTemplate | null>(null);
 
   // Estados para modal de producto
   const [showEditProductModal, setShowEditProductModal] = useState(false);
@@ -86,24 +89,17 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
     template.final_price?.toString().includes(searchTerm.toLowerCase())
   );
 
-  const handleDeleteTemplate = async (templateId: number) => {
+  const openDeleteTemplateModal = (template: ProductTemplate) => {
     if (!checkPermission("Eliminar Plantilla")) {
       return;
     }
+    setTemplateToDelete(template);
+    setDeleteModalOpen(true);
+  };
 
-    if (!confirm('¿Estás seguro de eliminar esta plantilla? Esta acción no se puede deshacer.')) {
-      return;
-    }
-
-    try {
-      await ProductTemplatesApiService.delete(templateId);
-      setTemplates(prev => prev.filter(t => t.id !== templateId));
-      toast.success('Plantilla eliminada exitosamente');
-      
-    } catch (error) {
-      console.error('Error deleting template:', error);
-      toast.error('Error al eliminar la plantilla');
-    }
+  const handleTemplateDeleted = (templateId: number) => {
+    setTemplates(prev => prev.filter(t => t.id !== templateId));
+    toast.success('Plantilla eliminada exitosamente');
   };
 
   const openCreateTemplateModal = () => {
@@ -454,7 +450,7 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => handleDeleteTemplate(template.id)}
+                        onClick={() => openDeleteTemplateModal(template)}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center gap-1"
                       >
                         <Trash2 size={14} />
@@ -483,6 +479,14 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
         onClose={closeModals}
         onTemplateUpdated={handleTemplateUpdated}
         template={selectedTemplate}
+      />
+
+      {/* Delete Modal */}
+      <DeleteTemplateModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onTemplateDeleted={handleTemplateDeleted}
+        template={templateToDelete}
       />
 
       {/* Modal de Producto */}
