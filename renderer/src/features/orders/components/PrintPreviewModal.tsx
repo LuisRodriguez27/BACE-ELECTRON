@@ -179,7 +179,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
         </div>
         
         <!-- Productos en formato de tabla -->
-        <div style="position: absolute; top: 11rem; left: 2rem; right: 2.5rem; color: rgb(0, 0, 0);">
+        <div style="position: absolute; top: 9rem; left: 2rem; right: 2.5rem; color: rgb(0, 0, 0);">
             <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; font-size: 1.125rem; line-height: 1; font-weight: 600; margin-bottom: 0.5rem; border-bottom: 1px solid rgb(156, 163, 175); padding-bottom: 0.25rem;">
                 <div style="grid-column: span 1 / span 1; text-align: center;">#</div>
                 <div style="grid-column: span 6 / span 6;">Producto</div>
@@ -194,6 +194,13 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                     <div style="grid-column: span 3 / span 3; text-align: right; font-weight: 500;">${product.total_price.toFixed(2)}</div>
                 </div>
             `).join('')}
+        </div>
+
+        <div>
+            <!-- Número de Orden en la parte inferior derecha -->
+            <div style="position: absolute; bottom: 7.5rem; right: 5rem; font-size: 1.25rem; line-height: 1; font-weight: 700; color: rgb(220, 38, 38); text-align: center;">
+                No. ${orderData.id}°
+            </div>
         </div>
         
         <!-- Totales, Pagos y Saldo en tres columnas -->
@@ -343,7 +350,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
               </div>
 
               {/* Productos en formato de tabla */}
-              <div className="absolute top-44 left-8 right-10 text-black">
+              <div className="absolute top-38 left-8 right-10 text-black">
                 <div className="grid grid-cols-12 gap-2 text-lg font-semibold mb-2 border-b border-gray-400 pb-1">
                   <div className="col-span-1 text-center">#</div>
                   <div className="col-span-6">Producto</div>
@@ -369,6 +376,12 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                     </div>
                   </div>
                 ))}
+              </div>
+
+              <div className="absolute bottom-32 right-20 right-10 text-xl font-bold text-red-600">
+                <div className='text-center'>
+                  No. {orderData.id}°
+                </div>
               </div>
 
               <div className="absolute bottom-14 left-44 text-2xl">
