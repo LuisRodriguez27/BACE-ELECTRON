@@ -109,27 +109,37 @@ Si no puedes abrirla, revisa la configuración de red en el servidor.
 console.log('📁 Ruta final de base de datos:', dbPath);
 
 // Configuración de SQLite optimizada
-const db = new Database(dbPath, {
-  timeout: 10000,
-});
+// Solo el servidor crea la base de datos, los clientes deben encontrarla existente
+const dbOptions = {
+  timeout: 30000, // 30 segundos de timeout (aumentado para red)
+};
+
+// Solo en modo network, requerir que el archivo exista
+if (CONFIG.modo === 'network' && app.isPackaged) {
+  dbOptions.fileMustExist = true;
+}
+
+const db = new Database(dbPath, dbOptions);
 
 // Configuraciones según el modo
-if (CONFIG.modo === 'network' && app.isPackaged) {
-  // En modo red, usar DELETE mode (más seguro para red)
-  console.log('⚙️ Configurando SQLite para modo RED');
+if (app.isPackaged) {
+  // En producción, SIEMPRE usar DELETE mode para compatibilidad de red
+  console.log('⚙️ Configurando SQLite para PRODUCCIÓN (modo compatible con red)');
   db.pragma('journal_mode = DELETE');
   db.pragma('synchronous = FULL');
+  db.pragma('locking_mode = NORMAL'); // Permitir múltiples conexiones
+  db.pragma('busy_timeout = 30000'); // 30 segundos esperando si está bloqueada
 } else {
-  // En modo local, usar WAL (mejor rendimiento)
-  console.log('⚙️ Configurando SQLite para modo LOCAL');
+  // En desarrollo, usar WAL (mejor rendimiento)
+  console.log('⚙️ Configurando SQLite para DESARROLLO');
   db.pragma('journal_mode = WAL');
   db.pragma('synchronous = NORMAL');
+  db.pragma('busy_timeout = 5000');
 }
 
 db.pragma('cache_size = -64000');
 db.pragma('temp_store = MEMORY');
 db.pragma('foreign_keys = ON');
-db.pragma('busy_timeout = 10000');
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
