@@ -193,7 +193,6 @@ const OrdersPage: React.FC = () => {
       ...prev,
       [newPayment.order_id]: [...(prev[newPayment.order_id] || []), newPayment]
     }));
-    toast.success('Pago registrado exitosamente');
   };
 
   const getPaymentStatus = (order: Order): { status: 'paid' | 'partial' | 'pending'; icon: React.ReactNode; color: string; text: string } => {
