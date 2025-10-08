@@ -3,28 +3,85 @@ const Database = require('better-sqlite3');
 const { app } = require('electron');
 const fs = require('fs');
 
-// Determinar la ruta de la base de datos según el entorno
-let dbPath;
+// ============================================
+// CONFIGURACIÓN - EDITA AQUÍ PARA CADA INSTALADOR
+// ============================================
+const CONFIG = {
+  // PARA PC SERVIDOR: modo = 'local'
+  // PARA PC CLIENTES: modo = 'network'
+  modo: 'local',  // Cambia esto según el instalador que generes
+  
+  // Solo necesario para modo 'network'
+  serverIP: '192.168.50.1',
+  serverUser: 'Luis'  // Usuario de Windows de la PC servidor
+};
+// ============================================
 
-if (app.isPackaged) {
-  // En producción: usar la carpeta de datos de usuario
-  const userDataPath = app.getPath('userData');
-  const dbDir = path.join(userDataPath, 'database');
-  
-  // Crear el directorio si no existe
-  if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
+/**
+ * Obtener la ruta de la base de datos
+ */
+function getDatabasePath() {
+  // Modo desarrollo
+  if (!app.isPackaged) {
+    const devPath = path.join(__dirname, '../sqlite/data.db');
+    console.log('🔧 DESARROLLO:', devPath);
+    return devPath;
   }
-  
-  dbPath = path.join(dbDir, 'data.db');
-} else {
-  // En desarrollo: usar la carpeta sqlite del proyecto
-  dbPath = path.join(__dirname, '../sqlite/data.db');
+
+  // Modo producción - LOCAL (PC Servidor)
+  if (CONFIG.modo === 'local') {
+    const userDataPath = app.getPath('userData');
+    const dbDir = path.join(userDataPath, 'database');
+    
+    if (!fs.existsSync(dbDir)) {
+      fs.mkdirSync(dbDir, { recursive: true });
+    }
+    
+    const localPath = path.join(dbDir, 'data.db');
+    console.log('💻 MODO LOCAL (SERVIDOR):', localPath);
+    return localPath;
+  }
+
+  // Modo producción - NETWORK (PC Clientes)
+  if (CONFIG.modo === 'network') {
+    const networkPath = `\\\\${CONFIG.serverIP}\\Users\\${CONFIG.serverUser}\\AppData\\Roaming\\bace-electron\\database\\data.db`;
+    console.log('🌐 MODO RED (CLIENTE):', networkPath);
+    return networkPath;
+  }
+
+  // Fallback a local
+  console.warn('⚠️ Configuración no válida, usando modo local');
+  return path.join(app.getPath('userData'), 'database', 'data.db');
 }
 
-console.log('Database path:', dbPath);
+const dbPath = getDatabasePath();
 
-const db = new Database(dbPath);
+// Asegurar que el directorio existe (solo para modo local)
+if (CONFIG.modo === 'local' && app.isPackaged) {
+  const dbDir = path.dirname(dbPath);
+  if (!fs.existsSync(dbDir)) {
+    try {
+      fs.mkdirSync(dbDir, { recursive: true });
+    } catch (error) {
+      console.error('❌ Error creando directorio:', error);
+    }
+  }
+}
+
+console.log('📁 Ruta final de base de datos:', dbPath);
+
+// Configuración de SQLite optimizada
+const db = new Database(dbPath, {
+  timeout: 10000,
+});
+
+// Configuraciones para mejor rendimiento
+db.pragma('journal_mode = WAL');
+db.pragma('synchronous = NORMAL');
+db.pragma('cache_size = -64000');
+db.pragma('temp_store = MEMORY');
+db.pragma('foreign_keys = ON');
+db.pragma('busy_timeout = 10000');
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
@@ -95,7 +152,7 @@ db.exec(`
     status TEXT NOT NULL DEFAULT 'pendiente', 
     total REAL DEFAULT 0,
     notes TEXT,
-    created_from_budget_id INTEGER, -- Si viene de un presupuesto, guarda su ID
+    created_from_budget_id INTEGER,
     active INTEGER NOT NULL DEFAULT 1,
     FOREIGN KEY (client_id) REFERENCES clients(id),
     FOREIGN KEY (user_id) REFERENCES users(id),
@@ -124,8 +181,8 @@ db.exec(`
     edited_by INTEGER,
     date TIMESTAMP NOT NULL,
     total REAL DEFAULT 0,
-    converted_to_order INTEGER NOT NULL DEFAULT 0, -- 1 si fue convertido
-    converted_to_order_id INTEGER, -- Si fue convertido, guarda el ID de la orden
+    converted_to_order INTEGER NOT NULL DEFAULT 0,
+    converted_to_order_id INTEGER,
     active INTEGER NOT NULL DEFAULT 1,
     FOREIGN KEY (client_id) REFERENCES clients(id),
     FOREIGN KEY (user_id) REFERENCES users(id),
@@ -156,15 +213,11 @@ db.exec(`
     FOREIGN KEY (order_id) REFERENCES orders(id)
   );
 
-  -- Índices útiles para tu flujo diario
   CREATE INDEX IF NOT EXISTS idx_products_active ON products(active);
   CREATE INDEX IF NOT EXISTS idx_orders_client_id ON orders(client_id);
   CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
-
   CREATE INDEX IF NOT EXISTS idx_budgets_client_id ON budgets(client_id);
   CREATE INDEX IF NOT EXISTS idx_budgets_active ON budgets(active);
 `);
-
-db.pragma('foreign_keys = ON');
 
 module.exports = db;
