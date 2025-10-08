@@ -16,4 +16,10 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  // Configuración para Electron
+  base: './', // Usar rutas relativas para que funcione en Electron
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true,
+  },
 })
