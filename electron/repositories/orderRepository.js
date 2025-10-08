@@ -299,10 +299,12 @@ class OrderRepository {
     const stmt = db.prepare(`
       SELECT 
         op.*,
+        -- Para productos directos
         p.name as product_name, 
         p.serial_number,
         p.price as product_price,
         p.description as product_description,
+        -- Para plantillas
         pt.width as template_width,
         pt.height as template_height,
         pt.colors as template_colors,
@@ -310,10 +312,13 @@ class OrderRepository {
         pt.texts as template_texts,
         pt.description as template_description,
         pt.final_price as template_final_price,
-        u.username as template_created_by_username
+        u.username as template_created_by_username,
+        -- Nombre del producto base para plantillas
+        p_template.name as template_base_product_name
       FROM order_products op
       LEFT JOIN products p ON op.product_id = p.id
       LEFT JOIN product_templates pt ON op.template_id = pt.id
+      LEFT JOIN products p_template ON pt.product_id = p_template.id
       LEFT JOIN users u ON pt.created_by = u.id
       WHERE op.order_id = ?
       ORDER BY op.id
