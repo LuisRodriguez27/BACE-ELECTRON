@@ -9,7 +9,7 @@ const fs = require('fs');
 const CONFIG = {
   // PARA PC SERVIDOR: modo = 'local'
   // PARA PC CLIENTES: modo = 'network'
-  modo: 'local',  // Cambia esto según el instalador que generes
+  modo: 'network',  // Cambia esto según el instalador que generes
   
   // RUTA FIJA para el servidor (modo 'local')
   // IMPORTANTE: Esta debe ser la ruta COMPLETA al escritorio donde está la BD
@@ -18,7 +18,7 @@ const CONFIG = {
   
   // Solo necesario para modo 'network'
   // IMPORTANTE: Si el escritorio del servidor está montado como unidad Z:
-  // usa 'Z:' como networkDrive. Si usas UNC path, deja networkDrive en null
+  // usa 'Z: o V:' como networkDrive. Si usas UNC path, deja networkDrive en null
   networkDrive: 'V:',  // Ej: 'Z:' o null para usar UNC path
   serverIP: 'PCSITA',  // Solo si networkDrive es null
   serverUser: 'Bace Gpo Impresor',  // Solo si networkDrive es null
