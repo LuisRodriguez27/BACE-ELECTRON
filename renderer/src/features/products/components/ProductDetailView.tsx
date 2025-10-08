@@ -2,6 +2,7 @@ import { Button, Input } from '@/components/ui';
 import TemplateStats from '@/features/productTemplates/components/TemplateStats';
 import { ProductTemplatesApiService } from '@/features/productTemplates/ProductTemplatesApiService';
 import type { ProductTemplate } from '@/features/productTemplates/types';
+import { usePermissions } from '@/hooks/use-permissions';
 import {
   ArrowLeft,
   BarChart3,
@@ -15,15 +16,13 @@ import {
   Plus,
   Ruler,
   Search,
-  Trash2,
-  User
+  Trash2
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { CreateTemplateModal, EditProductModal, EditTemplateModal } from '../components';
 import { ProductsApiService } from '../ProductsApiService';
 import type { Product } from '../types';
-import { usePermissions } from '@/hooks/use-permissions';
 
 interface ProductDetailViewProps {
   productId: number;
@@ -378,14 +377,14 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                         <h3 className="font-medium text-gray-900 mb-1">
                           {template.description}
                         </h3>
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                        {/* <div className="flex items-center gap-2 text-xs text-gray-500">
                           {template.created_by_username && (
                             <div className="flex items-center gap-1">
                               <User size={12} />
                               <span>{template.created_by_username}</span>
                             </div>
                           )}
-                        </div>
+                        </div> */}
                       </div>
                       
                     </div>
