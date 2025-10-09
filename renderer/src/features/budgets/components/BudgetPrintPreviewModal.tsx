@@ -71,6 +71,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             color-adjust: exact !important;
+            font-family: Arial, sans-serif !important;
         }
         @page {
             size: 21.6cm 18.5cm landscape;
@@ -109,6 +110,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
             margin: 0;
             padding: 0;
             overflow: hidden;
+            font-family: Arial, sans-serif;
         }
         .print-container {
       width: 21.6cm;
@@ -141,7 +143,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
     <!-- Cliente, Teléfono y Fecha -->
     <div style="position: absolute; top: 8.5rem; left: 6.25rem; font-size: 1rem; line-height: 1.5rem; font-weight: 700; color: rgb(0, 0, 0);">
       <!-- Use fixed column widths to avoid shifting when name is short -->
-      <div style="display: grid; grid-template-columns: 10rem 1rem 1rem; column-gap: 13rem; align-items: center;">
+      <div style="display: grid; grid-template-columns: 17rem 8rem 1rem; column-gap: 5.5rem; align-items: center;">
         <!-- Cliente -->
         <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
           ${budgetData.client?.name || 'Cliente no especificado'}
@@ -278,9 +280,9 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
               {/* Cliente y Teléfono */}
               <div className='absolute top-30 left-25 text-l font-bold text-black'>
                 {/* fixed columns to prevent shifting */}
-                <div style={{ display: 'grid', gridTemplateColumns: '10rem 1rem 1rem', columnGap: '12.5rem', alignItems: 'center' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '17rem 8rem 1rem', columnGap: '5rem', alignItems: 'center' }}>
                   {/* Cliente */}
-                  <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
                     {budgetData.client?.name || 'Cliente no especificado'}
                   </div>
 

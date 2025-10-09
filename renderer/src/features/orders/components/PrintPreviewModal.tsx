@@ -81,6 +81,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             color-adjust: exact !important;
+            font-family: Arial, sans-serif !important;
         }
         @page {
             size: 21.6cm 17cm landscape;
@@ -117,6 +118,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
             margin: 0;
             padding: 0;
             overflow: hidden;
+            font-family: Arial, sans-serif;
         }
         .print-container {
             width: 21.6cm;
@@ -140,11 +142,11 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
         <img src="${base64Image}" alt="Fondo" class="background-image" />
         
         <!-- Fechas en dos columnas -->
-        <div style="position: absolute; top: 4rem; right: 3rem; font-size: 1rem; line-height: 1.25rem; font-weight: 700; color: rgb(0, 0, 0);">
-            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem;">
+        <div style="position: absolute; top: 4rem; right: 2.65rem; font-size: 1rem; line-height: 1.25rem; font-weight: 700; color: rgb(0, 0, 0);">
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem;">
                 <!-- Columna 1: Fecha de Orden -->
                 <div style="text-align: right;">
-                    <div style="display: flex; gap: 1.25rem;">
+                    <div style="display: flex; gap: 1.1rem;">
                         <span>${getDay(orderData.date)}</span>
                         <span>${getMonth(orderData.date)}</span>
                         <span>${getYear(orderData.date)}</span>
@@ -154,7 +156,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                 <!-- Columna 2: Fecha de Entrega -->
                 <div style="text-align: right;">
                     ${orderData.estimated_delivery_date ? `
-                        <div style="display: flex; gap: 1.25rem;">
+                        <div style="display: flex; gap: 1.1rem;">
                             <span>${getDay(orderData.estimated_delivery_date)}</span>
                             <span>${getMonth(orderData.estimated_delivery_date)}</span>
                             <span>${getYear(orderData.estimated_delivery_date)}</span>
@@ -191,8 +193,15 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                 <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; margin-bottom: 0.5rem; font-size: 1.125rem; line-height: 1.75rem; padding-top: 0.25rem; padding-bottom: 0.25rem;">
                     <div style="grid-column: span 1 / span 1; text-align: center; font-weight: 500;">${index + 1}</div>
                     <div style="grid-column: span 6 / span 6;">
-                        <div style="font-weight: 500;">${getOrderItemDisplayName(product)}</div>
-                        ${getOrderItemDescription(product) ? `<div style="font-size: 0.875rem; color: rgb(107, 114, 128); margin-top: -0.5rem;">${getOrderItemDescription(product)}</div>` : ''}
+                        <div style="font-weight: 500;">
+                          ${getOrderItemDisplayName(product)}
+                        </div>
+                        <div>
+                          ${getOrderItemDescription(product) ? 
+                            `<div style="font-size: 0.875rem; color: rgb(70, 80, 90); margin-top: -0.2rem; line-height: 1;">
+                              ${getOrderItemDescription(product)}
+                            </div>` : ''}
+                        </div>
                     </div>
                     <div style="grid-column: span 2 / span 2; text-align: center;">${product.quantity}</div>
                     <div style="grid-column: span 3 / span 3; text-align: right; font-weight: 500;">${product.total_price.toFixed(2)}</div>
@@ -314,7 +323,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
             >
               {/* Fechas en dos columnas */}
               <div className="absolute top-18 right-11 text-sm font-bold text-black">
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-2 gap-2">
                   {/* Columna 1: Fecha de Orden */}
                   <div className="text-right">
                     <div className="flex gap-5">
@@ -372,7 +381,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                     <div className="col-span-6">
                       <div className="font-medium">{getOrderItemDisplayName(product)}</div>
                       {getOrderItemDescription(product) && (
-                        <div className="text-sm text-gray-600 -mt-1">
+                        <div className="text-sm text-gray-700 -mt-2 leading-tight">
                           {getOrderItemDescription(product)}
                         </div>
                       )}
@@ -387,7 +396,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                 ))}
               </div>
 
-              <div className="absolute bottom-32 right-20 right-10 text-xl font-bold text-red-600">
+              <div className="absolute bottom-32 right-20 text-xl font-bold text-red-600">
                 <div className='text-center'>
                   No. {orderData.id}
                 </div>
