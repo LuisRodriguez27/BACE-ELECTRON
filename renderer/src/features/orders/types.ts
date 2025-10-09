@@ -159,6 +159,17 @@ export const getOrderItemDisplayName = (orderProduct: OrderProduct): string => {
   return 'Item desconocido';
 };
 
+export const getOrderItemDescription = (orderProduct: OrderProduct): string => {
+  if (orderProduct.product_id) {
+    // Para productos directos, usar la descripción del producto
+    return orderProduct.product_description || '';
+  } else if (orderProduct.template_id) {
+    // Para plantillas, usar la descripción de la plantilla
+    return orderProduct.template_description || '';
+  }
+  return '';
+};
+
 export const getOrderItemType = (orderProduct: OrderProduct): 'product' | 'template' => {
   return orderProduct.product_id ? 'product' : 'template';
 };
