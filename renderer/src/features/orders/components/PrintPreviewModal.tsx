@@ -215,6 +215,11 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                 No. ${orderData.id}
             </div>
         </div>
+
+        <!-- Mensaje de agradecimiento y usuario -->
+        <div style="position: absolute; bottom: 5.5rem; left: 12.5rem; font-size: 1rem; line-height: 1; font-weight: 700; color: rgb(3, 105, 161);">
+            GRACIAS POR SU COMPRA. LE ATENDIÓ ${orderData.user?.username || ''}
+        </div>
         
         <!-- Totales, Pagos y Saldo en tres columnas -->
         <div style="position: absolute; bottom: 3rem; left: 11rem; font-size: 1.5rem; line-height: 1;">
