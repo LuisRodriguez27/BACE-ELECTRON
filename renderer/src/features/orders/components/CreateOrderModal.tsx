@@ -15,6 +15,13 @@ import { useForm } from 'react-hook-form';
 import { OrdersApiService } from '../OrdersApiService';
 import { calculateOrderTotal, type CreateOrderForm, createOrderItemFromFormItem, createOrderSchema, type Order, type OrderFormItem } from "../types";
 import { toast } from 'sonner';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
 interface CreateOrderModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -64,7 +71,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     resolver: zodResolver(createOrderSchema),
     defaultValues: {
       user_id: currentUserId,
-      date: new Date().toISOString().split('T')[0],
+      date: dayjs().tz('America/Mexico_City').format('YYYY-MM-DD'),
       status: 'pendiente',
       items: []
     }

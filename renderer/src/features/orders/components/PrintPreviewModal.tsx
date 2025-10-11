@@ -3,7 +3,12 @@ import { Button } from '@/components/ui';
 import { X, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import notaImage from '@/assets/NOTA.jpg';
-import { getOrderItemDisplayName, getOrderItemDescription } from '../types';
+import { getOrderItemDisplayName, getOrderItemDescription } from '../types'; import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 interface PrintPreviewModalProps {
   isOpen: boolean;
@@ -26,18 +31,34 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
 
   // Funciones para obtener componentes de fecha por separado
   const getDay = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.getDate().toString().padStart(1, '0');
+    let date = dayjs(dateString);
+
+    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
+      date = date.add(1, 'day');
+    }
+
+    return date.date().toString().padStart(1, '0');
   };
 
   const getMonth = (dateString: string) => {
-    const date = new Date(dateString);
-    return (date.getMonth() + 1).toString().padStart(1, '0');
+    let date = dayjs(dateString);
+
+    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
+      date = date.add(1, 'day');
+    }
+
+
+    return (date.month() + 1).toString().padStart(1, '0');
   };
 
   const getYear = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.getFullYear().toString();
+    let date = dayjs(dateString);
+
+    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
+      date = date.add(1, 'day');
+    }
+
+    return date.year().toString();
   };
 
   const totalPagos = paymentsData.reduce((sum, payment) => sum + payment.amount, 0);
@@ -142,7 +163,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
         <img src="${base64Image}" alt="Fondo" class="background-image" />
         
         <!-- Fechas en dos columnas -->
-        <div style="position: absolute; top: 4rem; right: 2.65rem; font-size: 1rem; line-height: 1.25rem; font-weight: 700; color: rgb(0, 0, 0);">
+        <div style="position: absolute; top: 4rem; right: 3rem; font-size: 1rem; line-height: 1.25rem; font-weight: 700; color: rgb(0, 0, 0);">
             <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem;">
                 <!-- Columna 1: Fecha de Orden -->
                 <div style="text-align: right;">
@@ -197,8 +218,8 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                           ${getOrderItemDisplayName(product)}
                         </div>
                         <div>
-                          ${getOrderItemDescription(product) ? 
-                            `<div style="font-size: 0.875rem; color: rgb(70, 80, 90); margin-top: -0.2rem; line-height: 1;">
+                          ${getOrderItemDescription(product) ?
+          `<div style="font-size: 0.875rem; color: rgb(70, 80, 90); margin-top: -0.2rem; line-height: 1;">
                               ${getOrderItemDescription(product)}
                             </div>` : ''}
                         </div>
@@ -337,7 +358,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                       <span>{getYear(orderData.date)}</span>
                     </div>
                   </div>
-                  
+
                   {/* Columna 2: Fecha de Entrega */}
                   <div className="text-right">
                     {orderData.estimated_delivery_date ? (
@@ -359,7 +380,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                   <div>
                     {orderData.client?.name || 'Cliente no especificado'}
                   </div>
-                  
+
                   {/* Numero de telefono */}
                   <div className='ml-38'>
                     {orderData.client?.phone || ''}
@@ -406,7 +427,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                   No. {orderData.id}
                 </div>
               </div>
-                
+
               <div className='absolute bottom-25 left-50'>
                 <div className='text-blue-900 font-bold'>
                   GRACIAS POR SU COMPRA. LE ATENDIÓ {orderData.user?.username || ''}
@@ -419,12 +440,12 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                   <div className="text-green-700 font-bold text-right min-w-[100px]">
                     {paymentsData.length > 0 ? `$${totalPagos.toFixed(2)}` : ''}
                   </div>
-                  
+
                   {/* Saldo - Columna 2 (siempre presente) */}
                   <div className="font-bold text-red-600 text-right min-w-[100px]">
                     ${saldoPendiente.toFixed(2)}
                   </div>
-                  
+
                   {/* Total - Columna 3 (siempre presente) */}
                   <div className="text-black font-bold text-right min-w-[100px]">
                     ${orderData.total.toFixed(2)}
