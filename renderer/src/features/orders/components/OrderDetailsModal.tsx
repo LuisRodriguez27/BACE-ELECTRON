@@ -31,6 +31,12 @@ import { PaymentsApiService } from '../../payments/PaymentsApiService';
 import { PaymentsList } from '../../payments/components';
 import type { Payment } from '../../payments/types';
 import { usePermissions } from '@/hooks/use-permissions';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 interface OrderDetailsModalProps {
   isOpen: boolean;
@@ -167,11 +173,12 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    let date = dayjs(dateString);
+    // Si la hora es exactamente medianoche en UTC, sumar un día
+    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
+      date = date.add(1, 'day');
+    }
+    return date.tz('America/Mexico_City').format('D MMM YYYY');
   };
 
 
