@@ -4,6 +4,12 @@ import { X, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import cotizacionImage from '@/assets/COTIZACION.jpg';
 import type { Budget } from '../types';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 interface BudgetPrintPreviewModalProps {
   isOpen: boolean;
@@ -22,10 +28,15 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
 
   // Función para formatear fecha como DD/MM/YYYY
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear().toString();
+    let date = dayjs(dateString);
+
+    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
+      date = date.add(1, 'day');
+    }
+    
+    const day = date.date().toString().padStart(2, '0');
+    const month = (date.month() + 1).toString().padStart(2, '0');
+    const year = date.year().toString();
     return `${day}/${month}/${year}`;
   };
 

@@ -3,6 +3,9 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useAuthStore } from '@/store/auth';
 import { ArrowRight, Calendar, DollarSign, FileText, Loader2, Plus, Printer, Search, Trash2 } from 'lucide-react';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { BudgetApiService } from './BudgetApiService';
@@ -18,6 +21,9 @@ interface PaginationInfo {
   hasNext: boolean;
   hasPrev: boolean;
 }
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const BudgetsPage: React.FC = () => {
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -201,11 +207,12 @@ const BudgetsPage: React.FC = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    let date = dayjs(dateString);
+    // Si la hora es exactamente medianoche en UTC, sumar un día
+    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
+      date = date.add(1, 'day');
+    }
+    return date.tz('America/Mexico_City').format('D MMM YYYY');
   };
 
   const handlePrint = (budget: Budget) => {

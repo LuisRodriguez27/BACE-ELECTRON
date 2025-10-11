@@ -1,4 +1,7 @@
 import { Button, Input, Label } from '@/components/ui';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
 import type { Client } from '@/features/clients/types';
 import CreateClientModal from '@/features/clients/components/CreateClientModal';
 import CreateTemplateModal from '@/features/products/components/CreateTemplateModal';
@@ -22,6 +25,9 @@ interface CreateBudgetModalProps {
   onBudgetCreated: (budget: Budget) => void;
   currentUserId: number;
 }
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
   isOpen,
@@ -64,7 +70,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
     resolver: zodResolver(createBudgetSchema),
     defaultValues: {
       user_id: currentUserId,
-      date: new Date().toISOString().split('T')[0],
+      date: dayjs().tz('America/Mexico_City').format('YYYY-MM-DD'),
       items: []
     }
   });
