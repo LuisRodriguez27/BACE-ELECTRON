@@ -254,7 +254,7 @@ const PaymentsList: React.FC<PaymentsListProps> = ({
                 
                 {payment.descripcion && (
                   <div className="bg-gray-50 rounded p-3">
-                    <span className="text-sm font-medium text-gray-700">Descripción:</span>
+                    <span className="text-sm font-medium text-gray-700">Método de pago:</span>
                     <p className="text-sm text-gray-600 mt-1">{payment.descripcion}</p>
                   </div>
                 )}
