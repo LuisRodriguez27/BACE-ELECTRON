@@ -238,8 +238,13 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
         </div>
 
         <!-- Mensaje de agradecimiento y usuario -->
-        <div style="position: absolute; bottom: 5.5rem; left: 12.5rem; font-size: 1rem; line-height: 1; font-weight: 700; color: rgb(3, 105, 161);">
+        <div style="position: absolute; bottom: 6.5rem; left: 12.5rem; font-size: 1rem; line-height: 1; font-weight: 700; color: rgb(3, 105, 161);">
             GRACIAS POR SU COMPRA. LE ATENDIÓ ${orderData.user?.username || ''}
+        </div>
+
+        <!-- Método de pago -->
+        <div style="position: absolute; bottom: 5.5rem; left: 17.5rem; font-size: 1rem; line-height: 1;">
+            ${paymentsData.length > 0 ? `Pago realizado con: ${paymentsData[0]?.descripcion || ''}` : ''}
         </div>
         
         <!-- Totales, Pagos y Saldo en tres columnas -->
@@ -428,9 +433,16 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                 </div>
               </div>
 
-              <div className='absolute bottom-25 left-50'>
+              <div className='absolute bottom-29 left-50'>
                 <div className='text-blue-900 font-bold'>
                   GRACIAS POR SU COMPRA. LE ATENDIÓ {orderData.user?.username || ''}
+                </div>
+              </div>
+
+              <div className='absolute bottom-25 left-70'>
+                <div className=''>
+                  {paymentsData.length > 0 ? `Pago realizado con: ${paymentsData[0]?.descripcion || ''}` : ''}
+                  {/* {paymentsData[0]?.descripcion || ''} */}
                 </div>
               </div>
 
