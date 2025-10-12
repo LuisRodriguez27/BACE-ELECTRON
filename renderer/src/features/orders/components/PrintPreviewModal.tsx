@@ -167,7 +167,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
             <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem;">
                 <!-- Columna 1: Fecha de Orden -->
                 <div style="text-align: right;">
-                    <div style="display: flex; gap: 1.1rem;">
+                    <div style="display: flex; gap: 1rem;">
                         <span>${getDay(orderData.date)}</span>
                         <span>${getMonth(orderData.date)}</span>
                         <span>${getYear(orderData.date)}</span>
@@ -352,7 +352,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                 <div className="grid grid-cols-2 gap-2">
                   {/* Columna 1: Fecha de Orden */}
                   <div className="text-right">
-                    <div className="flex gap-5">
+                    <div className="flex gap-4">
                       <span>{getDay(orderData.date)}</span>
                       <span>{getMonth(orderData.date)}</span>
                       <span>{getYear(orderData.date)}</span>
