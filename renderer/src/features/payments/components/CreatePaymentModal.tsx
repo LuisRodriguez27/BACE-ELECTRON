@@ -206,8 +206,8 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
               <Input
                 id="amount"
                 type="number"
-                step="0.01"
-                min="0.01"
+                step="0.1"
+                min="1"
                 max={pendingAmount}
                 value={formData.amount || ''}
                 onChange={(e) => setFormData(prev => ({ 
@@ -215,7 +215,7 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
                   amount: parseFloat(e.target.value) || 0 
                 }))}
                 className="pl-10"
-                placeholder="0.00"
+                placeholder="10.00"
                 required
               />
             </div>
@@ -247,21 +247,26 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
             </div>
           </div>
 
-          {/* Descripción */}
+          {/* Metodo de Pago */}
           <div>
-            <Label htmlFor="descripcion" className="text-sm font-medium text-gray-700">
-              Descripción (Opcional)
+            <Label htmlFor="metodoPago" className="text-sm font-medium text-gray-700">
+              Método de Pago
             </Label>
             <div className="mt-1 relative">
-              <FileText className="absolute left-3 top-3 text-gray-400" size={16} />
-              <textarea
-                id="descripcion"
+              <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+              <select
+                id="metodoPago"
                 value={formData.descripcion || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, descripcion: e.target.value }))}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                rows={3}
-                placeholder="Detalles del pago, método de pago, etc."
-              />
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              >
+                <option value="" hidden>Selecciona un método</option>
+                <option value="Efectivo">Efectivo</option>
+                <option value="Transferencia">Transferencia</option>
+                <option value="Tarjeta">Tarjeta</option>
+                <option value="Otro">Otro</option>
+              </select>
             </div>
           </div>
 
