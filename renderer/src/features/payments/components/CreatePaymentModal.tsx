@@ -5,6 +5,12 @@ import { toast } from 'sonner';
 import { PaymentsApiService } from '../PaymentsApiService';
 import { createPaymentSchema, type CreatePaymentForm, type Payment } from '../types';
 import { extractErrorMessage } from '@/utils/errorHandling';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 interface CreatePaymentModalProps {
   isOpen: boolean;
@@ -30,7 +36,7 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
   const [formData, setFormData] = useState<CreatePaymentForm>({
     orderId: orderId,
     amount: 0,
-    date: new Date().toISOString().split('T')[0], // Fecha actual por defecto
+    date: dayjs().tz('America/Mexico_City').format(), // Fecha actual con zona horaria CDMX
     descripcion: ''
   });
 
@@ -56,6 +62,7 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
       }
 
       const newPayment = await PaymentsApiService.create(validatedData);
+      console.log('Pago creado:', newPayment);
       
       toast.success('Pago registrado exitosamente');
       onPaymentCreated(newPayment);
@@ -74,7 +81,7 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
     setFormData({
       orderId: orderId,
       amount: 0,
-      date: new Date().toISOString().split('T')[0],
+      date: dayjs().tz('America/Mexico_City').format(), // Fecha actual con zona horaria CDMX
       descripcion: ''
     });
     setError(null);
@@ -229,8 +236,12 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
               <Input
                 id="date"
                 type="date"
-                value={formData.date || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                value={dayjs(formData.date).tz('America/Mexico_City').format('YYYY-MM-DD')}
+                onChange={(e) => {
+                  // Convertir la fecha seleccionada a formato ISO con zona horaria CDMX
+                  const selectedDate = dayjs.tz(e.target.value, 'America/Mexico_City').format();
+                  setFormData(prev => ({ ...prev, date: selectedDate }));
+                }}
                 className="pl-10"
               />
             </div>
