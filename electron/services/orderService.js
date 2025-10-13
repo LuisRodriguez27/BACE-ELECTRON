@@ -270,35 +270,71 @@ class OrderService {
         }
       }
 
-      // Actualizar orden (solo campos permitidos)
-      const updated = orderRepository.update(orderId, {
+      // Validar y procesar items si se reciben
+      let items = null;
+      if (arguments[1] && Array.isArray(arguments[1].items)) {
+        items = arguments[1].items;
+        if (!items.length) {
+          throw new Error('La orden debe contener al menos un producto o plantilla');
+        }
+        for (const [index, item] of items.entries()) {
+          const hasProduct = item.product_id !== null && item.product_id !== undefined;
+          const hasTemplate = item.template_id !== null && item.template_id !== undefined;
+          if (!hasProduct && !hasTemplate) {
+            throw new Error(`Item ${index + 1}: Debe especificar un product_id o template_id`);
+          }
+          if (hasProduct && hasTemplate) {
+            throw new Error(`Item ${index + 1}: No puede tener tanto product_id como template_id`);
+          }
+          if (!item.quantity || isNaN(item.quantity) || item.quantity < 1) {
+            throw new Error(`Item ${index + 1}: Cantidad inválida`);
+          }
+          if (item.unit_price === undefined || item.unit_price === null || isNaN(item.unit_price) || item.unit_price < 0) {
+            throw new Error(`Item ${index + 1}: Precio unitario inválido`);
+          }
+          if (hasProduct) {
+            const productExists = productRepository.findById(parseInt(item.product_id));
+            if (!productExists) {
+              throw new Error(`Item ${index + 1}: El producto especificado no existe`);
+            }
+          }
+          if (hasTemplate) {
+            const templateExists = productTemplateRepository.findById(parseInt(item.template_id));
+            if (!templateExists) {
+              throw new Error(`Item ${index + 1}: La plantilla especificada no existe`);
+            }
+          }
+        }
+      }
+
+      // Actualizar orden, incluyendo items si se reciben
+      const updatePayload = {
         estimated_delivery_date: estimated_delivery_date ? new Date(estimated_delivery_date).toISOString() : null,
         status: status || null,
         notes: notes?.trim() || null,
         edited_by: edited_by ? parseInt(edited_by) : null
-      });
+      };
+      if (items) {
+        updatePayload.items = items.map(item => ({
+          product_id: item.product_id ? parseInt(item.product_id) : null,
+          template_id: item.template_id ? parseInt(item.template_id) : null,
+          quantity: parseInt(item.quantity),
+          unit_price: parseFloat(item.unit_price)
+        }));
+      }
 
-      if (!updated) {
+      const updatedOrder = orderRepository.update(orderId, updatePayload);
+
+      if (!updatedOrder) {
         throw new Error('Error al actualizar orden');
       }
 
-      // Obtener orden actualizada
-      const updatedOrder = orderRepository.findById(orderId);
-      
-      if (!updatedOrder) {
-        throw new Error('Error: no se pudo recuperar la orden actualizada');
-      }
-      
       const result = updatedOrder.toPlainObject();
-      
-      // Validar que el resultado tenga las propiedades necesarias
       if (!result.id || !result.client_id) {
         console.error('Orden actualizada inválida:', result);
         throw new Error('Datos de la orden actualizada inválidos');
       }
-      
       return result;
-      
     } catch (error) {
       console.error('Error al actualizar orden:', error);
       throw error;

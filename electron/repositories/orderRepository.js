@@ -256,8 +256,7 @@ class OrderRepository {
   }
 
   /**
-   * Actualizar una orden (solo campos permitidos)
-   * NO se pueden editar los productos/plantillas una vez creada la orden
+   * Actualizar una orden
    */
   update(id, orderData) {
     // Verificar que la orden existe y puede ser editada
@@ -270,14 +269,13 @@ class OrderRepository {
       throw new Error('No se puede editar una orden completada o cancelada');
     }
 
-    // Solo permitir actualizar ciertos campos (NO los productos)
+    // Actualizar campos permitidos de la orden
     const stmt = db.prepare(`
       UPDATE orders
       SET estimated_delivery_date = ?, status = ?, notes = ?, edited_by = ?
       WHERE id = ? AND active = 1
     `);
-    
-    const result = stmt.run(
+    stmt.run(
       orderData.estimated_delivery_date || null,
       orderData.status || null,
       orderData.notes || null,
@@ -285,7 +283,23 @@ class OrderRepository {
       id
     );
 
-    return result.changes > 0;
+    // Si se reciben items, actualizar productos/plantillas de la orden
+    if (orderData.items && Array.isArray(orderData.items)) {
+      // Validar los nuevos items
+      this.validateOrderItems(orderData.items);
+
+      // Eliminar los productos/plantillas actuales de la orden
+      db.prepare('DELETE FROM order_products WHERE order_id = ?').run(id);
+
+      // Agregar los nuevos productos/plantillas
+      this.addItemsToOrder(id, orderData.items);
+
+      // Recalcular el total
+      this.recalculateTotal(id);
+    }
+
+    // Retornar la orden actualizada
+    return this.findById(id);
   }
 
   delete(id) {
