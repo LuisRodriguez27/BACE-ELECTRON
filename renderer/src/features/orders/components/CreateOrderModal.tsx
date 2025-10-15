@@ -71,7 +71,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     resolver: zodResolver(createOrderSchema),
     defaultValues: {
       user_id: currentUserId,
-      date: dayjs().tz('America/Mexico_City').format('YYYY-MM-DD'),
+      date: dayjs().tz('America/Mexico_City').format('YYYY-MM-DD'), // Solo fecha para el input
       status: 'pendiente',
       items: []
     }
@@ -416,11 +416,11 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         }
       }
 
-      // Crear datos de la orden con los items del estado local
+      // Guardar la fecha y hora actual en el backend, no la del input
       const orderData: CreateOrderForm = {
         client_id: formData.client_id,
         user_id: currentUserId,
-        date: formData.date,
+        date: dayjs().tz('America/Mexico_City').toISOString(), // Fecha y hora actual
         estimated_delivery_date: formData.estimated_delivery_date || undefined,
         status: formData.status || 'pendiente',
         notes: formData.notes || undefined,

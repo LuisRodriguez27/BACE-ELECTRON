@@ -36,7 +36,6 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
     if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
       date = date.add(1, 'day');
     }
-
     return date.date().toString().padStart(1, '0');
   };
 
@@ -46,8 +45,6 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
     if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
       date = date.add(1, 'day');
     }
-
-
     return (date.month() + 1).toString().padStart(1, '0');
   };
 
@@ -57,8 +54,15 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
     if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
       date = date.add(1, 'day');
     }
-
     return date.year().toString();
+  };
+
+  const getHours = (dateString: string) => {
+    let date = dayjs(dateString);
+    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
+      date = date.add(1, 'day');
+    }
+    return date.format('HH:mm');
   };
 
   const totalPagos = paymentsData.reduce((sum, payment) => sum + payment.amount, 0);
@@ -163,28 +167,30 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
         <img src="${base64Image}" alt="Fondo" class="background-image" />
         
         <!-- Fechas en dos columnas -->
-        <div style="position: absolute; top: 4rem; right: 3rem; font-size: 1rem; line-height: 1.25rem; font-weight: 700; color: rgb(0, 0, 0);">
-            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem;">
-                <!-- Columna 1: Fecha de Orden -->
-                <div style="text-align: right;">
+        <div style="position: absolute; top: 4rem; right: 1rem; font-size: 1rem; line-height: 1.25rem; font-weight: 700; color: rgb(0, 0, 0);">
+            <div style="display: flex; min-width: 255px; align-items: flex-start;">
+                <div style="text-align: right; width: 115px;">
                     <div style="display: flex; gap: 1rem;">
                         <span>${getDay(orderData.date)}</span>
                         <span>${getMonth(orderData.date)}</span>
                         <span>${getYear(orderData.date)}</span>
                     </div>
                 </div>
-                
-                <!-- Columna 2: Fecha de Entrega -->
-                <div style="text-align: right;">
-                    ${orderData.estimated_delivery_date ? `
-                        <div style="display: flex; gap: 1.1rem;">
-                            <span>${getDay(orderData.estimated_delivery_date)}</span>
-                            <span>${getMonth(orderData.estimated_delivery_date)}</span>
-                            <span>${getYear(orderData.estimated_delivery_date)}</span>
-                        </div>
-                    ` : ''}
+                ${orderData.estimated_delivery_date ? `
+                <div style="text-align: right; width: 100px;">
+                    <div style="display: flex; gap: 1.25rem;">
+                        <span>${getDay(orderData.estimated_delivery_date)}</span>
+                        <span>${getMonth(orderData.estimated_delivery_date)}</span>
+                        <span>${getYear(orderData.estimated_delivery_date)}</span>
+                    </div>
                 </div>
+                ` : ''}
             </div>
+        </div>
+
+        <!-- Hora de la orden -->
+        <div style="position: absolute; top: 7.5rem; right: 14.5rem; font-size: 1rem; font-weight: 700; color: rgb(0,0,0);">
+            ${getHours(orderData.date)}
         </div>
 
         <!-- Cliente y Teléfono -->
@@ -353,30 +359,29 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
               }}
             >
               {/* Fechas en dos columnas */}
-              <div className="absolute top-18 right-11 text-sm font-bold text-black">
-                <div className="grid grid-cols-2 gap-2">
-                  {/* Columna 1: Fecha de Orden */}
-                  <div className="text-right">
+              <div className="absolute top-18 right-1 text-sm font-bold text-black">
+                <div className="flex items-start" style={{ minWidth: '255px' }}>
+                  <div className="text-right" style={{ width: '110px' }}>
                     <div className="flex gap-4">
                       <span>{getDay(orderData.date)}</span>
                       <span>{getMonth(orderData.date)}</span>
                       <span>{getYear(orderData.date)}</span>
                     </div>
                   </div>
-
-                  {/* Columna 2: Fecha de Entrega */}
-                  <div className="text-right">
-                    {orderData.estimated_delivery_date ? (
-                      <>
-                        <div className="flex gap-5">
-                          <span>{getDay(orderData.estimated_delivery_date)}</span>
-                          <span>{getMonth(orderData.estimated_delivery_date)}</span>
-                          <span>{getYear(orderData.estimated_delivery_date)}</span>
-                        </div>
-                      </>
-                    ) : ('')}
-                  </div>
+                  {orderData.estimated_delivery_date && (
+                    <div className="text-right" style={{ width: '100px' }}>
+                      <div className="flex gap-5">
+                        <span>{getDay(orderData.estimated_delivery_date)}</span>
+                        <span>{getMonth(orderData.estimated_delivery_date)}</span>
+                        <span>{getYear(orderData.estimated_delivery_date)}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
+              </div>
+
+              <div className='absolute top-32 right-55'>
+                {getHours(orderData.date)}
               </div>
 
               <div className='absolute top-32 left-25 text-xl font-bold text-black'>
@@ -387,7 +392,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                   </div>
 
                   {/* Numero de telefono */}
-                  <div className='ml-38'>
+                  <div className='ml-39'>
                     {orderData.client?.phone || ''}
                   </div>
                 </div>
