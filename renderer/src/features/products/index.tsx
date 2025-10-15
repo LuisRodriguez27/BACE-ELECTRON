@@ -58,7 +58,8 @@ const ProductsPage: React.FC = () => {
   });
   
   const handleProductCreated = (newProduct: Product) => {
-    setProducts(prevProducts => [...prevProducts, newProduct]);
+    // Prepend the new product so it shows at the top of the list immediately
+    setProducts(prevProducts => [newProduct, ...prevProducts]);
     toast.success('Producto creado exitosamente');
   };
 
