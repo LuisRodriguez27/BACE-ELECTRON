@@ -188,7 +188,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
       date = date.add(1, 'day');
     }
-    return date.tz('America/Mexico_City').format('D MMM YYYY HH:mm');
+  return date.tz('America/Mexico_City').format('D MMM YYYY h:mm A');
   };
 
   const formatDateOnly = (dateString: string) => {
