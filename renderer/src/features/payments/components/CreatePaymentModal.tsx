@@ -206,7 +206,7 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
               <Input
                 id="amount"
                 type="number"
-                step="0.1"
+                step="0.01"
                 min="1"
                 max={pendingAmount}
                 value={formData.amount || ''}
@@ -250,7 +250,7 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
           {/* Metodo de Pago */}
           <div>
             <Label htmlFor="metodoPago" className="text-sm font-medium text-gray-700">
-              Método de Pago
+              Método de Pago *
             </Label>
             <div className="mt-1 relative">
               <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
