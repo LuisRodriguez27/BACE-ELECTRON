@@ -191,6 +191,15 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     return date.tz('America/Mexico_City').format('D MMM YYYY HH:mm');
   };
 
+  const formatDateOnly = (dateString: string) => {
+    let date = dayjs(dateString);
+    // Si la hora es exactamente medianoche en UTC, sumar un día
+    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
+      date = date.add(1, 'day');
+    }
+    return date.tz('America/Mexico_City').format('D MMM YYYY');
+  };
+
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -412,7 +421,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                           <div className="mt-1 flex items-center gap-2 text-sm text-gray-600">
                             <CalendarDays className="h-4 w-4" />
                             {order.estimated_delivery_date 
-                              ? formatDate(order.estimated_delivery_date)
+                              ? formatDateOnly(order.estimated_delivery_date)
                               : 'No definida'
                             }
                           </div>
