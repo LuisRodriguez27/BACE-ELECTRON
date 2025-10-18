@@ -43,13 +43,15 @@ interface OrderDetailsModalProps {
   onClose: () => void;
   orderId: number | null;
   onOrderUpdated?: (order: Order) => void;
+  onEditClick?: (orderId: number) => void; // Nuevo callback para manejar la edición
 }
 
 const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   isOpen,
   onClose,
   orderId,
-  onOrderUpdated
+  onOrderUpdated,
+  onEditClick
 }) => {
   const [order, setOrder] = useState<Order | null>(null);
   const [orderProducts, setOrderProducts] = useState<OrderProduct[]>([]);
@@ -110,7 +112,16 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     if (!checkPermission("Editar Órdenes")) {
       return;
     }
-    setIsEditing(true);
+    // Si hay callback de edición, usarlo (abre el modal de edición completa)
+    if (onEditClick && orderId) {
+      console.log('OrderDetailsModal: Llamando onEditClick con orderId:', orderId);
+      onEditClick(orderId);
+      // NO llamar handleClose() aquí porque el padre maneja el cierre
+      // El callback ya se encarga de cerrar este modal y abrir el de edición
+    } else {
+      // Fallback al modo de edición simple anterior
+      setIsEditing(true);
+    }
   };
 
   const loadPayments = async () => {

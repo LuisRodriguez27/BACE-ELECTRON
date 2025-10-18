@@ -40,11 +40,14 @@ export const createOrderSchema = z.object({
   items: z.array(orderItemSchema).min(1, 'La orden debe tener al menos un producto o plantilla')
 });
 
-// Editar orden (no se pueden editar productos)
+// Editar orden (ahora se pueden editar productos)
 export const editOrderSchema = z.object({
+  client_id: z.number().int().min(1).optional(),
+  date: z.string().optional(),
   estimated_delivery_date: z.string().optional(),
   status: orderStatusSchema.optional(),
   notes: z.string().optional(),
+  items: z.array(orderItemSchema).optional(),
   edited_by: z.number().int().optional()
 });
 

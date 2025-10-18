@@ -8,12 +8,12 @@ import { ProductTemplatesApiService } from '@/features/productTemplates/ProductT
 import type { ProductTemplate } from '@/features/productTemplates/types';
 import { extractErrorMessage } from '@/utils/errorHandling';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Calendar, CalendarDays, DollarSign, Layers, Loader, Package, Plus, ReceiptText, Search, ShoppingBag, Trash2, X, User } from 'lucide-react';
+import { Calendar, CalendarDays, DollarSign, Layers, Loader, Package, Plus, ReceiptText, Search, ShoppingBag, Trash2, X, User, Edit3 } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { OrdersApiService } from '../OrdersApiService';
-import { calculateOrderTotal, type CreateOrderForm, createOrderItemFromFormItem, createOrderSchema, type Order, type OrderFormItem } from "../types";
+import { calculateOrderTotal, type CreateOrderForm, createOrderItemFromFormItem, createOrderSchema, type Order, type OrderFormItem, getOrderItemType } from "../types";
 import { toast } from 'sonner';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -27,14 +27,20 @@ interface CreateOrderModalProps {
   onClose: () => void;
   onOrderCreated: (order: Order) => void;
   currentUserId: number;
+  orderId?: number | null; // Nuevo prop opcional para edición
+  onOrderUpdated?: (order: Order) => void; // Nuevo callback opcional para edición
 }
 
 const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   isOpen,
   onClose,
   onOrderCreated,
-  currentUserId
+  currentUserId,
+  orderId = null,
+  onOrderUpdated
 }) => {
+  // Determinar si estamos en modo edición
+  const isEditMode = orderId !== null && orderId !== undefined;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
@@ -43,6 +49,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   const [loadingClients, setLoadingClients] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
+  const [loadingOrder, setLoadingOrder] = useState(false);
   const [showCreateProductModal, setShowCreateProductModal] = useState(false);
   const [showCreateTemplateModal, setShowCreateTemplateModal] = useState(false);
   const [showCreateClientModal, setShowCreateClientModal] = useState(false);
@@ -128,8 +135,107 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       loadClients();
       loadProducts();
       loadTemplates();
+      
+      // Si estamos en modo edición, cargar los datos de la orden
+      if (isEditMode && orderId) {
+        loadOrderData(orderId);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, isEditMode, orderId]);
+
+  // Función para cargar datos de la orden en modo edición
+  const loadOrderData = async (id: number) => {
+    try {
+      setLoadingOrder(true);
+      setError(null);
+      
+      const orderData = await OrdersApiService.findById(id);
+      
+      // Llenar el formulario con los datos de la orden
+      setValue('client_id', orderData.client_id);
+      // Convertir fecha a formato YYYY-MM-DD para el input type="date"
+      const formattedDate = dayjs(orderData.date).format('YYYY-MM-DD');
+      setValue('date', formattedDate);
+      
+      // Convertir fecha estimada si existe
+      if (orderData.estimated_delivery_date) {
+        const formattedEstimatedDate = dayjs(orderData.estimated_delivery_date).format('YYYY-MM-DD');
+        setValue('estimated_delivery_date', formattedEstimatedDate);
+      } else {
+        setValue('estimated_delivery_date', '');
+      }
+      setValue('status', orderData.status);
+      setValue('notes', orderData.notes || '');
+      
+      // Configurar el cliente seleccionado
+      setSelectedClientId(orderData.client_id);
+      if (orderData.client) {
+        setClientSearchTerm(`${orderData.client.name} - ${orderData.client.phone}`);
+      }
+      
+      // Convertir los productos de la orden a OrderFormItem
+      if (orderData.orderProducts && orderData.orderProducts.length > 0) {
+        const loadedItems: OrderFormItem[] = orderData.orderProducts.map(op => {
+          const itemType = getOrderItemType(op);
+          
+          if (itemType === 'product') {
+            return {
+              type: 'product' as const,
+              id: op.product_id!,
+              name: op.product_name || `Producto #${op.product_id}`,
+              quantity: op.quantity,
+              unit_price: op.unit_price,
+              description: op.product_description,
+              serial_number: op.serial_number
+            };
+          } else {
+            // Es una plantilla
+            const baseProductName = op.template_base_product_name || op.product_name || 'Producto';
+            return {
+              type: 'template' as const,
+              id: op.template_id!,
+              name: `${baseProductName} (Plantilla)`,
+              quantity: op.quantity,
+              unit_price: op.unit_price,
+              description: op.template_description,
+              width: op.template_width,
+              height: op.template_height,
+              colors: op.template_colors,
+              position: op.template_position,
+              texts: op.template_texts
+            };
+          }
+        });
+        
+        setOrderItems(loadedItems);
+        
+        // Inicializar términos de búsqueda para cada item
+        const initialSearchTerms: {[key: number]: string} = {};
+        const initialCategories: {[key: number]: 'all' | 'products' | 'templates'} = {};
+        
+        loadedItems.forEach((item, index) => {
+          if (item.type === 'product') {
+            initialSearchTerms[index] = `${item.name}${item.serial_number ? ` (${item.serial_number})` : ''}`;
+          } else {
+            initialSearchTerms[index] = item.name;
+          }
+          initialCategories[index] = 'all';
+        });
+        
+        setSearchTerms(initialSearchTerms);
+        setSelectedCategory(initialCategories);
+      }
+      
+      console.log('Datos de la orden cargados');
+    } catch (err) {
+      console.error('Error loading order:', err);
+      const errorMessage = extractErrorMessage(err);
+      setError(`Error al cargar la orden: ${errorMessage}`);
+      toast.error('Error al cargar los datos de la orden');
+    } finally {
+      setLoadingOrder(false);
+    }
+  };
 
   // Efecto para sincronizar el cliente seleccionado con el estado de búsqueda
   useEffect(() => {
@@ -397,10 +503,6 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       // Convertir orderItems a formato del backend
       const items = orderItems.map(createOrderItemFromFormItem);
       
-      // Debug: Mostrar el estado actual antes de enviar
-      console.log('orderItems estado:', orderItems);
-      console.log('Items convertidos:', items);
-      
       // Validar que los items convertidos son válidos
       if (items.length === 0) {
         setError('Error: Los items no se convertieron correctamente');
@@ -416,27 +518,53 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         }
       }
 
-      // Crear datos de la orden con los items del estado local
-      const orderData: CreateOrderForm = {
-        client_id: formData.client_id,
-        user_id: currentUserId,
-        date: formData.date,
-        estimated_delivery_date: formData.estimated_delivery_date || undefined,
-        status: formData.status || 'pendiente',
-        notes: formData.notes || undefined,
-        items // Usar los items del estado local, no del formulario
-      };
+      if (isEditMode && orderId) {
+        // Modo edición
+        const updateData = {
+          client_id: formData.client_id,
+          date: formData.date,
+          estimated_delivery_date: formData.estimated_delivery_date || undefined,
+          status: formData.status,
+          notes: formData.notes || undefined,
+          items: items,
+          edited_by: currentUserId
+        };
 
-      console.log('Datos a enviar:', orderData); // Para debugging
-      console.log('Items:', items); // Para debugging
+        console.log('Datos de actualización:', updateData);
 
-      const newOrder = await OrdersApiService.create(orderData);
-      onOrderCreated(newOrder);
+        const updatedOrder = await OrdersApiService.update(orderId, updateData as any);
+        
+        toast.success('Orden actualizada exitosamente');
+        
+        if (onOrderUpdated) {
+          onOrderUpdated(updatedOrder);
+        }
+      } else {
+        // Modo creación
+        const orderData: CreateOrderForm = {
+          client_id: formData.client_id,
+          user_id: currentUserId,
+          date: formData.date,
+          estimated_delivery_date: formData.estimated_delivery_date || undefined,
+          status: formData.status || 'pendiente',
+          notes: formData.notes || undefined,
+          items
+        };
+
+        console.log('Datos a enviar:', orderData);
+
+        const newOrder = await OrdersApiService.create(orderData);
+        
+        toast.success('Orden creada exitosamente');
+        onOrderCreated(newOrder);
+      }
+      
       handleClose();
     } catch (err: any) {
-      console.error('Error creating order', err);
+      console.error(`Error ${isEditMode ? 'updating' : 'creating'} order`, err);
       const errorMessage = extractErrorMessage(err);
       setError(errorMessage);
+      toast.error(`Error al ${isEditMode ? 'actualizar' : 'crear'} la orden`);
     } finally {
       setIsSubmitting(false);
     }
@@ -511,12 +639,23 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-              <ReceiptText className="h-5 w-5 text-blue-600" />
+            <div className={`w-10 h-10 ${isEditMode ? 'bg-orange-100' : 'bg-blue-100'} rounded-full flex items-center justify-center`}>
+              {isEditMode ? (
+                <Edit3 className="h-5 w-5 text-orange-600" />
+              ) : (
+                <ReceiptText className="h-5 w-5 text-blue-600" />
+              )}
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Nueva Orden</h2>
-              <p className="text-sm text-gray-500">Crear orden con productos y/o plantillas</p>
+              <h2 className="text-lg font-semibold text-gray-900">
+                {isEditMode ? 'Editar Orden' : 'Nueva Orden'}
+              </h2>
+              <p className="text-sm text-gray-500">
+                {isEditMode 
+                  ? `Editando orden #${orderId}` 
+                  : 'Crear orden con productos y/o plantillas'
+                }
+              </p>
             </div>
           </div>
           <Button
@@ -534,6 +673,14 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm text-red-800">{error}</p>
+            </div>
+          )}
+
+          {/* Indicador de carga en modo edición */}
+          {isEditMode && loadingOrder && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+              <Loader className="animate-spin h-4 w-4 text-blue-600" />
+              <p className="text-sm text-blue-800">Cargando datos de la orden...</p>
             </div>
           )}
 
@@ -843,7 +990,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                       <Layers className="h-12 w-12 text-gray-300" />
                     </div>
                     <p className="text-lg font-medium text-gray-700 mb-2">No hay productos o plantillas agregados</p>
-                    <p className="text-sm mb-4">Haz clic en "Agregar Item" para comenzar a crear tu orden</p>
+                    <p className="text-sm mb-4">Haz clic en "Agregar Item" para comenzar a {isEditMode ? 'editar' : 'crear'} tu orden</p>
                     <div className="flex flex-col items-center gap-2 text-xs text-gray-400">
                       <p>💡 <strong>Tip:</strong> Puedes crear productos y plantillas sobre la marcha</p>
                       <div className="flex items-center gap-4">
@@ -1161,11 +1308,14 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting || orderItems.length === 0}
+              disabled={isSubmitting || orderItems.length === 0 || loadingOrder}
               className="flex items-center gap-2"
             >
               {isSubmitting && <Loader className="animate-spin" size={16} />}
-              {isSubmitting ? 'Creando...' : `Crear Orden (${orderItems.length} items)`}
+              {isSubmitting 
+                ? (isEditMode ? 'Actualizando...' : 'Creando...') 
+                : (isEditMode ? `Actualizar Orden (${orderItems.length} items)` : `Crear Orden (${orderItems.length} items)`)
+              }
             </Button>
           </div>
         </form>
