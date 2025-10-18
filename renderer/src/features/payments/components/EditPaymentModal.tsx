@@ -234,7 +234,7 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
                 <Input
                   id="amount"
                   type="number"
-                  step="0.1"
+                  step="0.01"
                   min="1"
                   max={pendingAmount + payment.amount}
                   value={formData.amount || ''}

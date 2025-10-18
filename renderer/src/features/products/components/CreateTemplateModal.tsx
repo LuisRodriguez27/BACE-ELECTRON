@@ -162,7 +162,7 @@ const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
                 <Input
                   id="width"
                   type="number"
-                  step='0.1'
+                  step='0.01'
                   min='0'
                   placeholder="Ej: 2.0"
                   className="pl-10"
@@ -184,7 +184,7 @@ const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
                 <Input
                   id="height"
                   type="number"
-                  step='0.1'
+                  step='0.01'
                   min='0'
                   placeholder="Ej: 3.0"
                   className="pl-10"
