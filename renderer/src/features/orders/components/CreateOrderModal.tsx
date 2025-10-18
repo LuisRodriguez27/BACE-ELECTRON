@@ -78,7 +78,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     resolver: zodResolver(createOrderSchema),
     defaultValues: {
       user_id: currentUserId,
-      date: dayjs().tz('America/Mexico_City').format('YYYY-MM-DD'), // Solo fecha para el input
+      date: dayjs().tz('America/Mexico_City').format('YYYY-MM-DD'),
       status: 'pendiente',
       items: []
     }
@@ -518,16 +518,17 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         }
       }
 
-      // Guardar la fecha y hora actual en el backend, no la del input
-      const orderData: CreateOrderForm = {
-        client_id: formData.client_id,
-        user_id: currentUserId,
-        date: dayjs().tz('America/Mexico_City').toISOString(), // Fecha y hora actual
-        estimated_delivery_date: formData.estimated_delivery_date || undefined,
-        status: formData.status || 'pendiente',
-        notes: formData.notes || undefined,
-        items // Usar los items del estado local, no del formulario
-      };
+      if (isEditMode && orderId) {
+        // Modo edición
+        const updateData = {
+          client_id: formData.client_id,
+          date: formData.date,
+          estimated_delivery_date: formData.estimated_delivery_date || undefined,
+          status: formData.status,
+          notes: formData.notes || undefined,
+          items: items,
+          edited_by: currentUserId
+        };
 
         console.log('Datos de actualización:', updateData);
 
@@ -543,7 +544,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         const orderData: CreateOrderForm = {
           client_id: formData.client_id,
           user_id: currentUserId,
-          date: formData.date,
+          date: dayjs().tz('America/Mexico_City').toISOString(),
           estimated_delivery_date: formData.estimated_delivery_date || undefined,
           status: formData.status || 'pendiente',
           notes: formData.notes || undefined,
