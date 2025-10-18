@@ -517,15 +517,12 @@ const OrdersPage: React.FC = () => {
         orderId={selectedOrderId}
         onOrderUpdated={handleOrderUpdated}
         onEditClick={(orderId) => {
-          console.log('onEditClick llamado con orderId:', orderId);
           // No limpiar el selectedOrderId, solo cambiar los estados de los modales
           setShowDetailsModal(false);
           // Asegurarse de que el orderId esté configurado antes de abrir el modal de edición
           setSelectedOrderId(orderId);
-          console.log('Estados actualizados, abriendo modal de edición...');
           // Usar setTimeout para asegurar que React actualice el estado antes de abrir el nuevo modal
           setTimeout(() => {
-            console.log('Abriendo modal de edición con orderId:', orderId);
             setShowEditModal(true);
           }, 100); // Aumentar el delay a 100ms
         }}

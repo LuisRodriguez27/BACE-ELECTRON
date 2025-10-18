@@ -114,7 +114,6 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     }
     // Si hay callback de edición, usarlo (abre el modal de edición completa)
     if (onEditClick && orderId) {
-      console.log('OrderDetailsModal: Llamando onEditClick con orderId:', orderId);
       onEditClick(orderId);
       // NO llamar handleClose() aquí porque el padre maneja el cierre
       // El callback ya se encarga de cerrar este modal y abrir el de edición
