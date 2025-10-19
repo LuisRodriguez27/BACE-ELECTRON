@@ -2,7 +2,6 @@ import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/auth';
 import { AlertCircle, Calendar, CheckCircle, Clock, DollarSign, Edit3, Eye, Plus, Search, ShoppingCart } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import { PaymentsApiService } from '../payments/PaymentsApiService';
 import CreatePaymentModal from '../payments/components/CreatePaymentModal';
 import type { Payment } from '../payments/types';
@@ -71,7 +70,6 @@ const OrdersPage: React.FC = () => {
 
   const handleOrderCreated = (newOrder: Order) => {
     setOrders(prevOrders => [newOrder, ...prevOrders]);
-    toast.success('Orden creada exitosamente');
   };
 
   const handleOrderUpdated = (updatedOrder: Order) => {
