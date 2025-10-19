@@ -159,7 +159,11 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       
       // Convertir fecha estimada si existe
       if (orderData.estimated_delivery_date) {
-        const formattedEstimatedDate = dayjs(orderData.estimated_delivery_date).format('YYYY-MM-DD');
+        let parsedEstimated = dayjs(orderData.estimated_delivery_date);
+        if (parsedEstimated.utc().hour() === 0 && parsedEstimated.utc().minute() === 0 && parsedEstimated.utc().second() === 0) {
+          parsedEstimated = parsedEstimated.add(1, 'day');
+        }
+        const formattedEstimatedDate = parsedEstimated.format('YYYY-MM-DD');
         setValue('estimated_delivery_date', formattedEstimatedDate);
       } else {
         setValue('estimated_delivery_date', '');
