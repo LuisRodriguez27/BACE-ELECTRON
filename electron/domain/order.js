@@ -146,7 +146,7 @@ class Order {
     if (!this.hasProducts()) return 0;
     
     return this.orderProducts.reduce((sum, product) => {
-      return sum + (parseFloat(product.unit_price) * parseInt(product.quantity));
+      return sum + (parseFloat(product.unit_price) * parseFloat(product.quantity));
     }, 0);
   }
 

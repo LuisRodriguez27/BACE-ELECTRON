@@ -264,7 +264,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
       type: 'product',
       id: 0,
       name: '',
-      quantity: 1,
+      quantity: 0.0001,
       unit_price: 0
     };
     const newIndex = budgetItems.length;
@@ -1049,9 +1049,10 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
                           <Label className="text-sm font-medium text-gray-700">Cantidad *</Label>
                           <Input
                             type="number"
-                            min="1"
+                            min="0.0001"
+                            step="0.0001"
                             value={item.quantity}
-                            onChange={(e) => updateBudgetItem(index, { quantity: parseInt(e.target.value) || 1 })}
+                            onChange={(e) => updateBudgetItem(index, { quantity: parseFloat(e.target.value) || 1 })}
                             className="mt-1"
                           />
                         </div>

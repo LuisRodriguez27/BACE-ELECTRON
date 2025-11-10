@@ -207,7 +207,7 @@ class OrderService {
         items: items.map(item => ({
           product_id: item.product_id ? parseInt(item.product_id) : null,
           template_id: item.template_id ? parseInt(item.template_id) : null,
-          quantity: parseInt(item.quantity),
+          quantity: parseFloat(item.quantity),
           unit_price: parseFloat(item.unit_price)
         }))
       };
@@ -318,7 +318,7 @@ class OrderService {
         updatePayload.items = items.map(item => ({
           product_id: item.product_id ? parseInt(item.product_id) : null,
           template_id: item.template_id ? parseInt(item.template_id) : null,
-          quantity: parseInt(item.quantity),
+          quantity: parseFloat(item.quantity),
           unit_price: parseFloat(item.unit_price)
         }));
       }
