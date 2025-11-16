@@ -21,7 +21,7 @@ function createWindow() {
     height: 768,
     show: false, // No mostrar hasta que esté listo
     backgroundColor: '#ffffff', // Fondo blanco para evitar pantallas negras
-    // autoHideMenuBar: true,
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
