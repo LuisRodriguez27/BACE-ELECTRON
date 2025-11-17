@@ -6,7 +6,7 @@ class OrderRepository {
   findAll() {
     const stmt = db.prepare(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
-            o.estimated_delivery_date, o.status, o.total, o.notes, o.active,
+            o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.active,
             c.name as client_name, c.phone as client_phone,
             u.username as user_username,
             ue.username as edited_by_username
@@ -29,7 +29,7 @@ class OrderRepository {
   findById(id) {
     const orderData = db.prepare(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
-            o.estimated_delivery_date, o.status, o.total, o.notes, o.active,
+            o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.active,
             c.name as client_name, c.phone as client_phone,
             u.username as user_username,
             ue.username as edited_by_username
@@ -50,7 +50,7 @@ class OrderRepository {
   findByClientId(clientId) {
     const stmt = db.prepare(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
-            o.estimated_delivery_date, o.status, o.total, o.notes, o.active,
+            o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.active,
             c.name as client_name, c.phone as client_phone,
             u.username as user_username,
             ue.username as edited_by_username
@@ -73,7 +73,7 @@ class OrderRepository {
   findCompleted() {
     const stmt = db.prepare(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
-            o.estimated_delivery_date, o.status, o.total, o.notes, o.active,
+            o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.active,
             c.name as client_name, c.phone as client_phone,
             u.username as user_username,
             ue.username as edited_by_username
@@ -106,11 +106,12 @@ class OrderRepository {
         AND (
           CAST(o.id AS TEXT) LIKE ?
           OR o.notes LIKE ?
+          OR o.description LIKE ?
           OR c.name LIKE ?
           OR c.phone LIKE ?
         )
       `;
-      searchParams = [term, term, term, term];
+      searchParams = [term, term, term, term, term];
     }
     
     // Obtener total de registros con búsqueda
@@ -126,7 +127,7 @@ class OrderRepository {
     // Obtener registros paginados con búsqueda
     const dataQuery = `
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
-            o.estimated_delivery_date, o.status, o.total, o.notes, o.active,
+            o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.active,
             c.name as client_name, c.phone as client_phone,
             u.username as user_username,
             ue.username as edited_by_username
@@ -178,8 +179,8 @@ class OrderRepository {
     const transaction = db.transaction(() => {
       // Crear la orden
       const orderStmt = db.prepare(`
-        INSERT INTO orders (client_id, user_id, date, estimated_delivery_date, status, total, notes)
-        VALUES (?, ?, ?, ?, ?, 0, ?)
+        INSERT INTO orders (client_id, user_id, date, estimated_delivery_date, status, total, notes, description)
+        VALUES (?, ?, ?, ?, ?, 0, ?, ?)
       `);
       
       const orderResult = orderStmt.run(
@@ -188,7 +189,8 @@ class OrderRepository {
         orderData.date,
         orderData.estimated_delivery_date || null,
         orderData.status || 'pendiente',
-        orderData.notes || null
+        orderData.notes || null,
+        orderData.description || null
       );
 
       const orderId = orderResult.lastInsertRowid;
@@ -259,7 +261,6 @@ class OrderRepository {
    * Actualizar una orden
    */
   update(id, orderData) {
-    // Verificar que la orden existe y puede ser editada
     const existingOrder = this.findById(id);
     if (!existingOrder) {
       throw new Error('La orden no existe');
@@ -269,36 +270,35 @@ class OrderRepository {
       throw new Error('No se puede editar una orden completada o cancelada');
     }
 
-    // Actualizar campos permitidos de la orden
-    const stmt = db.prepare(`
-      UPDATE orders
-      SET estimated_delivery_date = ?, status = ?, notes = ?, edited_by = ?
-      WHERE id = ? AND active = 1
-    `);
-    stmt.run(
-      orderData.estimated_delivery_date || null,
-      orderData.status || null,
-      orderData.notes || null,
-      orderData.edited_by || null,
-      id
-    );
+    const fieldsToUpdate = {};
+    if (orderData.estimated_delivery_date !== undefined) fieldsToUpdate.estimated_delivery_date = orderData.estimated_delivery_date;
+    if (orderData.status !== undefined) fieldsToUpdate.status = orderData.status;
+    if (orderData.notes !== undefined) fieldsToUpdate.notes = orderData.notes;
+    if (orderData.description !== undefined) fieldsToUpdate.description = orderData.description;
+    if (orderData.edited_by !== undefined) fieldsToUpdate.edited_by = orderData.edited_by;
 
-    // Si se reciben items, actualizar productos/plantillas de la orden
+    const fieldEntries = Object.entries(fieldsToUpdate);
+
+    if (fieldEntries.length > 0) {
+      const setClause = fieldEntries.map(([key]) => `${key} = ?`).join(', ');
+      const values = fieldEntries.map(([, value]) => value);
+      
+      const stmt = db.prepare(`
+        UPDATE orders
+        SET ${setClause}
+        WHERE id = ? AND active = 1
+      `);
+      
+      stmt.run(...values, id);
+    }
+
     if (orderData.items && Array.isArray(orderData.items)) {
-      // Validar los nuevos items
       this.validateOrderItems(orderData.items);
-
-      // Eliminar los productos/plantillas actuales de la orden
       db.prepare('DELETE FROM order_products WHERE order_id = ?').run(id);
-
-      // Agregar los nuevos productos/plantillas
       this.addItemsToOrder(id, orderData.items);
-
-      // Recalcular el total
       this.recalculateTotal(id);
     }
 
-    // Retornar la orden actualizada
     return this.findById(id);
   }
 

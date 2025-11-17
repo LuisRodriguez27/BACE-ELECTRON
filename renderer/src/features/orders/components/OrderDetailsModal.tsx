@@ -63,7 +63,8 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const [editFormData, setEditFormData] = useState({
     status: '',
     estimated_delivery_date: '',
-    notes: ''
+    notes: '',
+    description: ''
   });
   const { user } = useAuth();
   const { checkPermission } = usePermissions();
@@ -97,7 +98,8 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       setEditFormData({
         status: orderData.status,
         estimated_delivery_date: orderData.estimated_delivery_date || '',
-        notes: orderData.notes || ''
+        notes: orderData.notes || '',
+        description: orderData.description || ''
       });
     } catch (err) {
       console.error('Error loading order details:', err);
@@ -148,6 +150,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         status: editFormData.status as any,
         estimated_delivery_date: editFormData.estimated_delivery_date || undefined,
         notes: editFormData.notes || undefined,
+        description: editFormData.description || undefined,
         edited_by: user.id // ← SIEMPRE pasar el ID del usuario loggeado
       };
       
@@ -176,7 +179,8 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     setEditFormData({
       status: order.status,
       estimated_delivery_date: order.estimated_delivery_date || '',
-      notes: order.notes || ''
+      notes: order.notes || '',
+      description: order.description || ''
     });
     setIsEditing(false);
     setError(null);
@@ -438,6 +442,29 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Descripción */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Descripción
+                    </h3>
+                    {isEditing ? (
+                      <textarea
+                        value={editFormData.description}
+                        onChange={(e) => setEditFormData(prev => ({ ...prev, description: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                        rows={3}
+                        placeholder="Descripción adicional sobre la orden..."
+                      />
+                    ) : (
+                      <div className="text-sm text-gray-600">
+                        {order.description || (
+                          <span className="text-gray-400 italic">Sin descripción adicional</span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Notas */}

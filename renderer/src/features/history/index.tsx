@@ -396,12 +396,20 @@ const OrdersPage: React.FC = () => {
                       </Button>
                     </div>
                   </div>
+
+                    {/* Descripcion de la orden */}
+                    {order.description && (
+                    <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <span className="text-sm font-medium text-yellow-800">Descripcion:</span>
+                    <p className="text-sm text-yellow-700 mt-1 line-clamp-2 break-words" title={order.description}>{order.description}</p>
+                    </div>
+                    )}
                   
                     {/* Notas de la orden */}
                     {order.notes && (
                     <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <span className="text-sm font-medium text-yellow-800">Notas:</span>
-                    <p className="text-sm text-yellow-700 mt-1">{order.notes}</p>
+                    <p className="text-sm text-yellow-700 mt-1 line-clamp-2 break-words" title={order.notes}>{order.notes}</p>
                     </div>
                     )}
                   

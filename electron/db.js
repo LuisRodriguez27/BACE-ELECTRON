@@ -276,6 +276,7 @@ db.exec(`
     status TEXT NOT NULL DEFAULT 'pendiente', 
     total REAL DEFAULT 0,
     notes TEXT,
+    description TEXT,
     created_from_budget_id INTEGER,
     active INTEGER NOT NULL DEFAULT 1,
     FOREIGN KEY (client_id) REFERENCES clients(id),

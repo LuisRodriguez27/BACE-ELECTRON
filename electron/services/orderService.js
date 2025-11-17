@@ -84,7 +84,7 @@ class OrderService {
    */
   async createOrder(orderData) {
     try {
-      const { client_id, user_id, date, estimated_delivery_date, status, notes } = orderData;
+      const { client_id, user_id, date, estimated_delivery_date, status, notes, description } = orderData;
       
       // Detectar si usa la estructura legacy (products) o nueva (items)
       let items;
@@ -204,6 +204,7 @@ class OrderService {
         estimated_delivery_date: estimated_delivery_date ? new Date(estimated_delivery_date).toISOString() : null,
         status: validStatus,
         notes: notes?.trim() || null,
+        description: description?.trim() || null,
         items: items.map(item => ({
           product_id: item.product_id ? parseInt(item.product_id) : null,
           template_id: item.template_id ? parseInt(item.template_id) : null,
@@ -223,7 +224,7 @@ class OrderService {
     }
   }
 
-  async updateOrder(id, { estimated_delivery_date, status, notes, edited_by }) {
+  async updateOrder(id, orderData) {
     try {
       if (!id || isNaN(id)) {
         throw new Error('ID de orden inválido');
@@ -241,6 +242,8 @@ class OrderService {
       if (!existingOrder.canEdit()) {
         throw new Error('No se puede editar una orden completada o cancelada');
       }
+
+      const { estimated_delivery_date, status, notes, description, edited_by, items } = orderData;
 
       // Validar fecha estimada de entrega si se proporciona
       if (estimated_delivery_date) {
@@ -271,15 +274,16 @@ class OrderService {
       }
 
       // Validar y procesar items si se reciben
-      let items = null;
-      if (arguments[1] && Array.isArray(arguments[1].items)) {
-        items = arguments[1].items;
-        if (!items.length) {
+      if (items) {
+        if (!Array.isArray(items)) {
+          throw new Error('El campo "items" debe ser un array');
+        }
+        if (items.length === 0) {
           throw new Error('La orden debe contener al menos un producto o plantilla');
         }
         for (const [index, item] of items.entries()) {
-          const hasProduct = item.product_id !== null && item.product_id !== undefined;
-          const hasTemplate = item.template_id !== null && item.template_id !== undefined;
+          const hasProduct = item.product_id != null;
+          const hasTemplate = item.template_id != null;
           if (!hasProduct && !hasTemplate) {
             throw new Error(`Item ${index + 1}: Debe especificar un product_id o template_id`);
           }
@@ -289,7 +293,7 @@ class OrderService {
           if (!item.quantity || isNaN(item.quantity) || item.quantity < 1) {
             throw new Error(`Item ${index + 1}: Cantidad inválida`);
           }
-          if (item.unit_price === undefined || item.unit_price === null || isNaN(item.unit_price) || item.unit_price < 0) {
+          if (item.unit_price == null || isNaN(item.unit_price) || item.unit_price < 0) {
             throw new Error(`Item ${index + 1}: Precio unitario inválido`);
           }
           if (hasProduct) {
@@ -307,13 +311,15 @@ class OrderService {
         }
       }
 
-      // Actualizar orden, incluyendo items si se reciben
+      // Construir payload para actualizar, preservando valores existentes
       const updatePayload = {
-        estimated_delivery_date: estimated_delivery_date ? new Date(estimated_delivery_date).toISOString() : null,
-        status: status || null,
-        notes: notes?.trim() || null,
-        edited_by: edited_by ? parseInt(edited_by) : null
+        estimated_delivery_date: estimated_delivery_date ? new Date(estimated_delivery_date).toISOString() : existingOrder.estimated_delivery_date,
+        status: status || existingOrder.status,
+        notes: notes !== undefined ? (notes?.trim() || null) : existingOrder.notes,
+        description: description !== undefined ? (description?.trim() || null) : existingOrder.description,
+        edited_by: edited_by ? parseInt(edited_by) : existingOrder.edited_by
       };
+
       if (items) {
         updatePayload.items = items.map(item => ({
           product_id: item.product_id ? parseInt(item.product_id) : null,

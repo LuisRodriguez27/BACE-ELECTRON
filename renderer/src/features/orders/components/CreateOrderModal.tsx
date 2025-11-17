@@ -170,6 +170,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       }
       setValue('status', orderData.status);
       setValue('notes', orderData.notes || '');
+      setValue('description', orderData.description || '');
       
       // Configurar el cliente seleccionado
       setSelectedClientId(orderData.client_id);
@@ -530,6 +531,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
           estimated_delivery_date: formData.estimated_delivery_date || undefined,
           status: formData.status,
           notes: formData.notes || undefined,
+          description: formData.description || undefined,
           items: items,
           edited_by: currentUserId
         };
@@ -552,6 +554,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
           estimated_delivery_date: formData.estimated_delivery_date || undefined,
           status: formData.status || 'pendiente',
           notes: formData.notes || undefined,
+          description: formData.description || undefined,
           items
         };
 
@@ -924,6 +927,19 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                   readOnly
                 />
               </div>
+            </div>
+
+            {/* Descripción */}
+            <div className="md:col-span-2">
+              <Label htmlFor="description" className="text-sm font-medium text-gray-700">
+                Descripción (Imprimible)
+              </Label>
+              <textarea
+                {...register('description')}
+                className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                rows={3}
+                placeholder="Descripción de la orden..."
+              />
             </div>
 
             {/* Notas */}

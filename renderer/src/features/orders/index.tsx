@@ -178,13 +178,15 @@ const OrdersPage: React.FC = () => {
     // Buscar por notas (si existen)
     const notesMatch = order.notes && order.notes.toLowerCase().includes(searchLower);
 
+    const descriptionMatch = order.description && order.description.toLowerCase().includes(searchLower);
+
     // Buscar por nombre del cliente
     const clientNameMatch = order.client && order.client.name.toLowerCase().includes(searchLower);
 
     // Buscar por teléfono del cliente
     const clientPhoneMatch = order.client && order.client.phone && order.client.phone.includes(searchLower);
 
-    return idMatch || notesMatch || clientNameMatch || clientPhoneMatch;
+    return idMatch || notesMatch || descriptionMatch || clientNameMatch || clientPhoneMatch;
   });
 
   // Funciones auxiliares para pagos
@@ -440,11 +442,19 @@ const OrdersPage: React.FC = () => {
                       </div>
                     </div>
 
+                    {/* Descripción de la orden */}
+                    {order.description && (
+                      <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <span className="text-sm font-medium text-blue-800">Descripción:</span>
+                        <p className="text-sm text-blue-700 mt-1 line-clamp-2 break-words" title={order.description}>{order.description}</p>
+                      </div>
+                    )}
+                    
                     {/* Notas de la orden */}
                     {order.notes && (
                       <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                         <span className="text-sm font-medium text-yellow-800">Notas:</span>
-                        <p className="text-sm text-yellow-700 mt-1">{order.notes}</p>
+                        <p className="text-sm text-yellow-700 mt-1 line-clamp-2 break-words" title={order.notes}>{order.notes}</p>
                       </div>
                     )}
 

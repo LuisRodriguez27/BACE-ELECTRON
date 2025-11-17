@@ -37,6 +37,7 @@ export const createOrderSchema = z.object({
   estimated_delivery_date: z.string().optional(), 
   status: orderStatusSchema,
   notes: z.string().optional(),
+  description: z.string().optional(),
   items: z.array(orderItemSchema).min(1, 'La orden debe tener al menos un producto o plantilla')
 });
 
@@ -47,6 +48,7 @@ export const editOrderSchema = z.object({
   estimated_delivery_date: z.string().optional(),
   status: orderStatusSchema.optional(),
   notes: z.string().optional(),
+  description: z.string().optional(),
   items: z.array(orderItemSchema).optional(),
   edited_by: z.number().int().optional()
 });
@@ -66,6 +68,7 @@ export interface Order {
   status: OrderStatusType;
   total: number;
   notes?: string;
+  description?: string;
 
   // Para joins
   client?: {

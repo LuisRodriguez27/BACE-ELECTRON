@@ -197,7 +197,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
         <div style="position: absolute; top: 7.5rem; left: 6.25rem; font-size: 1.25rem; line-height: 1; font-weight: 700; color: rgb(0, 0, 0);">
             <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5rem;">
                 <!-- Cliente -->
-                <div style="grid-column: span 1 / span 1;">
+            <div style="grid-column: span 1 / span 1; font-size: calc(1em - 2px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                     ${orderData.client?.name || 'Cliente no especificado'}
                 </div>
                 
@@ -235,6 +235,13 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                 </div>
             `).join('')}
         </div>
+
+        ${orderData.description ? `
+        <!-- Descripción de la orden -->
+        <div style="position: absolute; bottom: 8.8rem; left: 5rem; right: 3rem; font-size: 1rem; color: rgb(153, 27, 27); font-weight: 700; padding: 0.5rem; border-radius: 0.25rem; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; line-height: 1.2em; max-height: 4.2em;">
+            ${orderData.description}
+        </div>
+        ` : ''}
 
         <div>
             <!-- Número de Orden en la parte inferior derecha -->
@@ -387,7 +394,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
               <div className='absolute top-32 left-25 text-xl font-bold text-black'>
                 <div className="grid grid-cols-2 gap-20">
                   {/* Cliente */}
-                  <div>
+                  <div className="truncate" style={{ fontSize: 'calc(1em - 2px)' }}>
                     {orderData.client?.name || 'Cliente no especificado'}
                   </div>
 
@@ -431,6 +438,14 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                   </div>
                 ))}
               </div>
+
+              {orderData.description && (
+                <div className="absolute bottom-37 left-20 right-10 text-sm text-red-800 font-bold p-2 rounded">
+                  <div className="line-clamp-4 break-words">
+                    {orderData.description}
+                  </div>
+                </div>
+              )}
 
               <div className="absolute bottom-32 right-20 text-xl font-bold text-red-600">
                 <div className='text-center'>

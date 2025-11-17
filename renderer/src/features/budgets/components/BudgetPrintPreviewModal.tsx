@@ -156,7 +156,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
       <!-- Use fixed column widths to avoid shifting when name is short -->
       <div style="display: grid; grid-template-columns: 17rem 8rem 1rem; column-gap: 5.5rem; align-items: center;">
         <!-- Cliente -->
-        <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+        <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(1em - 2px);">
           ${budgetData.client?.name || 'Cliente no especificado'}
         </div>
 
@@ -293,7 +293,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
                 {/* fixed columns to prevent shifting */}
                 <div style={{ display: 'grid', gridTemplateColumns: '17rem 8rem 1rem', columnGap: '5rem', alignItems: 'center' }}>
                   {/* Cliente */}
-                  <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                  <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', fontSize: 'calc(1em - 2px)' }}>
                     {budgetData.client?.name || 'Cliente no especificado'}
                   </div>
 
