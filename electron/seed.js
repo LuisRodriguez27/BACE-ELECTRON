@@ -185,8 +185,8 @@ function seed() {
   // 8. Insertar órdenes
   // -------------------------
   const insertOrder = db.prepare(`
-    INSERT INTO orders (client_id, user_id, edited_by, date, estimated_delivery_date, status, total, notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO orders (client_id, user_id, edited_by, date, estimated_delivery_date, status, total, notes, description)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const panaderia = db.prepare("SELECT id FROM clients WHERE name = ?").get("Panadería San José").id;
@@ -217,6 +217,7 @@ function seed() {
     const daysAgo = Math.floor(Math.random() * 90); // Órdenes de los últimos 90 días
     const orderDate = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
     const deliveryDate = new Date(orderDate.getTime() + (3 + Math.floor(Math.random() * 7)) * 24 * 60 * 60 * 1000);
+    const notes = generateRandomDescription();
     const description = generateRandomDescription();
 
     const orderId = insertOrder.run(
@@ -227,6 +228,7 @@ function seed() {
       deliveryDate.toISOString(),
       "completado",
       total,
+      notes,
       description
     ).lastInsertRowid;
 
