@@ -345,6 +345,21 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_budgets_active ON budgets(active);
 `);
 
+// ==========================================================
+// Migraciones de esquema (para instalaciones existentes)
+// ==========================================================
+try {
+  const existingOrderColumns = db.prepare('PRAGMA table_info(orders)').all();
+  const hasDescription = existingOrderColumns.some(c => c.name === 'description');
+  if (!hasDescription) {
+    console.log('🛠 Migración: agregando columna description a orders');
+    db.exec('ALTER TABLE orders ADD COLUMN description TEXT');
+    console.log('✅ Columna description agregada correctamente');
+  }
+} catch (migrationError) {
+  console.error('❌ Error aplicando migración de orders.description:', migrationError);
+}
+
 // Configurar el autoincremento de orders para empezar desde 14550
 // Solo se ejecuta si no hay órdenes existentes o si el último ID es menor a 14550
 const checkOrderCount = db.prepare('SELECT COUNT(*) as count, MAX(id) as maxId FROM orders').get();
