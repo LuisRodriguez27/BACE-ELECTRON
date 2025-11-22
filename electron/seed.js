@@ -185,8 +185,8 @@ function seed() {
   // 8. Insertar órdenes
   // -------------------------
   const insertOrder = db.prepare(`
-    INSERT INTO orders (client_id, user_id, edited_by, date, estimated_delivery_date, status, total, notes, description)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO orders (client_id, user_id, edited_by, date, estimated_delivery_date, status, total, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const panaderia = db.prepare("SELECT id FROM clients WHERE name = ?").get("Panadería San José").id;
@@ -228,8 +228,7 @@ function seed() {
       deliveryDate.toISOString(),
       "completado",
       total,
-      notes,
-      description
+      notes
     ).lastInsertRowid;
 
     orderIds.push(orderId);
