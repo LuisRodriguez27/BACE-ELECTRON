@@ -18,7 +18,7 @@ const orderStatusSchema = z.enum(
 export const orderItemSchema = z.object({
   product_id: z.number().int().min(1).nullable().optional(),
   template_id: z.number().int().min(1).nullable().optional(),
-  quantity: z.number().int().min(1, 'La cantidad debe ser al menos 1'),
+  quantity: z.number().min(0.0001, 'La cantidad debe ser al menos 0.1'),
   unit_price: z.number().min(0, 'El precio debe ser un número positivo'),
 }).refine((data) => {
   // Debe tener exactamente uno: product_id O template_id
@@ -37,14 +37,19 @@ export const createOrderSchema = z.object({
   estimated_delivery_date: z.string().optional(), 
   status: orderStatusSchema,
   notes: z.string().optional(),
+  description: z.string().optional(),
   items: z.array(orderItemSchema).min(1, 'La orden debe tener al menos un producto o plantilla')
 });
 
-// Editar orden (no se pueden editar productos)
+// Editar orden (ahora se pueden editar productos)
 export const editOrderSchema = z.object({
+  client_id: z.number().int().min(1).optional(),
+  date: z.string().optional(),
   estimated_delivery_date: z.string().optional(),
   status: orderStatusSchema.optional(),
   notes: z.string().optional(),
+  description: z.string().optional(),
+  items: z.array(orderItemSchema).optional(),
   edited_by: z.number().int().optional()
 });
 
@@ -63,6 +68,7 @@ export interface Order {
   status: OrderStatusType;
   total: number;
   notes?: string;
+  description?: string;
 
   // Para joins
   client?: {
@@ -110,6 +116,7 @@ export interface OrderProduct {
   template_description?: string;
   template_final_price?: number;
   template_created_by_username?: string;
+  template_base_product_name?: string;
 }
 
 // Tipos para el formulario del frontend
@@ -152,10 +159,21 @@ export const getOrderItemDisplayName = (orderProduct: OrderProduct): string => {
   if (orderProduct.product_id) {
     return orderProduct.product_name || `Producto #${orderProduct.product_id}`;
   } else if (orderProduct.template_id) {
-    const baseName = orderProduct.product_name || 'Producto';
-    return `${baseName} (Plantilla)`;
+    const baseName = orderProduct.template_base_product_name || orderProduct.product_name || 'Producto';
+    return baseName;
   }
   return 'Item desconocido';
+};
+
+export const getOrderItemDescription = (orderProduct: OrderProduct): string => {
+  if (orderProduct.product_id) {
+    // Para productos directos, usar la descripción del producto
+    return orderProduct.product_description || '';
+  } else if (orderProduct.template_id) {
+    // Para plantillas, usar la descripción de la plantilla
+    return orderProduct.template_description || '';
+  }
+  return '';
 };
 
 export const getOrderItemType = (orderProduct: OrderProduct): 'product' | 'template' => {

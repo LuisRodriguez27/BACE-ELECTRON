@@ -3,6 +3,12 @@ import { Button } from '@/components/ui';
 import { X, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import notaImage from '@/assets/NOTA.jpg';
+import { getOrderItemDisplayName, getOrderItemDescription } from '../types'; import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 interface PrintPreviewModalProps {
   isOpen: boolean;
@@ -25,18 +31,38 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
 
   // Funciones para obtener componentes de fecha por separado
   const getDay = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.getDate().toString().padStart(1, '0');
+    let date = dayjs(dateString);
+
+    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
+      date = date.add(1, 'day');
+    }
+    return date.date().toString().padStart(1, '0');
   };
 
   const getMonth = (dateString: string) => {
-    const date = new Date(dateString);
-    return (date.getMonth() + 1).toString().padStart(1, '0');
+    let date = dayjs(dateString);
+
+    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
+      date = date.add(1, 'day');
+    }
+    return (date.month() + 1).toString().padStart(1, '0');
   };
 
   const getYear = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.getFullYear().toString();
+    let date = dayjs(dateString);
+
+    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
+      date = date.add(1, 'day');
+    }
+    return date.year().toString();
+  };
+
+  const getHours = (dateString: string) => {
+    let date = dayjs(dateString);
+    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
+      date = date.add(1, 'day');
+    }
+    return date.format('HH:mm');
   };
 
   const totalPagos = paymentsData.reduce((sum, payment) => sum + payment.amount, 0);
@@ -80,6 +106,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             color-adjust: exact !important;
+            font-family: Arial, sans-serif !important;
         }
         @page {
             size: 21.6cm 17cm landscape;
@@ -116,6 +143,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
             margin: 0;
             padding: 0;
             overflow: hidden;
+            font-family: Arial, sans-serif;
         }
         .print-container {
             width: 21.6cm;
@@ -139,35 +167,37 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
         <img src="${base64Image}" alt="Fondo" class="background-image" />
         
         <!-- Fechas en dos columnas -->
-        <div style="position: absolute; top: 4rem; right: 3rem; font-size: 1rem; line-height: 1.25rem; font-weight: 700; color: rgb(0, 0, 0);">
-            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem;">
-                <!-- Columna 1: Fecha de Orden -->
-                <div style="text-align: right;">
-                    <div style="display: flex; gap: 1.25rem;">
+        <div style="position: absolute; top: 4rem; right: 1rem; font-size: 1rem; line-height: 1.25rem; font-weight: 700; color: rgb(0, 0, 0);">
+            <div style="display: flex; min-width: 255px; align-items: flex-start;">
+                <div style="text-align: right; width: 115px;">
+                    <div style="display: flex; gap: 1rem;">
                         <span>${getDay(orderData.date)}</span>
                         <span>${getMonth(orderData.date)}</span>
                         <span>${getYear(orderData.date)}</span>
                     </div>
                 </div>
-                
-                <!-- Columna 2: Fecha de Entrega -->
-                <div style="text-align: right;">
-                    ${orderData.estimated_delivery_date ? `
-                        <div style="display: flex; gap: 1.25rem;">
-                            <span>${getDay(orderData.estimated_delivery_date)}</span>
-                            <span>${getMonth(orderData.estimated_delivery_date)}</span>
-                            <span>${getYear(orderData.estimated_delivery_date)}</span>
-                        </div>
-                    ` : ''}
+                ${orderData.estimated_delivery_date ? `
+                <div style="text-align: right; width: 100px;">
+                    <div style="display: flex; gap: 1.25rem;">
+                        <span>${getDay(orderData.estimated_delivery_date)}</span>
+                        <span>${getMonth(orderData.estimated_delivery_date)}</span>
+                        <span>${getYear(orderData.estimated_delivery_date)}</span>
+                    </div>
                 </div>
+                ` : ''}
             </div>
+        </div>
+
+        <!-- Hora de la orden -->
+        <div style="position: absolute; top: 7.5rem; right: 14.5rem; font-size: 1rem; font-weight: 700; color: rgb(0,0,0);">
+            ${getHours(orderData.date)}
         </div>
 
         <!-- Cliente y Teléfono -->
         <div style="position: absolute; top: 7.5rem; left: 6.25rem; font-size: 1.25rem; line-height: 1; font-weight: 700; color: rgb(0, 0, 0);">
             <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5rem;">
                 <!-- Cliente -->
-                <div style="grid-column: span 1 / span 1;">
+            <div style="grid-column: span 1 / span 1; font-size: calc(1em - 2px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                     ${orderData.client?.name || 'Cliente no especificado'}
                 </div>
                 
@@ -179,7 +209,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
         </div>
         
         <!-- Productos en formato de tabla -->
-        <div style="position: absolute; top: 11rem; left: 2rem; right: 2.5rem; color: rgb(0, 0, 0);">
+        <div style="position: absolute; top: 9rem; left: 2rem; right: 2.5rem; color: rgb(0, 0, 0);">
             <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; font-size: 1.125rem; line-height: 1; font-weight: 600; margin-bottom: 0.5rem; border-bottom: 1px solid rgb(156, 163, 175); padding-bottom: 0.25rem;">
                 <div style="grid-column: span 1 / span 1; text-align: center;">#</div>
                 <div style="grid-column: span 6 / span 6;">Producto</div>
@@ -189,11 +219,45 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
             ${productsData.map((product, index) => `
                 <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; margin-bottom: 0.5rem; font-size: 1.125rem; line-height: 1.75rem; padding-top: 0.25rem; padding-bottom: 0.25rem;">
                     <div style="grid-column: span 1 / span 1; text-align: center; font-weight: 500;">${index + 1}</div>
-                    <div style="grid-column: span 6 / span 6;">${product.product_name || product.template_name || 'Producto'}</div>
+                    <div style="grid-column: span 6 / span 6;">
+                        <div style="font-weight: 500;">
+                          ${getOrderItemDisplayName(product)}
+                        </div>
+                        <div>
+                          ${getOrderItemDescription(product) ?
+          `<div style="font-size: 0.875rem; color: rgb(70, 80, 90); margin-top: -0.2rem; line-height: 1;">
+                              ${getOrderItemDescription(product)}
+                            </div>` : ''}
+                        </div>
+                    </div>
                     <div style="grid-column: span 2 / span 2; text-align: center;">${product.quantity}</div>
                     <div style="grid-column: span 3 / span 3; text-align: right; font-weight: 500;">${product.total_price.toFixed(2)}</div>
                 </div>
             `).join('')}
+        </div>
+
+        ${orderData.description ? `
+        <!-- Descripción de la orden -->
+        <div style="position: absolute; bottom: 8.8rem; left: 5rem; right: 3rem; font-size: 1rem; color: rgb(153, 27, 27); font-weight: 700; padding: 0.5rem; border-radius: 0.25rem; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; line-height: 1.2em; max-height: 4.2em;">
+            ${orderData.description}
+        </div>
+        ` : ''}
+
+        <div>
+            <!-- Número de Orden en la parte inferior derecha -->
+            <div style="position: absolute; bottom: 7.5rem; right: 5rem; font-size: 1.25rem; line-height: 1; font-weight: 700; color: rgb(220, 38, 38); text-align: center;">
+                No. ${orderData.id}
+            </div>
+        </div>
+
+        <!-- Mensaje de agradecimiento y usuario -->
+        <div style="position: absolute; bottom: 6.5rem; left: 12.5rem; font-size: 1rem; line-height: 1; font-weight: 700; color: rgb(3, 105, 161);">
+            GRACIAS POR SU COMPRA. LE ATENDIÓ ${orderData.user?.username || ''}
+        </div>
+
+        <!-- Método de pago -->
+        <div style="position: absolute; bottom: 5.5rem; left: 17.5rem; font-size: 1rem; line-height: 1;">
+            ${paymentsData.length > 0 ? `Pago realizado con: ${paymentsData[0]?.descripcion || ''}` : ''}
         </div>
         
         <!-- Totales, Pagos y Saldo en tres columnas -->
@@ -302,48 +366,47 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
               }}
             >
               {/* Fechas en dos columnas */}
-              <div className="absolute top-18 right-11 text-sm font-bold text-black">
-                <div className="grid grid-cols-2 gap-6">
-                  {/* Columna 1: Fecha de Orden */}
-                  <div className="text-right">
-                    <div className="flex gap-5">
+              <div className="absolute top-18 right-1 text-sm font-bold text-black">
+                <div className="flex items-start" style={{ minWidth: '255px' }}>
+                  <div className="text-right" style={{ width: '110px' }}>
+                    <div className="flex gap-4">
                       <span>{getDay(orderData.date)}</span>
                       <span>{getMonth(orderData.date)}</span>
                       <span>{getYear(orderData.date)}</span>
                     </div>
                   </div>
-                  
-                  {/* Columna 2: Fecha de Entrega */}
-                  <div className="text-right">
-                    {orderData.estimated_delivery_date ? (
-                      <>
-                        <div className="flex gap-5">
-                          <span>{getDay(orderData.estimated_delivery_date)}</span>
-                          <span>{getMonth(orderData.estimated_delivery_date)}</span>
-                          <span>{getYear(orderData.estimated_delivery_date)}</span>
-                        </div>
-                      </>
-                    ) : ('')}
-                  </div>
+                  {orderData.estimated_delivery_date && (
+                    <div className="text-right" style={{ width: '100px' }}>
+                      <div className="flex gap-5">
+                        <span>{getDay(orderData.estimated_delivery_date)}</span>
+                        <span>{getMonth(orderData.estimated_delivery_date)}</span>
+                        <span>{getYear(orderData.estimated_delivery_date)}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
+              </div>
+
+              <div className='absolute top-32 right-55'>
+                {getHours(orderData.date)}
               </div>
 
               <div className='absolute top-32 left-25 text-xl font-bold text-black'>
                 <div className="grid grid-cols-2 gap-20">
                   {/* Cliente */}
-                  <div>
+                  <div className="truncate" style={{ fontSize: 'calc(1em - 2px)' }}>
                     {orderData.client?.name || 'Cliente no especificado'}
                   </div>
-                  
+
                   {/* Numero de telefono */}
-                  <div className='ml-38'>
+                  <div className='ml-39'>
                     {orderData.client?.phone || ''}
                   </div>
                 </div>
               </div>
 
               {/* Productos en formato de tabla */}
-              <div className="absolute top-44 left-8 right-10 text-black">
+              <div className="absolute top-38 left-8 right-10 text-black">
                 <div className="grid grid-cols-12 gap-2 text-lg font-semibold mb-2 border-b border-gray-400 pb-1">
                   <div className="col-span-1 text-center">#</div>
                   <div className="col-span-6">Producto</div>
@@ -359,7 +422,12 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                       {index + 1}
                     </div>
                     <div className="col-span-6">
-                      {product.product_name || product.template_name || 'Producto'}
+                      <div className="font-medium">{getOrderItemDisplayName(product)}</div>
+                      {getOrderItemDescription(product) && (
+                        <div className="text-sm text-gray-700 -mt-2 leading-tight">
+                          {getOrderItemDescription(product)}
+                        </div>
+                      )}
                     </div>
                     <div className="col-span-2 text-center">
                       {product.quantity}
@@ -371,18 +439,45 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                 ))}
               </div>
 
+              {orderData.description && (
+                <div className="absolute bottom-37 left-20 right-10 text-sm text-red-800 font-bold p-2 rounded">
+                  <div className="line-clamp-4 break-words">
+                    {orderData.description}
+                  </div>
+                </div>
+              )}
+
+              <div className="absolute bottom-32 right-20 text-xl font-bold text-red-600">
+                <div className='text-center'>
+                  No. {orderData.id}
+                </div>
+              </div>
+
+              <div className='absolute bottom-29 left-50'>
+                <div className='text-blue-900 font-bold'>
+                  GRACIAS POR SU COMPRA. LE ATENDIÓ {orderData.user?.username || ''}
+                </div>
+              </div>
+
+              <div className='absolute bottom-25 left-70'>
+                <div className=''>
+                  {paymentsData.length > 0 ? `Pago realizado con: ${paymentsData[0]?.descripcion || ''}` : ''}
+                  {/* {paymentsData[0]?.descripcion || ''} */}
+                </div>
+              </div>
+
               <div className="absolute bottom-14 left-44 text-2xl">
                 <div className="grid grid-cols-3 gap-10">
                   {/* Pagos - Columna 1 (siempre presente) */}
                   <div className="text-green-700 font-bold text-right min-w-[100px]">
                     {paymentsData.length > 0 ? `$${totalPagos.toFixed(2)}` : ''}
                   </div>
-                  
+
                   {/* Saldo - Columna 2 (siempre presente) */}
                   <div className="font-bold text-red-600 text-right min-w-[100px]">
                     ${saldoPendiente.toFixed(2)}
                   </div>
-                  
+
                   {/* Total - Columna 3 (siempre presente) */}
                   <div className="text-black font-bold text-right min-w-[100px]">
                     ${orderData.total.toFixed(2)}

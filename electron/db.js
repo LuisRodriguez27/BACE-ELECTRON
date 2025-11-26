@@ -11,9 +11,21 @@ const CONFIG = {
   // PARA PC CLIENTES: modo = 'network'
   modo: 'network',  // Cambia esto según el instalador que generes
   
+  // RUTA FIJA para el servidor (modo 'local')
+  // IMPORTANTE: Esta debe ser la ruta COMPLETA al escritorio donde está la BD
+  // Si dejas null, usará el escritorio del usuario actual (app.getPath('desktop'))
+  serverDesktopPath: 'C:\\Users\\Bace Gpo Impresor\\Desktop',  // Ruta fija al escritorio del servidor
+  
   // Solo necesario para modo 'network'
-  serverIP: 'PCSITA',  // Nombre de la PC servidor (también puedes usar IP)
-  serverUser: 'corre'  // Usuario de Windows de la PC servidor
+  // IMPORTANTE: Si el escritorio del servidor está montado como unidad Z:
+  // usa 'Z: o V:' como networkDrive. Si usas UNC path, deja networkDrive en null
+  networkDrive: 'V:',  // Ej: 'Z:' o null para usar UNC path
+  serverIP: 'PCSITA',  // Solo si networkDrive es null
+  serverUser: 'Bace Gpo Impresor',  // Solo si networkDrive es null
+  
+  // Ruta relativa desde el escritorio donde está la carpeta de la BD
+  // Ej: 'bace-electron/database' si la carpeta está en Escritorio/bace-electron/database
+  desktopFolder: 'bace-electron/database'  // Carpeta dentro del escritorio del servidor
 };
 // ============================================
 
@@ -30,22 +42,58 @@ function getDatabasePath() {
 
   // Modo producción - LOCAL (PC Servidor)
   if (CONFIG.modo === 'local') {
-    const userDataPath = app.getPath('userData');
-    const dbDir = path.join(userDataPath, 'database');
+    // Usar ruta fija si está configurada, sino usar escritorio del usuario actual
+    const desktopPath = CONFIG.serverDesktopPath || app.getPath('desktop');
+    const dbDir = path.join(desktopPath, CONFIG.desktopFolder);
+    
+    console.log('📂 Ruta del escritorio:', desktopPath);
+    console.log('📂 Ruta de la base de datos:', dbDir);
     
     if (!fs.existsSync(dbDir)) {
-      fs.mkdirSync(dbDir, { recursive: true });
+      console.log('⚠️ La carpeta no existe, intentando crearla...');
+      try {
+        fs.mkdirSync(dbDir, { recursive: true });
+        console.log('✅ Carpeta creada exitosamente');
+      } catch (error) {
+        console.error('❌ Error al crear carpeta:', error);
+      }
     }
     
     const localPath = path.join(dbDir, 'data.db');
     console.log('💻 MODO LOCAL (SERVIDOR):', localPath);
+    
+    // Verificar si el archivo existe
+    if (!fs.existsSync(localPath)) {
+      console.error('❌ ERROR: No se encontró el archivo data.db en:', localPath);
+      console.log('📋 Contenido de la carpeta:');
+      try {
+        const files = fs.readdirSync(dbDir);
+        console.log(files);
+      } catch (error) {
+        console.error('No se pudo leer la carpeta:', error);
+      }
+    } else {
+      console.log('✅ Archivo data.db encontrado');
+    }
+    
     return localPath;
   }
 
   // Modo producción - NETWORK (PC Clientes)
   if (CONFIG.modo === 'network') {
-    const networkPath = `\\\\${CONFIG.serverIP}\\Users\\${CONFIG.serverUser}\\AppData\\Roaming\\bace\\database\\data.db`;
-    console.log('🌐 MODO RED (CLIENTE):', networkPath);
+    let networkPath;
+    
+    if (CONFIG.networkDrive) {
+      // Usar unidad mapeada (ej: Z:)
+      networkPath = path.join(CONFIG.networkDrive, CONFIG.desktopFolder, 'data.db');
+      console.log('🌐 MODO RED (CLIENTE - Unidad Mapeada):', networkPath);
+    } else {
+      // Usar ruta UNC
+      const desktopUNC = `\\\\${CONFIG.serverIP}\\Users\\${CONFIG.serverUser}\\Desktop`;
+      networkPath = path.join(desktopUNC, CONFIG.desktopFolder, 'data.db').replace(/\\/g, '\\');
+      console.log('🌐 MODO RED (CLIENTE - UNC Path):', networkPath);
+    }
+    
     return networkPath;
   }
 
@@ -74,6 +122,14 @@ if (CONFIG.modo === 'network' && app.isPackaged) {
   
   // Verificar si el archivo existe
   if (!fs.existsSync(dbPath)) {
+    const driveInfo = CONFIG.networkDrive 
+      ? `Unidad mapeada: ${CONFIG.networkDrive}`
+      : `Servidor: ${CONFIG.serverIP} (Usuario: ${CONFIG.serverUser})`;
+    
+    const checkPath = CONFIG.networkDrive
+      ? CONFIG.networkDrive
+      : `\\\\${CONFIG.serverIP}\\Users\\${CONFIG.serverUser}\\Desktop`;
+    
     const errorMsg = `
 ❌ ERROR DE CONEXIÓN A RED
 
@@ -81,17 +137,27 @@ No se puede acceder a la base de datos del servidor.
 
 Ruta: ${dbPath}
 
+CONFIGURACIÓN:
+${driveInfo}
+Carpeta: ${CONFIG.desktopFolder}
+
 POSIBLES CAUSAS:
-1. La PC servidor (${CONFIG.serverIP}) está apagada
-2. La carpeta "bace-electron" no está compartida correctamente
-3. El usuario "${CONFIG.serverUser}" no es correcto
-4. El firewall está bloqueando la conexión
+1. La PC servidor está apagada o no accesible
+2. La unidad ${CONFIG.networkDrive || 'de red'} no está montada correctamente
+3. La carpeta "${CONFIG.desktopFolder}" no existe en el escritorio del servidor
+4. No tienes permisos de acceso a la carpeta compartida
+5. El firewall está bloqueando la conexión
 
 SOLUCIÓN:
-Verifica que puedes abrir esta ruta en el Explorador de Windows:
-\\\\${CONFIG.serverIP}\\Users\\${CONFIG.serverUser}\\AppData\\Roaming\\bace
+1. Verifica que puedes abrir esta ruta en el Explorador:
+   ${checkPath}
 
-Si no puedes abrirla, revisa la configuración de red en el servidor.
+2. Si usas unidad mapeada (${CONFIG.networkDrive}), verifica que está conectada:
+   - Abre "Este equipo" y busca la unidad ${CONFIG.networkDrive}
+   - Si no aparece, vuelve a mapearla desde el servidor
+
+3. Asegúrate de que existe la carpeta:
+   ${checkPath}\\${CONFIG.desktopFolder}
     `.trim();
     
     console.error(errorMsg);
@@ -210,6 +276,7 @@ db.exec(`
     status TEXT NOT NULL DEFAULT 'pendiente', 
     total REAL DEFAULT 0,
     notes TEXT,
+    description TEXT,
     created_from_budget_id INTEGER,
     active INTEGER NOT NULL DEFAULT 1,
     FOREIGN KEY (client_id) REFERENCES clients(id),
@@ -277,5 +344,36 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_budgets_client_id ON budgets(client_id);
   CREATE INDEX IF NOT EXISTS idx_budgets_active ON budgets(active);
 `);
+
+// ==========================================================
+// Migraciones de esquema (para instalaciones existentes)
+// ==========================================================
+try {
+  const existingOrderColumns = db.prepare('PRAGMA table_info(orders)').all();
+  const hasDescription = existingOrderColumns.some(c => c.name === 'description');
+  if (!hasDescription) {
+    console.log('🛠 Migración: agregando columna description a orders');
+    db.exec('ALTER TABLE orders ADD COLUMN description TEXT');
+    console.log('✅ Columna description agregada correctamente');
+  }
+} catch (migrationError) {
+  console.error('❌ Error aplicando migración de orders.description:', migrationError);
+}
+
+// Configurar el autoincremento de orders para empezar desde 14550
+// Solo se ejecuta si no hay órdenes existentes o si el último ID es menor a 14550
+const checkOrderCount = db.prepare('SELECT COUNT(*) as count, MAX(id) as maxId FROM orders').get();
+if (checkOrderCount.count === 0 || (checkOrderCount.maxId && checkOrderCount.maxId < 14549)) {
+  console.log('⚙️ Configurando autoincremento de órdenes para empezar desde 14550');
+  db.exec(`UPDATE sqlite_sequence SET seq = 14549 WHERE name = 'orders'`);
+  
+  // Si no existe entrada en sqlite_sequence para orders, la creamos
+  const sequenceExists = db.prepare('SELECT name FROM sqlite_sequence WHERE name = ?').get('orders');
+  if (!sequenceExists) {
+    db.exec(`INSERT INTO sqlite_sequence (name, seq) VALUES ('orders', 14549)`);
+  }
+  
+  console.log('✅ Próxima orden será ID: 14550');
+}
 
 module.exports = db;

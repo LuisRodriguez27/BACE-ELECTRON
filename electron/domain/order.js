@@ -9,6 +9,7 @@ class Order {
     status, 
     total, 
     notes, 
+    description,
     active = 1,
     client_name,
     client_phone,
@@ -25,6 +26,7 @@ class Order {
     this.status = status || 'pendiente';
     this.total = parseFloat(total) || 0;
     this.notes = notes || null;
+    this.description = description || null;
     this.active = active;
     
     // Información adicional del cliente y usuarios
@@ -72,6 +74,10 @@ class Order {
 
   hasNotes() {
     return this.notes && this.notes.trim().length > 0;
+  }
+
+  hasDescription() {
+    return this.description && this.description.trim().length > 0;
   }
 
   hasProducts() {
@@ -146,7 +152,7 @@ class Order {
     if (!this.hasProducts()) return 0;
     
     return this.orderProducts.reduce((sum, product) => {
-      return sum + (parseFloat(product.unit_price) * parseInt(product.quantity));
+      return sum + (parseFloat(product.unit_price) * parseFloat(product.quantity));
     }, 0);
   }
 
@@ -253,6 +259,7 @@ class Order {
       (this.client_name && this.client_name.toLowerCase().includes(term)) ||
       (this.client_phone && this.client_phone.includes(term)) ||
       (this.notes && this.notes.toLowerCase().includes(term)) ||
+      (this.description && this.description.toLowerCase().includes(term)) ||
       (this.status && this.status.toLowerCase().includes(term)) ||
       (this.id && this.id.toString().includes(term))
     );
@@ -287,6 +294,7 @@ class Order {
       status: this.status,
       total: this.total,
       notes: this.notes,
+      description: this.description,
       active: this.active,
       client: this.getClient(),
       user: this.getUser(),

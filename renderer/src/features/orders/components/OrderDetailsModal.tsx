@@ -31,19 +31,27 @@ import { PaymentsApiService } from '../../payments/PaymentsApiService';
 import { PaymentsList } from '../../payments/components';
 import type { Payment } from '../../payments/types';
 import { usePermissions } from '@/hooks/use-permissions';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 interface OrderDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   orderId: number | null;
   onOrderUpdated?: (order: Order) => void;
+  onEditClick?: (orderId: number) => void; // Nuevo callback para manejar la edición
 }
 
 const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   isOpen,
   onClose,
   orderId,
-  onOrderUpdated
+  onOrderUpdated,
+  onEditClick
 }) => {
   const [order, setOrder] = useState<Order | null>(null);
   const [orderProducts, setOrderProducts] = useState<OrderProduct[]>([]);
@@ -55,7 +63,8 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const [editFormData, setEditFormData] = useState({
     status: '',
     estimated_delivery_date: '',
-    notes: ''
+    notes: '',
+    description: ''
   });
   const { user } = useAuth();
   const { checkPermission } = usePermissions();
@@ -89,7 +98,8 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       setEditFormData({
         status: orderData.status,
         estimated_delivery_date: orderData.estimated_delivery_date || '',
-        notes: orderData.notes || ''
+        notes: orderData.notes || '',
+        description: orderData.description || ''
       });
     } catch (err) {
       console.error('Error loading order details:', err);
@@ -104,7 +114,15 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     if (!checkPermission("Editar Órdenes")) {
       return;
     }
-    setIsEditing(true);
+    // Si hay callback de edición, usarlo (abre el modal de edición completa)
+    if (onEditClick && orderId) {
+      onEditClick(orderId);
+      // NO llamar handleClose() aquí porque el padre maneja el cierre
+      // El callback ya se encarga de cerrar este modal y abrir el de edición
+    } else {
+      // Fallback al modo de edición simple anterior
+      setIsEditing(true);
+    }
   };
 
   const loadPayments = async () => {
@@ -132,6 +150,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         status: editFormData.status as any,
         estimated_delivery_date: editFormData.estimated_delivery_date || undefined,
         notes: editFormData.notes || undefined,
+        description: editFormData.description || undefined,
         edited_by: user.id // ← SIEMPRE pasar el ID del usuario loggeado
       };
       
@@ -160,18 +179,29 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     setEditFormData({
       status: order.status,
       estimated_delivery_date: order.estimated_delivery_date || '',
-      notes: order.notes || ''
+      notes: order.notes || '',
+      description: order.description || ''
     });
     setIsEditing(false);
     setError(null);
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    let date = dayjs(dateString);
+    // Si la hora es exactamente medianoche en UTC, sumar un día
+    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
+      date = date.add(1, 'day');
+    }
+  return date.tz('America/Mexico_City').format('D MMM YYYY h:mm A');
+  };
+
+  const formatDateOnly = (dateString: string) => {
+    let date = dayjs(dateString);
+    // Si la hora es exactamente medianoche en UTC, sumar un día
+    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
+      date = date.add(1, 'day');
+    }
+    return date.tz('America/Mexico_City').format('D MMM YYYY');
   };
 
 
@@ -395,7 +425,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                           <div className="mt-1 flex items-center gap-2 text-sm text-gray-600">
                             <CalendarDays className="h-4 w-4" />
                             {order.estimated_delivery_date 
-                              ? formatDate(order.estimated_delivery_date)
+                              ? formatDateOnly(order.estimated_delivery_date)
                               : 'No definida'
                             }
                           </div>
@@ -412,6 +442,29 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Descripción */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Descripción (Imprimible)
+                    </h3>
+                    {isEditing ? (
+                      <textarea
+                        value={editFormData.description}
+                        onChange={(e) => setEditFormData(prev => ({ ...prev, description: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                        rows={3}
+                        placeholder="Descripción adicional sobre la orden..."
+                      />
+                    ) : (
+                      <div className="text-sm text-gray-600">
+                        {order.description || (
+                          <span className="text-gray-400 italic">Sin descripción adicional</span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Notas */}

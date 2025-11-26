@@ -196,7 +196,7 @@ class BudgetRepository {
     for (const item of items) {
       const productId = item.product_id || null;
       const templateId = item.template_id || null;
-      const quantity = parseInt(item.quantity);
+      const quantity = parseFloat(item.quantity);
       const unitPrice = parseFloat(item.unit_price);
       const totalPrice = quantity * unitPrice;
 

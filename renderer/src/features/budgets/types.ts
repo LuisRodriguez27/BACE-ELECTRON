@@ -63,7 +63,7 @@ import { z } from 'zod';
 export const budgetItemSchema = z.object({
   product_id: z.number().int().min(1).nullable().optional(),
   template_id: z.number().int().min(1).nullable().optional(),
-  quantity: z.number().int().min(1, 'La cantidad debe ser al menos 1'),
+  quantity: z.number().min(0.0001, 'La cantidad debe ser al menos 0.0001'),
   unit_price: z.number().min(0, 'El precio debe ser un número positivo'),
 }).refine((data) => {
   // Debe tener exactamente uno: product_id O template_id

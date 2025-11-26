@@ -4,6 +4,12 @@ import { X, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import cotizacionImage from '@/assets/COTIZACION.jpg';
 import type { Budget } from '../types';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 interface BudgetPrintPreviewModalProps {
   isOpen: boolean;
@@ -22,10 +28,15 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
 
   // Función para formatear fecha como DD/MM/YYYY
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear().toString();
+    let date = dayjs(dateString);
+
+    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
+      date = date.add(1, 'day');
+    }
+    
+    const day = date.date().toString().padStart(2, '0');
+    const month = (date.month() + 1).toString().padStart(2, '0');
+    const year = date.year().toString();
     return `${day}/${month}/${year}`;
   };
 
@@ -63,10 +74,15 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Presupuesto - ${budgetData.client?.name}</title>
     <style>
+    :root {
+      /* Ajusta este valor para subir/bajar el contenido en la impresión. Acepta unidades como mm, cm, px */
+      --print-offset: -5mm;
+    }
         * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             color-adjust: exact !important;
+            font-family: Arial, sans-serif !important;
         }
         @page {
             size: 21.6cm 18.5cm landscape;
@@ -81,11 +97,13 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
                 overflow: hidden !important;
             }
             .print-container {
-                width: 21.6cm !important;
-                height: 18.5cm !important;
-                position: relative !important;
-                margin: 0 !important;
-                padding: 0 !important;
+        width: 21.6cm !important;
+        height: 18.5cm !important;
+        position: relative !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        /* Usar transform en lugar de margin-top negativo evita problemas de recorte y comportamiento variable en impresoras */
+        transform: translateY(var(--print-offset)) !important;
             }
             .background-image {
                 position: absolute !important;
@@ -103,11 +121,14 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
             margin: 0;
             padding: 0;
             overflow: hidden;
+            font-family: Arial, sans-serif;
         }
         .print-container {
-            width: 21.6cm;
-            height: 18.5cm;
-            position: relative;
+      width: 21.6cm;
+      height: 18.5cm;
+      position: relative;
+      /* Aplicar offset también para la vista previa en navegador si quieres que se vea igual */
+      transform: translateY(var(--print-offset));
         }
         .background-image {
             position: absolute;
@@ -130,28 +151,29 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
             ${budgetData.id}
         </div>
 
-        <!-- Cliente, Teléfono y Fecha -->
-        <div style="position: absolute; top: 8.5rem; left: 6.25rem; font-size: 1rem; line-height: 1.5rem; font-weight: 700; color: rgb(0, 0, 0);">
-            <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.25rem;">
-                <!-- Cliente -->
-                <div style="grid-column: span 1 / span 1;">
-                    ${budgetData.client?.name || 'Cliente no especificado'}
-                </div>
-                
-                <!-- Teléfono -->
-                <div style="grid-column: span 1 / span 1; text-align: center; padding-left: 9rem;">
-                    ${budgetData.client?.phone || ''}
-                </div>
-
-                <!-- Fecha -->
-                <div style="grid-column: span 1 / span 1; text-align: left; padding-left: 6.25rem;">
-                    ${formatDate(budgetData.date)}
-                </div>
-            </div>
+    <!-- Cliente, Teléfono y Fecha -->
+    <div style="position: absolute; top: 8.5rem; left: 6.25rem; font-size: 1rem; line-height: 1.5rem; font-weight: 700; color: rgb(0, 0, 0);">
+      <!-- Use fixed column widths to avoid shifting when name is short -->
+      <div style="display: grid; grid-template-columns: 17rem 8rem 1rem; column-gap: 5.5rem; align-items: center;">
+        <!-- Cliente -->
+        <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(1em - 2px);">
+          ${budgetData.client?.name || 'Cliente no especificado'}
         </div>
 
+        <!-- Teléfono -->
+        <div style="text-align: center;">
+          ${budgetData.client?.phone || ''}
+        </div>
+
+        <!-- Fecha -->
+        <div style="text-align: left;">
+          ${formatDate(budgetData.date)}
+        </div>
+      </div>
+    </div>
+
         <!-- Productos en formato de tabla -->
-        <div style="position: absolute; top: 11rem; left: 2rem; right: 2.5rem; color: rgb(0, 0, 0);">
+        <div style="position: absolute; top: 10rem; left: 2rem; right: 2.5rem; color: rgb(0, 0, 0);">
             <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; font-size: 1.125rem; line-height: 1.75rem; font-weight: 600; margin-bottom: 0.5rem; border-bottom: 1px solid rgb(156, 163, 175); padding-bottom: 0.25rem;">
                 <div style="grid-column: span 1 / span 1; text-align: center;">#</div>
                 <div style="grid-column: span 6 / span 6;">Producto</div>
@@ -268,19 +290,20 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
 
               {/* Cliente y Teléfono */}
               <div className='absolute top-30 left-25 text-l font-bold text-black'>
-                <div className="grid grid-cols-3 gap-1">
+                {/* fixed columns to prevent shifting */}
+                <div style={{ display: 'grid', gridTemplateColumns: '17rem 8rem 1rem', columnGap: '5rem', alignItems: 'center' }}>
                   {/* Cliente */}
-                  <div className="col-span-1">
+                  <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', fontSize: 'calc(1em - 2px)' }}>
                     {budgetData.client?.name || 'Cliente no especificado'}
                   </div>
-                  
+
                   {/* Numero de telefono */}
-                  <div className="col-span-1 text-center pl-31">
+                  <div style={{ textAlign: 'center' }}>
                     {budgetData.client?.phone || ''}
                   </div>
 
                   {/* Fechas */}
-                  <div className="col-span-1 text-left pl-25">
+                  <div style={{ textAlign: 'center' }}>
                     {formatDate(budgetData.date)}
                   </div>
 
@@ -288,7 +311,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
               </div>
 
               {/* Productos en formato de tabla */}
-              <div className="absolute top-40 left-8 right-10 text-black">
+              <div className="absolute top-36 left-8 right-10 text-black">
                 <div className="grid grid-cols-12 gap-2 text-lg font-semibold mb-2 border-b border-gray-400 pb-1">
                   <div className="col-span-1 text-center">#</div>
                   <div className="col-span-6">Producto</div>

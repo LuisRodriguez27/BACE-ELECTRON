@@ -5,6 +5,12 @@ import { toast } from 'sonner';
 import { PaymentsApiService } from '../PaymentsApiService';
 import { createPaymentSchema, type CreatePaymentForm, type Payment } from '../types';
 import { extractErrorMessage } from '@/utils/errorHandling';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 interface CreatePaymentModalProps {
   isOpen: boolean;
@@ -30,7 +36,7 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
   const [formData, setFormData] = useState<CreatePaymentForm>({
     orderId: orderId,
     amount: 0,
-    date: new Date().toISOString().split('T')[0], // Fecha actual por defecto
+    date: dayjs().tz('America/Mexico_City').format(), // Fecha actual con zona horaria CDMX
     descripcion: ''
   });
 
@@ -56,6 +62,7 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
       }
 
       const newPayment = await PaymentsApiService.create(validatedData);
+      console.log('Pago creado:', newPayment);
       
       toast.success('Pago registrado exitosamente');
       onPaymentCreated(newPayment);
@@ -74,7 +81,7 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
     setFormData({
       orderId: orderId,
       amount: 0,
-      date: new Date().toISOString().split('T')[0],
+      date: dayjs().tz('America/Mexico_City').format(), // Fecha actual con zona horaria CDMX
       descripcion: ''
     });
     setError(null);
@@ -200,7 +207,7 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
                 id="amount"
                 type="number"
                 step="0.01"
-                min="0.01"
+                min="1"
                 max={pendingAmount}
                 value={formData.amount || ''}
                 onChange={(e) => setFormData(prev => ({ 
@@ -208,7 +215,7 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
                   amount: parseFloat(e.target.value) || 0 
                 }))}
                 className="pl-10"
-                placeholder="0.00"
+                placeholder="10.00"
                 required
               />
             </div>
@@ -229,28 +236,37 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
               <Input
                 id="date"
                 type="date"
-                value={formData.date || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                value={dayjs(formData.date).tz('America/Mexico_City').format('YYYY-MM-DD')}
+                onChange={(e) => {
+                  // Convertir la fecha seleccionada a formato ISO con zona horaria CDMX
+                  const selectedDate = dayjs.tz(e.target.value, 'America/Mexico_City').format();
+                  setFormData(prev => ({ ...prev, date: selectedDate }));
+                }}
                 className="pl-10"
               />
             </div>
           </div>
 
-          {/* Descripción */}
+          {/* Metodo de Pago */}
           <div>
-            <Label htmlFor="descripcion" className="text-sm font-medium text-gray-700">
-              Descripción (Opcional)
+            <Label htmlFor="metodoPago" className="text-sm font-medium text-gray-700">
+              Método de Pago *
             </Label>
             <div className="mt-1 relative">
-              <FileText className="absolute left-3 top-3 text-gray-400" size={16} />
-              <textarea
-                id="descripcion"
+              <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+              <select
+                id="metodoPago"
                 value={formData.descripcion || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, descripcion: e.target.value }))}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                rows={3}
-                placeholder="Detalles del pago, método de pago, etc."
-              />
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              >
+                <option value="" hidden>Selecciona un método</option>
+                <option value="Efectivo">Efectivo</option>
+                <option value="Transferencia">Transferencia</option>
+                <option value="Tarjeta">Tarjeta</option>
+                <option value="Otro">Otro</option>
+              </select>
             </div>
           </div>
 

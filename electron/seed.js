@@ -217,6 +217,7 @@ function seed() {
     const daysAgo = Math.floor(Math.random() * 90); // Órdenes de los últimos 90 días
     const orderDate = new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
     const deliveryDate = new Date(orderDate.getTime() + (3 + Math.floor(Math.random() * 7)) * 24 * 60 * 60 * 1000);
+    const notes = generateRandomDescription();
     const description = generateRandomDescription();
 
     const orderId = insertOrder.run(
@@ -227,7 +228,7 @@ function seed() {
       deliveryDate.toISOString(),
       "completado",
       total,
-      description
+      notes
     ).lastInsertRowid;
 
     orderIds.push(orderId);

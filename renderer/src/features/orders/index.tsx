@@ -2,16 +2,22 @@ import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/auth';
 import { AlertCircle, Calendar, CheckCircle, Clock, DollarSign, Edit3, Eye, Plus, Search, ShoppingCart } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import { PaymentsApiService } from '../payments/PaymentsApiService';
 import CreatePaymentModal from '../payments/components/CreatePaymentModal';
 import type { Payment } from '../payments/types';
 import CreateOrderModal from './components/CreateOrderModal';
 import OrderDetailsModal from './components/OrderDetailsModal';
-import OrderEditModal from './components/OrderEditModal';
+// import OrderEditModal from './components/OrderEditModal'; // Ya no se usa, ahora CreateOrderModal maneja todo
 import { OrdersApiService } from './OrdersApiService';
 import type { Order } from './types';
+import { getOrderItemDisplayName } from './types';
 import { usePermissions } from '@/hooks/use-permissions';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -64,7 +70,6 @@ const OrdersPage: React.FC = () => {
 
   const handleOrderCreated = (newOrder: Order) => {
     setOrders(prevOrders => [newOrder, ...prevOrders]);
-    toast.success('Orden creada exitosamente');
   };
 
   const handleOrderUpdated = (updatedOrder: Order) => {
@@ -112,12 +117,22 @@ const OrdersPage: React.FC = () => {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    let date = dayjs(dateString);
+    // Si la hora es exactamente medianoche en UTC, sumar un día
+    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
+      date = date.add(1, 'day');
+    }
+    return date.tz('America/Mexico_City').format('D MMM YYYY');
   };
+
+  const formatDateTime = (dateString: string) => {
+    let date = dayjs(dateString);
+    // Si la hora es exactamente medianoche en UTC, sumar un día
+    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
+      date = date.add(1, 'day');
+    }
+    return date.tz('America/Mexico_City').format('D MMM YYYY, h:mm A');
+  }
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -163,13 +178,15 @@ const OrdersPage: React.FC = () => {
     // Buscar por notas (si existen)
     const notesMatch = order.notes && order.notes.toLowerCase().includes(searchLower);
 
+    const descriptionMatch = order.description && order.description.toLowerCase().includes(searchLower);
+
     // Buscar por nombre del cliente
     const clientNameMatch = order.client && order.client.name.toLowerCase().includes(searchLower);
 
     // Buscar por teléfono del cliente
     const clientPhoneMatch = order.client && order.client.phone && order.client.phone.includes(searchLower);
 
-    return idMatch || notesMatch || clientNameMatch || clientPhoneMatch;
+    return idMatch || notesMatch || descriptionMatch || clientNameMatch || clientPhoneMatch;
   });
 
   // Funciones auxiliares para pagos
@@ -193,7 +210,6 @@ const OrdersPage: React.FC = () => {
       ...prev,
       [newPayment.order_id]: [...(prev[newPayment.order_id] || []), newPayment]
     }));
-    toast.success('Pago registrado exitosamente');
   };
 
   const getPaymentStatus = (order: Order): { status: 'paid' | 'partial' | 'pending'; icon: React.ReactNode; color: string; text: string } => {
@@ -368,7 +384,7 @@ const OrdersPage: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-gray-600">
                           <div className="flex items-center gap-2">
                             <Calendar size={14} />
-                            <span>Fecha: {formatDate(order.date)}</span>
+                            <span>Fecha: {formatDateTime(order.date)}</span>
                           </div>
 
                           {order.estimated_delivery_date && (
@@ -426,11 +442,19 @@ const OrdersPage: React.FC = () => {
                       </div>
                     </div>
 
+                    {/* Descripción de la orden */}
+                    {order.description && (
+                      <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <span className="text-sm font-medium text-blue-800">Descripción:</span>
+                        <p className="text-sm text-blue-700 mt-1 line-clamp-2 break-words" title={order.description}>{order.description}</p>
+                      </div>
+                    )}
+                    
                     {/* Notas de la orden */}
                     {order.notes && (
                       <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                         <span className="text-sm font-medium text-yellow-800">Notas:</span>
-                        <p className="text-sm text-yellow-700 mt-1">{order.notes}</p>
+                        <p className="text-sm text-yellow-700 mt-1 line-clamp-2 break-words" title={order.notes}>{order.notes}</p>
                       </div>
                     )}
 
@@ -481,7 +505,7 @@ const OrdersPage: React.FC = () => {
                           <div className="flex flex-wrap gap-2 mt-1">
                             {order.orderProducts.map((op, index) => (
                               <span key={index} className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded">
-                                {op.product_name} (x{op.quantity})
+                                {getOrderItemDisplayName(op)} (x{op.quantity})
                               </span>
                             ))}
                           </div>
@@ -509,13 +533,26 @@ const OrdersPage: React.FC = () => {
         onClose={closeModals}
         orderId={selectedOrderId}
         onOrderUpdated={handleOrderUpdated}
+        onEditClick={(orderId) => {
+          // No limpiar el selectedOrderId, solo cambiar los estados de los modales
+          setShowDetailsModal(false);
+          // Asegurarse de que el orderId esté configurado antes de abrir el modal de edición
+          setSelectedOrderId(orderId);
+          // Usar setTimeout para asegurar que React actualice el estado antes de abrir el nuevo modal
+          setTimeout(() => {
+            setShowEditModal(true);
+          }, 100); // Aumentar el delay a 100ms
+        }}
       />
 
-      <OrderEditModal
+      {/* Modal de edición - ahora usa CreateOrderModal */}
+      <CreateOrderModal
         isOpen={showEditModal}
         onClose={closeModals}
-        orderId={selectedOrderId}
+        onOrderCreated={handleOrderCreated}
         onOrderUpdated={handleOrderUpdated}
+        currentUserId={user?.id!}
+        orderId={selectedOrderId}
       />
 
       {selectedOrderId && (
