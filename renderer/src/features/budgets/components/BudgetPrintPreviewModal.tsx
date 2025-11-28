@@ -192,7 +192,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
                         ${item.quantity}
                     </div>
                     <div style="grid-column: span 3 / span 3; text-align: right; font-weight: 500;">
-                        $${item.total_price.toFixed(2)}
+                        $${item.total_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                 </div>
             `).join('')}
@@ -333,7 +333,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
                       {item.quantity}
                     </div>
                     <div className="col-span-3 text-right font-medium">
-                      ${item.total_price.toFixed(2)}
+                      ${item.total_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                   </div>
                 ))}

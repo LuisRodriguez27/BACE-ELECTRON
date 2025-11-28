@@ -210,7 +210,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
         
         <!-- Productos en formato de tabla -->
         <div style="position: absolute; top: 9rem; left: 2rem; right: 2.5rem; color: rgb(0, 0, 0);">
-            <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; font-size: 1.125rem; line-height: 1; font-weight: 600; margin-bottom: 0.5rem; border-bottom: 1px solid rgb(156, 163, 175); padding-bottom: 0.25rem;">
+            <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; font-size: 1rem; line-height: 1; font-weight: 600; margin-bottom: 0.5rem; border-bottom: 1px solid rgb(156, 163, 175); padding-bottom: 0.25rem;">
                 <div style="grid-column: span 1 / span 1; text-align: center;">#</div>
                 <div style="grid-column: span 6 / span 6;">Producto</div>
                 <div style="grid-column: span 2 / span 2; text-align: center;">Cantidad</div>
@@ -231,7 +231,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                         </div>
                     </div>
                     <div style="grid-column: span 2 / span 2; text-align: center;">${product.quantity}</div>
-                    <div style="grid-column: span 3 / span 3; text-align: right; font-weight: 500;">${product.total_price.toFixed(2)}</div>
+                    <div style="grid-column: span 3 / span 3; text-align: right; font-weight: 500;">${product.total_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                 </div>
             `).join('')}
         </div>
@@ -260,24 +260,19 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
             ${paymentsData.length > 0 ? `Pago realizado con: ${paymentsData[0]?.descripcion || ''}` : ''}
         </div>
         
-        <!-- Totales, Pagos y Saldo en tres columnas -->
-        <div style="position: absolute; bottom: 3rem; left: 11rem; font-size: 1.5rem; line-height: 1;">
-            <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2.5rem;">
-                <!-- Pagos -->
-                <div style="color: rgb(21, 128, 61); font-weight: 700; text-align: right; min-width: 100px;">
-                    ${paymentsData.length > 0 ? `$${totalPagos.toFixed(2)}` : ''}
-                </div>
-                
-                <!-- Saldo -->
-                <div style="font-weight: 700; color: rgb(220, 38, 38); text-align: right; min-width: 100px;">
-                    $${saldoPendiente.toFixed(2)}
-                </div>
-                
-                <!-- Total -->
-                <div style="color: rgb(0, 0, 0); font-weight: 700; text-align: right; min-width: 100px;">
-                    $${orderData.total.toFixed(2)}
-                </div>
-            </div>
+        <!-- Pagos -->
+        <div style="position: absolute; bottom: 2.75rem; left: 11rem; width: 8rem; height: 2rem; display: flex; align-items: center; justify-content: center; color: rgb(21, 128, 61); font-weight: 700; font-size: 1.5rem; line-height: 1;">
+            ${paymentsData.length > 0 ? `$${totalPagos.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}
+        </div>
+
+        <!-- Saldo -->
+        <div style="position: absolute; bottom: 2.75rem; left: 20rem; width: 8rem; height: 2rem; display: flex; align-items: center; justify-content: center; font-weight: 700; color: rgb(220, 38, 38); font-size: 1.5rem; line-height: 1;">
+            $${saldoPendiente.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </div>
+
+        <!-- Total -->
+        <div style="position: absolute; bottom: 2.75rem; left: 29rem; width: 8rem; height: 2rem; display: flex; align-items: center; justify-content: center; color: rgb(0, 0, 0); font-weight: 700; font-size: 1.5rem; line-height: 1;">
+            $${orderData.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
     </div>
 </body>
@@ -433,7 +428,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                       {product.quantity}
                     </div>
                     <div className="col-span-3 text-right font-medium">
-                      ${product.total_price.toFixed(2)}
+                      ${product.total_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                   </div>
                 ))}
@@ -466,23 +461,19 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                 </div>
               </div>
 
-              <div className="absolute bottom-14 left-44 text-2xl">
-                <div className="grid grid-cols-3 gap-10">
-                  {/* Pagos - Columna 1 (siempre presente) */}
-                  <div className="text-green-700 font-bold text-right min-w-[100px]">
-                    {paymentsData.length > 0 ? `$${totalPagos.toFixed(2)}` : ''}
-                  </div>
+              {/* Pagos */}
+              <div className="absolute bottom-14 left-43 w-32 h-8 flex items-center justify-center text-green-700 font-bold text-xl">
+                {paymentsData.length > 0 ? `$${totalPagos.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}
+              </div>
 
-                  {/* Saldo - Columna 2 (siempre presente) */}
-                  <div className="font-bold text-red-600 text-right min-w-[100px]">
-                    ${saldoPendiente.toFixed(2)}
-                  </div>
+              {/* Saldo */}
+              <div className="absolute bottom-14 left-79 w-32 h-8 flex items-center justify-center text-red-600 font-bold text-xl">
+                ${saldoPendiente.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
 
-                  {/* Total - Columna 3 (siempre presente) */}
-                  <div className="text-black font-bold text-right min-w-[100px]">
-                    ${orderData.total.toFixed(2)}
-                  </div>
-                </div>
+              {/* Total */}
+              <div className="absolute bottom-14 left-113 w-32 h-8 flex items-center justify-center text-black font-bold text-xl">
+                ${orderData.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
 
             </div>
