@@ -213,8 +213,9 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
             <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; font-size: 1rem; line-height: 1; font-weight: 600; margin-bottom: 0.5rem; border-bottom: 1px solid rgb(156, 163, 175); padding-bottom: 0.25rem;">
                 <div style="grid-column: span 1 / span 1; text-align: center;">#</div>
                 <div style="grid-column: span 6 / span 6;">Producto</div>
-                <div style="grid-column: span 2 / span 2; text-align: center;">Cantidad</div>
-                <div style="grid-column: span 3 / span 3; text-align: right;">Precio</div>
+                <div style="grid-column: span 1 / span 1; text-align: center;">Cant.</div>
+                <div style="grid-column: span 2 / span 2; text-align: right;">P. Unitario</div>
+                <div style="grid-column: span 2 / span 2; text-align: right;">Total</div>
             </div>
             ${productsData.map((product, index) => `
                 <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; margin-bottom: 0.5rem; font-size: 1.125rem; line-height: 1.75rem; padding-top: 0.25rem; padding-bottom: 0.25rem;">
@@ -230,8 +231,9 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                             </div>` : ''}
                         </div>
                     </div>
-                    <div style="grid-column: span 2 / span 2; text-align: center;">${product.quantity}</div>
-                    <div style="grid-column: span 3 / span 3; text-align: right; font-weight: 500;">${product.total_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                    <div style="grid-column: span 1 / span 1; text-align: center;">${product.quantity}</div>
+                    <div style="grid-column: span 2 / span 2; text-align: right; font-weight: 500;">${product.unit_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                    <div style="grid-column: span 2 / span 2; text-align: right; font-weight: 500;">${product.total_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                 </div>
             `).join('')}
         </div>
@@ -405,8 +407,9 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                 <div className="grid grid-cols-12 gap-2 text-lg font-semibold mb-2 border-b border-gray-400 pb-1">
                   <div className="col-span-1 text-center">#</div>
                   <div className="col-span-6">Producto</div>
-                  <div className="col-span-2 text-center">Cantidad</div>
-                  <div className="col-span-3 text-right">Precio</div>
+                  <div className="col-span-1 text-center">Cant.</div>
+                  <div className="col-span-2 text-right">P. Unitario</div>
+                  <div className="col-span-2 text-right">Total</div>
                 </div>
                 {productsData.map((product, index) => (
                   <div
@@ -424,10 +427,13 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                         </div>
                       )}
                     </div>
-                    <div className="col-span-2 text-center">
+                    <div className="col-span-1 text-center">
                       {product.quantity}
                     </div>
-                    <div className="col-span-3 text-right font-medium">
+                    <div className="col-span-2 text-right font-medium">
+                      ${product.unit_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                    <div className="col-span-2 text-right font-medium">
                       ${product.total_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                   </div>
