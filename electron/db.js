@@ -9,8 +9,8 @@ const fs = require('fs');
 const CONFIG = {
   // PARA PC SERVIDOR: modo = 'local'
   // PARA PC CLIENTES: modo = 'network'
-  modo: 'network',  // Cambia esto según el instalador que generes
-  
+  modo: 'local',  // Cambia esto según el instalador que generes
+
   // RUTA FIJA para el servidor (modo 'local')
   // IMPORTANTE: Esta debe ser la ruta COMPLETA al escritorio donde está la BD
   // Si dejas null, usará el escritorio del usuario actual (app.getPath('desktop'))
