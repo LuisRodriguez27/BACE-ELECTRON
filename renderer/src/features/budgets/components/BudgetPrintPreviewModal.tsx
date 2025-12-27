@@ -177,8 +177,9 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
             <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; font-size: 1.125rem; line-height: 1.75rem; font-weight: 600; margin-bottom: 0.5rem; border-bottom: 1px solid rgb(156, 163, 175); padding-bottom: 0.25rem;">
                 <div style="grid-column: span 1 / span 1; text-align: center;">#</div>
                 <div style="grid-column: span 6 / span 6;">Producto</div>
-                <div style="grid-column: span 2 / span 2; text-align: center;">Cantidad</div>
-                <div style="grid-column: span 3 / span 3; text-align: right;">Precio</div>
+                <div style="grid-column: span 1 / span 1; text-align: center;">Cant.</div>
+                <div style="grid-column: span 2 / span 2; text-align: right;">P. Unitario</div>
+                <div style="grid-column: span 2 / span 2; text-align: right;">Total</div>
             </div>
             ${budgetData.budgetProducts?.map((item, index) => `
                 <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; margin-bottom: 0.5rem; font-size: 1.125rem; line-height: 1.75rem; padding-top: 0.25rem; padding-bottom: 0.25rem;">
@@ -188,11 +189,14 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
                     <div style="grid-column: span 6 / span 6;">
                         ${item.product_name || 'Producto'}
                     </div>
-                    <div style="grid-column: span 2 / span 2; text-align: center;">
+                    <div style="grid-column: span 1 / span 1; text-align: center;">
                         ${item.quantity}
                     </div>
-                    <div style="grid-column: span 3 / span 3; text-align: right; font-weight: 500;">
-                        $${item.total_price.toFixed(2)}
+                    <div style="grid-column: span 2 / span 2; text-align: right; font-weight: 500;">
+                        $${item.unit_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                    <div style="grid-column: span 2 / span 2; text-align: right; font-weight: 500;">
+                        $${item.total_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                 </div>
             `).join('')}
@@ -315,8 +319,9 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
                 <div className="grid grid-cols-12 gap-2 text-lg font-semibold mb-2 border-b border-gray-400 pb-1">
                   <div className="col-span-1 text-center">#</div>
                   <div className="col-span-6">Producto</div>
-                  <div className="col-span-2 text-center">Cantidad</div>
-                  <div className="col-span-3 text-right">Precio</div>
+                  <div className="col-span-1 text-center">Cant.</div>
+                  <div className="col-span-2 text-right">P. Unitario</div>
+                  <div className="col-span-2 text-right">Total</div>
                 </div>
                 {budgetData.budgetProducts?.map((item, index) => (
                   <div
@@ -329,11 +334,14 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
                     <div className="col-span-6">
                       {item.product_name || 'Producto'}
                     </div>
-                    <div className="col-span-2 text-center">
+                    <div className="col-span-1 text-center">
                       {item.quantity}
                     </div>
-                    <div className="col-span-3 text-right font-medium">
-                      ${item.total_price.toFixed(2)}
+                    <div className="col-span-2 text-right font-medium">
+                      ${item.unit_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                    <div className="col-span-2 text-right font-medium">
+                      ${item.total_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                   </div>
                 ))}
