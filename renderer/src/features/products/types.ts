@@ -4,7 +4,7 @@ import type { ProductTemplate } from '../productTemplates/types';
 export const createProductSchema = z.object({
 	name: z.string().min(1, 'El nombre del producto es obligatorio'),
 	serial_number: z.string().optional().or(z.literal('')),
-	price: z.number({ error: 'El precio debe ser un número' }).min(0, 'El precio debe ser mayor o igual a 0'),
+	price: z.number({ required_error: 'El precio debe ser un número', invalid_type_error: 'El precio debe ser un número' }).min(0, 'El precio debe ser mayor o igual a 0'),
 	description: z.string().optional().or(z.literal('')),
 });
 
