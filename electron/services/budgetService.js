@@ -132,7 +132,7 @@ class BudgetService {
         }
 
         // Validar cantidad
-        if (!item.quantity || isNaN(item.quantity) || item.quantity < 1) {
+        if (!item.quantity || isNaN(item.quantity) || item.quantity < 0.0001) {
           throw new Error(`Item ${index + 1}: Cantidad inválida`);
         }
 

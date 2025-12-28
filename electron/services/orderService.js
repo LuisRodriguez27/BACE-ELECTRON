@@ -171,7 +171,7 @@ class OrderService {
         }
 
         // Validar cantidad
-        if (!item.quantity || isNaN(item.quantity) || item.quantity < 1) {
+        if (!item.quantity || isNaN(item.quantity) || item.quantity < 0.0001) {
           throw new Error(`Item ${index + 1}: Cantidad inválida`);
         }
 
@@ -290,7 +290,7 @@ class OrderService {
           if (hasProduct && hasTemplate) {
             throw new Error(`Item ${index + 1}: No puede tener tanto product_id como template_id`);
           }
-          if (!item.quantity || isNaN(item.quantity) || item.quantity < 1) {
+          if (!item.quantity || isNaN(item.quantity) || item.quantity < 0.0001) {
             throw new Error(`Item ${index + 1}: Cantidad inválida`);
           }
           if (item.unit_price == null || isNaN(item.unit_price) || item.unit_price < 0) {
