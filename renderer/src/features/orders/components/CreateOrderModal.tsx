@@ -621,7 +621,8 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     
     return clients.filter(client => 
       client.name.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
-      client.phone.toLowerCase().includes(clientSearchTerm.toLowerCase())
+      client.phone.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
+      client.id.toString().includes(clientSearchTerm.toLowerCase())
     );
   };
 
@@ -739,7 +740,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                       <Input
                         id="client-search-input"
                         type="text"
-                        placeholder="Buscar cliente por nombre o teléfono..."
+                        placeholder="Buscar cliente por nombre, teléfono o ID..."
                         value={clientSearchTerm}
                         onChange={(e) => {
                           const searchTerm = e.target.value;
@@ -797,6 +798,9 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                                 )}
                                 <User className="h-4 w-4 text-gray-400" />
                                 <div className="flex-1">
+                                  <div className="text-xs text-gray-500">
+                                    ID: {client.id}
+                                  </div>
                                   <div className="font-medium text-sm text-gray-900">
                                     {client.name}
                                   </div>

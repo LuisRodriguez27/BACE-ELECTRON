@@ -463,6 +463,7 @@ const OrdersPage: React.FC = () => {
                       {order.client && (
                         <div>
                           <span className="text-sm font-medium text-gray-700">Cliente:</span>
+                          <div className="text-sm text-gray-600">ID: {order.client_id}</div>
                           <p className="text-sm text-gray-600">{order.client.name}</p>
                           {order.client.phone && (
                             <p className="text-xs text-gray-500">{order.client.phone}</p>

@@ -502,7 +502,8 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
     const searchLower = clientSearchTerm.toLowerCase();
     return clients.filter(client => 
       client.name.toLowerCase().includes(searchLower) ||
-      (client.phone && client.phone.includes(searchLower))
+      (client.phone && client.phone.includes(searchLower)) ||
+      (client.id.toString().includes(searchLower))
     );
   };
 
@@ -616,7 +617,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
                       <Input
                         id="client-search-input"
                         type="text"
-                        placeholder="Buscar cliente por nombre o teléfono..."
+                        placeholder="Buscar cliente por nombre, teléfono o ID..."
                         value={clientSearchTerm}
                         onChange={(e) => {
                           const searchTerm = e.target.value;
@@ -659,6 +660,9 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
                                 )}
                                 <User className="h-4 w-4 text-gray-400" />
                                 <div className="flex-1">
+                                  <div className="text-xs text-gray-500">
+                                    ID: {client.id}
+                                  </div>
                                   <div className="font-medium text-sm text-gray-900">
                                     {client.name}
                                   </div>

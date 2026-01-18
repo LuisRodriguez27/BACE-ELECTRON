@@ -501,8 +501,12 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                       </h3>
                       <div className="space-y-3">
                         <div>
+                          <Label className="text-sm font-medium text-gray-700">ID</Label>
+                          <p className="text-sm text-gray-600">{order.client.id}</p>
+                        </div>
+                        <div>
                           <Label className="text-sm font-medium text-gray-700">Nombre</Label>
-                          <p className="text-sm text-gray-900 font-medium">{order.client.name}</p>
+                          <p className="text-sm text-gray-600">{order.client.name}</p>
                         </div>
                         <div>
                           <Label className="text-sm font-medium text-gray-700">Teléfono</Label>

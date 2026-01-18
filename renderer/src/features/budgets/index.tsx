@@ -413,6 +413,7 @@ const BudgetsPage: React.FC = () => {
                         {budget.client && (
                           <div>
                             <span className="text-sm font-medium text-gray-700">Cliente:</span>
+                            <p className="text-xs text-gray-600">ID: {budget.client.id}</p>
                             <p className="text-sm text-gray-600">{budget.client.name}</p>
                             {budget.client.phone && (
                               <p className="text-xs text-gray-500">{budget.client.phone}</p>
