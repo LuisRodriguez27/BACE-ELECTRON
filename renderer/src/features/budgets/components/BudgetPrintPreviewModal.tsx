@@ -201,6 +201,12 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
                 </div>
             `).join('')}
         </div>
+
+        <!-- Total -->
+        <div style="position: absolute; bottom: 6.3rem; right: 3.75rem; min-width: 8rem; display: flex; flex-direction: column; align-items: center; justify-content: center; color: rgb(220, 38, 38); font-weight: 700; border: 2px solid rgb(220, 38, 38); padding: 0.25rem 0.5rem; background-color: rgba(255, 255, 255, 0.5);">
+            <div style="font-size: 0.875rem; line-height: 1.25;">TOTAL</div>
+            <div style="font-size: 1.25rem; line-height: 1;">$${budgetData.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+        </div>
     </div>
 </body>
 </html>`;
@@ -345,6 +351,14 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
                     </div>
                   </div>
                 ))}
+              </div>
+
+              {/* Total */}
+              <div className="absolute bottom-22 right-15 min-w-[8rem] flex flex-col items-center justify-center text-red-600 font-bold border-2 border-red-600 bg-white/50 px-2 py-1">
+                <div className="text-sm leading-tight">TOTAL</div>
+                <div className="text-xl leading-none">
+                  ${budgetData.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
               </div>
 
             </div>
