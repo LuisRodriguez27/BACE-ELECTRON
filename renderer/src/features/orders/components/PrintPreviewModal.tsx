@@ -435,7 +435,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
               </div>
 
               {orderData.description && (
-                <div className="absolute bottom-37 left-20 right-10 text-sm text-red-800 font-bold p-2 rounded">
+                <div className="absolute bottom-37 left-20 right-10 text-sm text-red-800 p-2 rounded">
                   <div className="line-clamp-4 break-words">
                     {orderData.description}
                   </div>
