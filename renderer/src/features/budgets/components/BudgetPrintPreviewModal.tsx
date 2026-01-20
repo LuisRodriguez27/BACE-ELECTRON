@@ -3,7 +3,7 @@ import { Button } from '@/components/ui';
 import { X, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import cotizacionImage from '@/assets/COTIZACION.jpg';
-import type { Budget } from '../types';
+import { getBudgetItemDescription, getBudgetItemDisplayName, type Budget } from '../types';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -33,7 +33,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
     if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
       date = date.add(1, 'day');
     }
-    
+
     const day = date.date().toString().padStart(2, '0');
     const month = (date.month() + 1).toString().padStart(2, '0');
     const year = date.year().toString();
@@ -175,22 +175,26 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
         <!-- Productos en formato de tabla -->
         <div style="position: absolute; top: 10rem; left: 2rem; right: 2.5rem; color: rgb(0, 0, 0);">
             <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; font-size: 1.125rem; line-height: 1.75rem; font-weight: 600; margin-bottom: 0.5rem; border-bottom: 1px solid rgb(156, 163, 175); padding-bottom: 0.25rem;">
-                <div style="grid-column: span 1 / span 1; text-align: center;">#</div>
-                <div style="grid-column: span 6 / span 6;">Producto</div>
                 <div style="grid-column: span 1 / span 1; text-align: center;">Cant.</div>
+                <div style="grid-column: span 7 / span 7; text-align: left;">Producto</div>
                 <div style="grid-column: span 2 / span 2; text-align: right;">P. Unitario</div>
                 <div style="grid-column: span 2 / span 2; text-align: right;">Total</div>
             </div>
-            ${budgetData.budgetProducts?.map((item, index) => `
-                <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; margin-bottom: 0.5rem; font-size: 1.125rem; line-height: 1.75rem; padding-top: 0.25rem; padding-bottom: 0.25rem;">
-                    <div style="grid-column: span 1 / span 1; text-align: center; font-weight: 500;">
-                        ${index + 1}
-                    </div>
-                    <div style="grid-column: span 6 / span 6;">
-                        ${item.product_name || 'Producto'}
-                    </div>
+            ${budgetData.budgetProducts?.map((item) => `
+                <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; margin-bottom: 0.5rem; font-size: 1rem; line-height: 1.5rem; padding-top: 0.25rem; padding-bottom: 0.25rem;">
                     <div style="grid-column: span 1 / span 1; text-align: center;">
                         ${item.quantity}
+                    </div>
+                    <div style="grid-column: span 7 / span 7; padding-left: 0.25rem;">
+                        <div style="font-weight: 500;">
+                          ${getBudgetItemDisplayName(item)}
+                        </div>
+                        <div>
+                          ${getBudgetItemDescription(item) ?
+          `<div style="font-size: 0.875rem; color: rgb(55, 65, 81); margin-top: -0.2rem; line-height: 1.25;">
+                              ${getBudgetItemDescription(item)}
+                            </div>` : ''}
+                        </div>
                     </div>
                     <div style="grid-column: span 2 / span 2; text-align: right; font-weight: 500;">
                         $${item.unit_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -323,25 +327,26 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
               {/* Productos en formato de tabla */}
               <div className="absolute top-36 left-8 right-10 text-black">
                 <div className="grid grid-cols-12 gap-2 text-lg font-semibold mb-2 border-b border-gray-400 pb-1">
-                  <div className="col-span-1 text-center">#</div>
-                  <div className="col-span-6">Producto</div>
                   <div className="col-span-1 text-center">Cant.</div>
+                  <div className="col-span-7 text-left">Producto</div>
                   <div className="col-span-2 text-right">P. Unitario</div>
                   <div className="col-span-2 text-right">Total</div>
                 </div>
                 {budgetData.budgetProducts?.map((item, index) => (
                   <div
                     key={index}
-                    className="grid grid-cols-12 gap-2 mb-2 text-lg py-1"
+                    className="grid grid-cols-12 gap-2 mb-2 text-base py-1"
                   >
-                    <div className="col-span-1 text-center font-medium">
-                      {index + 1}
-                    </div>
-                    <div className="col-span-6">
-                      {item.product_name || 'Producto'}
-                    </div>
                     <div className="col-span-1 text-center">
                       {item.quantity}
+                    </div>
+                    <div className="col-span-7 pl-1">
+                      <div className="font-medium">{getBudgetItemDisplayName(item)}</div>
+                      {getBudgetItemDescription(item) && (
+                        <div className="text-sm text-gray-700 -mt-2 leading-tight">
+                          {getBudgetItemDescription(item)}
+                        </div>
+                      )}
                     </div>
                     <div className="col-span-2 text-right font-medium">
                       ${item.unit_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

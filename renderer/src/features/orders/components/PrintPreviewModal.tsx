@@ -211,16 +211,15 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
         <!-- Productos en formato de tabla -->
         <div style="position: absolute; top: 9rem; left: 2rem; right: 2.5rem; color: rgb(0, 0, 0);">
             <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; font-size: 1rem; line-height: 1; font-weight: 600; margin-bottom: 0.5rem; border-bottom: 1px solid rgb(156, 163, 175); padding-bottom: 0.25rem;">
-                <div style="grid-column: span 1 / span 1; text-align: center;">#</div>
-                <div style="grid-column: span 6 / span 6;">Producto</div>
                 <div style="grid-column: span 1 / span 1; text-align: center;">Cant.</div>
+                <div style="grid-column: span 7 / span 7; text-align: left;">Producto</div>
                 <div style="grid-column: span 2 / span 2; text-align: right;">P. Unitario</div>
                 <div style="grid-column: span 2 / span 2; text-align: right;">Total</div>
             </div>
-            ${productsData.map((product, index) => `
-                <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; margin-bottom: 0.5rem; font-size: 1.125rem; line-height: 1.75rem; padding-top: 0.25rem; padding-bottom: 0.25rem;">
-                    <div style="grid-column: span 1 / span 1; text-align: center; font-weight: 500;">${index + 1}</div>
-                    <div style="grid-column: span 6 / span 6;">
+            ${productsData.map((product) => `
+                <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; margin-bottom: 0.5rem; font-size: 1rem; line-height: 1.5rem; padding-top: 0.25rem; padding-bottom: 0.25rem;">
+                    <div style="grid-column: span 1 / span 1; text-align: center;">${product.quantity}</div>
+                    <div style="grid-column: span 7 / span 7; padding-left: 0.25rem;">
                         <div style="font-weight: 500;">
                           ${getOrderItemDisplayName(product)}
                         </div>
@@ -231,7 +230,6 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                             </div>` : ''}
                         </div>
                     </div>
-                    <div style="grid-column: span 1 / span 1; text-align: center;">${product.quantity}</div>
                     <div style="grid-column: span 2 / span 2; text-align: right; font-weight: 500;">${product.unit_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                     <div style="grid-column: span 2 / span 2; text-align: right; font-weight: 500;">${product.total_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                 </div>
@@ -405,30 +403,26 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
               {/* Productos en formato de tabla */}
               <div className="absolute top-38 left-8 right-10 text-black">
                 <div className="grid grid-cols-12 gap-2 text-lg font-semibold mb-2 border-b border-gray-400 pb-1">
-                  <div className="col-span-1 text-center">#</div>
-                  <div className="col-span-6">Producto</div>
                   <div className="col-span-1 text-center">Cant.</div>
+                  <div className="col-span-7 text-left">Producto</div>
                   <div className="col-span-2 text-right">P. Unitario</div>
                   <div className="col-span-2 text-right">Total</div>
                 </div>
                 {productsData.map((product, index) => (
                   <div
                     key={index}
-                    className="grid grid-cols-12 gap-2 mb-2 text-lg py-1"
+                    className="grid grid-cols-12 gap-2 mb-2 text-base py-1"
                   >
-                    <div className="col-span-1 text-center font-medium">
-                      {index + 1}
+                    <div className="col-span-1 text-center">
+                      {product.quantity}
                     </div>
-                    <div className="col-span-6">
+                    <div className="col-span-7 pl-1">
                       <div className="font-medium">{getOrderItemDisplayName(product)}</div>
                       {getOrderItemDescription(product) && (
                         <div className="text-sm text-gray-700 -mt-2 leading-tight">
                           {getOrderItemDescription(product)}
                         </div>
                       )}
-                    </div>
-                    <div className="col-span-1 text-center">
-                      {product.quantity}
                     </div>
                     <div className="col-span-2 text-right font-medium">
                       ${product.unit_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

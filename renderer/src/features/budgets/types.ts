@@ -188,6 +188,17 @@ export const getBudgetItemDisplayName = (budgetProduct: BudgetProduct): string =
   return 'Item desconocido';
 };
 
+export const getBudgetItemDescription = (budgetProduct: BudgetProduct): string => {
+  if (budgetProduct.product_id) {
+    // Para productos directos, usar la descripción del producto
+    return budgetProduct.product_description || '';
+  } else if (budgetProduct.template_id) {
+    // Para plantillas, usar la descripción de la plantilla
+    return budgetProduct.template_description || '';
+  }
+  return '';
+};
+
 export const getBudgetItemType = (budgetProduct: BudgetProduct): 'product' | 'template' => {
   return budgetProduct.product_id ? 'product' : 'template';
 };
