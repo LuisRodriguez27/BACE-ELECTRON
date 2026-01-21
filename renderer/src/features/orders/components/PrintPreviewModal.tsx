@@ -3,7 +3,8 @@ import { Button } from '@/components/ui';
 import { X, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import notaImage from '@/assets/NOTA.jpg';
-import { getOrderItemDisplayName, getOrderItemDescription } from '../types'; import dayjs from 'dayjs';
+import specialPriceImage from '@/assets/special-price.png';
+import { getOrderItemDisplayName, getOrderItemDescription, getOrderItemType } from '../types'; import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 
@@ -65,6 +66,16 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
     return date.format('HH:mm');
   };
 
+  const hasPreferentialPrice = productsData.some(product => {
+    const type = getOrderItemType(product);
+    const originalPrice = type === 'product'
+      ? product.product_price
+      : product.template_final_price;
+
+    return originalPrice !== undefined && originalPrice !== null &&
+      Math.abs(Number(product.unit_price) - Number(originalPrice)) > 0.01;
+  });
+
   const totalPagos = paymentsData.reduce((sum, payment) => sum + payment.amount, 0);
   const saldoPendiente = orderData.total - totalPagos;
 
@@ -83,7 +94,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
             canvas.height = img.height;
             const ctx = canvas.getContext('2d');
             ctx?.drawImage(img, 0, 0);
-            resolve(canvas.toDataURL('image/jpeg'));
+            resolve(canvas.toDataURL('image/png'));
           };
           img.onerror = reject;
           img.src = url;
@@ -92,6 +103,11 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
 
       // Obtener la imagen en base64
       const base64Image = await imageToBase64(notaImage);
+      
+      let base64SpecialPrice = '';
+      if (hasPreferentialPrice) {
+        base64SpecialPrice = await imageToBase64(specialPriceImage);
+      }
 
       // Generar HTML con el mismo diseño del preview visual
       const printHTML = `
@@ -163,6 +179,11 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
 </head>
 <body>
     <div class="print-container">
+        ${hasPreferentialPrice ? `
+        <!-- Sello de precio especial -->
+        <img src="${base64SpecialPrice}" style="position: absolute; bottom: 3rem; right: 4.8rem; width: 6rem; opacity: 0.8; transform: rotate(-12deg); z-index: 10;" alt="Precio Especial" />
+        ` : ''}
+
         <!-- Imagen de fondo como elemento IMG en lugar de background-image -->
         <img src="${base64Image}" alt="Fondo" class="background-image" />
         
@@ -245,7 +266,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
 
         <div>
             <!-- Número de Orden en la parte inferior derecha -->
-            <div style="position: absolute; bottom: 7.5rem; right: 5rem; font-size: 1.25rem; line-height: 1; font-weight: 700; color: rgb(220, 38, 38); text-align: center;">
+            <div style="position: absolute; bottom: 2.2rem; right: 5rem; font-size: 1.25rem; line-height: 1; font-weight: 700; color: rgb(220, 38, 38); text-align: center;">
                 No. ${orderData.id}
             </div>
         </div>
@@ -360,6 +381,14 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                 backgroundImage: `url(${notaImage})`
               }}
             >
+              {hasPreferentialPrice && (
+                <img 
+                  src={specialPriceImage} 
+                  alt="Precio Especial" 
+                  className="absolute bottom-18 right-18 w-24 opacity-80 -rotate-12 select-none"
+                  style={{ zIndex: 10 }}
+                />
+              )}
               {/* Fechas en dos columnas */}
               <div className="absolute top-18 right-1 text-sm font-bold text-black">
                 <div className="flex items-start" style={{ minWidth: '255px' }}>
@@ -442,7 +471,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                 </div>
               )}
 
-              <div className="absolute bottom-32 right-20 text-xl font-bold text-red-600">
+              <div className="absolute bottom-13 right-20 text-xl font-bold text-red-600">
                 <div className='text-center'>
                   No. {orderData.id}
                 </div>

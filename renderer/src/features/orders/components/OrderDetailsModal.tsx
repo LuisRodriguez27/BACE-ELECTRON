@@ -17,6 +17,7 @@ import {
   Phone,
   Printer,
   Receipt,
+  Tag,
   User,
   X,
   XCircle
@@ -486,6 +487,22 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                         {order.notes || (
                           <span className="text-gray-400 italic">Sin notas adicionales</span>
                         )}
+                        
+                        {/* Indicador de precios preferenciales en notas */}
+                        {!isEditing && orderProducts.some(product => {
+                             const type = getOrderItemType(product);
+                             const originalPrice = type === 'product' 
+                               ? product.product_price 
+                               : product.template_final_price;
+                             
+                             return originalPrice !== undefined && originalPrice !== null &&
+                               Math.abs(Number(product.unit_price) - Number(originalPrice)) > 0.01;
+                        }) && (
+                           <div className="mt-3 flex items-start gap-2 text-amber-700 bg-amber-50 p-2 rounded border border-amber-100">
+                             <Tag size={16} className="mt-0.5 flex-shrink-0" />
+                             <span className="font-medium">Esta orden incluye precios preferenciales.</span>
+                           </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -564,45 +581,63 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                     <div className="space-y-4">
                       {orderProducts.map((product, index) => (
                         <div key={product.id} className="border border-gray-200 rounded-lg p-4">
-                          <div className="flex justify-between items-start mb-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-sm font-medium text-gray-600">
-                                {index + 1}
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <h4 className="font-medium text-gray-900">
-                                    {getOrderItemDisplayName(product)}
-                                  </h4>
-                                  <span className={`px-2 py-1 text-xs rounded ${
-                                    getOrderItemType(product) === 'product' 
-                                      ? 'bg-blue-100 text-blue-800' 
-                                      : 'bg-purple-100 text-purple-800'
-                                  }`}>
-                                    {getOrderItemType(product) === 'product' ? (
-                                      <><Package className="h-3 w-3 inline mr-1" />Producto</>
-                                    ) : (
-                                      <><Layers className="h-3 w-3 inline mr-1" />Plantilla</>
-                                    )}
-                                  </span>
-                                </div>
-                                {product.serial_number && (
-                                  <p className="text-xs text-gray-500">SN: {product.serial_number}</p>
-                                )}
-                                {product.product_description && (
-                                  <p className="text-sm text-gray-600 mt-1">{product.product_description}</p>
-                                )}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-lg font-semibold text-green-600">
-                                ${product.total_price.toFixed(2)}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                ${product.unit_price.toFixed(2)} × {product.quantity}
-                              </div>
-                            </div>
-                          </div>
+                          {(() => {
+                             const type = getOrderItemType(product);
+                             const originalPrice = type === 'product' 
+                               ? product.product_price 
+                               : product.template_final_price;
+                             
+                             const isPriceModified = originalPrice !== undefined && originalPrice !== null &&
+                               Math.abs(Number(product.unit_price) - Number(originalPrice)) > 0.01;
+
+                             return (
+                               <div className="flex justify-between items-start mb-3">
+                                 <div className="flex items-center gap-3">
+                                   <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-sm font-medium text-gray-600">
+                                     {index + 1}
+                                   </div>
+                                   <div>
+                                     <div className="flex items-center gap-2">
+                                       <h4 className="font-medium text-gray-900">
+                                         {getOrderItemDisplayName(product)}
+                                       </h4>
+                                       <span className={`px-2 py-1 text-xs rounded ${
+                                         type === 'product' 
+                                           ? 'bg-blue-100 text-blue-800' 
+                                           : 'bg-purple-100 text-purple-800'
+                                       }`}>
+                                         {type === 'product' ? (
+                                           <><Package className="h-3 w-3 inline mr-1" />Producto</>
+                                         ) : (
+                                           <><Layers className="h-3 w-3 inline mr-1" />Plantilla</>
+                                         )}
+                                       </span>
+                                       {isPriceModified && (
+                                          <span className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-amber-100 text-amber-800" title={`Precio original: $${Number(originalPrice).toFixed(2)}`}>
+                                            <Tag className="h-3 w-3 inline" />
+                                            Precio preferencial
+                                          </span>
+                                       )}
+                                     </div>
+                                     {product.serial_number && (
+                                       <p className="text-xs text-gray-500">SN: {product.serial_number}</p>
+                                     )}
+                                     {product.product_description && (
+                                       <p className="text-sm text-gray-600 mt-1">{product.product_description}</p>
+                                     )}
+                                   </div>
+                                 </div>
+                                 <div className="text-right">
+                                   <div className="text-lg font-semibold text-green-600">
+                                     ${product.total_price.toFixed(2)}
+                                   </div>
+                                   <div className="text-sm text-gray-500">
+                                     ${product.unit_price.toFixed(2)} × {product.quantity}
+                                   </div>
+                                 </div>
+                               </div>
+                             );
+                          })()}
 
                           {/* Información adicional para plantillas */}
                           {getOrderItemType(product) === 'template' && (

@@ -3,7 +3,8 @@ import { Button } from '@/components/ui';
 import { X, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import cotizacionImage from '@/assets/COTIZACION.jpg';
-import { getBudgetItemDescription, getBudgetItemDisplayName, type Budget } from '../types';
+import specialPriceImage from '@/assets/special-price.png';
+import { getBudgetItemDescription, getBudgetItemDisplayName, getBudgetItemType, type Budget } from '../types';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -40,6 +41,16 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
     return `${day}/${month}/${year}`;
   };
 
+  const hasPreferentialPrice = budgetData.budgetProducts?.some(product => {
+    const type = getBudgetItemType(product);
+    const originalPrice = type === 'product'
+      ? product.product_price
+      : product.template_final_price;
+
+    return originalPrice !== undefined && originalPrice !== null &&
+      Math.abs(Number(product.unit_price) - Number(originalPrice)) > 0.01;
+  });
+
   const handlePrint = async () => {
     setIsLoading(true);
 
@@ -55,7 +66,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
             canvas.height = img.height;
             const ctx = canvas.getContext('2d');
             ctx?.drawImage(img, 0, 0);
-            resolve(canvas.toDataURL('image/jpeg'));
+            resolve(canvas.toDataURL('image/png'));
           };
           img.onerror = reject;
           img.src = url;
@@ -64,6 +75,11 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
 
       // Obtener la imagen en base64
       const base64Image = await imageToBase64(cotizacionImage);
+
+      let base64SpecialPrice = '';
+      if (hasPreferentialPrice) {
+        base64SpecialPrice = await imageToBase64(specialPriceImage);
+      }
 
       // Generar HTML con el mismo diseño del preview visual
       const printHTML = `
@@ -143,6 +159,11 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
 </head>
 <body>
     <div class="print-container">
+        ${hasPreferentialPrice ? `
+        <!-- Sello de precio especial -->
+        <img src="${base64SpecialPrice}" style="position: absolute; bottom: 3.75rem; right: 1.25rem; width: 5.5rem; opacity: 0.8; transform: rotate(-12deg); z-index: 10;" alt="Precio Especial" />
+        ` : ''}
+
         <!-- Imagen de fondo como elemento IMG en lugar de background-image -->
         <img src="${base64Image}" alt="Fondo" class="background-image" />
         
@@ -207,7 +228,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
         </div>
 
         <!-- Total -->
-        <div style="position: absolute; bottom: 6.3rem; right: 3.75rem; min-width: 8rem; display: flex; flex-direction: column; align-items: center; justify-content: center; color: rgb(220, 38, 38); font-weight: 700; border: 2px solid rgb(220, 38, 38); padding: 0.25rem 0.5rem; background-color: rgba(255, 255, 255, 0.5);">
+        <div style="position: absolute; bottom: 1.25rem; right: 3.75rem; min-width: 8rem; display: flex; flex-direction: column; align-items: center; justify-content: center; color: rgb(220, 38, 38); font-weight: 700; border: 2px solid rgb(220, 38, 38); padding: 0.25rem 0.5rem; background-color: rgba(255, 255, 255, 0.5);">
             <div style="font-size: 0.875rem; line-height: 1.25;">TOTAL</div>
             <div style="font-size: 1.25rem; line-height: 1;">$${budgetData.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
         </div>
@@ -297,6 +318,14 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
                 backgroundImage: `url(${cotizacionImage})`
               }}
             >
+              {hasPreferentialPrice && (
+                <img
+                  src={specialPriceImage}
+                  alt="Precio Especial"
+                  className="absolute bottom-15 right-5 w-22 opacity-80 -rotate-12 select-none"
+                  style={{ zIndex: 10 }}
+                />
+              )}
 
               <div className='absolute top-13 right-28 text-2xl font-bold text-red-600'>
                 {budgetData.id}
@@ -359,7 +388,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
               </div>
 
               {/* Total */}
-              <div className="absolute bottom-22 right-15 min-w-[8rem] flex flex-col items-center justify-center text-red-600 font-bold border-2 border-red-600 bg-white/50 px-2 py-1">
+              <div className="absolute bottom-5 right-15 min-w-[8rem] flex flex-col items-center justify-center text-red-600 font-bold border-2 border-red-600 bg-white/50 px-2 py-1">
                 <div className="text-sm leading-tight">TOTAL</div>
                 <div className="text-xl leading-none">
                   ${budgetData.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
