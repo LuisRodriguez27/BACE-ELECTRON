@@ -91,6 +91,7 @@ ipcMain.handle('products:delete', async (event, id) => await productService.dele
 
 // Funciones avanzadas de productos
 ipcMain.handle('products:getWithTemplates', async (event, productId) => await productService.getProductWithTemplates(productId));
+ipcMain.handle('products:getAllWithTemplates', async () => await productService.getAllProductsWithTemplates());
 ipcMain.handle('products:search', async (event, searchTerm) => await productService.searchProducts(searchTerm));
 
 // Manejo de eventos IPC para plantillas de productos

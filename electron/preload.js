@@ -47,6 +47,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // Funciones avanzadas de productos
   getProductWithTemplates: (productId) => ipcRenderer.invoke('products:getWithTemplates', productId),
+  getAllProductsWithTemplates: () => ipcRenderer.invoke('products:getAllWithTemplates'),
   searchProducts: (searchTerm) => ipcRenderer.invoke('products:search', searchTerm),
 
   // Plantillas de productos

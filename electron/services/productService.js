@@ -19,7 +19,7 @@ class ProductService {
       }
 
       const product = productRepository.findById(parseInt(id));
-      
+
       if (!product) {
         throw new Error('Producto no encontrado');
       }
@@ -231,6 +231,15 @@ class ProductService {
     } catch (error) {
       console.error('Error al obtener producto con plantillas:', error);
       throw error;
+    }
+  }
+
+  async getAllProductsWithTemplates() {
+    try {
+      return productRepository.findAllWithTemplates();
+    } catch (error) {
+      console.error('Error al obtener productos con plantillas:', error);
+      throw new Error('Error al obtener productos con plantillas');
     }
   }
 

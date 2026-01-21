@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { DollarSign, Edit3, Hash, Package, Plus, Search, Trash2 } from 'lucide-react';
+import { DollarSign, Edit3, Hash, Package, Plus, Search, Trash2, Printer } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { CreateProductModal, DeleteProductModal, EditProductModal, ProductDetailView } from './components';
@@ -126,6 +126,197 @@ const ProductsPage: React.FC = () => {
     setSelectedProduct(null);
   };
 
+  const handlePrintInventory = async () => {
+    try {
+      const toastId = toast.loading('Preparando documento de impresión...');
+
+      // Obtener todos los productos con sus plantillas (subproductos)
+      const productsWithTemplates = await ProductsApiService.findAllWithTemplates();
+
+      // Filtrar si hay búsqueda activa (opcional, pero consistente con la UI)
+      // Si el usuario quiere imprimir TODO el inventario siempre, quitamos este filtro.
+      // Asumiremos que quiere imprimir lo que ve o todo? El prompt dice "imprimir todos los productos que tengo en la app".
+      // Usaremos productsWithTemplates completo.
+
+      // Generar HTML
+      const printHTML = `
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+          <meta charset="UTF-8">
+          <title>Inventario de Productos</title>
+          <style>
+            @page {
+              size: letter;
+              margin: 1.5cm;
+            }
+            body {
+              font-family: 'Segoe UI', Arial, sans-serif;
+              font-size: 12px;
+              line-height: 1.4;
+              color: #1f2937;
+              max-width: 100%;
+            }
+            h1 {
+              text-align: center;
+              font-size: 20px;
+              margin-bottom: 5px;
+              text-transform: uppercase;
+              color: #111827;
+            }
+            .subtitle {
+              text-align: center;
+              font-size: 12px;
+              color: #6b7280;
+              margin-bottom: 25px;
+            }
+            .date {
+              text-align: right;
+              font-size: 10px;
+              margin-bottom: 10px;
+              color: #6b7280;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 20px;
+            }
+            th {
+              background-color: #f3f4f6;
+              border-bottom: 2px solid #e5e7eb;
+              padding: 10px 8px;
+              text-align: left;
+              font-weight: 700;
+              color: #374151;
+              text-transform: uppercase;
+              font-size: 11px;
+            }
+            td {
+              border-bottom: 1px solid #e5e7eb;
+              padding: 8px;
+              vertical-align: top;
+            }
+            tr {
+              page-break-inside: avoid;
+            }
+            .product-row td {
+              font-weight: 600;
+              background-color: #f9fafb;
+              color: #111827;
+            }
+            .template-row td {
+              color: #4b5563;
+              font-size: 11px;
+            }
+            .sub-indicator {
+              display: inline-block;
+              width: 20px;
+              text-align: right;
+              margin-right: 5px;
+              color: #9ca3af;
+            }
+            .price-col {
+              text-align: right;
+              width: 100px;
+              font-family: 'Courier New', monospace;
+            }
+            .serial-col {
+              width: 120px;
+              font-family: 'Courier New', monospace;
+            }
+            .empty-templates {
+              font-style: italic;
+              color: #9ca3af;
+              font-size: 10px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="date">Generado el: ${new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} a las ${new Date().toLocaleTimeString('es-MX')}</div>
+          <h1>Inventario General</h1>
+          <div class="subtitle">BACE - LISTA DE PRODUCTOS Y SUBPRODUCTOS</div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th>Producto / Variantes</th>
+                <th class="serial-col">Código</th>
+                <th class="price-col">Precio</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${productsWithTemplates.map(p => {
+        const productRow = `
+                  <tr class="product-row">
+                    <td>${p.name}</td>
+                    <td class="serial-col">${p.serial_number || '-'}</td>
+                    <td class="price-col">$${p.price.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                  </tr>
+                `;
+
+        let templateRows = '';
+        if (p.templates && p.templates.length > 0) {
+          templateRows = p.templates.map(t => {
+            // Construir descripción
+            let descParts = [];
+            if (t.colors) descParts.push(t.colors);
+            if (t.width && t.height) descParts.push(`${t.width}x${t.height}`);
+            if (t.position) descParts.push(t.position);
+
+            const variantName = t.description ? `${t.description}` : '';
+            const extraDesc = `<br><span style="color:#9ca3af; font-size:10px;">${descParts.join(' - ') || 'Variante'}</span>`;
+
+            const price = t.final_price !== undefined && t.final_price !== null
+              ? t.final_price
+              : p.price;
+
+            return `
+                      <tr class="template-row">
+                        <td style="padding-left: 20px;">
+                          <span class="sub-indicator">↳</span> 
+                          ${variantName} ${t.texts ? `"${t.texts}"` : ''} 
+                          ${extraDesc}
+                        </td>
+                        <td class="serial-col" style="font-size:10px;">${t.id}</td>
+                        <td class="price-col">$${price.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
+                      </tr>
+                     `;
+          }).join('');
+        } else {
+          // Opcional: mostrar mensaje si no tiene variantes? No, mejor limpiar para ahorrar tinta.
+        }
+
+        return productRow + templateRows;
+      }).join('')}
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `;
+
+      const printWindow = window.open('', '_blank', 'width=1000,height=800');
+      if (printWindow) {
+        printWindow.document.write(printHTML);
+        printWindow.document.close();
+        printWindow.onload = () => {
+          // Pequeño timeout para asegurar que estilos carguen si hubiera externos (aquí no hay)
+          setTimeout(() => {
+            printWindow.focus();
+            printWindow.print();
+            // printWindow.close(); // Opcional, algunos navegadores bloquean el cierre inmediato
+          }, 500);
+        };
+      } else {
+        toast.error("No se pudo abrir la ventana de impresión. Verifique los bloqueadores de ventanas emergentes.");
+      }
+
+      toast.dismiss(toastId);
+    } catch (err) {
+      console.error(err);
+      toast.error('Error al generar reporte de inventario');
+    }
+  };
+
   // Si estamos en vista detallada, mostrar el componente correspondiente
   if (currentView === 'detail' && detailProductId) {
     return (
@@ -180,13 +371,23 @@ const ProductsPage: React.FC = () => {
             Administra tu catálogo de productos personalizados
           </p>
         </div>
-        <Button 
-          className="flex items-center gap-2"
-          onClick={openCreateModal}
-        >
-          <Plus size={16} />
-          Nuevo Producto
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={handlePrintInventory}
+          >
+            <Printer size={16} />
+            Imprimir Inventario
+          </Button>
+          <Button
+            className="flex items-center gap-2"
+            onClick={openCreateModal}
+          >
+            <Plus size={16} />
+            Nuevo Producto
+          </Button>
+        </div>
       </div>
 
       {/* Filtros y búsqueda */}
