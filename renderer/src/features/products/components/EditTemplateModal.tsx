@@ -2,7 +2,7 @@ import { Button, Input, Label } from "@/components/ui";
 import { ProductTemplatesApiService } from "@/features/productTemplates/ProductTemplatesApiService";
 import { editProductTemplateSchema, type EditProductTemplateForm, type ProductTemplate } from "@/features/productTemplates/types";
 import { zodResolver } from '@hookform/resolvers/zod';
-import { FileText, Loader, MapPin, Package, Palette, Ruler, X } from "lucide-react";
+import { FileText, Loader, MapPin, Package, Palette, Percent, Ruler, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useForm } from 'react-hook-form';
 import { extractErrorMessage } from '@/utils/errorHandling';
@@ -31,10 +31,32 @@ const EditTemplateModal: React.FC<EditTemplateModalProps> = ({
     resolver: zodResolver(editProductTemplateSchema)
   });
 
+  const [basePrice, setBasePrice] = useState<number>(0);
+  const [percentage, setPercentage] = useState<number>(0);
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseFloat(e.target.value);
+    if (!isNaN(val)) {
+      setBasePrice(val);
+      setPercentage(0);
+    }
+  };
+
+  const handlePercentageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseFloat(e.target.value);
+    const newPercent = isNaN(val) ? 0 : val;
+    setPercentage(newPercent);
+    const calculatedPrice = basePrice * (1 + (newPercent / 100));
+    setValue('final_price', parseFloat(calculatedPrice.toFixed(2)));
+  };
+
   // Set form values when template changes
   useEffect(() => {
     if (template && isOpen) {
       setValue('final_price', template.final_price);
+      setBasePrice(template.final_price);
+      setPercentage(0);
+
       setValue('description', template.description || '');
       setValue('width', template.width);
       setValue('height', template.height);
@@ -58,7 +80,8 @@ const EditTemplateModal: React.FC<EditTemplateModalProps> = ({
 
       let processedData = { 
         ...data,
-        colors: colorsInput.trim() || undefined
+        colors: colorsInput.trim() || undefined,
+        product_id: template.product_id
       };
 
       const updatedTemplate = await ProductTemplatesApiService.update(template.id, processedData);
@@ -135,12 +158,34 @@ const EditTemplateModal: React.FC<EditTemplateModalProps> = ({
                   min='0'
                   placeholder="0.00"
                   className="pl-8"
-                  {...register('final_price', { valueAsNumber: true })}
+                  {...register('final_price', { 
+                    valueAsNumber: true,
+                    onChange: handlePriceChange
+                  })}
                 />
               </div>
               {errors.final_price && (
                 <p className="mt-1 text-sm text-red-600">{errors.final_price.message}</p>
               )}
+            </div>
+
+            {/* Percentage Adjustment */}
+            <div>
+              <Label htmlFor="percentage" className="text-sm font-medium text-gray-700">
+                Ajuste % (Base inicial: ${basePrice.toFixed(2)})
+              </Label>
+              <div className="mt-1 relative">
+                <Percent className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <Input
+                  id="percentage"
+                  type="number"
+                  step='0.01'
+                  placeholder="0"
+                  className="pl-10"
+                  value={percentage === 0 ? '' : percentage}
+                  onChange={handlePercentageChange}
+                />
+              </div>
             </div>
 
             {/* Description */}

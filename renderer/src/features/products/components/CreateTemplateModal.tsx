@@ -3,7 +3,7 @@ import { ProductTemplatesApiService } from "@/features/productTemplates/ProductT
 import { createProductTemplateSchema, type CreateProductTemplateForm, type ProductTemplate } from "@/features/productTemplates/types";
 import type { Product } from "../types";
 import { zodResolver } from '@hookform/resolvers/zod';
-import { FileText, Loader, MapPin, Package, Palette, Ruler, X } from "lucide-react";
+import { FileText, Loader, MapPin, Package, Palette, Percent, Ruler, X } from "lucide-react";
 import React, { useState } from "react";
 import { useForm } from 'react-hook-form';
 import { extractErrorMessage } from '@/utils/errorHandling';
@@ -35,6 +35,18 @@ const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
       final_price: product.price,
     }
   });
+
+  const [percentage, setPercentage] = useState<number>(0);
+
+  const handlePercentageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseFloat(e.target.value);
+    const newPercent = isNaN(val) ? 0 : val;
+    setPercentage(newPercent);
+    if (product) {
+       const calculatedPrice = product.price * (1 + (newPercent / 100));
+       setValue('final_price', parseFloat(calculatedPrice.toFixed(2)));
+    }
+  };
 
   // Set default values from product
   React.useEffect(() => {
@@ -72,6 +84,7 @@ const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
   const handleClose = () => {
     reset();
     setColorsInput('');
+    setPercentage(0);
     setError(null);
     onClose();
   };
@@ -144,12 +157,34 @@ const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
                   min='0'
                   placeholder="0.00"
                   className="pl-8"
-                  {...register('final_price', { valueAsNumber: true })}
+                  {...register('final_price', { 
+                    valueAsNumber: true,
+                    onChange: () => setPercentage(0)
+                  })}
                 />
               </div>
               {errors.final_price && (
                 <p className="mt-1 text-sm text-red-600">{errors.final_price.message}</p>
               )}
+            </div>
+
+            {/* Percentage Adjustment */}
+            <div>
+              <Label htmlFor="percentage" className="text-sm font-medium text-gray-700">
+                Ajuste % (Base: ${product.price})
+              </Label>
+              <div className="mt-1 relative">
+                <Percent className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <Input
+                  id="percentage"
+                  type="number"
+                  step='0.01'
+                  placeholder="0"
+                  className="pl-10"
+                  value={percentage === 0 ? '' : percentage}
+                  onChange={handlePercentageChange}
+                />
+              </div>
             </div>
 
             {/* Width */}
