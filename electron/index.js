@@ -14,6 +14,7 @@ const orderService = require('./services/orderService');
 const paymentService = require('./services/paymentsService');
 const authService = require('./services/authService');
 const budgetService = require('./services/budgetService');
+const statsService = require('./services/statsService');
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -139,6 +140,11 @@ ipcMain.handle('budgets:getProducts', async (event, budgetId) => await budgetSer
 ipcMain.handle('budgets:recalculateTotal', async (event, budgetId) => await budgetService.recalculateBudgetTotal(budgetId));
 ipcMain.handle('budgets:transformToOrder', async (event, budgetId, userId) => await budgetService.transformToOrder(budgetId, userId));
 ipcMain.handle('budgets:getNextId', async () => await budgetService.getNextId());
+
+// Stats
+ipcMain.handle('stats:getSales', async (event, params) => await statsService.getSalesStats(params));
+ipcMain.handle('stats:getProducts', async () => await statsService.getProducts());
+ipcMain.handle('stats:getYears', async () => await statsService.getAvailableYears());
 
 app.whenReady().then(createWindow);
 

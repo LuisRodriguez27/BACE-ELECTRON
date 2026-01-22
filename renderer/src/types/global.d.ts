@@ -102,6 +102,11 @@ declare global {
       recalculateBudgetTotal: (budgetId: number) => Promise<number>;
       transformToOrder: (budgetId, userId) => Promise<Order>;
       getBudgetNextId: () => Promise<number>;
+
+      // Stats
+      getSalesStats: (params: any) => Promise<any>;
+      getStatsProducts: () => Promise<any>;
+      getAvailableYears: () => Promise<number[]>;
     };
   }
 }
