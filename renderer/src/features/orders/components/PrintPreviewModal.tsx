@@ -30,6 +30,13 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
 
   if (!isOpen || !orderData) return null;
 
+  const itemsPerPage = 5;
+  const productChunks: any[][] = [];
+  for (let i = 0; i < productsData.length; i += itemsPerPage) {
+    productChunks.push(productsData.slice(i, i + itemsPerPage));
+  }
+  if (productChunks.length === 0) productChunks.push([]);
+
   // Funciones para obtener componentes de fecha por separado
   const getDay = (dateString: string) => {
     let date = dayjs(dateString);
@@ -110,75 +117,12 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
       }
 
       // Generar HTML con el mismo diseño del preview visual
-      const printHTML = `
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orden #${orderData.id}</title>
-    <style>
-        * {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            color-adjust: exact !important;
-            font-family: Arial, sans-serif !important;
-        }
-        @page {
-            size: 21.6cm 17cm landscape;
-            margin: 0;
-        }
-        @media print {
-            html, body {
-                width: 21.6cm !important;
-                height: 17cm !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                overflow: hidden !important;
-            }
-            .print-container {
-                width: 21.6cm !important;
-                height: 17cm !important;
-                position: relative !important;
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-            .background-image {
-                position: absolute !important;
-                top: 0 !important;
-                left: 0 !important;
-                width: 100% !important;
-                height: 100% !important;
-                object-fit: cover !important;
-                z-index: -1 !important;
-            }
-        }
-        body {
-            width: 21.6cm;
-            height: 17cm;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            font-family: Arial, sans-serif;
-        }
-        .print-container {
-            width: 21.6cm;
-            height: 17cm;
-            position: relative;
-        }
-        .background-image {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            z-index: -1;
-        }
-    </style>
-</head>
-<body>
-    <div class="print-container">
+      const pagesHtml = productChunks.map((chunkProducts, index) => {
+        const isLastPage = index === productChunks.length - 1;
+        const pageBreak = index > 0 ? 'page-break-before: always;' : '';
+        
+        return `
+    <div class="print-container" style="${pageBreak}">
         ${hasPreferentialPrice ? `
         <!-- Sello de precio especial -->
         <img src="${base64SpecialPrice}" style="position: absolute; bottom: 3rem; right: 4.8rem; width: 6rem; opacity: 0.8; transform: rotate(-12deg); z-index: 10;" alt="Precio Especial" />
@@ -237,7 +181,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                 <div style="grid-column: span 2 / span 2; text-align: right;">P. Unitario</div>
                 <div style="grid-column: span 2 / span 2; text-align: right;">Total</div>
             </div>
-            ${productsData.map((product) => `
+            ${chunkProducts.map((product) => `
                 <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; margin-bottom: 0.5rem; font-size: 1rem; line-height: 1.5rem; padding-top: 0.25rem; padding-bottom: 0.25rem;">
                     <div style="grid-column: span 1 / span 1; text-align: center;">${product.quantity}</div>
                     <div style="grid-column: span 7 / span 7; padding-left: 0.25rem;">
@@ -257,7 +201,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
             `).join('')}
         </div>
 
-        ${orderData.description ? `
+        ${isLastPage && orderData.description ? `
         <!-- Descripción de la orden -->
         <div style="position: absolute; bottom: 8.8rem; left: 5rem; right: 3rem; font-size: 1rem; color: rgb(153, 27, 27); font-weight: 700; padding: 0.5rem; border-radius: 0.25rem; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; line-height: 1.2em; max-height: 4.2em;">
             ${orderData.description}
@@ -296,6 +240,78 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
             $${orderData.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
     </div>
+        `;
+      }).join('');
+
+      const printHTML = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orden #${orderData.id}</title>
+    <style>
+        * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+            font-family: Arial, sans-serif !important;
+        }
+        @page {
+            size: 21.6cm 17cm landscape;
+            margin: 0;
+        }
+        @media print {
+            html, body {
+                width: 21.6cm !important;
+                height: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: visible !important;
+            }
+            .print-container {
+                width: 21.6cm !important;
+                height: 17cm !important;
+                position: relative !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important;
+            }
+            .background-image {
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                object-fit: cover !important;
+                z-index: -1 !important;
+            }
+        }
+        body {
+            width: 21.6cm;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        .print-container {
+            width: 21.6cm;
+            height: 17cm;
+            position: relative;
+            overflow: hidden;
+        }
+        .background-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body>
+    ${pagesHtml}
 </body>
 </html>`;
 
@@ -372,15 +388,19 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
 
         {/* Preview Content */}
         <div className="p-6 overflow-auto max-h-[calc(95vh-100px)]">
-          <div className="flex justify-center">
-            <div
-              className="relative border border-gray-300 shadow-lg bg-cover bg-center bg-no-repeat"
-              style={{
-                width: '800px', // Tamaño fijo para preview
-                height: '662px', // Mantiene proporción 1600:1324
-                backgroundImage: `url(${notaImage})`
-              }}
-            >
+          <div className="flex flex-col items-center gap-8">
+            {productChunks.map((chunkProducts, index) => {
+              const isLastPage = index === productChunks.length - 1;
+              return (
+              <div key={index} className="flex justify-center">
+                <div
+                  className="relative border border-gray-300 shadow-lg bg-cover bg-center bg-no-repeat"
+                  style={{
+                    width: '800px', // Tamaño fijo para preview
+                    height: '662px', // Mantiene proporción 1600:1324
+                    backgroundImage: `url(${notaImage})`
+                  }}
+                >
               {hasPreferentialPrice && (
                 <img 
                   src={specialPriceImage} 
@@ -437,7 +457,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                   <div className="col-span-2 text-right">P. Unitario</div>
                   <div className="col-span-2 text-right">Total</div>
                 </div>
-                {productsData.map((product, index) => (
+                {chunkProducts.map((product, index) => (
                   <div
                     key={index}
                     className="grid grid-cols-12 gap-2 mb-2 text-base py-1"
@@ -463,7 +483,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                 ))}
               </div>
 
-              {orderData.description && (
+              {isLastPage && orderData.description && (
                 <div className="absolute bottom-37 left-20 right-10 text-sm text-red-800 p-2 rounded">
                   <div className="line-clamp-4 break-words">
                     {orderData.description}
@@ -471,43 +491,47 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                 </div>
               )}
 
-              <div className="absolute bottom-13 right-20 text-xl font-bold text-red-600">
-                <div className='text-center'>
-                  No. {orderData.id}
-                </div>
-              </div>
+              
+                  <div className="absolute bottom-13 right-20 text-xl font-bold text-red-600">
+                    <div className='text-center'>
+                      No. {orderData.id}
+                    </div>
+                  </div>
 
-              <div className='absolute bottom-29 left-50'>
-                <div className='text-blue-900 font-bold'>
-                  GRACIAS POR SU COMPRA. LE ATENDIÓ {orderData.user?.username || ''}
-                </div>
-              </div>
+                  <div className='absolute bottom-29 left-50'>
+                    <div className='text-blue-900 font-bold'>
+                      GRACIAS POR SU COMPRA. LE ATENDIÓ {orderData.user?.username || ''}
+                    </div>
+                  </div>
 
-              <div className='absolute bottom-25 left-70'>
-                <div className=''>
-                  {paymentsData.length > 0 ? `Pago realizado con: ${paymentsData[0]?.descripcion || ''}` : ''}
-                  {/* {paymentsData[0]?.descripcion || ''} */}
-                </div>
-              </div>
+                  <div className='absolute bottom-25 left-70'>
+                    <div className=''>
+                      {paymentsData.length > 0 ? `Pago realizado con: ${paymentsData[0]?.descripcion || ''}` : ''}
+                      {/* {paymentsData[0]?.descripcion || ''} */}
+                    </div>
+                  </div>
 
-              {/* Pagos */}
-              <div className="absolute bottom-14 left-43 w-32 h-8 flex items-center justify-center text-green-700 font-bold text-xl">
-                {paymentsData.length > 0 ? `$${totalPagos.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}
-              </div>
+                  {/* Pagos */}
+                  <div className="absolute bottom-14 left-43 w-32 h-8 flex items-center justify-center text-green-700 font-bold text-xl">
+                    {paymentsData.length > 0 ? `$${totalPagos.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}
+                  </div>
 
-              {/* Saldo */}
-              <div className="absolute bottom-14 left-79 w-32 h-8 flex items-center justify-center text-red-600 font-bold text-xl">
-                ${saldoPendiente.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </div>
+                  {/* Saldo */}
+                  <div className="absolute bottom-14 left-79 w-32 h-8 flex items-center justify-center text-red-600 font-bold text-xl">
+                    ${saldoPendiente.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
 
-              {/* Total */}
-              <div className="absolute bottom-14 left-113 w-32 h-8 flex items-center justify-center text-black font-bold text-xl">
-                ${orderData.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </div>
-
+                  {/* Total */}
+                  <div className="absolute bottom-14 left-113 w-32 h-8 flex items-center justify-center text-black font-bold text-xl">
+                    ${orderData.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                
             </div>
           </div>
+          );
+        })}
         </div>
+      </div>
       </div>
     </div>
   );
