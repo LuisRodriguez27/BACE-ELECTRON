@@ -97,6 +97,7 @@ declare global {
       getBudgetById: (id: number) => Promise<Budget>;
       getBudgetByClientId: (clientId: number) => Promise<Budget[]>;
       createBudget: (data: CreateBudgetForm) => Promise<Budget>;
+      updateBudget: (id: number, data: Partial<CreateBudgetForm>) => Promise<Budget>;
       deleteBudget: (budgetId: number) => Promise<void>;
       getBudgetProducts: (budgetId: number) => Promise<BudgetProduct[]>;
       recalculateBudgetTotal: (budgetId: number) => Promise<number>;

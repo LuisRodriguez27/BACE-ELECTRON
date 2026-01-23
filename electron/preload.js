@@ -90,6 +90,7 @@ contextBridge.exposeInMainWorld('api', {
   getBudgetById: (id) => ipcRenderer.invoke('budgets:getById', id),
   getBudgetByClientId: (clientId) => ipcRenderer.invoke('budgets:getByClientId', clientId),
   createBudget: (data) => ipcRenderer.invoke('budgets:create', data),
+  updateBudget: (id, data) => ipcRenderer.invoke('budgets:update', id, data),
   deleteBudget: (id) => ipcRenderer.invoke('budgets:delete', id),
   getBudgetProducts: (budgetId) => ipcRenderer.invoke('budgets:getProducts', budgetId),
   recalculateBudgetTotal: (budgetId) => ipcRenderer.invoke('budgets:recalculateTotal', budgetId),

@@ -159,6 +159,10 @@ class Budget {
     return this.converted_to_order === 1 || this.converted_to_order === true;
   }
 
+  canEdit() {
+    return !this.converted_to_order && this.isActive();
+  }
+
   toPlainObject() {
     return {
       id: this.id,

@@ -19,11 +19,14 @@ import { calculateBudgetTotal, type CreateBudgetForm, createBudgetItemFromFormIt
 // import { toast } from 'sonner';
 import BudgetPrintPreviewModal from './BudgetPrintPreviewModal';
 import { BudgetApiService } from '../BudgetApiService';
+
 interface CreateBudgetModalProps {
   isOpen: boolean;
   onClose: () => void;
   onBudgetCreated: (budget: Budget) => void;
+  onBudgetUpdated?: (budget: Budget) => void;
   currentUserId: number;
+  budgetToEdit?: Budget | null;
 }
 
 dayjs.extend(utc);
@@ -33,7 +36,9 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
   isOpen,
   onClose,
   onBudgetCreated,
-  currentUserId
+  onBudgetUpdated,
+  currentUserId,
+  budgetToEdit
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +79,82 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
       items: []
     }
   });
+
+  // Efecto para cargar datos en edición
+  useEffect(() => {
+    if (isOpen && budgetToEdit) {
+      // Establecer valores del formulario
+      const formattedDate = dayjs(budgetToEdit.date).format('YYYY-MM-DD');
+      
+      setValue('client_id', budgetToEdit.client_id);
+      setValue('date', formattedDate);
+      setValue('user_id', budgetToEdit.user_id);
+      
+      // Establecer cliente seleccionado
+      setSelectedClientId(budgetToEdit.client_id);
+      if (budgetToEdit.client) {
+        setClientSearchTerm(`${budgetToEdit.client.name} - ${budgetToEdit.client.phone}`);
+      }
+
+      // Convertir productos del presupuesto a items del formulario
+      if (budgetToEdit.budgetProducts && budgetToEdit.budgetProducts.length > 0) {
+        const items: BudgetFormItem[] = budgetToEdit.budgetProducts.map(bp => {
+          if (bp.product_id) {
+            return {
+              type: 'product' as const,
+              id: bp.product_id,
+              name: bp.product_name || `Producto #${bp.product_id}`,
+              quantity: bp.quantity,
+              unit_price: bp.unit_price,
+              serial_number: bp.serial_number,
+              description: bp.product_description
+            };
+          } else {
+            return {
+              type: 'template' as const,
+              id: bp.template_id || 0,
+              name: bp.product_name ? `${bp.product_name} (Plantilla)` : 'Plantilla',
+              quantity: bp.quantity,
+              unit_price: bp.unit_price,
+              width: bp.template_width,
+              height: bp.template_height,
+              colors: bp.template_colors,
+              texts: bp.template_texts,
+              description: bp.template_description
+            };
+          }
+        });
+        setBudgetItems(items);
+        
+        // Inicializar searchTerms para items existentes si es necesario
+        const newSearchTerms: {[key: number]: string} = {};
+        items.forEach((item, index) => {
+            if (item.name) {
+                newSearchTerms[index] = item.name;
+            }
+        });
+        setSearchTerms(prev => ({...prev, ...newSearchTerms}));
+      }
+    } else if (isOpen && !budgetToEdit) {
+      // Resetear formulario para nueva creación
+      reset({
+        user_id: currentUserId,
+        date: dayjs().tz('America/Mexico_City').format('YYYY-MM-DD'),
+        items: []
+      });
+      setSelectedClientId(null);
+      setClientSearchTerm('');
+      setBudgetItems([{
+        type: 'product',
+        id: 0,
+        name: '',
+        quantity: 1,
+        unit_price: 0
+      }]);
+    }
+  }, [isOpen, budgetToEdit, setValue, reset, currentUserId]);
+
+  // Actualizar el formulario cuando cambien los items
 
   // Actualizar el formulario cuando cambien los items
   useEffect(() => {
@@ -419,21 +500,42 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
         return;
       }
 
-      // Crear el objeto de presupuesto
-      const budgetData: CreateBudgetForm = {
-        ...formData,
-        client_id: selectedClientId,
-        user_id: currentUserId
-      };
+      if (budgetToEdit) {
+        const updateData: any = {
+           ...formData,
+           client_id: selectedClientId,
+           // Si estamos editando, usamos edited_by en lugar de user_id
+           edited_by: currentUserId
+        };
+        
+        // Mantener id de usuario original si no se envía
+        delete updateData.user_id;
 
-      // Guardar en la base de datos
-      const newBudget = await BudgetApiService.create(budgetData);
+        const updatedBudget = await BudgetApiService.update(budgetToEdit.id, updateData);
+        
+        if (onBudgetUpdated) {
+          onBudgetUpdated(updatedBudget);
+        } else {
+             // Fallback
+             onBudgetCreated(updatedBudget);
+        }
+      } else {
+        // Crear el objeto de presupuesto
+        const budgetData: CreateBudgetForm = {
+            ...formData,
+            client_id: selectedClientId,
+            user_id: currentUserId
+        };
+
+        // Guardar en la base de datos
+        const newBudget = await BudgetApiService.create(budgetData);
+        onBudgetCreated(newBudget);
+      }
       
-      onBudgetCreated(newBudget);
       handleClose();
 
     } catch (err: any) {
-      console.error('Error creating budget', err);
+      console.error('Error creating/updating budget', err);
       const errorMessage = extractErrorMessage(err);
       setError(errorMessage);
     } finally {
@@ -534,8 +636,12 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
               <ReceiptText className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Nuevo Presupuesto</h2>
-              <p className="text-sm text-gray-500">Crear presupuesto con productos y/o plantillas</p>
+              <h2 className="text-lg font-semibold text-gray-900">
+                {budgetToEdit ? `Editar Presupuesto #${budgetToEdit.id}` : 'Nuevo Presupuesto'}
+              </h2>
+              <p className="text-sm text-gray-500">
+                {budgetToEdit ? 'Editar detalles del presupuesto' : 'Crear presupuesto con productos y/o plantillas'}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -1135,7 +1241,9 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
               className="flex items-center gap-2"
             >
               {isSubmitting && <Loader className="animate-spin" size={16} />}
-              {isSubmitting ? 'Creando...' : `Crear Presupuesto (${budgetItems.length} items)`}
+              {isSubmitting 
+                ? (budgetToEdit ? 'Guardando...' : 'Creando...') 
+                : (budgetToEdit ? 'Guardar Cambios' : `Crear Presupuesto (${budgetItems.length} items)`)}
             </Button>
           </div>
         </form>

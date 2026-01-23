@@ -399,8 +399,32 @@ try {
       console.warn('⚠️ Advertencia: No existe el permiso con ID 19.');
     }
   }
+
+  // ============================================
+  // MIGRACIÓN: EDITAR PRESUPUESTOS
+  // ============================================
+  const existingEditBudgetPerm = db.prepare("SELECT id FROM permissions WHERE name = 'Editar Presupuestos'").get();
+  let editBudgetPermId;
+
+  if (!existingEditBudgetPerm) {
+    console.log('🛠 Migración: agregando permiso Editar Presupuestos');
+    const result = db.prepare("INSERT INTO permissions (name, description, active) VALUES ('Editar Presupuestos', 'Permite editar los presupuestos registrados', 1)").run();
+    editBudgetPermId = result.lastInsertRowid;
+    console.log('✅ Permiso Editar Presupuestos creado con éxito.');
+  } else {
+    editBudgetPermId = existingEditBudgetPerm.id;
+  }
+
+  if (editBudgetPermId) {
+    const existingUserEditBudgetPerm = db.prepare("SELECT * FROM user_permissions WHERE user_id = 1 AND permission_id = ?").get(editBudgetPermId);
+    if (!existingUserEditBudgetPerm) {
+      db.prepare("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (1, ?, 1)").run(editBudgetPermId);
+      console.log(`✅ Permiso Editar Presupuestos (${editBudgetPermId}) asignado al usuario 1`);
+    }
+  }
+
 } catch (error) {
-  console.error('❌ Error en migración de estadísticas:', error);
+  console.error('❌ Error en migraciones:', error);
 }
 
 module.exports = db;

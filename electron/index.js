@@ -135,6 +135,7 @@ ipcMain.handle('budgets:search', async (event, page, limit, searchTerm) => await
 ipcMain.handle('budgets:getById', async (event, id) => await budgetService.getBudgetById(id));
 ipcMain.handle('budgets:getByClientId', async (event, clientId) => await budgetService.getBudgetByClientId(clientId));
 ipcMain.handle('budgets:create', async (event, data) => await budgetService.createBudget(data));
+ipcMain.handle('budgets:update', async (event, id, data) => await budgetService.updateBudget(id, data));
 ipcMain.handle('budgets:delete', async (event, id) => await budgetService.deleteBudget(id));
 ipcMain.handle('budgets:getProducts', async (event, budgetId) => await budgetService.getBudgetProducts(budgetId));
 ipcMain.handle('budgets:recalculateTotal', async (event, budgetId) => await budgetService.recalculateBudgetTotal(budgetId));
