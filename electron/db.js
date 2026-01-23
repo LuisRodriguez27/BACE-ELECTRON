@@ -380,23 +380,23 @@ if (checkOrderCount.count === 0 || (checkOrderCount.maxId && checkOrderCount.max
 // MIGRACIÓN: ESTADÍSTICAS
 // ============================================
 try {
+  let statPermId;
   const existingStatPerm = db.prepare("SELECT id FROM permissions WHERE name = 'Estadisticas'").get();
   
   if (!existingStatPerm) {
     console.log('🛠 Migración: agregando permiso Estadisticas');
-    db.prepare("INSERT INTO permissions (name, description, active) VALUES ('Estadisticas', 'Permite visualizar las estadisticas de ventas', 1)").run();
+    const result = db.prepare("INSERT INTO permissions (name, description, active) VALUES ('Estadisticas', 'Permite visualizar las estadisticas de ventas', 1)").run();
+    statPermId = result.lastInsertRowid;
     console.log('✅ Permiso Estadisticas creado con éxito.');
+  } else {
+    statPermId = existingStatPerm.id;
   }
 
-  const existingUserPerm = db.prepare("SELECT * FROM user_permissions WHERE user_id = 1 AND permission_id = 19").get();
-  if (!existingUserPerm) {
-    // Verificar que exista el permiso 19 para evitar error de FK
-    const perm19 = db.prepare("SELECT id FROM permissions WHERE id = 19").get();
-    if (perm19) {
-      db.prepare("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (1, 19, 1)").run();
-      console.log('✅ Permiso 19 asignado al usuario 1');
-    } else {
-      console.warn('⚠️ Advertencia: No existe el permiso con ID 19.');
+  if (statPermId) {
+    const existingUserPerm = db.prepare("SELECT * FROM user_permissions WHERE user_id = 1 AND permission_id = ?").get(statPermId);
+    if (!existingUserPerm) {
+      db.prepare("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (1, ?, 1)").run(statPermId);
+      console.log(`✅ Permiso Estadisticas (${statPermId}) asignado al usuario 1`);
     }
   }
 

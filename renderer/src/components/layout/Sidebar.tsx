@@ -110,6 +110,10 @@ const Sidebar: React.FC = () => {
             return null
           }
 
+          if (item.id === 'stats' && !canAccess('Estadisticas')) {
+            return null
+          } 
+
           const Icon = item.icon
           const isActive = location.pathname === item.path
           
