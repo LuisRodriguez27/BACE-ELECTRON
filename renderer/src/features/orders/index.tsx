@@ -186,7 +186,15 @@ const OrdersPage: React.FC = () => {
     // Buscar por teléfono del cliente
     const clientPhoneMatch = order.client && order.client.phone && order.client.phone.includes(searchLower);
 
-    return idMatch || notesMatch || descriptionMatch || clientNameMatch || clientPhoneMatch;
+    // Buscar por productos
+    const productMatch = order.orderProducts && order.orderProducts.some(op => {
+      const name = getOrderItemDisplayName(op).toLowerCase();
+      // También buscar en la descripción del producto o plantilla
+      const desc = (op.product_description || op.template_description || '').toLowerCase();
+      return name.includes(searchLower) || desc.includes(searchLower);
+    });
+
+    return idMatch || notesMatch || descriptionMatch || clientNameMatch || clientPhoneMatch || productMatch;
   });
 
   // Funciones auxiliares para pagos
@@ -302,7 +310,7 @@ const OrdersPage: React.FC = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
               <input
                 type="text"
-                placeholder="Buscar por ID, notas, cliente o teléfono..."
+                placeholder="Buscar por ID, notas, cliente o teléfono, producto o plantilla..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

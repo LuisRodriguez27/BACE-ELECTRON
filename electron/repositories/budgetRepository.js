@@ -80,9 +80,22 @@ class BudgetRepository {
           CAST(b.id AS TEXT) LIKE ?
           OR c.name LIKE ?
           OR c.phone LIKE ?
+          OR EXISTS (
+            SELECT 1 FROM budget_products bp
+            LEFT JOIN products p ON bp.product_id = p.id
+            LEFT JOIN product_templates pt ON bp.template_id = pt.id
+            LEFT JOIN products pt_p ON pt.product_id = pt_p.id
+            WHERE bp.budget_id = b.id
+            AND (
+              p.name LIKE ? 
+              OR p.description LIKE ?
+              OR pt.description LIKE ?
+              OR pt_p.name LIKE ?
+            )
+          )
         )
       `;
-      searchParams = [term, term, term];
+      searchParams = [term, term, term, term, term, term, term];
     }
     
     // Obtener total de registros con búsqueda
