@@ -216,39 +216,6 @@ const OrdersPage: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="p-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2 mb-6"></div>
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded"></div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800">{error}</p>
-          <Button 
-            onClick={() => window.location.reload()} 
-            className="mt-2"
-            size="sm"
-          >
-            Reintentar
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="p-6">
       {/* Header */}
@@ -300,7 +267,20 @@ const OrdersPage: React.FC = () => {
           </h2>
         </div>
         <div className="p-6">
-          {orders.length === 0 && !loading ? (
+          {loading ? (
+            <div className="animate-pulse space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-32 bg-gray-200 rounded"></div>
+              ))}
+            </div>
+          ) : error ? (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-red-800">{error}</p>
+              <Button onClick={() => loadOrders(1, true, currentSearchTerm)} className="mt-2" size="sm">
+                Reintentar
+              </Button>
+            </div>
+          ) : orders.length === 0 ? (
             <div className="text-center py-12">
               {currentSearchTerm ? (
                 <>
