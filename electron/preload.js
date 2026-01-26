@@ -63,6 +63,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // Ordenes
   getAllOrders: () => ipcRenderer.invoke('orders:getAll'),
+  getPendingOrdersForLogbook: () => ipcRenderer.invoke('orders:getPendingForLogbook'),
   getOrderById: (id) => ipcRenderer.invoke('orders:getById', id),
   getOrdersByClientId: (clientId) => ipcRenderer.invoke('orders:getByClientId', clientId),
   createOrder: (data) => ipcRenderer.invoke('orders:create', data),

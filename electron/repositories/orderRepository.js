@@ -70,6 +70,29 @@ class OrderRepository {
     });
   }
 
+  findPendingForLogbook() {
+    const stmt = db.prepare(`
+      SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
+            o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.active,
+            c.name as client_name, c.phone as client_phone,
+            u.username as user_username,
+            ue.username as edited_by_username
+      FROM orders o
+      JOIN clients c ON o.client_id = c.id
+      JOIN users u ON o.user_id = u.id
+      LEFT JOIN users ue ON o.edited_by = ue.id
+      WHERE o.active = 1 AND o.status NOT IN ('completado', 'cancelado')
+      ORDER BY o.id ASC
+    `);
+    
+    const orders = stmt.all();
+    return orders.map(order => {
+      // Cargar productos para cada orden
+      const orderProducts = this.getOrderProducts(order.id);
+      return new Order({ ...order, orderProducts });
+    });
+  }
+
   findCompleted() {
     const stmt = db.prepare(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 

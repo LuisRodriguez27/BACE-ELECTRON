@@ -70,6 +70,7 @@ declare global {
 
       // Ordenes
       getAllOrders: () => Promise<Order[]>;
+      getPendingOrdersForLogbook: () => Promise<Order[]>;
       getOrderById: (id: number) => Promise<Order>;
       getOrdersByClientId: (clientId: number) => Promise<Order[]>;
       createOrder: (data: CreateOrderForm) => Promise<Order>;

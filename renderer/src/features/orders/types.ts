@@ -69,8 +69,10 @@ export interface Order {
   total: number;
   notes?: string;
   description?: string;
+  active: number;
 
   // Para joins
+  client_name?: string; // Agregado para soportar el campo directo del repositorio
   client?: {
     id: number;
     name: string;

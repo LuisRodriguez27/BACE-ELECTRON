@@ -10,6 +10,10 @@ export const OrdersApiService = {
     return window.api.getAllOrders();
   },
 
+  findPendingForLogbook: async (): Promise<Order[]> => {
+    return window.api.getPendingOrdersForLogbook();
+  },
+
   findById: async (id: number): Promise<Order> => {
     return window.api.getOrderById(id);
   },

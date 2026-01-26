@@ -50,6 +50,16 @@ class OrderService {
     }
   }
 
+  async getPendingOrdersForLogbook() {
+    try {
+      const orders = orderRepository.findPendingForLogbook();
+      return orders.map(order => order.toPlainObject());
+    } catch (error) {
+      console.error('Error al obtener bitácora de órdenes:', error);
+      throw new Error('Error al obtener bitácora de órdenes');
+    }
+  }
+
   async getSales() {
     try {
       const sales = orderRepository.findCompleted();

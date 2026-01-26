@@ -296,6 +296,7 @@ class Order {
       notes: this.notes,
       description: this.description,
       active: this.active,
+      client_name: this.client_name, // Exponer nombre directamente
       client: this.getClient(),
       user: this.getUser(),
       editedByUser: this.getEditedByUser(),

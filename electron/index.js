@@ -108,6 +108,7 @@ ipcMain.handle('templates:search', async (event, searchTerm) => await productTem
 
 // Manejo de eventos IPC para ordenes
 ipcMain.handle('orders:getAll', async () => await orderService.getAllOrders());
+ipcMain.handle('orders:getPendingForLogbook', async () => await orderService.getPendingOrdersForLogbook());
 ipcMain.handle('orders:getById', async (event, id) => await orderService.getOrderById(id));
 ipcMain.handle('orders:getByClientId', async (event, clientId) => await orderService.getOrdersByClientId(clientId));
 ipcMain.handle('orders:create', async (event, data) => await orderService.createOrder(data));

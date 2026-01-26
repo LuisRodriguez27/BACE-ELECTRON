@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/auth';
-import { AlertCircle, Calendar, CheckCircle, Clock, DollarSign, Edit3, Eye, Plus, Search, ShoppingCart } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle, Clock, DollarSign, Edit3, Eye, Plus, Printer, Search, ShoppingCart } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { PaymentsApiService } from '../payments/PaymentsApiService';
 import CreatePaymentModal from '../payments/components/CreatePaymentModal';
@@ -67,6 +67,120 @@ const OrdersPage: React.FC = () => {
     };
     fetchOrders();
   }, []);
+
+  const handlePrintLogbook = async () => {
+    try {
+      const ordersToPrint = await OrdersApiService.findPendingForLogbook();
+      
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        alert('Por favor permite ventanas emergentes para imprimir');
+        return;
+      }
+
+      const currentDate = new Date().toLocaleDateString('es-MX', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Bitácora de Trabajo - ${currentDate}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; font-size: 11px; }
+            h1 { text-align: center; margin-bottom: 5px; font-size: 16px; }
+            p.date { text-align: center; margin-top: 0; margin-bottom: 15px; color: #666; font-size: 12px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #000; padding: 4px; text-align: left; vertical-align: middle; }
+            th { background-color: #f0f0f0; text-align: center; font-weight: bold; font-size: 10px; }
+            .center { text-align: center; }
+            .check-col { width: 40px; text-align: center; }
+            .client-subcol { width: 35px; }
+            
+            /* Status Checks */
+            .checkmark { font-size: 14px; font-weight: bold; }
+            
+            /* Print optimizations */
+            @media print {
+              @page { size: landscape; margin: 0.5cm; }
+              body { margin: 0; }
+              tr { break-inside: avoid; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>BITÁCORA DE TRABAJO - BACE</h1>
+          <p class="date">${currentDate}</p>
+
+          <table>
+            <thead>
+              <tr>
+                <th rowspan="2" style="width: 50px;">Folio</th>
+                <th rowspan="2" style="width: 70px;">Fecha Rec.</th>
+                <th rowspan="2" style="width: 150px;">Cliente</th>
+                <th rowspan="2">Descripción</th>
+                <th colspan="3">Estatus</th>
+                <th colspan="2">Cliente</th>
+                <th rowspan="2" style="width: 70px;">Fecha Ent.</th>
+              </tr>
+              <tr>
+                <th class="check-col">Diseño</th>
+                <th class="check-col">Prod.</th>
+                <th class="check-col">Entrega</th>
+                <th class="client-subcol">MOS</th>
+                <th class="client-subcol">MAQ</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${ordersToPrint.length === 0 ? '<tr><td colspan="10" class="center">No hay órdenes pendientes</td></tr>' : ''}
+              ${ordersToPrint.map(order => {
+                const dateR = dayjs(order.date).format('DD/MM/YYYY');
+                const dateE = order.estimated_delivery_date 
+                  ? dayjs(order.estimated_delivery_date).format('DD/MM/YYYY') 
+                  : '-';
+                
+                const isDiseño = order.status === 'pendiente';
+                const isProduccion = order.status === 'en proceso';
+
+                return `
+                  <tr>
+                    <td class="center"><strong>${order.id}</strong></td>
+                    <td class="center">${dateR}</td>
+                    <td>${order.client_name || order.client?.name || 'Sin Cliente'}</td>
+                    <td>${order.description || order.notes || ''}</td>
+                    <td class="center">${isDiseño ? '<span class="checkmark">✓</span>' : ''}</td>
+                    <td class="center">${isProduccion ? '<span class="checkmark">✓</span>' : ''}</td>
+                    <td class="center"></td>
+                    <td></td>
+                    <td></td>
+                    <td class="center">${dateE}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+
+          <script>
+            window.onload = function() { 
+              setTimeout(function() {
+                window.print();
+              }, 500);
+            }
+          </script>
+        </body>
+        </html>
+      `;
+
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+    } catch (err) {
+      console.error('Error imprimiendo bitácora:', err);
+    }
+  };
 
   const handleOrderCreated = (newOrder: Order) => {
     setOrders(prevOrders => [newOrder, ...prevOrders]);
@@ -292,6 +406,14 @@ const OrdersPage: React.FC = () => {
           </p>
         </div>
         <div className='flex gap-2'>
+          <Button
+            className="flex items-center gap-2 bg-slate-600 hover:bg-slate-700"
+            onClick={handlePrintLogbook}
+            title="Imprimir Bitácora de Trabajo"
+          >
+            <Printer size={16} />
+            Bitácora
+          </Button>
           <Button
             className="flex items-center gap-2"
             onClick={openCreateModal}
