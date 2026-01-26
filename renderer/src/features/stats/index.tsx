@@ -70,6 +70,8 @@ const StatsPage: React.FC = () => {
     }).format(value)
   }
 
+  const totalSales = (data?.salesOverTime || []).reduce((acc: number, item: any) => acc + item.total, 0)
+
   if (loading && !data) return <div className="p-8">Cargando...</div>
 
   return (
@@ -132,6 +134,25 @@ const StatsPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Total Sales Summary */}
+        <Card className="col-span-1 lg:col-span-2 bg-blue-50 border-blue-200">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center justify-center space-y-2">
+              <span className="text-sm font-medium text-blue-600 uppercase tracking-wide">
+                Ventas Totales del Periodo
+              </span>
+              <span className="text-4xl font-bold text-blue-900">
+                {formatCurrency(totalSales)}
+              </span>
+              <span className="text-sm text-blue-500 capitalize">
+                {period === 'week' ? 'Esta semana' : 
+                 period === 'month' ? `${format(new Date(2000, selectedMonth - 1, 1), 'MMMM', { locale: es })} ${selectedYear}` :
+                 `Año ${selectedYear}`}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Sales Over Time Chart */}
         <Card className="col-span-1 lg:col-span-2">
           <CardHeader>
