@@ -21,7 +21,7 @@ const CONFIG = {
   
   // Ruta de la carpeta compartida en la red (relativa a la IP o unidad)
   // Ejemplo: 'personal_folder/bace-electron' genera \\IP\personal_folder\bace-electron
-  networkFolder: 'personal_folder/bace-electron'
+  networkFolder: 'personal_folder/bace-electron/database'
 };
 // ============================================
 
@@ -73,10 +73,9 @@ function getDatabasePath() {
       networkPath = path.join(CONFIG.networkDrive, CONFIG.networkFolder, 'data.db');
       console.log('🌐 MODO RED (Unidad Mapeada):', networkPath);
     } else {
-      // Usar ruta UNC
-      // Construye \\192.168.1.90\personal_folder\bace-electron\data.db
-      const uncRoot = `\\\\${CONFIG.serverIP}`;
-      networkPath = path.join(uncRoot, CONFIG.networkFolder, 'data.db');
+      // Usar ruta UNC manual para evitar problemas
+      const normalizedFolder = CONFIG.networkFolder.replace(/\//g, '\\');
+      networkPath = `\\\\${CONFIG.serverIP}\\${normalizedFolder}\\data.db`;
       console.log('🌐 MODO RED (UNC Path):', networkPath);
     }
     
@@ -108,6 +107,43 @@ if (CONFIG.modo === 'network' && app.isPackaged) {
   
   // Verificar si el archivo existe
   if (!fs.existsSync(dbPath)) {
+    const dbDir = path.dirname(dbPath);
+    
+    let specificError = '';
+    try {
+      // Intentar leer obligatoriamente el directorio para verificar permisos reales
+      const files = fs.readdirSync(dbDir);
+      
+      // Si llegamos aquí, SÍ hay acceso a la carpeta
+      if (files.includes('data.db')) {
+        specificError = `
+⚠️ El sistema puede leer la carpeta y ve el archivo 'data.db', 
+pero fs.existsSync falló. Esto es inusual.`;
+      } else {
+        specificError = `
+✅ La carpeta del servidor ES accesible (Permisos OK).
+❌ PERO el archivo 'data.db' NO existe en esa ubicación.
+
+Archivos encontrados en la carpeta: 
+${files.slice(0, 10).join(', ')}
+
+SOLUCIÓN:
+Asegúrate de que la base de datos 'data.db' esté en esa carpeta.`;
+      }
+    } catch (err) {
+      // Capturamos el error real de acceso (EPERM, EACCES, ENOENT, etc)
+      specificError = `
+❌ ACCESO DENEGADO o RUTA INVÁLIDA
+La aplicación no tiene permiso para leer la carpeta o no la encuentra.
+
+Error Sistema: ${err.message}
+Código Error: ${err.code}
+
+NOTA IMPORTANTE: 
+Si ejecutas la app como Administrador, es posible que pierdas acceso 
+a las unidades de red del usuario normal. Intenta ejecutarla sin permisos de admin.`;
+    }
+
     const driveInfo = CONFIG.networkDrive 
       ? `Unidad mapeada: ${CONFIG.networkDrive}`
       : `Servidor: ${CONFIG.serverIP}`;
@@ -125,7 +161,10 @@ if (CONFIG.modo === 'network' && app.isPackaged) {
 
 No se puede acceder a la base de datos del servidor.
 
-Ruta: ${dbPath}
+Ruta intentada: ${dbPath}
+
+DIAGNÓSTICO:
+${specificError}
 
 CONFIGURACIÓN:
 ${driveInfo}
@@ -135,7 +174,7 @@ POSIBLES CAUSAS:
 1. La PC servidor está apagada o no accesible en ${CONFIG.serverIP}
 2. La carpeta "${CONFIG.networkFolder}" no existe o no está compartida
 3. No tienes permisos de acceso a la ruta especificada
-4. El firewall está bloqueando la conexión
+4. El archivo data.db no ha sido creado todavía en el servidor
 
 SOLUCIÓN:
 1. Verifica que puedes abrir esta ruta en el Explorador:
