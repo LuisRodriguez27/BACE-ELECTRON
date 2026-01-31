@@ -307,6 +307,8 @@ class OrderRepository {
     }
 
     const fieldsToUpdate = {};
+    if (orderData.client_id !== undefined) fieldsToUpdate.client_id = orderData.client_id;
+    if (orderData.date !== undefined) fieldsToUpdate.date = orderData.date;
     if (orderData.estimated_delivery_date !== undefined) fieldsToUpdate.estimated_delivery_date = orderData.estimated_delivery_date;
     if (orderData.status !== undefined) fieldsToUpdate.status = orderData.status;
     if (orderData.notes !== undefined) fieldsToUpdate.notes = orderData.notes;

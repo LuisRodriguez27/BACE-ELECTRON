@@ -261,7 +261,18 @@ class OrderService {
         throw new Error('No se puede editar una orden completada o cancelada');
       }
 
-      const { estimated_delivery_date, status, notes, description, edited_by, items } = orderData;
+      const { estimated_delivery_date, status, notes, description, edited_by, items, client_id, date } = orderData;
+
+      // Validar cliente si se proporciona
+      if (client_id) {
+        if (isNaN(client_id)) {
+          throw new Error('ID de cliente inválido');
+        }
+        const client = clientRepository.findById(parseInt(client_id));
+        if (!client) {
+          throw new Error('El cliente especificado no existe');
+        }
+      }
 
       // Validar fecha estimada de entrega si se proporciona
       if (estimated_delivery_date) {
@@ -269,7 +280,7 @@ class OrderService {
         if (isNaN(deliveryDate.getTime())) {
           throw new Error('Fecha estimada de entrega inválida');
         }
-        const orderDate = new Date(existingOrder.date);
+        const orderDate = date ? new Date(date) : new Date(existingOrder.date);
         
         // Normalizar fechas (ignorar horas) para evitar errores por diferencias de zona horaria
         const comparisonOrderDate = new Date(orderDate);
@@ -339,6 +350,8 @@ class OrderService {
 
       // Construir payload para actualizar, preservando valores existentes
       const updatePayload = {
+        client_id: client_id ? parseInt(client_id) : existingOrder.client_id,
+        date: date ? new Date(date).toISOString() : existingOrder.date,
         estimated_delivery_date: estimated_delivery_date ? new Date(estimated_delivery_date).toISOString() : existingOrder.estimated_delivery_date,
         status: status || existingOrder.status,
         notes: notes !== undefined ? (notes?.trim() || null) : existingOrder.notes,
