@@ -14,5 +14,8 @@ export const StatsService = {
   },
   getAvailableYears: async () => {
     return await window.api.getAvailableYears();
+  },
+  getAvailableWeeks: async (year: number) => {
+    return await window.api.getAvailableWeeks(year);
   }
 };

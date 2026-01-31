@@ -147,6 +147,7 @@ ipcMain.handle('budgets:getNextId', async () => await budgetService.getNextId())
 ipcMain.handle('stats:getSales', async (event, params) => await statsService.getSalesStats(params));
 ipcMain.handle('stats:getProducts', async () => await statsService.getProducts());
 ipcMain.handle('stats:getYears', async () => await statsService.getAvailableYears());
+ipcMain.handle('stats:getWeeks', async (event, year) => await statsService.getAvailableWeeks(year));
 
 app.whenReady().then(createWindow);
 

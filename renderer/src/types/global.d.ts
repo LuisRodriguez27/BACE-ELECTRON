@@ -109,6 +109,7 @@ declare global {
       getSalesStats: (params: any) => Promise<any>;
       getStatsProducts: () => Promise<any>;
       getAvailableYears: () => Promise<number[]>;
+      getAvailableWeeks: (year: number) => Promise<number[]>;
     };
   }
 }

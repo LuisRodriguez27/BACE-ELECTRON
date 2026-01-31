@@ -77,6 +77,20 @@ class StatsRepository {
     
     return uniqueYears.sort((a, b) => b - a); // Sort descending
   }
+
+  getAvailableWeeks(year) {
+    // Return all sale dates for the year so we can calculate weeks accurately in the service using date-fns
+    const stmt = db.prepare(`
+      SELECT DISTINCT substr(date, 1, 10) as sale_date
+      FROM orders
+      WHERE status = 'completado' 
+        AND active = 1 
+        AND substr(date, 1, 4) = ?
+      ORDER BY sale_date ASC
+    `);
+    
+    return stmt.all(year.toString()).map(r => r.sale_date);
+  }
 }
 
 module.exports = new StatsRepository();

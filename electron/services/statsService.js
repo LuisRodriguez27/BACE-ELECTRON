@@ -1,6 +1,16 @@
 const statsRepository = require('../repositories/statsRepository');
 const productRepository = require('../repositories/productRepository');
 
+// Helper function to calculate ISO week number (Monday start)
+// Mimics date-fns getWeek with weekStartsOn: 1
+function getISOWeek(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
 class StatsService {
   async getSalesStats(params) {
     try {
@@ -67,6 +77,19 @@ class StatsService {
 
   async getAvailableYears() {
     return statsRepository.getAvailableYears();
+  }
+
+  async getAvailableWeeks(year) {
+    // Get raw dates from repo and calculate weeks using date-fns to match frontend logic
+    const dates = statsRepository.getAvailableWeeks(year);
+    const weeks = dates.map(dateStr => {
+      // Create date at noon to avoid timezone rolling to previous day
+      const d = new Date(dateStr + 'T12:00:00'); 
+      return getISOWeek(d);
+    });
+    
+    // Return unique sorted weeks
+    return [...new Set(weeks)].sort((a,b) => a - b);
   }
 
   // Helper to get products list for the filter

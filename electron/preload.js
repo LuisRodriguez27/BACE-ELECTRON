@@ -102,4 +102,5 @@ contextBridge.exposeInMainWorld('api', {
   getSalesStats: (params) => ipcRenderer.invoke('stats:getSales', params),
   getStatsProducts: () => ipcRenderer.invoke('stats:getProducts'),
   getAvailableYears: () => ipcRenderer.invoke('stats:getYears'),
+  getAvailableWeeks: (year) => ipcRenderer.invoke('stats:getWeeks', year),
 });
