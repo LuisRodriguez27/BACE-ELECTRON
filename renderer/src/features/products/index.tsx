@@ -1,14 +1,15 @@
 import { Button } from '@/components/ui/button';
-import { DollarSign, Edit3, Hash, Package, Plus, Search, Trash2, Printer } from 'lucide-react';
+import { DollarSign, Edit3, Hash, Package, Plus, Search, Trash2, Printer, Layers } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { CreateProductModal, DeleteProductModal, EditProductModal, ProductDetailView } from './components';
 import { ProductsApiService } from './ProductsApiService';
 import type { Product } from './types';
+import type { ProductTemplate } from '@/features/productTemplates/types';
 import { usePermissions } from '@/hooks/use-permissions';
 
 const ProductsPage: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<(Product & { templates?: ProductTemplate[] })[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,7 +29,7 @@ const ProductsPage: React.FC = () => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const data = await ProductsApiService.findAll();
+        const data = await ProductsApiService.findAllWithTemplates();
         setProducts(data);
       } catch (err) {
         console.error('Error fetching products:', err);
@@ -72,7 +73,9 @@ const ProductsPage: React.FC = () => {
     
     setProducts(prevProducts =>
       prevProducts.map(product =>
-        product && product.id === updatedProduct.id ? updatedProduct : product
+        product && product.id === updatedProduct.id 
+          ? { ...updatedProduct, templates: product.templates } 
+          : product
       )
     );
     toast.success(`Producto ${updatedProduct.name} actualizado exitosamente`);
@@ -436,10 +439,16 @@ const ProductsPage: React.FC = () => {
               {filteredProducts.map((product) => (
                 <div key={product.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between mb-3">
-                    <h3 className="font-semibold text-gray-900 truncate">{product.name}</h3>
-                    <div className="flex items-center gap-1">
+                    <div className="flex flex-col overflow-hidden mr-2">
+                        <h3 className="font-semibold text-gray-900 truncate" title={product.name}>{product.name}</h3>
+                        <span className="inline-flex items-center text-xs text-gray-500 mt-1">
+                            <Layers size={12} className="mr-1" />
+                            {product.templates?.length || 0} {(product.templates?.length || 0) === 1 ? 'plantilla' : 'plantillas'}
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
                       <Button 
-                        variant="ghost" 
+                        variant="ghost"  
                         size="sm"
                         onClick={() => openEditModal(product)}
                         className='p-1 h-8 w-8'
