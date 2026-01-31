@@ -155,7 +155,15 @@ class OrderService {
         if (isNaN(deliveryDate.getTime())) {
           throw new Error('Fecha estimada de entrega inválida');
         }
-        if (deliveryDate < orderDate) {
+        
+        // Normalizar fechas (ignorar horas) para evitar errores por diferencias de zona horaria
+        const comparisonOrderDate = new Date(orderDate);
+        comparisonOrderDate.setHours(0, 0, 0, 0);
+        
+        const comparisonDeliveryDate = new Date(deliveryDate);
+        comparisonDeliveryDate.setHours(0, 0, 0, 0);
+
+        if (comparisonDeliveryDate < comparisonOrderDate) {
           throw new Error('La fecha de entrega no puede ser anterior a la fecha de la orden');
         }
       }
@@ -262,7 +270,15 @@ class OrderService {
           throw new Error('Fecha estimada de entrega inválida');
         }
         const orderDate = new Date(existingOrder.date);
-        if (deliveryDate < orderDate) {
+        
+        // Normalizar fechas (ignorar horas) para evitar errores por diferencias de zona horaria
+        const comparisonOrderDate = new Date(orderDate);
+        comparisonOrderDate.setHours(0, 0, 0, 0);
+        
+        const comparisonDeliveryDate = new Date(deliveryDate);
+        comparisonDeliveryDate.setHours(0, 0, 0, 0);
+
+        if (comparisonDeliveryDate < comparisonOrderDate) {
           throw new Error('La fecha de entrega no puede ser anterior a la fecha de la orden');
         }
       }
