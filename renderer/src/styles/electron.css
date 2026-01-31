@@ -33,6 +33,7 @@ body {
 * {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  user-select: none;
 }
 
 /* Asegurar que los elementos fixed funcionen correctamente */
