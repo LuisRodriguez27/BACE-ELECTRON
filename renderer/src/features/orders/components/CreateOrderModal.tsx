@@ -79,7 +79,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     defaultValues: {
       user_id: currentUserId,
       date: dayjs().tz('America/Mexico_City').format('YYYY-MM-DD'),
-      status: 'pendiente',
+      status: 'Revision',
       items: []
     }
   });
@@ -552,7 +552,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
           user_id: currentUserId,
           date: dayjs().tz('America/Mexico_City').toISOString(),
           estimated_delivery_date: formData.estimated_delivery_date || undefined,
-          status: formData.status || 'pendiente',
+          status: formData.status || 'Revision',
           notes: formData.notes || undefined,
           description: formData.description || undefined,
           items
@@ -905,10 +905,12 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                   {...register('status')}
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="pendiente">Pendiente</option>
-                  <option value="en proceso">En Proceso</option>
-                  <option value="completado">Completado</option>
-                  <option value="cancelado">Cancelado</option>
+                  <option value="Revision">Revisión</option>
+                  <option value="Diseño">Diseño</option>
+                  <option value="Produccion">Producción</option>
+                  <option value="Entrega">Entrega</option>
+                  <option value="Completado">Completado</option>
+                  <option value="Cancelado">Cancelado</option>
                 </select>
               </div>
               {errors.status && (

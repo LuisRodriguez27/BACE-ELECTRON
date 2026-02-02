@@ -38,13 +38,15 @@ class Order {
   }
 
   // Estados válidos
-  static VALID_STATUSES = ['pendiente', 'en proceso', 'completado', 'cancelado'];
+  static VALID_STATUSES = ['Revision', 'Diseño', 'Produccion', 'Entrega', 'Completado', 'Cancelado'];
   
   static STATUS = {
-    PENDIENTE: 'pendiente',
-    EN_PROCESO: 'en proceso',
-    COMPLETADO: 'completado',
-    CANCELADO: 'cancelado'
+    REVISION: 'Revision',
+    DISENO: 'Diseño',
+    PRODUCCION: 'Produccion',
+    ENTREGA: 'Entrega',
+    COMPLETADO: 'Completado',
+    CANCELADO: 'Cancelado'
   };
 
   // Métodos de utilidad para el dominio
@@ -52,12 +54,20 @@ class Order {
     return this.active === 1;
   }
 
-  isPending() {
-    return this.status === Order.STATUS.PENDIENTE;
+  isRevision() {
+    return this.status === Order.STATUS.REVISION;
   }
 
-  isInProgress() {
-    return this.status === Order.STATUS.EN_PROCESO;
+  isDesign() {
+    return this.status === Order.STATUS.DISENO;
+  }
+
+  isProduction() {
+    return this.status === Order.STATUS.PRODUCCION;
+  }
+
+  isDelivery() {
+    return this.status === Order.STATUS.ENTREGA;
   }
 
   isCompleted() {
@@ -203,20 +213,24 @@ class Order {
   // Estado de la orden
   getStatusColor() {
     const colors = {
-      'pendiente': 'yellow',
-      'en proceso': 'blue',
-      'completado': 'green',
-      'cancelado': 'red'
+      'Revision': 'yellow',
+      'Diseño': 'orange',
+      'Produccion': 'blue',
+      'Entrega': 'cyan',
+      'Completado': 'green',
+      'Cancelado': 'red'
     };
     return colors[this.status] || 'gray';
   }
 
   getStatusLabel() {
     const labels = {
-      'pendiente': 'Pendiente',
-      'en proceso': 'En Proceso',
-      'completado': 'Completado',
-      'cancelado': 'Cancelado'
+      'Revision': 'Revisión',
+      'Diseño': 'Diseño',
+      'Produccion': 'Producción',
+      'Entrega': 'Entrega',
+      'Completado': 'Completado',
+      'Cancelado': 'Cancelado'
     };
     return labels[this.status] || this.status;
   }

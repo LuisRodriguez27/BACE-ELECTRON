@@ -1,7 +1,6 @@
 import { Button, Input, Label } from '@/components/ui';
 import { extractErrorMessage } from '@/utils/errorHandling';
 import {
-  AlertCircle,
   Calendar,
   CalendarDays,
   CheckCircle2,
@@ -208,14 +207,18 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'pendiente':
+      case 'revision':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'diseño':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'produccion':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'entrega':
+        return 'bg-cyan-100 text-cyan-800 border-cyan-200';
       case 'completado':
         return 'bg-green-100 text-green-800 border-green-200';
       case 'cancelado':
         return 'bg-red-100 text-red-800 border-red-200';
-      case 'en proceso':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -223,14 +226,18 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
   const getStatusIcon = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'pendiente':
+      case 'revision':
         return <Clock className="h-4 w-4" />;
+      case 'diseño':
+        return <Edit3 className="h-4 w-4" />;
+      case 'produccion':
+        return <Layers className="h-4 w-4" />;
+      case 'entrega':
+        return <Package className="h-4 w-4" />;
       case 'completado':
         return <CheckCircle2 className="h-4 w-4" />;
       case 'cancelado':
         return <XCircle className="h-4 w-4" />;
-      case 'en proceso':
-        return <AlertCircle className="h-4 w-4" />;
       default:
         return <Info className="h-4 w-4" />;
     }
@@ -238,14 +245,18 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
   const getStatusText = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'pendiente':
-        return 'Pendiente';
+      case 'revision':
+        return 'Revisión';
+      case 'diseño':
+        return 'Diseño';
+      case 'produccion':
+        return 'Producción';
+      case 'entrega':
+        return 'Entrega';
       case 'completado':
-        return 'Completada';
+        return 'Completado';
       case 'cancelado':
-        return 'Cancelada';
-      case 'en proceso':
-        return 'En Proceso';
+        return 'Cancelado';
       default:
         return status;
     }
@@ -392,10 +403,12 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                             onChange={(e) => setEditFormData(prev => ({ ...prev, status: e.target.value }))}
                             className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           >
-                            <option value="pendiente">Pendiente</option>
-                            <option value="en proceso">En Proceso</option>
-                            <option value="completado">Completado</option>
-                            <option value="cancelado">Cancelado</option>
+                            <option value="Revision">Revisión</option>
+                            <option value="Diseño">Diseño</option>
+                            <option value="Produccion">Producción</option>
+                            <option value="Entrega">Entrega</option>
+                            <option value="Completado">Completado</option>
+                            <option value="Cancelado">Cancelado</option>
                           </select>
                         ) : (
                           <div className={`mt-1 inline-flex items-center gap-2 px-3 py-1 rounded-full border text-sm font-medium ${getStatusColor(order.status)}`}>

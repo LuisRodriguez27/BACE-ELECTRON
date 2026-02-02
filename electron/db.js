@@ -446,6 +446,33 @@ try {
     }
   }
 
+  // ============================================
+  // MIGRACIÓN: ESTADOS DE ORDEN
+  // ============================================
+  const pendingOrders = db.prepare("SELECT COUNT(*) as count FROM orders WHERE status = 'pendiente'").get();
+  if (pendingOrders.count > 0) {
+    console.log(`🛠 Migración: Actualizando ${pendingOrders.count} órdenes de 'pendiente' a 'Revision'`);
+    db.prepare("UPDATE orders SET status = 'Revision' WHERE status = 'pendiente'").run();
+  }
+
+  const inProgressOrders = db.prepare("SELECT COUNT(*) as count FROM orders WHERE status = 'en proceso'").get();
+  if (inProgressOrders.count > 0) {
+    console.log(`🛠 Migración: Actualizando ${inProgressOrders.count} órdenes de 'en proceso' a 'Produccion'`);
+    db.prepare("UPDATE orders SET status = 'Produccion' WHERE status = 'en proceso'").run();
+  }
+
+  const completedOrders = db.prepare("SELECT COUNT(*) as count FROM orders WHERE status = 'completado'").get();
+  if (completedOrders.count > 0) {
+    console.log(`🛠 Migración: Actualizando ${completedOrders.count} órdenes de 'completado' a 'Completado'`);
+    db.prepare("UPDATE orders SET status = 'Completado' WHERE status = 'completado'").run();
+  }
+
+  const cancelledOrders = db.prepare("SELECT COUNT(*) as count FROM orders WHERE status = 'cancelado'").get();
+  if (cancelledOrders.count > 0) {
+    console.log(`🛠 Migración: Actualizando ${cancelledOrders.count} órdenes de 'cancelado' a 'Cancelado'`);
+    db.prepare("UPDATE orders SET status = 'Cancelado' WHERE status = 'cancelado'").run();
+  }
+
 } catch (error) {
   console.error('❌ Error en migraciones:', error);
 }

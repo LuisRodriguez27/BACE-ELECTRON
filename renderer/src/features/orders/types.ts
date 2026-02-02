@@ -2,16 +2,18 @@ import { z } from 'zod';
 
 // Enum para los estados de orden
 export const OrderStatus = {
-	PENDIENTE: 'pendiente',
-	EN_PROCESO: 'en proceso',
-	COMPLETADO: 'completado',
-	CANCELADO: 'cancelado'
+	REVISION: 'Revision',
+  DISENO: 'Diseño',
+  PRODUCCION: 'Produccion',
+  ENTREGA: 'Entrega',
+	COMPLETADO: 'Completado',
+	CANCELADO: 'Cancelado'
 } as const;
 
 export type OrderStatusType = typeof OrderStatus[keyof typeof OrderStatus];
 
 const orderStatusSchema = z.enum(
-  ['pendiente', 'en proceso', 'completado', 'cancelado'] as const
+  ['Revision', 'Diseño', 'Produccion', 'Entrega', 'Completado', 'Cancelado'] as const
 );
 
 // Item de orden - puede ser producto o plantilla

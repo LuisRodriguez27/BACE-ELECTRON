@@ -169,7 +169,7 @@ class OrderService {
       }
 
       // Validar estado
-      const validStatus = status || 'pendiente';
+      const validStatus = status || 'Revision';
       if (!Order.isValidStatus(validStatus)) {
         throw new Error('Estado de orden inválido');
       }

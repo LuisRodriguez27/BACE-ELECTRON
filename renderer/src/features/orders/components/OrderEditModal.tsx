@@ -96,7 +96,7 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({
   const handleClose = () => {
     setOrder(null);
     setFormData({
-      status: 'pendiente',
+      status: 'Revision',
       estimated_delivery_date: ''
     });
     setError(null);
@@ -113,33 +113,47 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({
 
   const getStatusInfo = (status: OrderStatusType) => {
     switch (status) {
-      case 'pendiente':
+      case 'Revision':
         return {
           color: 'text-yellow-600',
           bgColor: 'bg-yellow-100',
           icon: <Clock className="h-4 w-4" />,
-          text: 'Pendiente'
+          text: 'Revisión'
         };
-      case 'en proceso':
+      case 'Diseño':
+        return {
+          color: 'text-purple-600',
+          bgColor: 'bg-purple-100',
+          icon: <AlertCircle className="h-4 w-4" />,
+          text: 'Diseño'
+        };
+      case 'Produccion':
         return {
           color: 'text-blue-600',
           bgColor: 'bg-blue-100',
           icon: <AlertCircle className="h-4 w-4" />,
-          text: 'En Proceso'
+          text: 'Producción'
         };
-      case 'completado':
+      case 'Entrega':
+        return {
+          color: 'text-cyan-600',
+          bgColor: 'bg-cyan-100',
+          icon: <CheckCircle2 className="h-4 w-4" />,
+          text: 'Entrega'
+        };
+      case 'Completado':
         return {
           color: 'text-green-600',
           bgColor: 'bg-green-100',
           icon: <CheckCircle2 className="h-4 w-4" />,
-          text: 'Completada'
+          text: 'Completado'
         };
-      case 'cancelado':
+      case 'Cancelado':
         return {
           color: 'text-red-600',
           bgColor: 'bg-red-100',
           icon: <XCircle className="h-4 w-4" />,
-          text: 'Cancelada'
+          text: 'Cancelado'
         };
       default:
         return {
@@ -152,10 +166,12 @@ const OrderEditModal: React.FC<OrderEditModalProps> = ({
   };
 
   const statusOptions = [
-    { value: 'pendiente', label: 'Pendiente' },
-    { value: 'en proceso', label: 'En Proceso' },
-    { value: 'completado', label: 'Completada' },
-    { value: 'cancelado', label: 'Cancelada' }
+    { value: 'Revision', label: 'Revisión' },
+    { value: 'Diseño', label: 'Diseño' },
+    { value: 'Produccion', label: 'Producción' },
+    { value: 'Entrega', label: 'Entrega' },
+    { value: 'Completado', label: 'Completado' },
+    { value: 'Cancelado', label: 'Cancelado' }
   ] as const;
 
   if (!isOpen) return null;

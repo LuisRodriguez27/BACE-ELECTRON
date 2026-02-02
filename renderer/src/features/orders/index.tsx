@@ -143,8 +143,13 @@ const OrdersPage: React.FC = () => {
                   ? dayjs(order.estimated_delivery_date).format('DD/MM/YYYY') 
                   : '-';
                 
-                const isDiseño = order.status === 'pendiente';
-                const isProduccion = order.status === 'en proceso';
+                // Mapeo de estados a columnas
+                // Revision/Diseño -> Columna Diseño
+                const isDiseño = order.status === 'Revision' || order.status === 'Diseño';
+                // Produccion -> Columna Prod.
+                const isProduccion = order.status === 'Produccion';
+                // Entrega -> Columna Entrega
+                const isEntrega = order.status === 'Entrega';
 
                 return `
                   <tr>
@@ -154,7 +159,7 @@ const OrdersPage: React.FC = () => {
                     <td>${order.description || order.notes || ''}</td>
                     <td class="center">${isDiseño ? '<span class="checkmark">✓</span>' : ''}</td>
                     <td class="center">${isProduccion ? '<span class="checkmark">✓</span>' : ''}</td>
-                    <td class="center"></td>
+                    <td class="center">${isEntrega ? '<span class="checkmark">✓</span>' : ''}</td>
                     <td></td>
                     <td></td>
                     <td class="center">${dateE}</td>
@@ -250,14 +255,18 @@ const OrdersPage: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'pendiente':
+      case 'revision':
         return 'bg-yellow-100 text-yellow-800';
+      case 'diseño':
+        return 'bg-purple-100 text-purple-800';
+      case 'produccion':
+        return 'bg-blue-100 text-blue-800';
+      case 'entrega':
+        return 'bg-cyan-100 text-cyan-800';
       case 'completado':
         return 'bg-green-100 text-green-800';
-      case 'cancelada':
+      case 'cancelado':
         return 'bg-red-100 text-red-800';
-      case 'en proceso':
-        return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -265,14 +274,18 @@ const OrdersPage: React.FC = () => {
 
   const getStatusText = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'pendiente':
-        return 'Pendiente';
+      case 'revision':
+        return 'Revisión';
+      case 'diseño':
+        return 'Diseño';
+      case 'produccion':
+        return 'Producción';
+      case 'entrega':
+        return 'Entrega';
       case 'completado':
-        return 'Completada';
-      case 'cancelada':
-        return 'Cancelada';
-      case 'en progreso':
-        return 'En Progreso';
+        return 'Completado';
+      case 'cancelado':
+        return 'Cancelado';
       default:
         return status;
     }

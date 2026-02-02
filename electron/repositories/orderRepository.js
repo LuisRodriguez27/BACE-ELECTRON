@@ -14,7 +14,7 @@ class OrderRepository {
       JOIN clients c ON o.client_id = c.id
       JOIN users u ON o.user_id = u.id
       LEFT JOIN users ue ON o.edited_by = ue.id
-      WHERE o.active = 1 AND o.status NOT IN ('completado', 'cancelado')
+      WHERE o.active = 1 AND o.status NOT IN ('Completado', 'Cancelado')
       ORDER BY o.id DESC
     `);
     
@@ -81,7 +81,7 @@ class OrderRepository {
       JOIN clients c ON o.client_id = c.id
       JOIN users u ON o.user_id = u.id
       LEFT JOIN users ue ON o.edited_by = ue.id
-      WHERE o.active = 1 AND o.status NOT IN ('completado', 'cancelado')
+      WHERE o.active = 1 AND o.status NOT IN ('Completado', 'Cancelado')
       ORDER BY o.id ASC
     `);
     
@@ -104,7 +104,7 @@ class OrderRepository {
       JOIN clients c ON o.client_id = c.id
       JOIN users u ON o.user_id = u.id
       LEFT JOIN users ue ON o.edited_by = ue.id
-      WHERE o.active = 1 AND o.status = 'completado'
+      WHERE o.active = 1 AND o.status = 'Completado'
       ORDER BY o.id DESC
     `);
     
@@ -155,7 +155,7 @@ class OrderRepository {
       SELECT COUNT(*) as total
       FROM orders o
       JOIN clients c ON o.client_id = c.id
-      WHERE o.active = 1 AND o.status = 'completado' ${searchCondition}
+      WHERE o.active = 1 AND o.status = 'Completado' ${searchCondition}
     `;
     const countStmt = db.prepare(countQuery);
     const { total } = countStmt.get(...searchParams);
@@ -171,7 +171,7 @@ class OrderRepository {
       JOIN clients c ON o.client_id = c.id
       JOIN users u ON o.user_id = u.id
       LEFT JOIN users ue ON o.edited_by = ue.id
-      WHERE o.active = 1 AND o.status = 'completado' ${searchCondition}
+      WHERE o.active = 1 AND o.status = 'Completado' ${searchCondition}
       ORDER BY o.id DESC
       LIMIT ? OFFSET ?
     `;
@@ -224,7 +224,7 @@ class OrderRepository {
         orderData.user_id,
         orderData.date,
         orderData.estimated_delivery_date || null,
-        orderData.status || 'pendiente',
+        orderData.status || 'Revision',
         orderData.notes || null,
         orderData.description || null
       );

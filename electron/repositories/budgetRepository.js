@@ -287,7 +287,7 @@ class BudgetRepository {
       // Crear la orden con los mismos datos del presupuesto
       const orderStmt = db.prepare(`
         INSERT INTO orders (client_id, user_id, date, status, total, notes, created_from_budget_id)
-        VALUES (?, ?, ?, 'pendiente', ?, ?, ?)
+        VALUES (?, ?, ?, 'Revision', ?, ?, ?)
       `);
       
       const orderResult = orderStmt.run(
