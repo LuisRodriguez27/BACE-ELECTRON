@@ -94,7 +94,7 @@ class OrderService {
    */
   async createOrder(orderData) {
     try {
-      const { client_id, user_id, date, estimated_delivery_date, status, notes, description } = orderData;
+      const { client_id, user_id, date, estimated_delivery_date, status, responsable, notes, description } = orderData;
       
       // Detectar si usa la estructura legacy (products) o nueva (items)
       let items;
@@ -174,6 +174,12 @@ class OrderService {
         throw new Error('Estado de orden inválido');
       }
 
+      // Validar responsable
+      const validResponsable = responsable || Order.RESPONSABLE.MOSTRADOR;
+      if (!Order.isValidResponsable(validResponsable)) {
+        throw new Error('Responsable inválido. Debe ser Mostrador o Maquila');
+      }
+
       // Validar items (productos y plantillas)
       for (const [index, item] of items.entries()) {
         // Verificar que tenga product_id O template_id (no ambos, no ninguno)
@@ -221,6 +227,7 @@ class OrderService {
         date: orderDate.toISOString(),
         estimated_delivery_date: estimated_delivery_date ? new Date(estimated_delivery_date).toISOString() : null,
         status: validStatus,
+        responsable: validResponsable,
         notes: notes?.trim() || null,
         description: description?.trim() || null,
         items: items.map(item => ({
@@ -261,7 +268,7 @@ class OrderService {
         throw new Error('No se puede editar una orden completada o cancelada');
       }
 
-      const { estimated_delivery_date, status, notes, description, edited_by, items, client_id, date } = orderData;
+      const { estimated_delivery_date, status, responsable, notes, description, edited_by, items, client_id, date } = orderData;
 
       // Validar cliente si se proporciona
       if (client_id) {
@@ -297,6 +304,11 @@ class OrderService {
       // Validar estado si se proporciona
       if (status && !Order.isValidStatus(status)) {
         throw new Error('Estado de orden inválido');
+      }
+
+      // Validar responsable si se proporciona
+      if (responsable && !Order.isValidResponsable(responsable)) {
+        throw new Error('Responsable inválido. Debe ser Mostrador o Maquila');
       }
 
       // Validar usuario editor si se proporciona
@@ -354,6 +366,7 @@ class OrderService {
         date: date ? new Date(date).toISOString() : existingOrder.date,
         estimated_delivery_date: estimated_delivery_date ? new Date(estimated_delivery_date).toISOString() : existingOrder.estimated_delivery_date,
         status: status || existingOrder.status,
+        responsable: responsable || existingOrder.responsable,
         notes: notes !== undefined ? (notes?.trim() || null) : existingOrder.notes,
         description: description !== undefined ? (description?.trim() || null) : existingOrder.description,
         edited_by: edited_by ? parseInt(edited_by) : existingOrder.edited_by

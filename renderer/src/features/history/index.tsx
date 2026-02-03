@@ -163,6 +163,28 @@ const OrdersPage: React.FC = () => {
     }
   };
 
+  const getResponsableColor = (responsable: string) => {
+    switch (responsable.toLowerCase()) {
+      case 'mostrador':
+        return 'bg-green-100 text-green-800';
+      case 'maquila':
+        return 'bg-indigo-100 text-indigo-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getResponsableText = (responsable: string) => {
+    switch (responsable.toLowerCase()) {
+      case 'mostrador':
+        return 'Mostrador';
+      case 'maquila':
+        return 'Maquila';
+      default:
+        return responsable;
+    }
+  };
+
   const handleViewDetails = (orderId: number) => {
     setSelectedOrderId(orderId);
     setShowDetailsModal(true);
@@ -333,6 +355,9 @@ const OrdersPage: React.FC = () => {
                             {paymentStatus.icon}
                             {paymentStatus.text}
                           </div>
+                          <span className={`px-2 py-1 text-xs rounded-full ${getResponsableColor(order.responsable || '')}`}>
+                            {getResponsableText(order.responsable || '')}
+                          </span>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-gray-600">

@@ -16,6 +16,17 @@ const orderStatusSchema = z.enum(
   ['Revision', 'Diseño', 'Produccion', 'Entrega', 'Completado', 'Cancelado'] as const
 );
 
+export const orderResponsable = {
+  MOSTRADOR: 'Mostrador',
+  MAQUILA: 'Maquila'
+} as const;
+
+export type OrderResponsableType = typeof orderResponsable[keyof typeof orderResponsable];
+
+const orderResponsableSchema = z.enum(
+  ['Mostrador', 'Maquila'] as const
+);
+
 // Item de orden - puede ser producto o plantilla
 export const orderItemSchema = z.object({
   product_id: z.number().int().min(1).nullable().optional(),
@@ -38,6 +49,7 @@ export const createOrderSchema = z.object({
   date: z.string().min(1, 'La fecha es obligatoria'), 
   estimated_delivery_date: z.string().optional(), 
   status: orderStatusSchema,
+  responsable: orderResponsableSchema,
   notes: z.string().optional(),
   description: z.string().optional(),
   items: z.array(orderItemSchema).min(1, 'La orden debe tener al menos un producto o plantilla')
@@ -49,6 +61,7 @@ export const editOrderSchema = z.object({
   date: z.string().optional(),
   estimated_delivery_date: z.string().optional(),
   status: orderStatusSchema.optional(),
+  responsable: orderResponsableSchema.optional(),
   notes: z.string().optional(),
   description: z.string().optional(),
   items: z.array(orderItemSchema).optional(),
@@ -68,6 +81,7 @@ export interface Order {
   date: string; // ISO date string
   estimated_delivery_date?: string; // ISO date string
   status: OrderStatusType;
+  responsable?: OrderResponsableType;
   total: number;
   notes?: string;
   description?: string;

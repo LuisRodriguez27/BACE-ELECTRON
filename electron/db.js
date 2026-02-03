@@ -300,6 +300,7 @@ db.exec(`
     total REAL DEFAULT 0,
     notes TEXT,
     description TEXT,
+    responsable TEXT,
     created_from_budget_id INTEGER,
     active INTEGER NOT NULL DEFAULT 1,
     FOREIGN KEY (client_id) REFERENCES clients(id),
@@ -471,6 +472,18 @@ try {
   if (cancelledOrders.count > 0) {
     console.log(`🛠 Migración: Actualizando ${cancelledOrders.count} órdenes de 'cancelado' a 'Cancelado'`);
     db.prepare("UPDATE orders SET status = 'Cancelado' WHERE status = 'cancelado'").run();
+  }
+
+  // ============================================
+  // MIGRACION: RESPONSABLE DE LA ORDEN
+  // ============================================
+  const orderColumns = db.prepare('PRAGMA table_info(orders)').all();
+  const hasResponsable = orderColumns.some(c => c.name === 'responsable');
+  
+  if (!hasResponsable) {
+    console.log('🛠 Migración: agregando columna responsable a orders');
+    db.exec('ALTER TABLE orders ADD COLUMN responsable TEXT');
+    console.log('✅ Columna responsable agregada correctamente');
   }
 
 } catch (error) {

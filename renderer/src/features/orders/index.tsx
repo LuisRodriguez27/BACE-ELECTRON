@@ -144,12 +144,15 @@ const OrdersPage: React.FC = () => {
                   : '-';
                 
                 // Mapeo de estados a columnas
-                // Revision/Diseño -> Columna Diseño
-                const isDiseño = order.status === 'Revision' || order.status === 'Diseño';
+                // Diseño -> Columna Diseño
+                const isDiseño = order.status === 'Diseño';
                 // Produccion -> Columna Prod.
                 const isProduccion = order.status === 'Produccion';
                 // Entrega -> Columna Entrega
                 const isEntrega = order.status === 'Entrega';
+
+                const isMostrador = order.responsable === 'Mostrador';
+                const isMaquila = order.responsable === 'Maquila';
 
                 return `
                   <tr>
@@ -160,8 +163,8 @@ const OrdersPage: React.FC = () => {
                     <td class="center">${isDiseño ? '<span class="checkmark">✓</span>' : ''}</td>
                     <td class="center">${isProduccion ? '<span class="checkmark">✓</span>' : ''}</td>
                     <td class="center">${isEntrega ? '<span class="checkmark">✓</span>' : ''}</td>
-                    <td></td>
-                    <td></td>
+                    <td class="center">${isMostrador ? '<span class="checkmark">✓</span>' : ''}</td>
+                    <td class="center">${isMaquila ? '<span class="checkmark">✓</span>' : ''}</td>
                     <td class="center">${dateE}</td>
                   </tr>
                 `;
@@ -288,6 +291,28 @@ const OrdersPage: React.FC = () => {
         return 'Cancelado';
       default:
         return status;
+    }
+  };
+
+  const getResponsableColor = (responsable: string) => {
+    switch (responsable.toLowerCase()) {
+      case 'mostrador':
+        return 'bg-green-100 text-green-800';
+      case 'maquila':
+        return 'bg-indigo-100 text-indigo-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getResponsableText = (responsable: string) => {
+    switch (responsable.toLowerCase()) {
+      case 'mostrador':
+        return 'Mostrador';
+      case 'maquila':
+        return 'Maquila';
+      default:
+        return responsable;
     }
   };
 
@@ -522,6 +547,9 @@ const OrdersPage: React.FC = () => {
                             {paymentStatus.icon}
                             {paymentStatus.text}
                           </div>
+                          <span className={`px-2 py-1 text-xs rounded-full ${getResponsableColor(order.responsable || '')}`}>
+                              {getResponsableText(order.responsable || '')}
+                          </span>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-gray-600">

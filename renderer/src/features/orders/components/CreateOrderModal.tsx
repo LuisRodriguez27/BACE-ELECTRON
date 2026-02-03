@@ -530,6 +530,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
           date: formData.date,
           estimated_delivery_date: formData.estimated_delivery_date || undefined,
           status: formData.status,
+          responsable: formData.responsable || 'Mostrador',
           notes: formData.notes || undefined,
           description: formData.description || undefined,
           items: items,
@@ -553,6 +554,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
           date: dayjs().tz('America/Mexico_City').toISOString(),
           estimated_delivery_date: formData.estimated_delivery_date || undefined,
           status: formData.status || 'Revision',
+          responsable: formData.responsable || 'Mostrador',
           notes: formData.notes || undefined,
           description: formData.description || undefined,
           items
@@ -933,6 +935,24 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                   readOnly
                 />
               </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="responsable" className="text-sm font-medium text-gray-700">
+                Responsable
+              </Label>
+              <div className="mt-1 relative">
+                <select
+                  {...register('responsable')}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="Mostrador">Mostrador</option>
+                  <option value="Maquila">Maquila</option>
+                </select>
+              </div>
+              {errors.responsable && (
+                <p className="mt-1 text-sm text-red-600">{errors.responsable.message}</p>
+              )}
             </div>
 
             {/* Descripción */}

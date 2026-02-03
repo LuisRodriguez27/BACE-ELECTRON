@@ -62,6 +62,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [editFormData, setEditFormData] = useState({
     status: '',
+    responsable: '',
     estimated_delivery_date: '',
     notes: '',
     description: ''
@@ -97,6 +98,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       // Inicializar datos del formulario de edición
       setEditFormData({
         status: orderData.status,
+        responsable: orderData.responsable || '',
         estimated_delivery_date: orderData.estimated_delivery_date || '',
         notes: orderData.notes || '',
         description: orderData.description || ''
@@ -148,6 +150,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       
       const updateData = {
         status: editFormData.status as any,
+        responsable: editFormData.responsable as any,
         estimated_delivery_date: editFormData.estimated_delivery_date || undefined,
         notes: editFormData.notes || undefined,
         description: editFormData.description || undefined,
@@ -178,6 +181,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     
     setEditFormData({
       status: order.status,
+      responsable: order.responsable || '',
       estimated_delivery_date: order.estimated_delivery_date || '',
       notes: order.notes || '',
       description: order.description || ''
@@ -259,6 +263,28 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         return 'Cancelado';
       default:
         return status;
+    }
+  };
+
+  const getResponsableColor = (responsable: string) => {
+    switch (responsable.toLowerCase()) {
+      case 'mostrador':
+        return 'bg-green-100 text-green-800';
+      case 'maquila':
+        return 'bg-indigo-100 text-indigo-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getResponsableText = (responsable: string) => {
+    switch (responsable.toLowerCase()) {
+      case 'mostrador':
+        return 'Mostrador';
+      case 'maquila':
+        return 'Maquila';
+      default:
+        return responsable;
     }
   };
 
@@ -414,6 +440,24 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                           <div className={`mt-1 inline-flex items-center gap-2 px-3 py-1 rounded-full border text-sm font-medium ${getStatusColor(order.status)}`}>
                             {getStatusIcon(order.status)}
                             {getStatusText(order.status)}
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Responsable</Label>
+                        {isEditing ? (
+                          <select
+                            value={editFormData.responsable}
+                            onChange={(e) => setEditFormData(prev => ({ ...prev, responsable: e.target.value }))}
+                            className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          >
+                            <option value="Mostrador">Mostrador</option>
+                            <option value="Maquila">Maquila</option>
+                          </select>
+                        ) : (
+                          <div className={`mt-1 inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${getResponsableColor(order.responsable || '')}`}>
+                            {getResponsableText(order.responsable || '')}
                           </div>
                         )}
                       </div>

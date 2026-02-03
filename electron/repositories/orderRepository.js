@@ -6,7 +6,7 @@ class OrderRepository {
   findAll() {
     const stmt = db.prepare(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
-            o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.active,
+            o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.responsable, o.active,
             c.name as client_name, c.phone as client_phone,
             u.username as user_username,
             ue.username as edited_by_username
@@ -29,7 +29,7 @@ class OrderRepository {
   findById(id) {
     const orderData = db.prepare(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
-            o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.active,
+            o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.responsable, o.active,
             c.name as client_name, c.phone as client_phone,
             u.username as user_username,
             ue.username as edited_by_username
@@ -73,7 +73,7 @@ class OrderRepository {
   findPendingForLogbook() {
     const stmt = db.prepare(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
-            o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.active,
+            o.estimated_delivery_date, o.status, o.responsable, o.total, o.notes, o.description, o.active,
             c.name as client_name, c.phone as client_phone,
             u.username as user_username,
             ue.username as edited_by_username
@@ -163,7 +163,7 @@ class OrderRepository {
     // Obtener registros paginados con búsqueda
     const dataQuery = `
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
-            o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.active,
+            o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.responsable, o.active,
             c.name as client_name, c.phone as client_phone,
             u.username as user_username,
             ue.username as edited_by_username
@@ -215,8 +215,8 @@ class OrderRepository {
     const transaction = db.transaction(() => {
       // Crear la orden
       const orderStmt = db.prepare(`
-        INSERT INTO orders (client_id, user_id, date, estimated_delivery_date, status, total, notes, description)
-        VALUES (?, ?, ?, ?, ?, 0, ?, ?)
+        INSERT INTO orders (client_id, user_id, date, estimated_delivery_date, status, responsable, total, notes, description)
+        VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)
       `);
       
       const orderResult = orderStmt.run(
@@ -225,6 +225,7 @@ class OrderRepository {
         orderData.date,
         orderData.estimated_delivery_date || null,
         orderData.status || 'Revision',
+        orderData.responsable || "Mostrador",
         orderData.notes || null,
         orderData.description || null
       );
@@ -311,6 +312,7 @@ class OrderRepository {
     if (orderData.date !== undefined) fieldsToUpdate.date = orderData.date;
     if (orderData.estimated_delivery_date !== undefined) fieldsToUpdate.estimated_delivery_date = orderData.estimated_delivery_date;
     if (orderData.status !== undefined) fieldsToUpdate.status = orderData.status;
+    if (orderData.responsable !== undefined) fieldsToUpdate.responsable = orderData.responsable;
     if (orderData.notes !== undefined) fieldsToUpdate.notes = orderData.notes;
     if (orderData.description !== undefined) fieldsToUpdate.description = orderData.description;
     if (orderData.edited_by !== undefined) fieldsToUpdate.edited_by = orderData.edited_by;
