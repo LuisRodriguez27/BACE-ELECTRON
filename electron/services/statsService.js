@@ -14,8 +14,21 @@ function getISOWeek(date) {
 class StatsService {
   async getSalesStats(params) {
     try {
-      const { period, productId, customStartDate, customEndDate, month, year } = params;
+      const { period, productId, customStartDate, customEndDate, month, year, dates } = params;
       
+      // Handle custom specific dates (multi-select)
+      if (period === 'custom' && dates && Array.isArray(dates) && dates.length > 0) {
+          const salesOverTime = statsRepository.getSalesBySpecificDates(dates, productId);
+          const salesByProduct = statsRepository.getSalesByProductForDates(dates);
+          
+          const sortedDates = [...dates].sort();
+          return {
+            salesOverTime,
+            salesByProduct,
+            period: { startDate: sortedDates[0], endDate: sortedDates[sortedDates.length - 1], customType: 'dates', dates }
+          };
+      }
+
       let startDate, endDate;
       const now = new Date();
       const currentYear = year || now.getFullYear();

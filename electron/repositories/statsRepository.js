@@ -8,7 +8,7 @@ class StatsRepository {
         FROM orders o
         JOIN order_products op ON o.id = op.order_id
         LEFT JOIN product_templates pt ON op.template_id = pt.id
-        WHERE o.status = 'completado' 
+        WHERE LOWER(o.status) = 'completado' 
           AND o.active = 1 
           AND o.date >= ? 
           AND o.date <= ?
@@ -21,7 +21,7 @@ class StatsRepository {
       const stmt = db.prepare(`
         SELECT substr(date, 1, 10) as sale_date, SUM(total) as total, COUNT(id) as quantity
         FROM orders
-        WHERE status = 'completado' 
+        WHERE LOWER(status) = 'completado' 
           AND active = 1 
           AND date >= ? 
           AND date <= ?
@@ -43,7 +43,7 @@ class StatsRepository {
       LEFT JOIN product_templates pt ON op.template_id = pt.id
       LEFT JOIN products p_template ON pt.product_id = p_template.id
       JOIN products p ON (p_direct.id = p.id OR p_template.id = p.id)
-      WHERE o.status = 'completado' 
+      WHERE LOWER(o.status) = 'completado' 
         AND o.active = 1
         AND o.date >= ? 
         AND o.date <= ?
@@ -54,28 +54,89 @@ class StatsRepository {
     return stmt.all(startDate, endDate);
   }
 
-  getAvailableYears() {
+  getSalesBySpecificDates(dates, productId = null) {
+    if (!dates || dates.length === 0) return [];
+    
+    // Create placeholders for the IN clause
+    const placeholders = dates.map(() => '?').join(',');
+    
+    if (productId) {
+      const stmt = db.prepare(`
+        SELECT substr(o.date, 1, 10) as sale_date, SUM(op.total_price) as total, SUM(op.quantity) as quantity
+        FROM orders o
+        JOIN order_products op ON o.id = op.order_id
+        LEFT JOIN product_templates pt ON op.template_id = pt.id
+        WHERE LOWER(o.status) = 'completado' 
+          AND o.active = 1 
+          AND substr(o.date, 1, 10) IN (${placeholders})
+          AND (op.product_id = ? OR pt.product_id = ?)
+        GROUP BY sale_date
+        ORDER BY sale_date ASC
+      `);
+      return stmt.all(...dates, productId, productId);
+    } else {
+      const stmt = db.prepare(`
+        SELECT substr(date, 1, 10) as sale_date, SUM(total) as total, COUNT(id) as quantity
+        FROM orders
+        WHERE LOWER(status) = 'completado' 
+          AND active = 1 
+          AND substr(date, 1, 10) IN (${placeholders})
+        GROUP BY sale_date
+        ORDER BY sale_date ASC
+      `);
+      return stmt.all(...dates);
+    }
+  }
+
+  getSalesByProductForDates(dates) {
+    if (!dates || dates.length === 0) return [];
+    const placeholders = dates.map(() => '?').join(',');
+
     const stmt = db.prepare(`
-      SELECT DISTINCT substr(date, 1, 4) as year
-      FROM orders
-      WHERE status = 'completado' AND active = 1 AND date IS NOT NULL
-      ORDER BY year DESC
+      SELECT p.id, p.name, SUM(op.total_price) as total, SUM(op.quantity) as quantity
+      FROM orders o
+      JOIN order_products op ON o.id = op.order_id
+      LEFT JOIN products p_direct ON op.product_id = p_direct.id
+      LEFT JOIN product_templates pt ON op.template_id = pt.id
+      LEFT JOIN products p_template ON pt.product_id = p_template.id
+      JOIN products p ON (p_direct.id = p.id OR p_template.id = p.id)
+      WHERE LOWER(o.status) = 'completado' 
+        AND o.active = 1
+        AND substr(o.date, 1, 10) IN (${placeholders})
+      GROUP BY p.id
+      ORDER BY total DESC
     `);
     
-    const rawResults = stmt.all();
+    return stmt.all(...dates);
+  }
 
-    // Add current year if not present
-    const years = rawResults.map(r => parseInt(r.year)).filter(y => !isNaN(y));
-    const currentYear = new Date().getFullYear();
-    
-    // Ensure we have unique values
-    const uniqueYears = [...new Set(years)];
+  getAvailableYears() {
+    try {
+      const stmt = db.prepare(`
+        SELECT DISTINCT substr(date, 1, 4) as year
+        FROM orders
+        WHERE LOWER(status) = 'completado' AND active = 1 AND date IS NOT NULL
+        ORDER BY year DESC
+      `);
+      
+      const rawResults = stmt.all();
 
-    if (!uniqueYears.includes(currentYear)) {
-      uniqueYears.unshift(currentYear);
+      // Add current year if not present
+      const years = rawResults.map(r => parseInt(r.year)).filter(y => !isNaN(y));
+      const currentYear = new Date().getFullYear();
+      
+      // Ensure we have unique values
+      const uniqueYears = [...new Set(years)];
+
+      if (!uniqueYears.includes(currentYear)) {
+        uniqueYears.unshift(currentYear);
+      }
+      
+      return uniqueYears.sort((a, b) => b - a);
+    } catch (err) {
+      console.error('Error fetching available years:', err);
+      return [new Date().getFullYear()];
     }
-    
-    return uniqueYears.sort((a, b) => b - a); // Sort descending
   }
 
   getAvailableWeeks(year) {
@@ -83,7 +144,7 @@ class StatsRepository {
     const stmt = db.prepare(`
       SELECT DISTINCT substr(date, 1, 10) as sale_date
       FROM orders
-      WHERE status = 'completado' 
+      WHERE LOWER(status) = 'completado' 
         AND active = 1 
         AND substr(date, 1, 4) = ?
       ORDER BY sale_date ASC

@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/index'
 import { Button } from '@/components/ui/button'
-import { Printer } from 'lucide-react'
+import { Printer, X, Plus } from 'lucide-react'
 import { StatsService } from './StatsService'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { format, startOfWeek, endOfWeek, setWeek, getWeek } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 const StatsPage: React.FC = () => {
-  const [period, setPeriod] = useState<'week' | 'month' | 'year'>('month')
+  const [period, setPeriod] = useState<'week' | 'month' | 'year' | 'custom'>('month')
   const [selectedWeek, setSelectedWeek] = useState<number>(getWeek(new Date()))
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1)
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
@@ -16,6 +16,8 @@ const StatsPage: React.FC = () => {
   const [availableWeeks, setAvailableWeeks] = useState<number[]>([])
   const [productId, setProductId] = useState<string>('all')
   const [products, setProducts] = useState<any[]>([])
+  const [selectedDates, setSelectedDates] = useState<string[]>([format(new Date(), 'yyyy-MM-dd')])
+  const [tempDate, setTempDate] = useState<string>('')
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
@@ -88,15 +90,17 @@ const StatsPage: React.FC = () => {
 
   useEffect(() => {
     loadStats()
-  }, [period, productId, selectedMonth, selectedYear, selectedWeek])
+  }, [period, productId, selectedMonth, selectedYear, selectedWeek, selectedDates])
 
   const loadYears = async () => {
     try {
       const years = await StatsService.getAvailableYears()
-      setAvailableYears(years)
-      // Check if current selected year is in available list, if not set to first
-      if (years.length > 0 && !years.includes(selectedYear)) {
-        setSelectedYear(years[0])
+      if (years && years.length > 0) {
+        setAvailableYears(years)
+        // Only override selectedYear if it's NOT in the list
+        if (!years.includes(selectedYear)) {
+             setSelectedYear(years[0])
+        }
       }
     } catch (error) {
       console.error("Error loading years", error)
@@ -130,8 +134,10 @@ const StatsPage: React.FC = () => {
         month: selectedMonth,
         year: selectedYear
       }
-
-      if (period === 'week') {
+      
+      if (period === 'custom') {
+        params.dates = selectedDates
+      } else if (period === 'week') {
         // Calculate start and end date for the selected week in the selected year
         // We create a date in the selected year, then set the week
         // Note: week mapping can be tricky around year boundaries, but for basic stats:
@@ -169,7 +175,13 @@ const StatsPage: React.FC = () => {
     const totalSalesText = formatCurrency(totalSales)
 
     let periodText = ''
-    if (period === 'week') {
+    if (period === 'custom') {
+        const datesFormatted = selectedDates
+          .sort()
+          .map(d => format(new Date(d + 'T12:00:00'), "d 'de' MMM", { locale: es }))
+          .join(', ');
+        periodText = `Días: ${datesFormatted}`;
+    } else if (period === 'week') {
       const date = setWeek(new Date(selectedYear, 0, 4), selectedWeek, { weekStartsOn: 1 })
       const weekStart = startOfWeek(date, { weekStartsOn: 1 })
       const weekEnd = new Date(weekStart)
@@ -294,7 +306,34 @@ const StatsPage: React.FC = () => {
             <option value="week">Por Semana</option>
             <option value="month">Por Mes</option>
             <option value="year">Por Año</option>
+            <option value="custom">Por Días</option>
           </select>
+
+          {period === 'custom' && (
+             <div className="flex items-center gap-2">
+                <input 
+                    type="date" 
+                    className="h-10 rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    max={format(new Date(), 'yyyy-MM-dd')}
+                    value={tempDate}
+                    onChange={(e) => setTempDate(e.target.value)} 
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="bg-white"
+                  disabled={!tempDate}
+                  onClick={() => {
+                      if(tempDate && !selectedDates.includes(tempDate)) {
+                          setSelectedDates([...selectedDates, tempDate].sort())
+                          setTempDate('')
+                      }
+                  }}
+                >
+                  <Plus />
+                </Button>
+             </div>
+          )}
 
           {(period === 'month' || period === 'week') && (
             <select
@@ -402,6 +441,22 @@ const StatsPage: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {period === 'custom' && selectedDates.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+             {selectedDates.sort().map(date => (
+                <div key={date} className="flex items-center gap-1 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-medium border border-blue-100">
+                    {format(new Date(date + 'T12:00:00'), "d 'de' MMMM", { locale: es })}
+                     <button 
+                        onClick={() => setSelectedDates(selectedDates.filter(d => d !== date))}
+                        className="hover:bg-blue-200 rounded-full p-0.5 transition-colors"
+                     >
+                        <X size={12} />
+                     </button>
+                </div>
+            ))}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Total Sales Summary */}
