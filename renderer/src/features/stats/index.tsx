@@ -99,7 +99,7 @@ const StatsPage: React.FC = () => {
         setAvailableYears(years)
         // Only override selectedYear if it's NOT in the list
         if (!years.includes(selectedYear)) {
-             setSelectedYear(years[0])
+          setSelectedYear(years[0])
         }
       }
     } catch (error) {
@@ -134,7 +134,7 @@ const StatsPage: React.FC = () => {
         month: selectedMonth,
         year: selectedYear
       }
-      
+
       if (period === 'custom') {
         params.dates = selectedDates
       } else if (period === 'week') {
@@ -171,27 +171,30 @@ const StatsPage: React.FC = () => {
 
   const totalSales = (data?.salesOverTime || []).reduce((acc: number, item: any) => acc + item.total, 0)
 
-  const handlePrint = () => {
-    const totalSalesText = formatCurrency(totalSales)
-
-    let periodText = ''
+  const getPeriodLabel = () => {
     if (period === 'custom') {
-        const datesFormatted = selectedDates
-          .sort()
-          .map(d => format(new Date(d + 'T12:00:00'), "d 'de' MMM", { locale: es }))
-          .join(', ');
-        periodText = `Días: ${datesFormatted}`;
+      if (!selectedDates || selectedDates.length === 0) return 'Sin días seleccionados';
+      const datesFormatted = selectedDates
+        .sort()
+        .map(d => format(new Date(d + 'T12:00:00'), "d 'de' MMM", { locale: es }))
+        .join(', ');
+      return `Días: ${datesFormatted}`;
     } else if (period === 'week') {
       const date = setWeek(new Date(selectedYear, 0, 4), selectedWeek, { weekStartsOn: 1 })
       const weekStart = startOfWeek(date, { weekStartsOn: 1 })
       const weekEnd = new Date(weekStart)
       weekEnd.setDate(weekEnd.getDate() + 6)
-      periodText = `Semana del ${format(weekStart, "d 'de' MMMM", { locale: es })} al ${format(weekEnd, "d 'de' MMMM", { locale: es })} de ${selectedYear}`
+      return `Semana del ${format(weekStart, "d 'de' MMMM", { locale: es })} al ${format(weekEnd, "d 'de' MMMM", { locale: es })} de ${selectedYear}`
     } else if (period === 'month') {
-      periodText = `${format(new Date(2000, selectedMonth - 1, 1), 'MMMM', { locale: es })} ${selectedYear}`
+      return `${format(new Date(2000, selectedMonth - 1, 1), 'MMMM', { locale: es })} ${selectedYear}`
     } else {
-      periodText = `Año ${selectedYear}`
+      return `Año ${selectedYear}`
     }
+  }
+
+  const handlePrint = () => {
+    const totalSalesText = formatCurrency(totalSales)
+    const periodText = getPeriodLabel();
 
     const getChartSvg = (id: string, title: string) => {
       const container = document.getElementById(id);
@@ -310,29 +313,29 @@ const StatsPage: React.FC = () => {
           </select>
 
           {period === 'custom' && (
-             <div className="flex items-center gap-2">
-                <input 
-                    type="date" 
-                    className="h-10 rounded-md border border-gray-300 px-3 py-2 text-sm"
-                    max={format(new Date(), 'yyyy-MM-dd')}
-                    value={tempDate}
-                    onChange={(e) => setTempDate(e.target.value)} 
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="bg-white"
-                  disabled={!tempDate}
-                  onClick={() => {
-                      if(tempDate && !selectedDates.includes(tempDate)) {
-                          setSelectedDates([...selectedDates, tempDate].sort())
-                          setTempDate('')
-                      }
-                  }}
-                >
-                  <Plus />
-                </Button>
-             </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                className="h-10 rounded-md border border-gray-300 px-3 py-2 text-sm"
+                max={format(new Date(), 'yyyy-MM-dd')}
+                value={tempDate}
+                onChange={(e) => setTempDate(e.target.value)}
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                className="bg-white"
+                disabled={!tempDate}
+                onClick={() => {
+                  if (tempDate && !selectedDates.includes(tempDate)) {
+                    setSelectedDates([...selectedDates, tempDate].sort())
+                    setTempDate('')
+                  }
+                }}
+              >
+                <Plus />
+              </Button>
+            </div>
           )}
 
           {(period === 'month' || period === 'week') && (
@@ -444,17 +447,17 @@ const StatsPage: React.FC = () => {
 
       {period === 'custom' && selectedDates.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">
-             {selectedDates.sort().map(date => (
-                <div key={date} className="flex items-center gap-1 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-medium border border-blue-100">
-                    {format(new Date(date + 'T12:00:00'), "d 'de' MMMM", { locale: es })}
-                     <button 
-                        onClick={() => setSelectedDates(selectedDates.filter(d => d !== date))}
-                        className="hover:bg-blue-200 rounded-full p-0.5 transition-colors"
-                     >
-                        <X size={12} />
-                     </button>
-                </div>
-            ))}
+          {selectedDates.sort().map(date => (
+            <div key={date} className="flex items-center gap-1 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-medium border border-blue-100">
+              {format(new Date(date + 'T12:00:00'), "d 'de' MMMM", { locale: es })}
+              <button
+                onClick={() => setSelectedDates(selectedDates.filter(d => d !== date))}
+                className="hover:bg-blue-200 rounded-full p-0.5 transition-colors"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ))}
         </div>
       )}
 
@@ -469,10 +472,8 @@ const StatsPage: React.FC = () => {
               <span className="text-4xl font-bold text-blue-900">
                 {formatCurrency(totalSales)}
               </span>
-              <span className="text-sm text-blue-500 capitalize">
-                {period === 'week' ? 'Esta semana' :
-                  period === 'month' ? `${format(new Date(2000, selectedMonth - 1, 1), 'MMMM', { locale: es })} ${selectedYear}` :
-                    `Año ${selectedYear}`}
+              <span className="text-sm text-blue-500 capitalize text-center">
+                {getPeriodLabel()}
               </span>
             </div>
           </CardContent>
@@ -493,7 +494,8 @@ const StatsPage: React.FC = () => {
                     tickFormatter={(value) => {
                       if (!value) return '';
                       try {
-                        return format(new Date(value), 'dd MMM', { locale: es })
+                        // Append T12:00:00 to avoid UTC timezone offset shifting the date back one day
+                        return format(new Date(value + 'T12:00:00'), 'dd MMM', { locale: es })
                       } catch {
                         return value
                       }
@@ -505,7 +507,8 @@ const StatsPage: React.FC = () => {
                     labelFormatter={(label) => {
                       if (!label) return '';
                       try {
-                        return format(new Date(label), 'dd MMMM yyyy', { locale: es })
+                        // Append T12:00:00 to avoid UTC timezone offset
+                        return format(new Date(label + 'T12:00:00'), 'dd MMMM yyyy', { locale: es })
                       } catch {
                         return label
                       }
