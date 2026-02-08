@@ -6,7 +6,8 @@ class Order {
     edited_by, 
     date, 
     estimated_delivery_date, 
-    status, 
+    status,
+    responsable, 
     total, 
     notes, 
     description,
@@ -24,6 +25,7 @@ class Order {
     this.date = date;
     this.estimated_delivery_date = estimated_delivery_date || null;
     this.status = status || 'pendiente';
+    this.responsable = responsable || null;
     this.total = parseFloat(total) || 0;
     this.notes = notes || null;
     this.description = description || null;
@@ -38,13 +40,23 @@ class Order {
   }
 
   // Estados válidos
-  static VALID_STATUSES = ['pendiente', 'en proceso', 'completado', 'cancelado'];
+  static VALID_STATUSES = ['Revision', 'Diseño', 'Produccion', 'Entrega', 'Completado', 'Cancelado'];
   
   static STATUS = {
-    PENDIENTE: 'pendiente',
-    EN_PROCESO: 'en proceso',
-    COMPLETADO: 'completado',
-    CANCELADO: 'cancelado'
+    REVISION: 'Revision',
+    DISENO: 'Diseño',
+    PRODUCCION: 'Produccion',
+    ENTREGA: 'Entrega',
+    COMPLETADO: 'Completado',
+    CANCELADO: 'Cancelado'
+  };
+
+  // Responsables válidos
+  static VALID_RESPONSABLES = ['Mostrador', 'Maquila'];
+
+  static RESPONSABLE = {
+    MOSTRADOR: 'Mostrador',
+    MAQUILA: 'Maquila'
   };
 
   // Métodos de utilidad para el dominio
@@ -52,12 +64,20 @@ class Order {
     return this.active === 1;
   }
 
-  isPending() {
-    return this.status === Order.STATUS.PENDIENTE;
+  isRevision() {
+    return this.status === Order.STATUS.REVISION;
   }
 
-  isInProgress() {
-    return this.status === Order.STATUS.EN_PROCESO;
+  isDesign() {
+    return this.status === Order.STATUS.DISENO;
+  }
+
+  isProduction() {
+    return this.status === Order.STATUS.PRODUCCION;
+  }
+
+  isDelivery() {
+    return this.status === Order.STATUS.ENTREGA;
   }
 
   isCompleted() {
@@ -66,6 +86,10 @@ class Order {
 
   isCancelled() {
     return this.status === Order.STATUS.CANCELADO;
+  }
+
+  hasResponsable() {
+    return this.responsable && this.responsable.trim().length > 0;
   }
 
   hasEstimatedDelivery() {
@@ -91,6 +115,11 @@ class Order {
   // Validar estado
   static isValidStatus(status) {
     return Order.VALID_STATUSES.includes(status);
+  }
+
+  // Validar responsable
+  static isValidResponsable(responsable) {
+    return Order.VALID_RESPONSABLES.includes(responsable);
   }
 
   // Información del cliente
@@ -160,10 +189,11 @@ class Order {
   isValid() {
     return (
       this.client_id && 
-      this.client_id > 0 && 
       this.user_id && 
       this.user_id > 0 && 
       Order.isValidStatus(this.status) &&
+      Order.isValidResponsable(this.responsable) &&
+      this.responsable.trim().length > 0 &&
       typeof this.total === 'number' && 
       this.total >= 0 && 
       !isNaN(this.total) &&
@@ -203,22 +233,30 @@ class Order {
   // Estado de la orden
   getStatusColor() {
     const colors = {
-      'pendiente': 'yellow',
-      'en proceso': 'blue',
-      'completado': 'green',
-      'cancelado': 'red'
+      'Revision': 'yellow',
+      'Diseño': 'orange',
+      'Produccion': 'blue',
+      'Entrega': 'cyan',
+      'Completado': 'green',
+      'Cancelado': 'red'
     };
     return colors[this.status] || 'gray';
   }
 
   getStatusLabel() {
     const labels = {
-      'pendiente': 'Pendiente',
-      'en proceso': 'En Proceso',
-      'completado': 'Completado',
-      'cancelado': 'Cancelado'
+      'Revision': 'Revisión',
+      'Diseño': 'Diseño',
+      'Produccion': 'Producción',
+      'Entrega': 'Entrega',
+      'Completado': 'Completado',
+      'Cancelado': 'Cancelado'
     };
     return labels[this.status] || this.status;
+  }
+
+  getResposable() {
+    return this.responsable || "Mostrador";
   }
 
   // Información del display
@@ -292,10 +330,12 @@ class Order {
       date: this.date,
       estimated_delivery_date: this.estimated_delivery_date,
       status: this.status,
+      responsable: this.responsable,
       total: this.total,
       notes: this.notes,
       description: this.description,
       active: this.active,
+      client_name: this.client_name, // Exponer nombre directamente
       client: this.getClient(),
       user: this.getUser(),
       editedByUser: this.getEditedByUser(),

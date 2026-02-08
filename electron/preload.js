@@ -47,6 +47,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // Funciones avanzadas de productos
   getProductWithTemplates: (productId) => ipcRenderer.invoke('products:getWithTemplates', productId),
+  getAllProductsWithTemplates: () => ipcRenderer.invoke('products:getAllWithTemplates'),
   searchProducts: (searchTerm) => ipcRenderer.invoke('products:search', searchTerm),
 
   // Plantillas de productos
@@ -62,6 +63,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // Ordenes
   getAllOrders: () => ipcRenderer.invoke('orders:getAll'),
+  getPendingOrdersForLogbook: () => ipcRenderer.invoke('orders:getPendingForLogbook'),
   getOrderById: (id) => ipcRenderer.invoke('orders:getById', id),
   getOrdersByClientId: (clientId) => ipcRenderer.invoke('orders:getByClientId', clientId),
   createOrder: (data) => ipcRenderer.invoke('orders:create', data),
@@ -89,9 +91,16 @@ contextBridge.exposeInMainWorld('api', {
   getBudgetById: (id) => ipcRenderer.invoke('budgets:getById', id),
   getBudgetByClientId: (clientId) => ipcRenderer.invoke('budgets:getByClientId', clientId),
   createBudget: (data) => ipcRenderer.invoke('budgets:create', data),
+  updateBudget: (id, data) => ipcRenderer.invoke('budgets:update', id, data),
   deleteBudget: (id) => ipcRenderer.invoke('budgets:delete', id),
   getBudgetProducts: (budgetId) => ipcRenderer.invoke('budgets:getProducts', budgetId),
   recalculateBudgetTotal: (budgetId) => ipcRenderer.invoke('budgets:recalculateTotal', budgetId),
   transformToOrder: (budgetId, userId) => ipcRenderer.invoke('budgets:transformToOrder', budgetId, userId),
   getBudgetNextId: () => ipcRenderer.invoke('budgets:getNextId'),
+
+  // Stats
+  getSalesStats: (params) => ipcRenderer.invoke('stats:getSales', params),
+  getStatsProducts: () => ipcRenderer.invoke('stats:getProducts'),
+  getAvailableYears: () => ipcRenderer.invoke('stats:getYears'),
+  getAvailableWeeks: (year) => ipcRenderer.invoke('stats:getWeeks', year),
 });

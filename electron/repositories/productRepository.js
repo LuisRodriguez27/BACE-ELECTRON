@@ -161,6 +161,25 @@ class ProductRepository {
     
     return products.map(product => new Product(product));
   }
+
+  // Obtener todos los productos con sus plantillas
+  findAllWithTemplates() {
+    const products = this.findAll();
+    const stmt = db.prepare(`
+      SELECT pt.*, u.username as created_by_username
+      FROM product_templates pt
+      LEFT JOIN users u ON pt.created_by = u.id
+      WHERE pt.product_id = ? AND pt.active = 1
+    `);
+
+    return products.map(product => {
+      const templates = stmt.all(product.id);
+      return {
+        ...product.toPlainObject(),
+        templates
+      };
+    });
+  }
 }
 
 module.exports = new ProductRepository();

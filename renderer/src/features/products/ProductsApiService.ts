@@ -14,6 +14,10 @@ export const ProductsApiService = {
     return window.api.getProductWithTemplates(id);
   },
 
+  findAllWithTemplates: async (): Promise<(Product & { templates: ProductTemplate[] })[]> => {
+    return window.api.getAllProductsWithTemplates();
+  },
+
   create: async (product: CreateProductForm): Promise<Product> => {
     return window.api.createProduct(product);
   },

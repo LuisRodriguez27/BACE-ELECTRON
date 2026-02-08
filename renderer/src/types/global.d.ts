@@ -56,6 +56,7 @@ declare global {
 
       // Funciones avanzadas de productos
       getProductWithTemplates: (productId: number) => Promise<Product & { templates: ProductTemplate[] }>;
+      getAllProductsWithTemplates: () => Promise<(Product & { templates: ProductTemplate[] })[]>;
       searchProducts: (searchTerm: string) => Promise<Product[]>;
 
       // Plantillas de productos
@@ -69,6 +70,7 @@ declare global {
 
       // Ordenes
       getAllOrders: () => Promise<Order[]>;
+      getPendingOrdersForLogbook: () => Promise<Order[]>;
       getOrderById: (id: number) => Promise<Order>;
       getOrdersByClientId: (clientId: number) => Promise<Order[]>;
       createOrder: (data: CreateOrderForm) => Promise<Order>;
@@ -96,11 +98,18 @@ declare global {
       getBudgetById: (id: number) => Promise<Budget>;
       getBudgetByClientId: (clientId: number) => Promise<Budget[]>;
       createBudget: (data: CreateBudgetForm) => Promise<Budget>;
+      updateBudget: (id: number, data: Partial<CreateBudgetForm>) => Promise<Budget>;
       deleteBudget: (budgetId: number) => Promise<void>;
       getBudgetProducts: (budgetId: number) => Promise<BudgetProduct[]>;
       recalculateBudgetTotal: (budgetId: number) => Promise<number>;
       transformToOrder: (budgetId, userId) => Promise<Order>;
       getBudgetNextId: () => Promise<number>;
+
+      // Stats
+      getSalesStats: (params: any) => Promise<any>;
+      getStatsProducts: () => Promise<any>;
+      getAvailableYears: () => Promise<number[]>;
+      getAvailableWeeks: (year: number) => Promise<number[]>;
     };
   }
 }

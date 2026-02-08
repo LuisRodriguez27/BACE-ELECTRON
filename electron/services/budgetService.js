@@ -178,6 +178,120 @@ class BudgetService {
     }
   }
 
+  async updateBudget(id, budgetData) {
+    try {
+      if (!id || isNaN(id)) {
+        throw new Error('ID de presupuesto inválido');
+      }
+
+      const budgetId = parseInt(id);
+
+      // Verificar si el presupuesto existe
+      const existingBudget = budgetRepository.findById(budgetId);
+      if (!existingBudget) {
+        throw new Error('Presupuesto no encontrado');
+      }
+
+      // Validar que se puede editar
+      if (!existingBudget.canEdit()) {
+        throw new Error('No se puede editar un presupuesto convertido a orden');
+      }
+
+      const { date, client_id, edited_by, items } = budgetData;
+
+      // Validar fecha si se proporciona
+      if (date) {
+        const budgetDate = new Date(date);
+        if (isNaN(budgetDate.getTime())) {
+           throw new Error('Fecha de presupuesto inválida');
+        }
+      }
+
+       // Validar cliente si se proporciona
+      if (client_id) {
+         if (isNaN(client_id)) {
+            throw new Error('ID de cliente inválido');
+         }
+         const client = clientRepository.findById(parseInt(client_id));
+         if (!client) {
+            throw new Error('El cliente especificado no existe');
+         }
+      }
+
+      // Validar usuario editor si se proporciona
+      if (edited_by) {
+        if (isNaN(edited_by)) {
+          throw new Error('ID de usuario editor inválido');
+        }
+        const editorUser = userRepository.findById(parseInt(edited_by));
+        if (!editorUser) {
+          throw new Error('El usuario editor especificado no existe');
+        }
+      }
+
+      // Validar y procesar items si se reciben
+      if (items) {
+        if (!Array.isArray(items)) {
+          throw new Error('El campo "items" debe ser un array');
+        }
+        if (items.length === 0) {
+          throw new Error('El presupuesto debe contener al menos un producto o plantilla');
+        }
+        for (const [index, item] of items.entries()) {
+          const hasProduct = item.product_id != null;
+          const hasTemplate = item.template_id != null;
+          if (!hasProduct && !hasTemplate) {
+            throw new Error(`Item ${index + 1}: Debe especificar un product_id o template_id`);
+          }
+          if (hasProduct && hasTemplate) {
+            throw new Error(`Item ${index + 1}: No puede tener tanto product_id como template_id`);
+          }
+          if (!item.quantity || isNaN(item.quantity) || item.quantity < 0.0001) {
+            throw new Error(`Item ${index + 1}: Cantidad inválida`);
+          }
+          if (item.unit_price == null || isNaN(item.unit_price) || item.unit_price < 0) {
+            throw new Error(`Item ${index + 1}: Precio unitario inválido`);
+          }
+          if (hasProduct) {
+            const productExists = productRepository.findById(parseInt(item.product_id));
+            if (!productExists) {
+              throw new Error(`Item ${index + 1}: El producto especificado no existe`);
+            }
+          }
+          if (hasTemplate) {
+            const templateExists = productTemplateRepository.findById(parseInt(item.template_id));
+            if (!templateExists) {
+              throw new Error(`Item ${index + 1}: La plantilla especificada no existe`);
+            }
+          }
+        }
+      }
+
+      // Construir payload para actualizar, preservando valores existentes
+      const updatePayload = {
+        date: date ? new Date(date).toISOString() : existingBudget.date,
+        client_id: client_id ? parseInt(client_id) : existingBudget.client_id,
+        edited_by: edited_by ? parseInt(edited_by) : existingBudget.edited_by
+      };
+
+      if (items) {
+        updatePayload.items = items.map(item => ({
+          product_id: item.product_id ? parseInt(item.product_id) : null,
+          template_id: item.template_id ? parseInt(item.template_id) : null,
+          quantity: parseFloat(item.quantity),
+          unit_price: parseFloat(item.unit_price)
+        }));
+      }
+
+      const updatedBudget = budgetRepository.update(budgetId, updatePayload);
+
+      return updatedBudget.toPlainObject();
+    } catch (error) {
+      console.error('Error al actualizar presupuesto:', error);
+      throw error;
+    }
+  }
+
   async deleteBudget(id) {
     try {
       if (!id || isNaN(id)) {

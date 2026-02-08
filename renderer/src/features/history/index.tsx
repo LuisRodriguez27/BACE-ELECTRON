@@ -163,6 +163,28 @@ const OrdersPage: React.FC = () => {
     }
   };
 
+  const getResponsableColor = (responsable: string) => {
+    switch (responsable.toLowerCase()) {
+      case 'mostrador':
+        return 'bg-green-100 text-green-800';
+      case 'maquila':
+        return 'bg-indigo-100 text-indigo-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getResponsableText = (responsable: string) => {
+    switch (responsable.toLowerCase()) {
+      case 'mostrador':
+        return 'Mostrador';
+      case 'maquila':
+        return 'Maquila';
+      default:
+        return responsable;
+    }
+  };
+
   const handleViewDetails = (orderId: number) => {
     setSelectedOrderId(orderId);
     setShowDetailsModal(true);
@@ -216,39 +238,6 @@ const OrdersPage: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="p-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2 mb-6"></div>
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded"></div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800">{error}</p>
-          <Button 
-            onClick={() => window.location.reload()} 
-            className="mt-2"
-            size="sm"
-          >
-            Reintentar
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="p-6">
       {/* Header */}
@@ -269,7 +258,7 @@ const OrdersPage: React.FC = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
               <input
                 type="text"
-                placeholder="Buscar por ID, notas, cliente o teléfono..."
+                placeholder="Buscar por ID, notas, cliente o teléfono, producto o plantilla..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -300,7 +289,20 @@ const OrdersPage: React.FC = () => {
           </h2>
         </div>
         <div className="p-6">
-          {orders.length === 0 && !loading ? (
+          {loading ? (
+            <div className="animate-pulse space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-32 bg-gray-200 rounded"></div>
+              ))}
+            </div>
+          ) : error ? (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-red-800">{error}</p>
+              <Button onClick={() => loadOrders(1, true, currentSearchTerm)} className="mt-2" size="sm">
+                Reintentar
+              </Button>
+            </div>
+          ) : orders.length === 0 ? (
             <div className="text-center py-12">
               {currentSearchTerm ? (
                 <>
@@ -353,6 +355,9 @@ const OrdersPage: React.FC = () => {
                             {paymentStatus.icon}
                             {paymentStatus.text}
                           </div>
+                          <span className={`px-2 py-1 text-xs rounded-full ${getResponsableColor(order.responsable || '')}`}>
+                            {getResponsableText(order.responsable || '')}
+                          </span>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-gray-600">
@@ -418,6 +423,7 @@ const OrdersPage: React.FC = () => {
                     {order.client && (
                       <div>
                         <span className="text-sm font-medium text-gray-700">Cliente:</span>
+                        <div className="text-sm text-gray-600">ID: {order.client_id}</div>
                         <p className="text-sm text-gray-600">{order.client.name}</p>
                         {order.client.phone && (
                           <p className="text-xs text-gray-500">{order.client.phone}</p>

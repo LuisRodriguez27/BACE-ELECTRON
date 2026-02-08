@@ -21,7 +21,7 @@ const CONFIG = {
   
   // Ruta de la carpeta compartida en la red (relativa a la IP o unidad)
   // Ejemplo: 'personal_folder/bace-electron' genera \\IP\personal_folder\bace-electron
-  networkFolder: 'personal_folder/bace-electron/database'
+  networkFolder: 'personal_folder/bace-electron'
 };
 // ============================================
 
@@ -73,9 +73,10 @@ function getDatabasePath() {
       networkPath = path.join(CONFIG.networkDrive, CONFIG.networkFolder, 'data.db');
       console.log('🌐 MODO RED (Unidad Mapeada):', networkPath);
     } else {
-      // Usar ruta UNC manual para evitar problemas
-      const normalizedFolder = CONFIG.networkFolder.replace(/\//g, '\\');
-      networkPath = `\\\\${CONFIG.serverIP}\\${normalizedFolder}\\data.db`;
+      // Usar ruta UNC
+      // Construye \\192.168.1.90\personal_folder\bace-electron\data.db
+      const uncRoot = `\\\\${CONFIG.serverIP}`;
+      networkPath = path.join(uncRoot, CONFIG.networkFolder, 'data.db');
       console.log('🌐 MODO RED (UNC Path):', networkPath);
     }
     
@@ -107,43 +108,6 @@ if (CONFIG.modo === 'network' && app.isPackaged) {
   
   // Verificar si el archivo existe
   if (!fs.existsSync(dbPath)) {
-    const dbDir = path.dirname(dbPath);
-    
-    let specificError = '';
-    try {
-      // Intentar leer obligatoriamente el directorio para verificar permisos reales
-      const files = fs.readdirSync(dbDir);
-      
-      // Si llegamos aquí, SÍ hay acceso a la carpeta
-      if (files.includes('data.db')) {
-        specificError = `
-⚠️ El sistema puede leer la carpeta y ve el archivo 'data.db', 
-pero fs.existsSync falló. Esto es inusual.`;
-      } else {
-        specificError = `
-✅ La carpeta del servidor ES accesible (Permisos OK).
-❌ PERO el archivo 'data.db' NO existe en esa ubicación.
-
-Archivos encontrados en la carpeta: 
-${files.slice(0, 10).join(', ')}
-
-SOLUCIÓN:
-Asegúrate de que la base de datos 'data.db' esté en esa carpeta.`;
-      }
-    } catch (err) {
-      // Capturamos el error real de acceso (EPERM, EACCES, ENOENT, etc)
-      specificError = `
-❌ ACCESO DENEGADO o RUTA INVÁLIDA
-La aplicación no tiene permiso para leer la carpeta o no la encuentra.
-
-Error Sistema: ${err.message}
-Código Error: ${err.code}
-
-NOTA IMPORTANTE: 
-Si ejecutas la app como Administrador, es posible que pierdas acceso 
-a las unidades de red del usuario normal. Intenta ejecutarla sin permisos de admin.`;
-    }
-
     const driveInfo = CONFIG.networkDrive 
       ? `Unidad mapeada: ${CONFIG.networkDrive}`
       : `Servidor: ${CONFIG.serverIP}`;
@@ -161,10 +125,7 @@ a las unidades de red del usuario normal. Intenta ejecutarla sin permisos de adm
 
 No se puede acceder a la base de datos del servidor.
 
-Ruta intentada: ${dbPath}
-
-DIAGNÓSTICO:
-${specificError}
+Ruta: ${dbPath}
 
 CONFIGURACIÓN:
 ${driveInfo}
@@ -174,7 +135,7 @@ POSIBLES CAUSAS:
 1. La PC servidor está apagada o no accesible en ${CONFIG.serverIP}
 2. La carpeta "${CONFIG.networkFolder}" no existe o no está compartida
 3. No tienes permisos de acceso a la ruta especificada
-4. El archivo data.db no ha sido creado todavía en el servidor
+4. El firewall está bloqueando la conexión
 
 SOLUCIÓN:
 1. Verifica que puedes abrir esta ruta en el Explorador:
@@ -300,7 +261,6 @@ db.exec(`
     total REAL DEFAULT 0,
     notes TEXT,
     description TEXT,
-    responsable TEXT,
     created_from_budget_id INTEGER,
     active INTEGER NOT NULL DEFAULT 1,
     FOREIGN KEY (client_id) REFERENCES clients(id),
@@ -445,45 +405,6 @@ try {
       db.prepare("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (1, ?, 1)").run(editBudgetPermId);
       console.log(`✅ Permiso Editar Presupuestos (${editBudgetPermId}) asignado al usuario 1`);
     }
-  }
-
-  // ============================================
-  // MIGRACIÓN: ESTADOS DE ORDEN
-  // ============================================
-  const pendingOrders = db.prepare("SELECT COUNT(*) as count FROM orders WHERE status = 'pendiente'").get();
-  if (pendingOrders.count > 0) {
-    console.log(`🛠 Migración: Actualizando ${pendingOrders.count} órdenes de 'pendiente' a 'Revision'`);
-    db.prepare("UPDATE orders SET status = 'Revision' WHERE status = 'pendiente'").run();
-  }
-
-  const inProgressOrders = db.prepare("SELECT COUNT(*) as count FROM orders WHERE status = 'en proceso'").get();
-  if (inProgressOrders.count > 0) {
-    console.log(`🛠 Migración: Actualizando ${inProgressOrders.count} órdenes de 'en proceso' a 'Produccion'`);
-    db.prepare("UPDATE orders SET status = 'Produccion' WHERE status = 'en proceso'").run();
-  }
-
-  const completedOrders = db.prepare("SELECT COUNT(*) as count FROM orders WHERE status = 'completado'").get();
-  if (completedOrders.count > 0) {
-    console.log(`🛠 Migración: Actualizando ${completedOrders.count} órdenes de 'completado' a 'Completado'`);
-    db.prepare("UPDATE orders SET status = 'Completado' WHERE status = 'completado'").run();
-  }
-
-  const cancelledOrders = db.prepare("SELECT COUNT(*) as count FROM orders WHERE status = 'cancelado'").get();
-  if (cancelledOrders.count > 0) {
-    console.log(`🛠 Migración: Actualizando ${cancelledOrders.count} órdenes de 'cancelado' a 'Cancelado'`);
-    db.prepare("UPDATE orders SET status = 'Cancelado' WHERE status = 'cancelado'").run();
-  }
-
-  // ============================================
-  // MIGRACION: RESPONSABLE DE LA ORDEN
-  // ============================================
-  const orderColumns = db.prepare('PRAGMA table_info(orders)').all();
-  const hasResponsable = orderColumns.some(c => c.name === 'responsable');
-  
-  if (!hasResponsable) {
-    console.log('🛠 Migración: agregando columna responsable a orders');
-    db.exec('ALTER TABLE orders ADD COLUMN responsable TEXT');
-    console.log('✅ Columna responsable agregada correctamente');
   }
 
 } catch (error) {

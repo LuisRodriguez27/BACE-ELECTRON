@@ -79,7 +79,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     defaultValues: {
       user_id: currentUserId,
       date: dayjs().tz('America/Mexico_City').format('YYYY-MM-DD'),
-      status: 'pendiente',
+      status: 'Revision',
       items: []
     }
   });
@@ -530,6 +530,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
           date: formData.date,
           estimated_delivery_date: formData.estimated_delivery_date || undefined,
           status: formData.status,
+          responsable: formData.responsable || 'Mostrador',
           notes: formData.notes || undefined,
           description: formData.description || undefined,
           items: items,
@@ -552,7 +553,8 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
           user_id: currentUserId,
           date: dayjs().tz('America/Mexico_City').toISOString(),
           estimated_delivery_date: formData.estimated_delivery_date || undefined,
-          status: formData.status || 'pendiente',
+          status: formData.status || 'Revision',
+          responsable: formData.responsable || 'Mostrador',
           notes: formData.notes || undefined,
           description: formData.description || undefined,
           items
@@ -621,7 +623,8 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     
     return clients.filter(client => 
       client.name.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
-      client.phone.toLowerCase().includes(clientSearchTerm.toLowerCase())
+      client.phone.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
+      client.id.toString().includes(clientSearchTerm.toLowerCase())
     );
   };
 
@@ -739,7 +742,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                       <Input
                         id="client-search-input"
                         type="text"
-                        placeholder="Buscar cliente por nombre o teléfono..."
+                        placeholder="Buscar cliente por nombre, teléfono o ID..."
                         value={clientSearchTerm}
                         onChange={(e) => {
                           const searchTerm = e.target.value;
@@ -797,6 +800,9 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                                 )}
                                 <User className="h-4 w-4 text-gray-400" />
                                 <div className="flex-1">
+                                  <div className="text-xs text-gray-500">
+                                    ID: {client.id}
+                                  </div>
                                   <div className="font-medium text-sm text-gray-900">
                                     {client.name}
                                   </div>
@@ -901,10 +907,12 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                   {...register('status')}
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="pendiente">Pendiente</option>
-                  <option value="en proceso">En Proceso</option>
-                  <option value="completado">Completado</option>
-                  <option value="cancelado">Cancelado</option>
+                  <option value="Revision">Revisión</option>
+                  <option value="Diseño">Diseño</option>
+                  <option value="Produccion">Producción</option>
+                  <option value="Entrega">Entrega</option>
+                  <option value="Completado">Completado</option>
+                  <option value="Cancelado">Cancelado</option>
                 </select>
               </div>
               {errors.status && (
@@ -927,6 +935,24 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                   readOnly
                 />
               </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="responsable" className="text-sm font-medium text-gray-700">
+                Responsable
+              </Label>
+              <div className="mt-1 relative">
+                <select
+                  {...register('responsable')}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="Mostrador">Mostrador</option>
+                  <option value="Maquila">Maquila</option>
+                </select>
+              </div>
+              {errors.responsable && (
+                <p className="mt-1 text-sm text-red-600">{errors.responsable.message}</p>
+              )}
             </div>
 
             {/* Descripción */}
