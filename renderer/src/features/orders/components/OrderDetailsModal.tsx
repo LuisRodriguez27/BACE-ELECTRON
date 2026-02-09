@@ -1,7 +1,6 @@
 import { Button, Input, Label } from '@/components/ui';
 import { extractErrorMessage } from '@/utils/errorHandling';
 import {
-  AlertCircle,
   Calendar,
   CalendarDays,
   CheckCircle2,
@@ -17,6 +16,7 @@ import {
   Phone,
   Printer,
   Receipt,
+  Tag,
   User,
   X,
   XCircle
@@ -62,6 +62,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [editFormData, setEditFormData] = useState({
     status: '',
+    responsable: '',
     estimated_delivery_date: '',
     notes: '',
     description: ''
@@ -97,6 +98,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       // Inicializar datos del formulario de edición
       setEditFormData({
         status: orderData.status,
+        responsable: orderData.responsable || '',
         estimated_delivery_date: orderData.estimated_delivery_date || '',
         notes: orderData.notes || '',
         description: orderData.description || ''
@@ -148,6 +150,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       
       const updateData = {
         status: editFormData.status as any,
+        responsable: editFormData.responsable as any,
         estimated_delivery_date: editFormData.estimated_delivery_date || undefined,
         notes: editFormData.notes || undefined,
         description: editFormData.description || undefined,
@@ -178,6 +181,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     
     setEditFormData({
       status: order.status,
+      responsable: order.responsable || '',
       estimated_delivery_date: order.estimated_delivery_date || '',
       notes: order.notes || '',
       description: order.description || ''
@@ -207,14 +211,18 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'pendiente':
+      case 'revision':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'diseño':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'produccion':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'entrega':
+        return 'bg-cyan-100 text-cyan-800 border-cyan-200';
       case 'completado':
         return 'bg-green-100 text-green-800 border-green-200';
       case 'cancelado':
         return 'bg-red-100 text-red-800 border-red-200';
-      case 'en proceso':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -222,14 +230,18 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
   const getStatusIcon = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'pendiente':
+      case 'revision':
         return <Clock className="h-4 w-4" />;
+      case 'diseño':
+        return <Edit3 className="h-4 w-4" />;
+      case 'produccion':
+        return <Layers className="h-4 w-4" />;
+      case 'entrega':
+        return <Package className="h-4 w-4" />;
       case 'completado':
         return <CheckCircle2 className="h-4 w-4" />;
       case 'cancelado':
         return <XCircle className="h-4 w-4" />;
-      case 'en proceso':
-        return <AlertCircle className="h-4 w-4" />;
       default:
         return <Info className="h-4 w-4" />;
     }
@@ -237,16 +249,42 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
   const getStatusText = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'pendiente':
-        return 'Pendiente';
+      case 'revision':
+        return 'Revisión';
+      case 'diseño':
+        return 'Diseño';
+      case 'produccion':
+        return 'Producción';
+      case 'entrega':
+        return 'Entrega';
       case 'completado':
-        return 'Completada';
+        return 'Completado';
       case 'cancelado':
-        return 'Cancelada';
-      case 'en proceso':
-        return 'En Proceso';
+        return 'Cancelado';
       default:
         return status;
+    }
+  };
+
+  const getResponsableColor = (responsable: string) => {
+    switch (responsable.toLowerCase()) {
+      case 'mostrador':
+        return 'bg-green-100 text-green-800';
+      case 'maquila':
+        return 'bg-indigo-100 text-indigo-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getResponsableText = (responsable: string) => {
+    switch (responsable.toLowerCase()) {
+      case 'mostrador':
+        return 'Mostrador';
+      case 'maquila':
+        return 'Maquila';
+      default:
+        return responsable;
     }
   };
 
@@ -391,15 +429,35 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                             onChange={(e) => setEditFormData(prev => ({ ...prev, status: e.target.value }))}
                             className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           >
-                            <option value="pendiente">Pendiente</option>
-                            <option value="en proceso">En Proceso</option>
-                            <option value="completado">Completado</option>
-                            <option value="cancelado">Cancelado</option>
+                            <option value="Revision">Revisión</option>
+                            <option value="Diseño">Diseño</option>
+                            <option value="Produccion">Producción</option>
+                            <option value="Entrega">Entrega</option>
+                            <option value="Completado">Completado</option>
+                            <option value="Cancelado">Cancelado</option>
                           </select>
                         ) : (
                           <div className={`mt-1 inline-flex items-center gap-2 px-3 py-1 rounded-full border text-sm font-medium ${getStatusColor(order.status)}`}>
                             {getStatusIcon(order.status)}
                             {getStatusText(order.status)}
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700">Responsable</Label>
+                        {isEditing ? (
+                          <select
+                            value={editFormData.responsable}
+                            onChange={(e) => setEditFormData(prev => ({ ...prev, responsable: e.target.value }))}
+                            className="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          >
+                            <option value="Mostrador">Mostrador</option>
+                            <option value="Maquila">Maquila</option>
+                          </select>
+                        ) : (
+                          <div className={`mt-1 inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${getResponsableColor(order.responsable || '')}`}>
+                            {getResponsableText(order.responsable || '')}
                           </div>
                         )}
                       </div>
@@ -486,6 +544,22 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                         {order.notes || (
                           <span className="text-gray-400 italic">Sin notas adicionales</span>
                         )}
+                        
+                        {/* Indicador de precios preferenciales en notas */}
+                        {!isEditing && orderProducts.some(product => {
+                             const type = getOrderItemType(product);
+                             const originalPrice = type === 'product' 
+                               ? product.product_price 
+                               : product.template_final_price;
+                             
+                             return originalPrice !== undefined && originalPrice !== null &&
+                               Math.abs(Number(product.unit_price) - Number(originalPrice)) > 0.01;
+                        }) && (
+                           <div className="mt-3 flex items-start gap-2 text-amber-700 bg-amber-50 p-2 rounded border border-amber-100">
+                             <Tag size={16} className="mt-0.5 flex-shrink-0" />
+                             <span className="font-medium">Esta orden incluye precios preferenciales.</span>
+                           </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -501,8 +575,12 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                       </h3>
                       <div className="space-y-3">
                         <div>
+                          <Label className="text-sm font-medium text-gray-700">ID</Label>
+                          <p className="text-sm text-gray-600">{order.client.id}</p>
+                        </div>
+                        <div>
                           <Label className="text-sm font-medium text-gray-700">Nombre</Label>
-                          <p className="text-sm text-gray-900 font-medium">{order.client.name}</p>
+                          <p className="text-sm text-gray-600">{order.client.name}</p>
                         </div>
                         <div>
                           <Label className="text-sm font-medium text-gray-700">Teléfono</Label>
@@ -560,45 +638,63 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                     <div className="space-y-4">
                       {orderProducts.map((product, index) => (
                         <div key={product.id} className="border border-gray-200 rounded-lg p-4">
-                          <div className="flex justify-between items-start mb-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-sm font-medium text-gray-600">
-                                {index + 1}
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <h4 className="font-medium text-gray-900">
-                                    {getOrderItemDisplayName(product)}
-                                  </h4>
-                                  <span className={`px-2 py-1 text-xs rounded ${
-                                    getOrderItemType(product) === 'product' 
-                                      ? 'bg-blue-100 text-blue-800' 
-                                      : 'bg-purple-100 text-purple-800'
-                                  }`}>
-                                    {getOrderItemType(product) === 'product' ? (
-                                      <><Package className="h-3 w-3 inline mr-1" />Producto</>
-                                    ) : (
-                                      <><Layers className="h-3 w-3 inline mr-1" />Plantilla</>
-                                    )}
-                                  </span>
-                                </div>
-                                {product.serial_number && (
-                                  <p className="text-xs text-gray-500">SN: {product.serial_number}</p>
-                                )}
-                                {product.product_description && (
-                                  <p className="text-sm text-gray-600 mt-1">{product.product_description}</p>
-                                )}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-lg font-semibold text-green-600">
-                                ${product.total_price.toFixed(2)}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                ${product.unit_price.toFixed(2)} × {product.quantity}
-                              </div>
-                            </div>
-                          </div>
+                          {(() => {
+                             const type = getOrderItemType(product);
+                             const originalPrice = type === 'product' 
+                               ? product.product_price 
+                               : product.template_final_price;
+                             
+                             const isPriceModified = originalPrice !== undefined && originalPrice !== null &&
+                               Math.abs(Number(product.unit_price) - Number(originalPrice)) > 0.01;
+
+                             return (
+                               <div className="flex justify-between items-start mb-3">
+                                 <div className="flex items-center gap-3">
+                                   <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-sm font-medium text-gray-600">
+                                     {index + 1}
+                                   </div>
+                                   <div>
+                                     <div className="flex items-center gap-2">
+                                       <h4 className="font-medium text-gray-900">
+                                         {getOrderItemDisplayName(product)}
+                                       </h4>
+                                       <span className={`px-2 py-1 text-xs rounded ${
+                                         type === 'product' 
+                                           ? 'bg-blue-100 text-blue-800' 
+                                           : 'bg-purple-100 text-purple-800'
+                                       }`}>
+                                         {type === 'product' ? (
+                                           <><Package className="h-3 w-3 inline mr-1" />Producto</>
+                                         ) : (
+                                           <><Layers className="h-3 w-3 inline mr-1" />Plantilla</>
+                                         )}
+                                       </span>
+                                       {isPriceModified && (
+                                          <span className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-amber-100 text-amber-800" title={`Precio original: $${Number(originalPrice).toFixed(2)}`}>
+                                            <Tag className="h-3 w-3 inline" />
+                                            Precio preferencial
+                                          </span>
+                                       )}
+                                     </div>
+                                     {product.serial_number && (
+                                       <p className="text-xs text-gray-500">SN: {product.serial_number}</p>
+                                     )}
+                                     {product.product_description && (
+                                       <p className="text-sm text-gray-600 mt-1">{product.product_description}</p>
+                                     )}
+                                   </div>
+                                 </div>
+                                 <div className="text-right">
+                                   <div className="text-lg font-semibold text-green-600">
+                                     ${product.total_price.toFixed(2)}
+                                   </div>
+                                   <div className="text-sm text-gray-500">
+                                     ${product.unit_price.toFixed(2)} × {product.quantity}
+                                   </div>
+                                 </div>
+                               </div>
+                             );
+                          })()}
 
                           {/* Información adicional para plantillas */}
                           {getOrderItemType(product) === 'template' && (

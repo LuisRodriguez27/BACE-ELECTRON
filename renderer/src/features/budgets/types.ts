@@ -82,7 +82,17 @@ export const createBudgetSchema = z.object({
   items: z.array(budgetItemSchema).min(1, 'La orden debe tener al menos un producto o plantilla')
 });
 
+// Editar presupuesto
+export const editBudgetSchema = z.object({
+  client_id: z.number().int().min(1).optional(),
+  user_id: z.number().int().min(1).optional(),
+  edited_by: z.number().int().min(1).optional(),
+  date: z.string().optional(),
+  items: z.array(budgetItemSchema).optional()
+});
+
 export type CreateBudgetForm = z.infer<typeof createBudgetSchema>;
+export type EditBudgetForm = z.infer<typeof editBudgetSchema>;
 export type BudgetItem = z.infer<typeof budgetItemSchema>;
 
 // Interfaces de entidades
@@ -93,6 +103,8 @@ export interface Budget {
   edited_by?: number;
   date: string; // ISO date string
   total: number;
+  converted_to_order?: boolean;
+  active?: number;
 
   // Para joins
   client?: {
@@ -186,6 +198,17 @@ export const getBudgetItemDisplayName = (budgetProduct: BudgetProduct): string =
     return `${baseName} (Plantilla)`;
   }
   return 'Item desconocido';
+};
+
+export const getBudgetItemDescription = (budgetProduct: BudgetProduct): string => {
+  if (budgetProduct.product_id) {
+    // Para productos directos, usar la descripción del producto
+    return budgetProduct.product_description || '';
+  } else if (budgetProduct.template_id) {
+    // Para plantillas, usar la descripción de la plantilla
+    return budgetProduct.template_description || '';
+  }
+  return '';
 };
 
 export const getBudgetItemType = (budgetProduct: BudgetProduct): 'product' | 'template' => {

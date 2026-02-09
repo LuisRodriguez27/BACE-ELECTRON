@@ -50,6 +50,16 @@ class OrderService {
     }
   }
 
+  async getPendingOrdersForLogbook() {
+    try {
+      const orders = orderRepository.findPendingForLogbook();
+      return orders.map(order => order.toPlainObject());
+    } catch (error) {
+      console.error('Error al obtener bitácora de órdenes:', error);
+      throw new Error('Error al obtener bitácora de órdenes');
+    }
+  }
+
   async getSales() {
     try {
       const sales = orderRepository.findCompleted();
@@ -84,7 +94,7 @@ class OrderService {
    */
   async createOrder(orderData) {
     try {
-      const { client_id, user_id, date, estimated_delivery_date, status, notes, description } = orderData;
+      const { client_id, user_id, date, estimated_delivery_date, status, responsable, notes, description } = orderData;
       
       // Detectar si usa la estructura legacy (products) o nueva (items)
       let items;
@@ -145,15 +155,29 @@ class OrderService {
         if (isNaN(deliveryDate.getTime())) {
           throw new Error('Fecha estimada de entrega inválida');
         }
-        if (deliveryDate < orderDate) {
+        
+        // Normalizar fechas (ignorar horas) para evitar errores por diferencias de zona horaria
+        const comparisonOrderDate = new Date(orderDate);
+        comparisonOrderDate.setHours(0, 0, 0, 0);
+        
+        const comparisonDeliveryDate = new Date(deliveryDate);
+        comparisonDeliveryDate.setHours(0, 0, 0, 0);
+
+        if (comparisonDeliveryDate < comparisonOrderDate) {
           throw new Error('La fecha de entrega no puede ser anterior a la fecha de la orden');
         }
       }
 
       // Validar estado
-      const validStatus = status || 'pendiente';
+      const validStatus = status || 'Revision';
       if (!Order.isValidStatus(validStatus)) {
         throw new Error('Estado de orden inválido');
+      }
+
+      // Validar responsable
+      const validResponsable = responsable || Order.RESPONSABLE.MOSTRADOR;
+      if (!Order.isValidResponsable(validResponsable)) {
+        throw new Error('Responsable inválido. Debe ser Mostrador o Maquila');
       }
 
       // Validar items (productos y plantillas)
@@ -203,6 +227,7 @@ class OrderService {
         date: orderDate.toISOString(),
         estimated_delivery_date: estimated_delivery_date ? new Date(estimated_delivery_date).toISOString() : null,
         status: validStatus,
+        responsable: validResponsable,
         notes: notes?.trim() || null,
         description: description?.trim() || null,
         items: items.map(item => ({
@@ -243,7 +268,18 @@ class OrderService {
         throw new Error('No se puede editar una orden completada o cancelada');
       }
 
-      const { estimated_delivery_date, status, notes, description, edited_by, items } = orderData;
+      const { estimated_delivery_date, status, responsable, notes, description, edited_by, items, client_id, date } = orderData;
+
+      // Validar cliente si se proporciona
+      if (client_id) {
+        if (isNaN(client_id)) {
+          throw new Error('ID de cliente inválido');
+        }
+        const client = clientRepository.findById(parseInt(client_id));
+        if (!client) {
+          throw new Error('El cliente especificado no existe');
+        }
+      }
 
       // Validar fecha estimada de entrega si se proporciona
       if (estimated_delivery_date) {
@@ -251,8 +287,16 @@ class OrderService {
         if (isNaN(deliveryDate.getTime())) {
           throw new Error('Fecha estimada de entrega inválida');
         }
-        const orderDate = new Date(existingOrder.date);
-        if (deliveryDate < orderDate) {
+        const orderDate = date ? new Date(date) : new Date(existingOrder.date);
+        
+        // Normalizar fechas (ignorar horas) para evitar errores por diferencias de zona horaria
+        const comparisonOrderDate = new Date(orderDate);
+        comparisonOrderDate.setHours(0, 0, 0, 0);
+        
+        const comparisonDeliveryDate = new Date(deliveryDate);
+        comparisonDeliveryDate.setHours(0, 0, 0, 0);
+
+        if (comparisonDeliveryDate < comparisonOrderDate) {
           throw new Error('La fecha de entrega no puede ser anterior a la fecha de la orden');
         }
       }
@@ -260,6 +304,11 @@ class OrderService {
       // Validar estado si se proporciona
       if (status && !Order.isValidStatus(status)) {
         throw new Error('Estado de orden inválido');
+      }
+
+      // Validar responsable si se proporciona
+      if (responsable && !Order.isValidResponsable(responsable)) {
+        throw new Error('Responsable inválido. Debe ser Mostrador o Maquila');
       }
 
       // Validar usuario editor si se proporciona
@@ -313,8 +362,11 @@ class OrderService {
 
       // Construir payload para actualizar, preservando valores existentes
       const updatePayload = {
+        client_id: client_id ? parseInt(client_id) : existingOrder.client_id,
+        date: date ? new Date(date).toISOString() : existingOrder.date,
         estimated_delivery_date: estimated_delivery_date ? new Date(estimated_delivery_date).toISOString() : existingOrder.estimated_delivery_date,
         status: status || existingOrder.status,
+        responsable: responsable || existingOrder.responsable,
         notes: notes !== undefined ? (notes?.trim() || null) : existingOrder.notes,
         description: description !== undefined ? (description?.trim() || null) : existingOrder.description,
         edited_by: edited_by ? parseInt(edited_by) : existingOrder.edited_by

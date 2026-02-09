@@ -2,16 +2,29 @@ import { z } from 'zod';
 
 // Enum para los estados de orden
 export const OrderStatus = {
-	PENDIENTE: 'pendiente',
-	EN_PROCESO: 'en proceso',
-	COMPLETADO: 'completado',
-	CANCELADO: 'cancelado'
+	REVISION: 'Revision',
+  DISENO: 'Diseño',
+  PRODUCCION: 'Produccion',
+  ENTREGA: 'Entrega',
+	COMPLETADO: 'Completado',
+	CANCELADO: 'Cancelado'
 } as const;
 
 export type OrderStatusType = typeof OrderStatus[keyof typeof OrderStatus];
 
 const orderStatusSchema = z.enum(
-  ['pendiente', 'en proceso', 'completado', 'cancelado'] as const
+  ['Revision', 'Diseño', 'Produccion', 'Entrega', 'Completado', 'Cancelado'] as const
+);
+
+export const orderResponsable = {
+  MOSTRADOR: 'Mostrador',
+  MAQUILA: 'Maquila'
+} as const;
+
+export type OrderResponsableType = typeof orderResponsable[keyof typeof orderResponsable];
+
+const orderResponsableSchema = z.enum(
+  ['Mostrador', 'Maquila'] as const
 );
 
 // Item de orden - puede ser producto o plantilla
@@ -36,6 +49,7 @@ export const createOrderSchema = z.object({
   date: z.string().min(1, 'La fecha es obligatoria'), 
   estimated_delivery_date: z.string().optional(), 
   status: orderStatusSchema,
+  responsable: orderResponsableSchema,
   notes: z.string().optional(),
   description: z.string().optional(),
   items: z.array(orderItemSchema).min(1, 'La orden debe tener al menos un producto o plantilla')
@@ -47,6 +61,7 @@ export const editOrderSchema = z.object({
   date: z.string().optional(),
   estimated_delivery_date: z.string().optional(),
   status: orderStatusSchema.optional(),
+  responsable: orderResponsableSchema.optional(),
   notes: z.string().optional(),
   description: z.string().optional(),
   items: z.array(orderItemSchema).optional(),
@@ -66,11 +81,14 @@ export interface Order {
   date: string; // ISO date string
   estimated_delivery_date?: string; // ISO date string
   status: OrderStatusType;
+  responsable?: OrderResponsableType;
   total: number;
   notes?: string;
   description?: string;
+  active: number;
 
   // Para joins
+  client_name?: string; // Agregado para soportar el campo directo del repositorio
   client?: {
     id: number;
     name: string;

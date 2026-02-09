@@ -1,7 +1,7 @@
 import { Button, Input, Label } from "@/components/ui";
 import { extractErrorMessage } from '@/utils/errorHandling';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CircleDollarSign, FileText, Loader, ScanBarcode, ShoppingBag, X } from "lucide-react";
+import { CircleDollarSign, FileText, Loader, Percent, ScanBarcode, ShoppingBag, X } from "lucide-react";
 import React, { useState } from "react";
 import { useForm } from 'react-hook-form';
 import { ProductsApiService } from "../ProductsApiService";
@@ -24,10 +24,31 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
     register,
     handleSubmit,
     formState: { errors },
-    reset
+    reset,
+    setValue
   } = useForm<CreateProductForm>({
     resolver: zodResolver(createProductSchema)
   });
+
+  const [basePrice, setBasePrice] = useState<number>(0);
+  const [percentage, setPercentage] = useState<number>(0);
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseFloat(e.target.value);
+    if (!isNaN(val)) {
+      setBasePrice(val);
+      setPercentage(0);
+    }
+  };
+
+  const handlePercentageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseFloat(e.target.value);
+    const newPercent = isNaN(val) ? 0 : val;
+    setPercentage(newPercent);
+    
+    const calculatedPrice = basePrice * (1 + (newPercent / 100));
+    setValue('price', parseFloat(calculatedPrice.toFixed(2)));
+  };
 
   const onSubmit = async (data: CreateProductForm) => {
     try {
@@ -52,6 +73,8 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
   const handleClose = () => {
     reset();
     setError(null);
+    setBasePrice(0);
+    setPercentage(0);
     onClose();
   };
 
@@ -127,12 +150,37 @@ const CreateProductModal: React.FC<CreateProductModalProps> = ({
                   min='0'
                   placeholder="0.00"
                   className="pl-10"
-                  {...register('price', { valueAsNumber: true })}
+                  {...register('price', { 
+                    valueAsNumber: true,
+                    onChange: handlePriceChange
+                  })}
                 />
               </div>
               {errors.price && (
                 <p className="mt-1 text-sm text-red-600">{errors.price.message}</p>
               )}
+            </div>
+
+            {/* Percentage Adjustment */}
+            <div>
+              <Label htmlFor="percentage" className="text-sm font-medium text-gray-700">
+                Ajuste Porcentual (%)
+              </Label>
+              <div className="mt-1 relative">
+                <Percent className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <Input
+                  id="percentage"
+                  type="number"
+                  step='0.01'
+                  placeholder="0"
+                  className="pl-10"
+                  value={percentage === 0 ? '' : percentage}
+                  onChange={handlePercentageChange}
+                />
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Calculado sobre base: ${basePrice.toFixed(2)}
+              </p>
             </div>
 
             {/* Serial Number */}

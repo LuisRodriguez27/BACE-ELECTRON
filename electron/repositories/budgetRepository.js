@@ -80,9 +80,22 @@ class BudgetRepository {
           CAST(b.id AS TEXT) LIKE ?
           OR c.name LIKE ?
           OR c.phone LIKE ?
+          OR EXISTS (
+            SELECT 1 FROM budget_products bp
+            LEFT JOIN products p ON bp.product_id = p.id
+            LEFT JOIN product_templates pt ON bp.template_id = pt.id
+            LEFT JOIN products pt_p ON pt.product_id = pt_p.id
+            WHERE bp.budget_id = b.id
+            AND (
+              p.name LIKE ? 
+              OR p.description LIKE ?
+              OR pt.description LIKE ?
+              OR pt_p.name LIKE ?
+            )
+          )
         )
       `;
-      searchParams = [term, term, term];
+      searchParams = [term, term, term, term, term, term, term];
     }
     
     // Obtener total de registros con búsqueda
@@ -163,6 +176,46 @@ class BudgetRepository {
     return this.findById(budgetId);
   }
 
+  update(id, budgetData) {
+    const existingBudget = this.findById(id);
+    if (!existingBudget) {
+      throw new Error('El presupuesto no existe');
+    }
+
+    if (existingBudget.converted_to_order) {
+      throw new Error('No se puede editar un presupuesto que ya ha sido convertido a orden');
+    }
+
+    const fieldsToUpdate = {};
+    if (budgetData.date !== undefined) fieldsToUpdate.date = budgetData.date;
+    if (budgetData.client_id !== undefined) fieldsToUpdate.client_id = budgetData.client_id;
+    if (budgetData.edited_by !== undefined) fieldsToUpdate.edited_by = budgetData.edited_by;
+
+    const fieldEntries = Object.entries(fieldsToUpdate);
+
+    if (fieldEntries.length > 0) {
+      const setClause = fieldEntries.map(([key]) => `${key} = ?`).join(', ');
+      const values = fieldEntries.map(([, value]) => value);
+      
+      const stmt = db.prepare(`
+        UPDATE budgets
+        SET ${setClause}
+        WHERE id = ? AND active = 1
+      `);
+      
+      stmt.run(...values, id);
+    }
+
+    if (budgetData.items && Array.isArray(budgetData.items)) {
+      this.validateBudgetItems(budgetData.items);
+      db.prepare('DELETE FROM budget_products WHERE budget_id = ?').run(id);
+      this.addItemsToBudget(id, budgetData.items);
+      this.recalculateTotal(id);
+    }
+
+    return this.findById(id);
+  }
+
   validateBudgetItems(items) {
     for (const item of items) {
       const hasProduct = item.product_id !== null && item.product_id !== undefined;
@@ -234,7 +287,7 @@ class BudgetRepository {
       // Crear la orden con los mismos datos del presupuesto
       const orderStmt = db.prepare(`
         INSERT INTO orders (client_id, user_id, date, status, total, notes, created_from_budget_id)
-        VALUES (?, ?, ?, 'pendiente', ?, ?, ?)
+        VALUES (?, ?, ?, 'Revision', ?, ?, ?)
       `);
       
       const orderResult = orderStmt.run(

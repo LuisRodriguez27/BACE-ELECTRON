@@ -14,6 +14,7 @@ const orderService = require('./services/orderService');
 const paymentService = require('./services/paymentsService');
 const authService = require('./services/authService');
 const budgetService = require('./services/budgetService');
+const statsService = require('./services/statsService');
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -91,6 +92,7 @@ ipcMain.handle('products:delete', async (event, id) => await productService.dele
 
 // Funciones avanzadas de productos
 ipcMain.handle('products:getWithTemplates', async (event, productId) => await productService.getProductWithTemplates(productId));
+ipcMain.handle('products:getAllWithTemplates', async () => await productService.getAllProductsWithTemplates());
 ipcMain.handle('products:search', async (event, searchTerm) => await productService.searchProducts(searchTerm));
 
 // Manejo de eventos IPC para plantillas de productos
@@ -106,6 +108,7 @@ ipcMain.handle('templates:search', async (event, searchTerm) => await productTem
 
 // Manejo de eventos IPC para ordenes
 ipcMain.handle('orders:getAll', async () => await orderService.getAllOrders());
+ipcMain.handle('orders:getPendingForLogbook', async () => await orderService.getPendingOrdersForLogbook());
 ipcMain.handle('orders:getById', async (event, id) => await orderService.getOrderById(id));
 ipcMain.handle('orders:getByClientId', async (event, clientId) => await orderService.getOrdersByClientId(clientId));
 ipcMain.handle('orders:create', async (event, data) => await orderService.createOrder(data));
@@ -133,11 +136,18 @@ ipcMain.handle('budgets:search', async (event, page, limit, searchTerm) => await
 ipcMain.handle('budgets:getById', async (event, id) => await budgetService.getBudgetById(id));
 ipcMain.handle('budgets:getByClientId', async (event, clientId) => await budgetService.getBudgetByClientId(clientId));
 ipcMain.handle('budgets:create', async (event, data) => await budgetService.createBudget(data));
+ipcMain.handle('budgets:update', async (event, id, data) => await budgetService.updateBudget(id, data));
 ipcMain.handle('budgets:delete', async (event, id) => await budgetService.deleteBudget(id));
 ipcMain.handle('budgets:getProducts', async (event, budgetId) => await budgetService.getBudgetProducts(budgetId));
 ipcMain.handle('budgets:recalculateTotal', async (event, budgetId) => await budgetService.recalculateBudgetTotal(budgetId));
 ipcMain.handle('budgets:transformToOrder', async (event, budgetId, userId) => await budgetService.transformToOrder(budgetId, userId));
 ipcMain.handle('budgets:getNextId', async () => await budgetService.getNextId());
+
+// Stats
+ipcMain.handle('stats:getSales', async (event, params) => await statsService.getSalesStats(params));
+ipcMain.handle('stats:getProducts', async () => await statsService.getProducts());
+ipcMain.handle('stats:getYears', async () => await statsService.getAvailableYears());
+ipcMain.handle('stats:getWeeks', async (event, year) => await statsService.getAvailableWeeks(year));
 
 app.whenReady().then(createWindow);
 

@@ -18,6 +18,10 @@ export const BudgetApiService = {
     return window.api.createBudget(budget);
   },
 
+  update: async (id: number, budget: Partial<CreateBudgetForm>): Promise<Budget> => {
+    return window.api.updateBudget(id, budget);
+  },
+
   delete: async (budgetId: number): Promise<void> => {
     return window.api.deleteBudget(budgetId);
   },

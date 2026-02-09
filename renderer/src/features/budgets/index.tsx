@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useAuthStore } from '@/store/auth';
-import { ArrowRight, Calendar, DollarSign, FileText, Loader2, Plus, Printer, Search, Trash2 } from 'lucide-react';
+import { ArrowRight, Calendar, DollarSign, FileText, Loader2, Plus, Printer, Search, Trash2, Pencil } from 'lucide-react';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -47,6 +47,7 @@ const BudgetsPage: React.FC = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showTransformDialog, setShowTransformDialog] = useState(false);
   const [selectedBudgetId, setSelectedBudgetId] = useState<number | null>(null);
+  const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [selectedBudgetForPrint, setSelectedBudgetForPrint] = useState<Budget | null>(null);
@@ -137,6 +138,12 @@ const BudgetsPage: React.FC = () => {
     toast.success('Presupuesto creado exitosamente');
   };
 
+  const handleBudgetUpdated = () => {
+    loadBudgets(1, true, currentSearchTerm);
+    toast.success('Presupuesto actualizado exitosamente');
+    setEditingBudget(null);
+  };
+
   const handleDeleteBudget = async (budgetId: number) => {
     if (!checkPermission("Eliminar Presupuestos")) {
       return;
@@ -199,11 +206,21 @@ const BudgetsPage: React.FC = () => {
     if (!checkPermission("Crear Presupuestos")) {
       return;
     }
+    setEditingBudget(null);
+    setShowCreateModal(true);
+  };
+
+  const handleEditBudget = (budget: Budget) => {
+    if (!checkPermission("Editar Presupuestos")) {
+        return;
+    }
+    setEditingBudget(budget);
     setShowCreateModal(true);
   };
 
   const closeModals = () => {
     setShowCreateModal(false);
+    setEditingBudget(null);
   };
 
   const formatDate = (dateString: string) => {
@@ -225,39 +242,6 @@ const BudgetsPage: React.FC = () => {
     setSelectedBudgetForPrint(budget);
     setShowPrintPreview(true);
   };
-
-  if (loading) {
-    return (
-      <div className="p-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2 mb-6"></div>
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded"></div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800">{error}</p>
-          <Button
-            onClick={() => window.location.reload()}
-            className="mt-2"
-            size="sm"
-          >
-            Reintentar
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="p-6">
@@ -314,7 +298,20 @@ const BudgetsPage: React.FC = () => {
           </h2>
         </div>
         <div className="p-6">
-          {budgets.length === 0 && !loading ? (
+          {loading ? (
+            <div className="animate-pulse space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-32 bg-gray-200 rounded"></div>
+              ))}
+            </div>
+          ) : error ? (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-red-800">{error}</p>
+              <Button onClick={() => loadBudgets(1, true, currentSearchTerm)} className="mt-2" size="sm">
+                Reintentar
+              </Button>
+            </div>
+          ) : budgets.length === 0 ? (
             <div className="text-center py-12">
               {currentSearchTerm ? (
                 <>
@@ -380,6 +377,15 @@ const BudgetsPage: React.FC = () => {
                         </div>
 
                         <div className="flex items-center gap-3">
+                          {!budget.converted_to_order && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditBudget(budget)}
+                            >
+                                <Pencil size={16} className='mr-2' /> Editar
+                            </Button>
+                          )}
                           <Button
                             variant={"outline"}
                             size="sm"
@@ -413,6 +419,7 @@ const BudgetsPage: React.FC = () => {
                         {budget.client && (
                           <div>
                             <span className="text-sm font-medium text-gray-700">Cliente:</span>
+                            <p className="text-xs text-gray-600">ID: {budget.client.id}</p>
                             <p className="text-sm text-gray-600">{budget.client.name}</p>
                             {budget.client.phone && (
                               <p className="text-xs text-gray-500">{budget.client.phone}</p>
@@ -471,7 +478,9 @@ const BudgetsPage: React.FC = () => {
         isOpen={showCreateModal}
         onClose={closeModals}
         onBudgetCreated={handleBudgetCreated}
+        onBudgetUpdated={handleBudgetUpdated}
         currentUserId={user?.id!}
+        budgetToEdit={editingBudget}
       />
 
       <ConfirmDialog

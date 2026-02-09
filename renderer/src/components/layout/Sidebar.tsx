@@ -8,7 +8,8 @@ import {
   UserCog,
   Menu,
   Home,
-  Calculator
+  Calculator,
+  BarChart3
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSidebarStore } from '@/store/sidebar'
@@ -52,6 +53,12 @@ const menuItems: MenuItem[] = [
     label: 'Productos',
     icon: Package,
     path: '/dashboard/products'
+  },
+  {
+    id: 'stats',
+    label: 'Gráficas de Ventas',
+    icon: BarChart3,
+    path: '/dashboard/stats'
   },
   {
     id: 'clients',
@@ -102,6 +109,10 @@ const Sidebar: React.FC = () => {
           if (item.id === 'users' && !canAccess('Gestionar Usuario')) {
             return null
           }
+
+          if (item.id === 'stats' && !canAccess('Estadisticas')) {
+            return null
+          } 
 
           const Icon = item.icon
           const isActive = location.pathname === item.path

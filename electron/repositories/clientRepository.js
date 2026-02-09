@@ -97,6 +97,7 @@ class ClientRepository {
     const stmt = db.prepare(`
       SELECT * FROM clients 
       WHERE active = 1 AND (
+        id LIKE ? OR
         name LIKE ? OR 
         phone LIKE ? OR 
         address LIKE ? OR 

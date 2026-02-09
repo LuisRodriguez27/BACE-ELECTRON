@@ -6,7 +6,7 @@ class OrderRepository {
   findAll() {
     const stmt = db.prepare(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
-            o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.active,
+            o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.responsable, o.active,
             c.name as client_name, c.phone as client_phone,
             u.username as user_username,
             ue.username as edited_by_username
@@ -14,7 +14,7 @@ class OrderRepository {
       JOIN clients c ON o.client_id = c.id
       JOIN users u ON o.user_id = u.id
       LEFT JOIN users ue ON o.edited_by = ue.id
-      WHERE o.active = 1 AND o.status NOT IN ('completado', 'cancelado')
+      WHERE o.active = 1 AND o.status NOT IN ('Completado', 'Cancelado')
       ORDER BY o.id DESC
     `);
     
@@ -29,7 +29,7 @@ class OrderRepository {
   findById(id) {
     const orderData = db.prepare(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
-            o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.active,
+            o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.responsable, o.active,
             c.name as client_name, c.phone as client_phone,
             u.username as user_username,
             ue.username as edited_by_username
@@ -70,6 +70,29 @@ class OrderRepository {
     });
   }
 
+  findPendingForLogbook() {
+    const stmt = db.prepare(`
+      SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
+            o.estimated_delivery_date, o.status, o.responsable, o.total, o.notes, o.description, o.active,
+            c.name as client_name, c.phone as client_phone,
+            u.username as user_username,
+            ue.username as edited_by_username
+      FROM orders o
+      JOIN clients c ON o.client_id = c.id
+      JOIN users u ON o.user_id = u.id
+      LEFT JOIN users ue ON o.edited_by = ue.id
+      WHERE o.active = 1 AND o.status NOT IN ('Completado', 'Cancelado')
+      ORDER BY o.id ASC
+    `);
+    
+    const orders = stmt.all();
+    return orders.map(order => {
+      // Cargar productos para cada orden
+      const orderProducts = this.getOrderProducts(order.id);
+      return new Order({ ...order, orderProducts });
+    });
+  }
+
   findCompleted() {
     const stmt = db.prepare(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
@@ -81,7 +104,7 @@ class OrderRepository {
       JOIN clients c ON o.client_id = c.id
       JOIN users u ON o.user_id = u.id
       LEFT JOIN users ue ON o.edited_by = ue.id
-      WHERE o.active = 1 AND o.status = 'completado'
+      WHERE o.active = 1 AND o.status = 'Completado'
       ORDER BY o.id DESC
     `);
     
@@ -109,9 +132,22 @@ class OrderRepository {
           OR o.description LIKE ?
           OR c.name LIKE ?
           OR c.phone LIKE ?
+          OR EXISTS (
+            SELECT 1 FROM order_products op
+            LEFT JOIN products p ON op.product_id = p.id
+            LEFT JOIN product_templates pt ON op.template_id = pt.id
+            LEFT JOIN products pt_p ON pt.product_id = pt_p.id
+            WHERE op.order_id = o.id
+            AND (
+              p.name LIKE ? 
+              OR p.description LIKE ?
+              OR pt.description LIKE ?
+              OR pt_p.name LIKE ?
+            )
+          )
         )
       `;
-      searchParams = [term, term, term, term, term];
+      searchParams = [term, term, term, term, term, term, term, term, term];
     }
     
     // Obtener total de registros con búsqueda
@@ -119,7 +155,7 @@ class OrderRepository {
       SELECT COUNT(*) as total
       FROM orders o
       JOIN clients c ON o.client_id = c.id
-      WHERE o.active = 1 AND o.status = 'completado' ${searchCondition}
+      WHERE o.active = 1 AND o.status = 'Completado' ${searchCondition}
     `;
     const countStmt = db.prepare(countQuery);
     const { total } = countStmt.get(...searchParams);
@@ -127,7 +163,7 @@ class OrderRepository {
     // Obtener registros paginados con búsqueda
     const dataQuery = `
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
-            o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.active,
+            o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.responsable, o.active,
             c.name as client_name, c.phone as client_phone,
             u.username as user_username,
             ue.username as edited_by_username
@@ -135,7 +171,7 @@ class OrderRepository {
       JOIN clients c ON o.client_id = c.id
       JOIN users u ON o.user_id = u.id
       LEFT JOIN users ue ON o.edited_by = ue.id
-      WHERE o.active = 1 AND o.status = 'completado' ${searchCondition}
+      WHERE o.active = 1 AND o.status = 'Completado' ${searchCondition}
       ORDER BY o.id DESC
       LIMIT ? OFFSET ?
     `;
@@ -179,8 +215,8 @@ class OrderRepository {
     const transaction = db.transaction(() => {
       // Crear la orden
       const orderStmt = db.prepare(`
-        INSERT INTO orders (client_id, user_id, date, estimated_delivery_date, status, total, notes, description)
-        VALUES (?, ?, ?, ?, ?, 0, ?, ?)
+        INSERT INTO orders (client_id, user_id, date, estimated_delivery_date, status, responsable, total, notes, description)
+        VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)
       `);
       
       const orderResult = orderStmt.run(
@@ -188,7 +224,8 @@ class OrderRepository {
         orderData.user_id,
         orderData.date,
         orderData.estimated_delivery_date || null,
-        orderData.status || 'pendiente',
+        orderData.status || 'Revision',
+        orderData.responsable || "Mostrador",
         orderData.notes || null,
         orderData.description || null
       );
@@ -271,8 +308,11 @@ class OrderRepository {
     }
 
     const fieldsToUpdate = {};
+    if (orderData.client_id !== undefined) fieldsToUpdate.client_id = orderData.client_id;
+    if (orderData.date !== undefined) fieldsToUpdate.date = orderData.date;
     if (orderData.estimated_delivery_date !== undefined) fieldsToUpdate.estimated_delivery_date = orderData.estimated_delivery_date;
     if (orderData.status !== undefined) fieldsToUpdate.status = orderData.status;
+    if (orderData.responsable !== undefined) fieldsToUpdate.responsable = orderData.responsable;
     if (orderData.notes !== undefined) fieldsToUpdate.notes = orderData.notes;
     if (orderData.description !== undefined) fieldsToUpdate.description = orderData.description;
     if (orderData.edited_by !== undefined) fieldsToUpdate.edited_by = orderData.edited_by;
