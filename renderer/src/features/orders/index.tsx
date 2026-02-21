@@ -145,9 +145,12 @@ const OrdersPage: React.FC = () => {
               ${ordersToPrint.length === 0 ? '<tr><td colspan="10" class="center">No hay órdenes pendientes</td></tr>' : ''}
               ${ordersToPrint.map(order => {
                 const dateR = dayjs(order.date).format('DD/MM/YYYY');
-                const dateE = order.estimated_delivery_date 
-                  ? dayjs(order.estimated_delivery_date).format('DD/MM/YYYY') 
-                  : '-';
+                
+                let dateEObj = order.estimated_delivery_date ? dayjs(order.estimated_delivery_date) : null;
+                if (dateEObj && dateEObj.utc().hour() === 0 && dateEObj.utc().minute() === 0) {
+                   dateEObj = dateEObj.add(1, 'day');
+                }
+                const dateE = dateEObj ? dateEObj.format('DD/MM/YYYY') : '-';
                 
                 // Mapeo de estados a columnas
                 // Diseño -> Columna Diseño
