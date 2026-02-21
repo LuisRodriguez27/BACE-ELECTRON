@@ -8,8 +8,7 @@ class StatsRepository {
         FROM orders o
         JOIN order_products op ON o.id = op.order_id
         LEFT JOIN product_templates pt ON op.template_id = pt.id
-        WHERE LOWER(o.status) = 'completado' 
-          AND o.active = 1 
+        WHERE o.active = 1 
           AND o.date >= ? 
           AND o.date <= ?
           AND (op.product_id = ? OR pt.product_id = ?)
@@ -21,8 +20,7 @@ class StatsRepository {
       const stmt = db.prepare(`
         SELECT substr(date, 1, 10) as sale_date, SUM(total) as total, COUNT(id) as quantity
         FROM orders
-        WHERE LOWER(status) = 'completado' 
-          AND active = 1 
+        WHERE active = 1 
           AND date >= ? 
           AND date <= ?
         GROUP BY sale_date
@@ -43,8 +41,7 @@ class StatsRepository {
       LEFT JOIN product_templates pt ON op.template_id = pt.id
       LEFT JOIN products p_template ON pt.product_id = p_template.id
       JOIN products p ON (p_direct.id = p.id OR p_template.id = p.id)
-      WHERE LOWER(o.status) = 'completado' 
-        AND o.active = 1
+      WHERE o.active = 1
         AND o.date >= ? 
         AND o.date <= ?
       GROUP BY p.id
@@ -66,8 +63,7 @@ class StatsRepository {
         FROM orders o
         JOIN order_products op ON o.id = op.order_id
         LEFT JOIN product_templates pt ON op.template_id = pt.id
-        WHERE LOWER(o.status) = 'completado' 
-          AND o.active = 1 
+        WHERE o.active = 1 
           AND substr(o.date, 1, 10) IN (${placeholders})
           AND (op.product_id = ? OR pt.product_id = ?)
         GROUP BY sale_date
@@ -78,8 +74,7 @@ class StatsRepository {
       const stmt = db.prepare(`
         SELECT substr(date, 1, 10) as sale_date, SUM(total) as total, COUNT(id) as quantity
         FROM orders
-        WHERE LOWER(status) = 'completado' 
-          AND active = 1 
+        WHERE active = 1 
           AND substr(date, 1, 10) IN (${placeholders})
         GROUP BY sale_date
         ORDER BY sale_date ASC
@@ -100,8 +95,7 @@ class StatsRepository {
       LEFT JOIN product_templates pt ON op.template_id = pt.id
       LEFT JOIN products p_template ON pt.product_id = p_template.id
       JOIN products p ON (p_direct.id = p.id OR p_template.id = p.id)
-      WHERE LOWER(o.status) = 'completado' 
-        AND o.active = 1
+      WHERE o.active = 1
         AND substr(o.date, 1, 10) IN (${placeholders})
       GROUP BY p.id
       ORDER BY total DESC
@@ -115,7 +109,7 @@ class StatsRepository {
       const stmt = db.prepare(`
         SELECT DISTINCT substr(date, 1, 4) as year
         FROM orders
-        WHERE LOWER(status) = 'completado' AND active = 1 AND date IS NOT NULL
+        WHERE active = 1 AND date IS NOT NULL
         ORDER BY year DESC
       `);
       
@@ -144,8 +138,7 @@ class StatsRepository {
     const stmt = db.prepare(`
       SELECT DISTINCT substr(date, 1, 10) as sale_date
       FROM orders
-      WHERE LOWER(status) = 'completado' 
-        AND active = 1 
+      WHERE active = 1 
         AND substr(date, 1, 4) = ?
       ORDER BY sale_date ASC
     `);
