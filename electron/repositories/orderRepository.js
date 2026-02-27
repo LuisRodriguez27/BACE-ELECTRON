@@ -7,7 +7,7 @@ class OrderRepository {
     const stmt = db.prepare(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
             o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.responsable, o.active,
-            c.name as client_name, c.phone as client_phone,
+            c.name as client_name, c.phone as client_phone, c.color as client_color,
             u.username as user_username,
             ue.username as edited_by_username
       FROM orders o
@@ -30,7 +30,7 @@ class OrderRepository {
     const orderData = await db.prepare(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
             o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.responsable, o.active,
-            c.name as client_name, c.phone as client_phone,
+            c.name as client_name, c.phone as client_phone, c.color as client_color,
             u.username as user_username,
             ue.username as edited_by_username
       FROM orders o
@@ -51,7 +51,7 @@ class OrderRepository {
     const stmt = db.prepare(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
             o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.active,
-            c.name as client_name, c.phone as client_phone,
+            c.name as client_name, c.phone as client_phone, c.color as client_color,
             u.username as user_username,
             ue.username as edited_by_username
       FROM orders o
@@ -74,7 +74,7 @@ class OrderRepository {
     const stmt = db.prepare(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
             o.estimated_delivery_date, o.status, o.responsable, o.total, o.notes, o.description, o.active,
-            c.name as client_name, c.phone as client_phone,
+            c.name as client_name, c.phone as client_phone, c.color as client_color,
             u.username as user_username,
             ue.username as edited_by_username
       FROM orders o
@@ -97,7 +97,7 @@ class OrderRepository {
     const stmt = db.prepare(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
             o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.active,
-            c.name as client_name, c.phone as client_phone,
+            c.name as client_name, c.phone as client_phone, c.color as client_color,
             u.username as user_username,
             ue.username as edited_by_username
       FROM orders o
@@ -164,7 +164,7 @@ class OrderRepository {
     const dataQuery = `
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
             o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.responsable, o.active,
-            c.name as client_name, c.phone as client_phone,
+            c.name as client_name, c.phone as client_phone, c.color as client_color,
             u.username as user_username,
             ue.username as edited_by_username
       FROM orders o

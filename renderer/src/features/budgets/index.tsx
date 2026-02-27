@@ -12,6 +12,8 @@ import { BudgetApiService } from './BudgetApiService';
 import CreateBudgetModal from './components/CreateBudgetModal';
 import type { Budget } from './types';
 import BudgetPrintPreviewModal from './components/BudgetPrintPreviewModal';
+import ClientColorIndicator from '../clients/components/ClientColorIndicator';
+import type { ClientColor } from '../clients/types';
 
 interface PaginationInfo {
   page: number;
@@ -421,9 +423,14 @@ const BudgetsPage: React.FC = () => {
                             <span className="text-sm font-medium text-gray-700">Cliente:</span>
                             <p className="text-xs text-gray-600">ID: {budget.client.id}</p>
                             <p className="text-sm text-gray-600">{budget.client.name}</p>
-                            {budget.client.phone && (
-                              <p className="text-xs text-gray-500">{budget.client.phone}</p>
-                            )}
+                            <div className="flex items-center gap-2 mt-1">
+                              {budget.client.phone && (
+                                <p className="text-xs text-gray-500">{budget.client.phone}</p>
+                              )}
+                              {budget.client.color && (
+                                <ClientColorIndicator color={budget.client.color as ClientColor} size="sm" />
+                              )}
+                            </div>
                           </div>
                         )}
 

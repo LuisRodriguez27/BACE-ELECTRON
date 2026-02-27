@@ -8,6 +8,8 @@ import { getBudgetItemDescription, getBudgetItemDisplayName, getBudgetItemType, 
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
+import ClientColorIndicator from '../../clients/components/ClientColorIndicator';
+import type { ClientColor } from '../../clients/types';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -177,7 +179,14 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
       <!-- Use fixed column widths to avoid shifting when name is short -->
       <div style="display: grid; grid-template-columns: 17rem 8rem 1rem; column-gap: 5.5rem; align-items: center;">
         <!-- Cliente -->
-        <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(1em - 2px);">
+        <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(1em - 2px); display: flex; align-items: center; gap: 0.5rem;">
+          ${budgetData.client?.color ? 
+            `<div style="width: 1rem; height: 1rem; border-radius: 9999px; background-color: ${
+                budgetData.client.color === 'green' ? '#22c55e' : 
+                budgetData.client.color === 'yellow' ? '#eab308' : 
+                budgetData.client.color === 'red' ? '#ef4444' : 'transparent'
+            }; flex-shrink: 0;"></div>` 
+          : ''}
           ${budgetData.client?.name || 'Cliente no especificado'}
         </div>
 
@@ -336,8 +345,11 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
                 {/* fixed columns to prevent shifting */}
                 <div style={{ display: 'grid', gridTemplateColumns: '17rem 8rem 1rem', columnGap: '5rem', alignItems: 'center' }}>
                   {/* Cliente */}
-                  <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', fontSize: 'calc(1em - 2px)' }}>
-                    {budgetData.client?.name || 'Cliente no especificado'}
+                  <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', fontSize: 'calc(1em - 2px)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    {budgetData.client?.color && (
+                      <ClientColorIndicator color={budgetData.client.color as ClientColor} size="md" />
+                    )}
+                    <span>{budgetData.client?.name || 'Cliente no especificado'}</span>
                   </div>
 
                   {/* Numero de telefono */}

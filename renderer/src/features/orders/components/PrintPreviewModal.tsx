@@ -4,9 +4,12 @@ import { X, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import notaImage from '@/assets/NOTA.jpg';
 import specialPriceImage from '@/assets/special-price.png';
-import { getOrderItemDisplayName, getOrderItemDescription, getOrderItemType } from '../types'; import dayjs from 'dayjs';
+import { getOrderItemDisplayName, getOrderItemDescription, getOrderItemType } from '../types'; 
+import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
+import ClientColorIndicator from '../../clients/components/ClientColorIndicator';
+import type { ClientColor } from '../../clients/types';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -162,7 +165,14 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
         <div style="position: absolute; top: 7.5rem; left: 6.25rem; font-size: 1.25rem; line-height: 1; font-weight: 700; color: rgb(0, 0, 0);">
             <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5rem;">
                 <!-- Cliente -->
-            <div style="grid-column: span 1 / span 1; font-size: calc(1em - 2px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            <div style="grid-column: span 1 / span 1; font-size: calc(1em - 2px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem;">
+                    ${orderData.client?.color ? 
+                        `<div style="width: 1rem; height: 1rem; border-radius: 9999px; background-color: ${
+                            orderData.client.color === 'green' ? '#22c55e' : 
+                            orderData.client.color === 'yellow' ? '#eab308' : 
+                            orderData.client.color === 'red' ? '#ef4444' : 'transparent'
+                        }; flex-shrink: 0;"></div>` 
+                    : ''}
                     ${orderData.client?.name || 'Cliente no especificado'}
                 </div>
                 
@@ -438,8 +448,11 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
               <div className='absolute top-32 left-25 text-xl font-bold text-black'>
                 <div className="grid grid-cols-2 gap-20">
                   {/* Cliente */}
-                  <div className="truncate" style={{ fontSize: 'calc(1em - 2px)' }}>
-                    {orderData.client?.name || 'Cliente no especificado'}
+                  <div className="truncate flex items-center gap-2" style={{ fontSize: 'calc(1em - 2px)' }}>
+                    {orderData.client?.color && (
+                      <ClientColorIndicator color={orderData.client.color as ClientColor} size="md" />
+                    )}
+                    <span>{orderData.client?.name || 'Cliente no especificado'}</span>
                   </div>
 
                   {/* Numero de telefono */}

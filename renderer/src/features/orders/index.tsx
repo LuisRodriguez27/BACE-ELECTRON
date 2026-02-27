@@ -12,6 +12,8 @@ import { OrdersApiService } from './OrdersApiService';
 import type { Order } from './types';
 import { getOrderItemDisplayName } from './types';
 import { usePermissions } from '@/hooks/use-permissions';
+import ClientColorIndicator from '../clients/components/ClientColorIndicator';
+import type { ClientColor } from '../clients/types';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -645,9 +647,14 @@ const OrdersPage: React.FC = () => {
                           <span className="text-sm font-medium text-gray-700">Cliente:</span>
                           <div className="text-sm text-gray-600">ID: {order.client_id}</div>
                           <p className="text-sm text-gray-600">{order.client.name}</p>
-                          {order.client.phone && (
-                            <p className="text-xs text-gray-500">{order.client.phone}</p>
-                          )}
+                          <div className="flex items-center gap-2 mt-1">
+                            {order.client.phone && (
+                              <p className="text-xs text-gray-500">{order.client.phone}</p>
+                            )}
+                            {order.client.color && (
+                              <ClientColorIndicator color={order.client.color as ClientColor} size="sm" />
+                            )}
+                          </div>
                         </div>
                       )}
 

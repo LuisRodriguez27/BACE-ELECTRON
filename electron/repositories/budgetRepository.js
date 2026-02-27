@@ -6,7 +6,7 @@ class BudgetRepository {
     const stmt = db.prepare(`
       SELECT b.id, b.client_id, b.user_id, b.edited_by, b.date, 
             b.total, b.converted_to_order, b.active,
-            c.name AS client_name, c.phone AS client_phone,
+            c.name AS client_name, c.phone AS client_phone, c.color AS client_color,
             u.username AS user_username,
             ue.username AS edited_by_username
       FROM budgets b
@@ -28,7 +28,7 @@ class BudgetRepository {
     const budgetData = await db.prepare(`
       SELECT b.id, b.client_id, b.user_id, b.edited_by, b.date, 
             b.total, b.converted_to_order, b.active,
-            c.name AS client_name, c.phone AS client_phone,
+            c.name AS client_name, c.phone AS client_phone, c.color AS client_color,
             u.username AS user_username,
             ue.username AS edited_by_username
       FROM budgets b
@@ -48,7 +48,7 @@ class BudgetRepository {
     const stmt = db.prepare(`
       SELECT b.id, b.client_id, b.user_id, b.edited_by, b.date, 
             b.total, b.converted_to_order, b.active,
-            c.name AS client_name, c.phone AS client_phone,
+            c.name AS client_name, c.phone AS client_phone, c.color AS client_color,
             u.username AS user_username,
             ue.username AS edited_by_username
       FROM budgets b
@@ -112,7 +112,7 @@ class BudgetRepository {
     const dataQuery = `
       SELECT b.id, b.client_id, b.user_id, b.edited_by, b.date, 
             b.total, b.converted_to_order, b.active,
-            c.name AS client_name, c.phone AS client_phone,
+            c.name AS client_name, c.phone AS client_phone, c.color AS client_color,
             u.username AS user_username,
             ue.username AS edited_by_username
       FROM budgets b
