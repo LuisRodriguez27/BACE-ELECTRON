@@ -4,7 +4,7 @@ class ProductService {
 
   async getAllProducts() {
     try {
-      const products = productRepository.findAll();
+      const products = await productRepository.findAll();
       return products.map(product => product.toPlainObject());
     } catch (error) {
       console.error('Error al obtener productos:', error);
@@ -18,7 +18,7 @@ class ProductService {
         throw new Error('ID de producto inválido');
       }
 
-      const product = productRepository.findById(parseInt(id));
+      const product = await productRepository.findById(parseInt(id));
 
       if (!product) {
         throw new Error('Producto no encontrado');
@@ -55,13 +55,13 @@ class ProductService {
       // Validar número de serie si se proporciona
       if (serial_number && serial_number.trim() !== '') {
         // Verificar si el número de serie ya existe
-        if (productRepository.existsBySerialNumber(serial_number.trim())) {
+        if (await productRepository.existsBySerialNumber(serial_number.trim())) {
           throw new Error('Ya existe un producto con este número de serie');
         }
       }
 
       // Crear producto
-      const product = productRepository.create({
+      const product = await productRepository.create({
         name: name.trim(),
         serial_number: serial_number?.trim() || null,
         price: numericPrice,
@@ -93,7 +93,7 @@ class ProductService {
       const productId = parseInt(id);
 
       // Verificar si el producto existe
-      const existingProduct = productRepository.findById(productId);
+      const existingProduct = await productRepository.findById(productId);
       if (!existingProduct) {
         throw new Error('Producto no encontrado');
       }
@@ -111,13 +111,13 @@ class ProductService {
       // Validar número de serie si se proporciona
       if (serial_number && serial_number.trim() !== '') {
         // Verificar si el número de serie ya está en uso por otro producto
-        if (productRepository.existsBySerialNumber(serial_number.trim(), productId)) {
+        if (await productRepository.existsBySerialNumber(serial_number.trim(), productId)) {
           throw new Error('Ya existe otro producto con este número de serie');
         }
       }
 
       // Actualizar producto
-      const updated = productRepository.update(productId, {
+      const updated = await productRepository.update(productId, {
         name: name.trim(),
         serial_number: serial_number?.trim() || null,
         price: numericPrice,
@@ -129,7 +129,7 @@ class ProductService {
       }
 
       // Obtener producto actualizado
-      const updatedProduct = productRepository.findById(productId);
+      const updatedProduct = await productRepository.findById(productId);
       
       if (!updatedProduct) {
         throw new Error('Error: no se pudo recuperar el producto actualizado');
@@ -160,7 +160,7 @@ class ProductService {
       const productId = parseInt(id);
 
       // Verificar si el producto existe
-      const existingProduct = productRepository.findById(productId);
+      const existingProduct = await productRepository.findById(productId);
       if (!existingProduct) {
         throw new Error('Producto no encontrado');
       }
@@ -179,7 +179,7 @@ class ProductService {
       //   throw new Error('No se puede eliminar un producto que está en órdenes activas');
       // }
 
-      const deleted = productRepository.delete(productId);
+      const deleted = await productRepository.delete(productId);
 
       if (!deleted) {
         throw new Error('Error al eliminar producto');
@@ -198,7 +198,7 @@ class ProductService {
         return this.getAllProducts();
       }
 
-      const products = productRepository.searchByTerm(searchTerm.trim());
+      const products = await productRepository.searchByTerm(searchTerm.trim());
       return products.map(product => product.toPlainObject());
     } catch (error) {
       console.error('Error al buscar productos:', error);
@@ -208,7 +208,7 @@ class ProductService {
 
   async getProductsCount() {
     try {
-      return productRepository.countActiveProducts();
+      return await productRepository.countActiveProducts();
     } catch (error) {
       console.error('Error al contar productos:', error);
       throw new Error('Error al contar productos');
@@ -221,7 +221,7 @@ class ProductService {
         throw new Error('ID de producto inválido');
       }
 
-      const productWithTemplates = productRepository.findWithTemplates(parseInt(productId));
+      const productWithTemplates = await productRepository.findWithTemplates(parseInt(productId));
       
       if (!productWithTemplates) {
         throw new Error('Producto no encontrado');
@@ -236,7 +236,7 @@ class ProductService {
 
   async getAllProductsWithTemplates() {
     try {
-      return productRepository.findAllWithTemplates();
+      return await productRepository.findAllWithTemplates();
     } catch (error) {
       console.error('Error al obtener productos con plantillas:', error);
       throw new Error('Error al obtener productos con plantillas');
@@ -257,7 +257,7 @@ class ProductService {
         throw new Error('El precio mínimo no puede ser mayor al precio máximo');
       }
 
-      const products = productRepository.findByPriceRange(minPrice, maxPrice);
+      const products = await productRepository.findByPriceRange(minPrice, maxPrice);
       return products.map(product => product.toPlainObject());
     } catch (error) {
       console.error('Error al obtener productos por rango de precio:', error);
@@ -271,7 +271,7 @@ class ProductService {
         limit = 10;
       }
 
-      const products = productRepository.findMostUsed(limit);
+      const products = await productRepository.findMostUsed(limit);
       return products.map(product => product.toPlainObject());
     } catch (error) {
       console.error('Error al obtener productos más utilizados:', error);

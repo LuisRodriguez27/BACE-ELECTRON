@@ -1,10 +1,10 @@
 const db = require('../db');
 
 class StatsRepository {
-  getSalesByDate(startDate, endDate, productId = null) {
+  async getSalesByDate(startDate, endDate, productId = null) {
     if (productId) {
       const stmt = db.prepare(`
-        SELECT substr(o.date, 1, 10) as sale_date, SUM(op.total_price) as total, SUM(op.quantity) as quantity
+        SELECT TO_CHAR(o.date, 'YYYY-MM-DD') as sale_date, SUM(op.total_price) as total, SUM(op.quantity) as quantity
         FROM orders o
         JOIN order_products op ON o.id = op.order_id
         LEFT JOIN product_templates pt ON op.template_id = pt.id
@@ -15,10 +15,10 @@ class StatsRepository {
         GROUP BY sale_date
         ORDER BY sale_date ASC
       `);
-      return stmt.all(startDate, endDate, productId, productId);
+      return await stmt.all(startDate, endDate, productId, productId);
     } else {
       const stmt = db.prepare(`
-        SELECT substr(date, 1, 10) as sale_date, SUM(total) as total, COUNT(id) as quantity
+        SELECT TO_CHAR(date, 'YYYY-MM-DD') as sale_date, SUM(total) as total, COUNT(id) as quantity
         FROM orders
         WHERE active = 1 
           AND date >= ? 
@@ -26,11 +26,11 @@ class StatsRepository {
         GROUP BY sale_date
         ORDER BY sale_date ASC
       `);
-      return stmt.all(startDate, endDate);
+      return await stmt.all(startDate, endDate);
     }
   }
 
-  getSalesByProduct(startDate, endDate) {
+  async getSalesByProduct(startDate, endDate) {
     // Need to handle direct products and templates
     // If template_id is used, we trace back to the product via product_templates
     const stmt = db.prepare(`
@@ -48,10 +48,10 @@ class StatsRepository {
       ORDER BY total DESC
     `);
     
-    return stmt.all(startDate, endDate);
+    return await stmt.all(startDate, endDate);
   }
 
-  getSalesBySpecificDates(dates, productId = null) {
+  async getSalesBySpecificDates(dates, productId = null) {
     if (!dates || dates.length === 0) return [];
     
     // Create placeholders for the IN clause
@@ -59,31 +59,31 @@ class StatsRepository {
     
     if (productId) {
       const stmt = db.prepare(`
-        SELECT substr(o.date, 1, 10) as sale_date, SUM(op.total_price) as total, SUM(op.quantity) as quantity
+        SELECT TO_CHAR(o.date, 'YYYY-MM-DD') as sale_date, SUM(op.total_price) as total, SUM(op.quantity) as quantity
         FROM orders o
         JOIN order_products op ON o.id = op.order_id
         LEFT JOIN product_templates pt ON op.template_id = pt.id
         WHERE o.active = 1 
-          AND substr(o.date, 1, 10) IN (${placeholders})
+          AND TO_CHAR(o.date, 'YYYY-MM-DD') IN (${placeholders})
           AND (op.product_id = ? OR pt.product_id = ?)
         GROUP BY sale_date
         ORDER BY sale_date ASC
       `);
-      return stmt.all(...dates, productId, productId);
+      return await stmt.all(...dates, productId, productId);
     } else {
       const stmt = db.prepare(`
-        SELECT substr(date, 1, 10) as sale_date, SUM(total) as total, COUNT(id) as quantity
+        SELECT TO_CHAR(date, 'YYYY-MM-DD') as sale_date, SUM(total) as total, COUNT(id) as quantity
         FROM orders
         WHERE active = 1 
-          AND substr(date, 1, 10) IN (${placeholders})
+          AND TO_CHAR(date, 'YYYY-MM-DD') IN (${placeholders})
         GROUP BY sale_date
         ORDER BY sale_date ASC
       `);
-      return stmt.all(...dates);
+      return await stmt.all(...dates);
     }
   }
 
-  getSalesByProductForDates(dates) {
+  async getSalesByProductForDates(dates) {
     if (!dates || dates.length === 0) return [];
     const placeholders = dates.map(() => '?').join(',');
 
@@ -96,24 +96,24 @@ class StatsRepository {
       LEFT JOIN products p_template ON pt.product_id = p_template.id
       JOIN products p ON (p_direct.id = p.id OR p_template.id = p.id)
       WHERE o.active = 1
-        AND substr(o.date, 1, 10) IN (${placeholders})
+        AND TO_CHAR(o.date, 'YYYY-MM-DD') IN (${placeholders})
       GROUP BY p.id
       ORDER BY total DESC
     `);
     
-    return stmt.all(...dates);
+    return await stmt.all(...dates);
   }
 
-  getAvailableYears() {
+  async getAvailableYears() {
     try {
       const stmt = db.prepare(`
-        SELECT DISTINCT substr(date, 1, 4) as year
+        SELECT DISTINCT TO_CHAR(date, 'YYYY') as year
         FROM orders
         WHERE active = 1 AND date IS NOT NULL
         ORDER BY year DESC
       `);
       
-      const rawResults = stmt.all();
+      const rawResults = await stmt.all();
 
       // Add current year if not present
       const years = rawResults.map(r => parseInt(r.year)).filter(y => !isNaN(y));
@@ -133,17 +133,17 @@ class StatsRepository {
     }
   }
 
-  getAvailableWeeks(year) {
+  async getAvailableWeeks(year) {
     // Return all sale dates for the year so we can calculate weeks accurately in the service using date-fns
     const stmt = db.prepare(`
-      SELECT DISTINCT substr(date, 1, 10) as sale_date
+      SELECT DISTINCT TO_CHAR(date, 'YYYY-MM-DD') as sale_date
       FROM orders
       WHERE active = 1 
-        AND substr(date, 1, 4) = ?
+        AND TO_CHAR(date, 'YYYY') = ?
       ORDER BY sale_date ASC
     `);
     
-    return stmt.all(year.toString()).map(r => r.sale_date);
+    return (await stmt.all(year.toString())).map(r => r.sale_date);
   }
 }
 

@@ -169,6 +169,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         setValue('estimated_delivery_date', '');
       }
       setValue('status', orderData.status);
+      setValue('responsable', orderData.responsable || 'Mostrador');
       setValue('notes', orderData.notes || '');
       setValue('description', orderData.description || '');
       

@@ -21,7 +21,7 @@ class BudgetService {
       if (page < 1) page = 1;
       if (limit < 1 || limit > 100) limit = 10;
       
-      const result = budgetRepository.findAllPaginated(page, limit, searchTerm);
+      const result = await budgetRepository.findAllPaginated(page, limit, searchTerm);
       
       return {
         data: result.data.map(budget => budget.toPlainObject()),
@@ -40,7 +40,7 @@ class BudgetService {
         throw new Error('ID de presupuesto inválido.');
       }
 
-      const budget = budgetRepository.findById(id);
+      const budget = await budgetRepository.findById(id);
       if (!budget) {
         throw new Error('Presupuesto no encontrado.');
       }
@@ -57,7 +57,7 @@ class BudgetService {
       if (!clientId || isNaN(clientId)) {
         throw new Error('ID de cliente inválido.');
       }
-      const budgets = budgetRepository.findByClientId(parseInt(clientId));
+      const budgets = await budgetRepository.findByClientId(parseInt(clientId));
       return budgets.map(budget => budget.toPlainObject());
     } catch (error) {
       console.error('Error al obtener presupuestos por cliente:', error);
@@ -101,13 +101,13 @@ class BudgetService {
       }
 
       // Verificar que el cliente existe
-      const client = clientRepository.findById(parseInt(client_id));
+      const client = await clientRepository.findById(parseInt(client_id));
       if (!client) {
         throw new Error('El cliente especificado no existe');
       }
 
       // Verificar que el usuario existe
-      const user = userRepository.findById(parseInt(user_id));
+      const user = await userRepository.findById(parseInt(user_id));
       if (!user) {
         throw new Error('El usuario especificado no existe');
       }
@@ -143,14 +143,14 @@ class BudgetService {
 
         // Verificar que el producto o plantilla existe
         if (hasProduct) {
-          const productExists = productRepository.findById(parseInt(item.product_id));
+          const productExists = await productRepository.findById(parseInt(item.product_id));
           if (!productExists) {
             throw new Error(`Item ${index + 1}: El producto especificado no existe`);
           }
         }
 
         if (hasTemplate) {
-          const templateExists = productTemplateRepository.findById(parseInt(item.template_id));
+          const templateExists = await productTemplateRepository.findById(parseInt(item.template_id));
           if (!templateExists) {
             throw new Error(`Item ${index + 1}: La plantilla especificada no existe`);
           }
@@ -169,7 +169,7 @@ class BudgetService {
         }))
       }
 
-      const budget = budgetRepository.create(budgetToCreate);
+      const budget = await budgetRepository.create(budgetToCreate);
       return budget.toPlainObject();
 
     } catch (error) {
@@ -187,7 +187,7 @@ class BudgetService {
       const budgetId = parseInt(id);
 
       // Verificar si el presupuesto existe
-      const existingBudget = budgetRepository.findById(budgetId);
+      const existingBudget = await budgetRepository.findById(budgetId);
       if (!existingBudget) {
         throw new Error('Presupuesto no encontrado');
       }
@@ -212,7 +212,7 @@ class BudgetService {
          if (isNaN(client_id)) {
             throw new Error('ID de cliente inválido');
          }
-         const client = clientRepository.findById(parseInt(client_id));
+         const client = await clientRepository.findById(parseInt(client_id));
          if (!client) {
             throw new Error('El cliente especificado no existe');
          }
@@ -223,7 +223,7 @@ class BudgetService {
         if (isNaN(edited_by)) {
           throw new Error('ID de usuario editor inválido');
         }
-        const editorUser = userRepository.findById(parseInt(edited_by));
+        const editorUser = await userRepository.findById(parseInt(edited_by));
         if (!editorUser) {
           throw new Error('El usuario editor especificado no existe');
         }
@@ -253,13 +253,13 @@ class BudgetService {
             throw new Error(`Item ${index + 1}: Precio unitario inválido`);
           }
           if (hasProduct) {
-            const productExists = productRepository.findById(parseInt(item.product_id));
+            const productExists = await productRepository.findById(parseInt(item.product_id));
             if (!productExists) {
               throw new Error(`Item ${index + 1}: El producto especificado no existe`);
             }
           }
           if (hasTemplate) {
-            const templateExists = productTemplateRepository.findById(parseInt(item.template_id));
+            const templateExists = await productTemplateRepository.findById(parseInt(item.template_id));
             if (!templateExists) {
               throw new Error(`Item ${index + 1}: La plantilla especificada no existe`);
             }
@@ -283,7 +283,7 @@ class BudgetService {
         }));
       }
 
-      const updatedBudget = budgetRepository.update(budgetId, updatePayload);
+      const updatedBudget = await budgetRepository.update(budgetId, updatePayload);
 
       return updatedBudget.toPlainObject();
     } catch (error) {
@@ -300,12 +300,12 @@ class BudgetService {
 
       const budgetId = parseInt(id);
 
-      const existingBudget = budgetRepository.findById(budgetId);
+      const existingBudget = await budgetRepository.findById(budgetId);
       if (!existingBudget) {
         throw new Error('El presupuesto que intenta eliminar no existe.');
       }
 
-      const deleted = budgetRepository.delete(budgetId);
+      const deleted = await budgetRepository.delete(budgetId);
       if (!deleted) {
         throw new Error('No se pudo eliminar el presupuesto.');
       }
@@ -322,7 +322,7 @@ class BudgetService {
         throw new Error('ID de presupuesto inválido.');
       }
 
-      const product = budgetRepository.getBudgetProducts(parseInt(budgetId));
+      const product = await budgetRepository.getBudgetProducts(parseInt(budgetId));
       return product;
     } catch (error) {
       console.error('Error al obtener los productos del presupuesto:', error);
@@ -338,12 +338,12 @@ class BudgetService {
 
       const budgetId = parseInt(id);
 
-      const existingBudget = budgetRepository.findById(budgetId);
+      const existingBudget = await budgetRepository.findById(budgetId);
       if (!existingBudget) {
         throw new Error('El presupuesto que intenta recalcular no existe.');
       }
 
-      const newTotal = budgetRepository.recalculateTotal(budgetId);
+      const newTotal = await budgetRepository.recalculateTotal(budgetId);
 
       return {
         budgetId,
@@ -374,7 +374,7 @@ class BudgetService {
       const parsedUserId = parseInt(userId);
 
       // Verificar que el presupuesto existe
-      const existingBudget = budgetRepository.findById(parsedBudgetId);
+      const existingBudget = await budgetRepository.findById(parsedBudgetId);
       if (!existingBudget) {
         throw new Error('El presupuesto no existe.');
       }
@@ -385,17 +385,17 @@ class BudgetService {
       }
 
       // Verificar que el usuario existe
-      const user = userRepository.findById(parsedUserId);
+      const user = await userRepository.findById(parsedUserId);
       if (!user) {
         throw new Error('El usuario especificado no existe.');
       }
 
       // Transformar el presupuesto a orden
-      const orderId = budgetRepository.transformToOrder(parsedBudgetId, parsedUserId);
+      const orderId = await budgetRepository.transformToOrder(parsedBudgetId, parsedUserId);
 
       // Obtener la orden creada usando el orderRepository
       const orderRepository = require('../repositories/orderRepository');
-      const order = orderRepository.findById(orderId);
+      const order = await orderRepository.findById(orderId);
 
       return order.toPlainObject();
     } catch (error) {
@@ -406,7 +406,7 @@ class BudgetService {
 
   async getNextId() {
     try {
-      return budgetRepository.getNextId();
+      return await budgetRepository.getNextId();
     } catch (error) {
       console.error('Error al obtener el próximo ID de presupuesto:', error);
       throw new Error('No se pudo obtener el próximo ID de presupuesto.');
