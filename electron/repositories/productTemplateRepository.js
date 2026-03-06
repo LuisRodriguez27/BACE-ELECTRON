@@ -3,7 +3,7 @@ const ProductTemplate = require('../domain/productTemplate');
 
 class ProductTemplateRepository {
 
-  findAll() {
+  async findAll() {
     const stmt = db.prepare(`
       SELECT 
         pt.*,
@@ -17,11 +17,11 @@ class ProductTemplateRepository {
       ORDER BY pt.id DESC
     `);
     
-    const templates = stmt.all();
+    const templates = await stmt.all();
     return templates.map(template => new ProductTemplate(template));
   }
 
-  findById(id) {
+  async findById(id) {
     const stmt = db.prepare(`
       SELECT 
         pt.*,
@@ -34,13 +34,13 @@ class ProductTemplateRepository {
       WHERE pt.id = ? AND pt.active = 1
     `);
     
-    const template = stmt.get(id);
+    const template = await stmt.get(id);
     if (!template) return null;
     
     return new ProductTemplate(template);
   }
 
-  findByProductId(productId) {
+  async findByProductId(productId) {
     const stmt = db.prepare(`
       SELECT 
         pt.*,
@@ -54,11 +54,11 @@ class ProductTemplateRepository {
       ORDER BY pt.id DESC
     `);
     
-    const templates = stmt.all(productId);
+    const templates = await stmt.all(productId);
     return templates.map(template => new ProductTemplate(template));
   }
 
-  create(templateData) {
+  async create(templateData) {
     const stmt = db.prepare(`
       INSERT INTO product_templates (
         product_id, final_price, width, height, colors, position, 
@@ -66,7 +66,7 @@ class ProductTemplateRepository {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     
-    const result = stmt.run(
+    const result = await stmt.run(
       templateData.product_id,
       templateData.final_price,
       templateData.width || null,
@@ -78,10 +78,10 @@ class ProductTemplateRepository {
       templateData.created_by || null
     );
     
-    return this.findById(result.lastInsertRowid);
+    return await this.findById(result.lastInsertRowid);
   }
 
-  update(id, templateData) {
+  async update(id, templateData) {
     const stmt = db.prepare(`
       UPDATE product_templates 
       SET product_id = ?, final_price = ?, width = ?, height = ?, colors = ?, 
@@ -89,7 +89,7 @@ class ProductTemplateRepository {
       WHERE id = ?
     `);
     
-    const result = stmt.run(
+    const result = await stmt.run(
       templateData.product_id,
       templateData.final_price,
       templateData.width || null,
@@ -104,15 +104,15 @@ class ProductTemplateRepository {
     return result.changes > 0;
   }
 
-  delete(id) {
+  async delete(id) {
     const stmt = db.prepare('UPDATE product_templates SET active = 0 WHERE id = ?');
-    const result = stmt.run(id);
+    const result = await stmt.run(id);
     
     return result.changes > 0;
   }
 
   // Búsqueda avanzada
-  searchByTerm(searchTerm) {
+  async searchByTerm(searchTerm) {
     const stmt = db.prepare(`
       SELECT 
         pt.*,
@@ -123,18 +123,18 @@ class ProductTemplateRepository {
       JOIN products p ON pt.product_id = p.id
       LEFT JOIN users u ON pt.created_by = u.id
       WHERE pt.active = 1 AND (
-        pt.description LIKE ? OR 
-        p.name LIKE ? OR 
-        p.serial_number LIKE ? OR
-        pt.position LIKE ? OR
-        pt.texts LIKE ? OR
-        u.username LIKE ?
+        pt.description ILIKE ? OR 
+        p.name ILIKE ? OR 
+        p.serial_number ILIKE ? OR
+        pt.position ILIKE ? OR
+        pt.texts ILIKE ? OR
+        u.username ILIKE ?
       )
       ORDER BY pt.id DESC
     `);
     
     const term = `%${searchTerm}%`;
-    const templates = stmt.all(term, term, term, term, term, term);
+    const templates = await stmt.all(term, term, term, term, term, term);
     return templates.map(template => new ProductTemplate(template));
   }
 }

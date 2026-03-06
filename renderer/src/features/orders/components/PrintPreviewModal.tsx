@@ -3,10 +3,12 @@ import { Button } from '@/components/ui';
 import { X, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import notaImage from '@/assets/NOTA.jpg';
-import specialPriceImage from '@/assets/special-price.png';
-import { getOrderItemDisplayName, getOrderItemDescription, getOrderItemType } from '../types'; import dayjs from 'dayjs';
+import { getOrderItemDisplayName, getOrderItemDescription, getOrderItemType } from '../types';
+import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
+import ClientColorIndicator from '../../clients/components/ClientColorIndicator';
+import type { ClientColor } from '../../clients/types';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -110,22 +112,20 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
 
       // Obtener la imagen en base64
       const base64Image = await imageToBase64(notaImage);
-      
-      let base64SpecialPrice = '';
-      if (hasPreferentialPrice) {
-        base64SpecialPrice = await imageToBase64(specialPriceImage);
-      }
+
 
       // Generar HTML con el mismo diseño del preview visual
       const pagesHtml = productChunks.map((chunkProducts, index) => {
         const isLastPage = index === productChunks.length - 1;
         const pageBreak = index > 0 ? 'page-break-before: always;' : '';
-        
+
         return `
     <div class="print-container" style="${pageBreak}">
         ${hasPreferentialPrice ? `
         <!-- Sello de precio especial -->
-        <img src="${base64SpecialPrice}" style="position: absolute; bottom: 3rem; right: 4.8rem; width: 6rem; opacity: 0.8; transform: rotate(-12deg); z-index: 10;" alt="Precio Especial" />
+        <div style="position: absolute; bottom: 4rem; right: 4.8rem; width: 6.5rem; background-color: rgb(220, 38, 38); color: white; font-weight: bold; font-size: 0.55rem; text-align: center; padding: 0.35rem 0.25rem; box-sizing: border-box; z-index: 10; line-height: 1.2;">
+          USTED HA ADQUIRIDO UN PRECIO ESPECIAL
+        </div>
         ` : ''}
 
         <!-- Imagen de fondo como elemento IMG en lugar de background-image -->
@@ -162,7 +162,13 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
         <div style="position: absolute; top: 7.5rem; left: 6.25rem; font-size: 1.25rem; line-height: 1; font-weight: 700; color: rgb(0, 0, 0);">
             <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5rem;">
                 <!-- Cliente -->
-            <div style="grid-column: span 1 / span 1; font-size: calc(1em - 2px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            <div style="grid-column: span 1 / span 1; font-size: calc(1em - 2px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem;">
+                    ${orderData.client?.color ?
+            `<div style="width: 1rem; height: 1rem; border-radius: 9999px; background-color: ${orderData.client.color === 'green' ? '#22c55e' :
+              orderData.client.color === 'yellow' ? '#eab308' :
+                orderData.client.color === 'red' ? '#ef4444' : 'transparent'
+            }; flex-shrink: 0;"></div>`
+            : ''}
                     ${orderData.client?.name || 'Cliente no especificado'}
                 </div>
                 
@@ -190,7 +196,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                         </div>
                         <div>
                           ${getOrderItemDescription(product) ?
-          `<div style="font-size: 0.875rem; color: rgb(70, 80, 90); margin-top: -0.2rem; line-height: 1;">
+                `<div style="font-size: 0.875rem; color: rgb(70, 80, 90); margin-top: -0.2rem; line-height: 1;">
                               ${getOrderItemDescription(product)}
                             </div>` : ''}
                         </div>
@@ -392,146 +398,149 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
             {productChunks.map((chunkProducts, index) => {
               const isLastPage = index === productChunks.length - 1;
               return (
-              <div key={index} className="flex justify-center">
-                <div
-                  className="relative border border-gray-300 shadow-lg bg-cover bg-center bg-no-repeat"
-                  style={{
-                    width: '800px', // Tamaño fijo para preview
-                    height: '662px', // Mantiene proporción 1600:1324
-                    backgroundImage: `url(${notaImage})`
-                  }}
-                >
-              {hasPreferentialPrice && (
-                <img 
-                  src={specialPriceImage} 
-                  alt="Precio Especial" 
-                  className="absolute bottom-18 right-18 w-24 opacity-80 -rotate-12 select-none"
-                  style={{ zIndex: 10 }}
-                />
-              )}
-              {/* Fechas en dos columnas */}
-              <div className="absolute top-18 right-1 text-sm font-bold text-black">
-                <div className="flex items-start" style={{ minWidth: '255px' }}>
-                  <div className="text-right" style={{ width: '110px' }}>
-                    <div className="flex gap-4">
-                      <span>{getDay(orderData.date)}</span>
-                      <span>{getMonth(orderData.date)}</span>
-                      <span>{getYear(orderData.date)}</span>
-                    </div>
-                  </div>
-                  {orderData.estimated_delivery_date && (
-                    <div className="text-right" style={{ width: '100px' }}>
-                      <div className="flex gap-5">
-                        <span>{getDay(orderData.estimated_delivery_date)}</span>
-                        <span>{getMonth(orderData.estimated_delivery_date)}</span>
-                        <span>{getYear(orderData.estimated_delivery_date)}</span>
+                <div key={index} className="flex justify-center">
+                  <div
+                    className="relative border border-gray-300 shadow-lg bg-cover bg-center bg-no-repeat"
+                    style={{
+                      width: '800px', // Tamaño fijo para preview
+                      height: '662px', // Mantiene proporción 1600:1324
+                      backgroundImage: `url(${notaImage})`
+                    }}
+                  >
+                    {hasPreferentialPrice && (
+                      <div
+                        className="absolute bottom-20 right-18 w-26 bg-red-600 text-white font-bold text-center p-1.5 select-none"
+                        style={{ zIndex: 10, fontSize: '0.65rem', lineHeight: '1.2' }}
+                      >
+                        USTED HA ADQUIRIDO UN PRECIO ESPECIAL
+                      </div>
+                    )}
+                    {/* Fechas en dos columnas */}
+                    <div className="absolute top-18 right-1 text-sm font-bold text-black">
+                      <div className="flex items-start" style={{ minWidth: '255px' }}>
+                        <div className="text-right" style={{ width: '110px' }}>
+                          <div className="flex gap-4">
+                            <span>{getDay(orderData.date)}</span>
+                            <span>{getMonth(orderData.date)}</span>
+                            <span>{getYear(orderData.date)}</span>
+                          </div>
+                        </div>
+                        {orderData.estimated_delivery_date && (
+                          <div className="text-right" style={{ width: '100px' }}>
+                            <div className="flex gap-5">
+                              <span>{getDay(orderData.estimated_delivery_date)}</span>
+                              <span>{getMonth(orderData.estimated_delivery_date)}</span>
+                              <span>{getYear(orderData.estimated_delivery_date)}</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  )}
-                </div>
-              </div>
 
-              <div className='absolute top-32 right-55'>
-                {getHours(orderData.date)}
-              </div>
-
-              <div className='absolute top-32 left-25 text-xl font-bold text-black'>
-                <div className="grid grid-cols-2 gap-20">
-                  {/* Cliente */}
-                  <div className="truncate" style={{ fontSize: 'calc(1em - 2px)' }}>
-                    {orderData.client?.name || 'Cliente no especificado'}
-                  </div>
-
-                  {/* Numero de telefono */}
-                  <div className='ml-39'>
-                    {orderData.client?.phone || ''}
-                  </div>
-                </div>
-              </div>
-
-              {/* Productos en formato de tabla */}
-              <div className="absolute top-38 left-8 right-10 text-black">
-                <div className="grid grid-cols-12 gap-2 text-lg font-semibold mb-2 border-b border-gray-400 pb-1">
-                  <div className="col-span-1 text-center">Cant.</div>
-                  <div className="col-span-7 text-left">Producto</div>
-                  <div className="col-span-2 text-right">P. Unitario</div>
-                  <div className="col-span-2 text-right">Total</div>
-                </div>
-                {chunkProducts.map((product, index) => (
-                  <div
-                    key={index}
-                    className="grid grid-cols-12 gap-2 mb-2 text-base py-1"
-                  >
-                    <div className="col-span-1 text-center">
-                      {product.quantity}
+                    <div className='absolute top-32 right-55'>
+                      {getHours(orderData.date)}
                     </div>
-                    <div className="col-span-7 pl-1">
-                      <div className="font-medium">{getOrderItemDisplayName(product)}</div>
-                      {getOrderItemDescription(product) && (
-                        <div className="text-sm text-gray-700 -mt-2 leading-tight">
-                          {getOrderItemDescription(product)}
+
+                    <div className='absolute top-32 left-25 text-xl font-bold text-black'>
+                      <div className="grid grid-cols-2 gap-20">
+                        {/* Cliente */}
+                        <div className="truncate flex items-center gap-2" style={{ fontSize: 'calc(1em - 2px)' }}>
+                          {orderData.client?.color && (
+                            <ClientColorIndicator color={orderData.client.color as ClientColor} size="md" />
+                          )}
+                          <span>{orderData.client?.name || 'Cliente no especificado'}</span>
                         </div>
-                      )}
-                    </div>
-                    <div className="col-span-2 text-right font-medium">
-                      ${product.unit_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </div>
-                    <div className="col-span-2 text-right font-medium">
-                      ${product.total_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </div>
-                  </div>
-                ))}
-              </div>
 
-              {isLastPage && orderData.description && (
-                <div className="absolute bottom-37 left-20 right-10 text-sm text-red-800 p-2 rounded">
-                  <div className="line-clamp-4 break-words">
-                    {orderData.description}
+                        {/* Numero de telefono */}
+                        <div className='ml-39'>
+                          {orderData.client?.phone || ''}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Productos en formato de tabla */}
+                    <div className="absolute top-38 left-8 right-10 text-black">
+                      <div className="grid grid-cols-12 gap-2 text-lg font-semibold mb-2 border-b border-gray-400 pb-1">
+                        <div className="col-span-1 text-center">Cant.</div>
+                        <div className="col-span-7 text-left">Producto</div>
+                        <div className="col-span-2 text-right">P. Unitario</div>
+                        <div className="col-span-2 text-right">Total</div>
+                      </div>
+                      {chunkProducts.map((product, index) => (
+                        <div
+                          key={index}
+                          className="grid grid-cols-12 gap-2 mb-2 text-base py-1"
+                        >
+                          <div className="col-span-1 text-center">
+                            {product.quantity}
+                          </div>
+                          <div className="col-span-7 pl-1">
+                            <div className="font-medium">{getOrderItemDisplayName(product)}</div>
+                            {getOrderItemDescription(product) && (
+                              <div className="text-sm text-gray-700 -mt-2 leading-tight">
+                                {getOrderItemDescription(product)}
+                              </div>
+                            )}
+                          </div>
+                          <div className="col-span-2 text-right font-medium">
+                            ${product.unit_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </div>
+                          <div className="col-span-2 text-right font-medium">
+                            ${product.total_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {isLastPage && orderData.description && (
+                      <div className="absolute bottom-37 left-20 right-10 text-sm text-red-800 p-2 rounded">
+                        <div className="line-clamp-4 break-words">
+                          {orderData.description}
+                        </div>
+                      </div>
+                    )}
+
+
+                    <div className="absolute bottom-13 right-20 text-xl font-bold text-red-600">
+                      <div className='text-center'>
+                        No. {orderData.id}
+                      </div>
+                    </div>
+
+                    <div className='absolute bottom-29 left-50'>
+                      <div className='text-blue-900 font-bold'>
+                        GRACIAS POR SU COMPRA. LE ATENDIÓ {orderData.user?.username || ''}
+                      </div>
+                    </div>
+
+                    <div className='absolute bottom-25 left-70'>
+                      <div className=''>
+                        {paymentsData.length > 0 ? `Pago realizado con: ${paymentsData[0]?.descripcion || ''}` : ''}
+                        {/* {paymentsData[0]?.descripcion || ''} */}
+                      </div>
+                    </div>
+
+                    {/* Pagos */}
+                    <div className="absolute bottom-14 left-43 w-32 h-8 flex items-center justify-center text-green-700 font-bold text-xl">
+                      {paymentsData.length > 0 ? `$${totalPagos.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}
+                    </div>
+
+                    {/* Saldo */}
+                    <div className="absolute bottom-14 left-79 w-32 h-8 flex items-center justify-center text-red-600 font-bold text-xl">
+                      ${saldoPendiente.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+
+                    {/* Total */}
+                    <div className="absolute bottom-14 left-113 w-32 h-8 flex items-center justify-center text-black font-bold text-xl">
+                      ${orderData.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+
                   </div>
                 </div>
-              )}
-
-              
-                  <div className="absolute bottom-13 right-20 text-xl font-bold text-red-600">
-                    <div className='text-center'>
-                      No. {orderData.id}
-                    </div>
-                  </div>
-
-                  <div className='absolute bottom-29 left-50'>
-                    <div className='text-blue-900 font-bold'>
-                      GRACIAS POR SU COMPRA. LE ATENDIÓ {orderData.user?.username || ''}
-                    </div>
-                  </div>
-
-                  <div className='absolute bottom-25 left-70'>
-                    <div className=''>
-                      {paymentsData.length > 0 ? `Pago realizado con: ${paymentsData[0]?.descripcion || ''}` : ''}
-                      {/* {paymentsData[0]?.descripcion || ''} */}
-                    </div>
-                  </div>
-
-                  {/* Pagos */}
-                  <div className="absolute bottom-14 left-43 w-32 h-8 flex items-center justify-center text-green-700 font-bold text-xl">
-                    {paymentsData.length > 0 ? `$${totalPagos.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}
-                  </div>
-
-                  {/* Saldo */}
-                  <div className="absolute bottom-14 left-79 w-32 h-8 flex items-center justify-center text-red-600 font-bold text-xl">
-                    ${saldoPendiente.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
-
-                  {/* Total */}
-                  <div className="absolute bottom-14 left-113 w-32 h-8 flex items-center justify-center text-black font-bold text-xl">
-                    ${orderData.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
-                
-            </div>
+              );
+            })}
           </div>
-          );
-        })}
         </div>
-      </div>
       </div>
     </div>
   );

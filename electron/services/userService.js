@@ -4,7 +4,7 @@ class UserService {
 
   async getAllUsers() {
     try {
-      const users = userRepository.findAll();
+      const users = await userRepository.findAll();
       return users.map(user => user.toPlainObject());
     } catch (error) {
       console.error('Error al obtener usuarios:', error);
@@ -18,7 +18,7 @@ class UserService {
         throw new Error('ID de usuario inválido');
       }
 
-      const user = userRepository.findById(parseInt(id));
+      const user = await userRepository.findById(parseInt(id));
       
       if (!user) {
         throw new Error('Usuario no encontrado');
@@ -47,13 +47,13 @@ class UserService {
       }
 
       // Verificar si el username ya existe
-      if (userRepository.existsByUsername(username.trim())) {
+      if (await userRepository.existsByUsername(username.trim())) {
         throw new Error('Este nombre de usuario ya está en uso');
       }
 
       // Crear usuario
       const hashedPassword = userRepository.constructor.hashPassword(password);
-      const user = userRepository.create({
+      const user = await userRepository.create({
         username: username.trim(),
         hashedPassword
       });
@@ -84,13 +84,13 @@ class UserService {
       const userId = parseInt(id);
 
       // Verificar si el usuario existe
-      const existingUser = userRepository.findById(userId);
+      const existingUser = await userRepository.findById(userId);
       if (!existingUser) {
         throw new Error('Usuario no encontrado');
       }
 
       // Verificar si el username ya está en uso por otro usuario
-      if (userRepository.existsByUsername(username.trim(), userId)) {
+      if (await userRepository.existsByUsername(username.trim(), userId)) {
         throw new Error('El username ya está en uso por otro usuario');
       }
 
@@ -104,7 +104,7 @@ class UserService {
       }
 
       // Actualizar usuario
-      const updated = userRepository.update(userId, {
+      const updated = await userRepository.update(userId, {
         username: username.trim(),
         hashedPassword
       });
@@ -114,7 +114,7 @@ class UserService {
       }
 
       // Obtener usuario actualizado
-      const updatedUser = userRepository.findById(userId);
+      const updatedUser = await userRepository.findById(userId);
 
       return updatedUser.toPlainObject();
       
@@ -133,18 +133,18 @@ class UserService {
       const userId = parseInt(id);
 
       // Verificar si el usuario existe
-      const existingUser = userRepository.findById(userId);
+      const existingUser = await userRepository.findById(userId);
       if (!existingUser) {
         throw new Error('Usuario no encontrado');
       }
 
       // Lógica de negocio: evitar eliminar el último usuario activo
-      const allUsers = userRepository.findAll();
+      const allUsers = await userRepository.findAll();
       if (allUsers.length <= 1) {
         throw new Error('No se puede eliminar el último usuario del sistema');
       }
 
-      const deleted = userRepository.delete(userId);
+      const deleted = await userRepository.delete(userId);
 
       if (!deleted) {
         throw new Error('Error al eliminar usuario');
@@ -163,7 +163,7 @@ class UserService {
         return false;
       }
 
-      const hashedPassword = userRepository.getPasswordHash(username);
+      const hashedPassword = await userRepository.getPasswordHash(username);
       
       if (!hashedPassword) {
         return false;
@@ -182,7 +182,7 @@ class UserService {
         return false;
       }
 
-      return userRepository.existsByUsername(username.trim(), excludeUserId);
+      return await userRepository.existsByUsername(username.trim(), excludeUserId);
       
     } catch (error) {
       console.error('Error al verificar username:', error);

@@ -12,6 +12,8 @@ import { OrdersApiService } from './OrdersApiService';
 import type { Order } from './types';
 import { getOrderItemDisplayName } from './types';
 import { usePermissions } from '@/hooks/use-permissions';
+import ClientColorIndicator from '../clients/components/ClientColorIndicator';
+import type { ClientColor } from '../clients/types';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -101,6 +103,11 @@ const OrdersPage: React.FC = () => {
             .check-col { width: 40px; text-align: center; }
             .client-subcol { width: 35px; }
             
+            /* Background Colors for Status */
+            .bg-diseno { background-color: #ffd1dc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } /* Rosa Palo */
+            .bg-produccion { background-color: #ffff99 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } /* Amarillo Canario */
+            .bg-entrega { background-color: #90ee90 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } /* Verde Manzana/Claro */
+            
             /* Status Checks */
             .checkmark { font-size: 14px; font-weight: bold; }
             
@@ -109,6 +116,7 @@ const OrdersPage: React.FC = () => {
               @page { size: landscape; margin: 0.5cm; }
               body { margin: 0; }
               tr { break-inside: avoid; }
+              td { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             }
           </style>
         </head>
@@ -139,9 +147,12 @@ const OrdersPage: React.FC = () => {
               ${ordersToPrint.length === 0 ? '<tr><td colspan="10" class="center">No hay órdenes pendientes</td></tr>' : ''}
               ${ordersToPrint.map(order => {
                 const dateR = dayjs(order.date).format('DD/MM/YYYY');
-                const dateE = order.estimated_delivery_date 
-                  ? dayjs(order.estimated_delivery_date).format('DD/MM/YYYY') 
-                  : '-';
+                
+                let dateEObj = order.estimated_delivery_date ? dayjs(order.estimated_delivery_date) : null;
+                if (dateEObj && dateEObj.utc().hour() === 0 && dateEObj.utc().minute() === 0) {
+                   dateEObj = dateEObj.add(1, 'day');
+                }
+                const dateE = dateEObj ? dateEObj.format('DD/MM/YYYY') : '-';
                 
                 // Mapeo de estados a columnas
                 // Diseño -> Columna Diseño
@@ -160,9 +171,9 @@ const OrdersPage: React.FC = () => {
                     <td class="center">${dateR}</td>
                     <td>${order.client_name || order.client?.name || 'Sin Cliente'}</td>
                     <td>${order.description || order.notes || ''}</td>
-                    <td class="center">${isDiseño ? '<span class="checkmark">✓</span>' : ''}</td>
-                    <td class="center">${isProduccion ? '<span class="checkmark">✓</span>' : ''}</td>
-                    <td class="center">${isEntrega ? '<span class="checkmark">✓</span>' : ''}</td>
+                    <td class="center ${isDiseño ? 'bg-diseno' : ''}"></td>
+                    <td class="center ${isProduccion ? 'bg-produccion' : ''}"></td>
+                    <td class="center ${isEntrega ? 'bg-entrega' : ''}"></td>
                     <td class="center">${isMostrador ? '<span class="checkmark">✓</span>' : ''}</td>
                     <td class="center">${isMaquila ? '<span class="checkmark">✓</span>' : ''}</td>
                     <td class="center">${dateE}</td>
@@ -636,9 +647,14 @@ const OrdersPage: React.FC = () => {
                           <span className="text-sm font-medium text-gray-700">Cliente:</span>
                           <div className="text-sm text-gray-600">ID: {order.client_id}</div>
                           <p className="text-sm text-gray-600">{order.client.name}</p>
-                          {order.client.phone && (
-                            <p className="text-xs text-gray-500">{order.client.phone}</p>
-                          )}
+                          <div className="flex items-center gap-2 mt-1">
+                            {order.client.phone && (
+                              <p className="text-xs text-gray-500">{order.client.phone}</p>
+                            )}
+                            {order.client.color && (
+                              <ClientColorIndicator color={order.client.color as ClientColor} size="sm" />
+                            )}
+                          </div>
                         </div>
                       )}
 

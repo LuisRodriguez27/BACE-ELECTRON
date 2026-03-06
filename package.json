@@ -1,13 +1,14 @@
 {
   "name": "bace",
-  "version": "2.0.0",
+  "version": "3.0.1",
   "description": "Aplicación BACE Electron",
   "main": "electron/index.js",
   "author": "Luis Rodriguez",
   "license": "ISC",
   "scripts": {
-    "dev": "electron ./electron",
-    "devg": "concurrently \"npm run dev\" \"cd renderer && npm run dev\"",
+    "postinstall": "",
+    "dev": "electron ./electron --no-sandbox",
+    "devg": "concurrently -k --success first \"npm run dev\" \"cd renderer && npm run dev\"",
     "build": "cd renderer && npm run build",
     "dist": "npm run build && electron-builder",
     "dist:win": "npm run build && electron-builder --win"
@@ -17,11 +18,14 @@
     "@electron/rebuild": "4.0.1",
     "concurrently": "^9.2.0",
     "electron": "37.3.0",
-    "electron-builder": "^26.0.12"
+    "electron-builder": "^26.0.12",
+    "jscodeshift": "^17.3.0"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
-    "better-sqlite3": "^12.2.0"
+    "better-sqlite3": "^12.6.2",
+    "dotenv": "^17.3.1",
+    "pg": "^8.19.0"
   },
   "build": {
     "appId": "com.bace.electron",
@@ -34,13 +38,16 @@
       "electron/**/*",
       "renderer/dist/**/*",
       "node_modules/**/*",
+      ".env",
       "package.json"
     ],
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "verifyUpdateCodeSignature": false
@@ -53,11 +60,16 @@
       "shortcutName": "BACE"
     },
     "mac": {
-      "target": ["dmg"],
+      "target": [
+        "dmg"
+      ],
       "category": "public.app-category.productivity"
     },
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "category": "Utility"
     }
   }

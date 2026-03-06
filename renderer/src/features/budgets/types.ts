@@ -111,6 +111,7 @@ export interface Budget {
     id: number;
     name: string;
     phone: string;
+    color?: string | null;
   };
   user?: {
     id: number;

@@ -7,27 +7,27 @@ class AuthRepository {
     this.currentSession = new Session({});
   }
 
-  findUserByUsername(username) {
+  async findUserByUsername(username) {
     const stmt = db.prepare('SELECT * FROM users WHERE username = ? AND active = 1');
-    return stmt.get(username);
+    return await stmt.get(username);
   }
 
-  validatePassword(plainPassword, hashedPassword) {
+  async validatePassword(plainPassword, hashedPassword) {
     return bcrypt.compareSync(plainPassword, hashedPassword);
   }
 
-  getUserPermissions(userId) {
+  async getUserPermissions(userId) {
     const stmt = db.prepare(`
       SELECT p.name, p.description 
       FROM permissions p 
       JOIN user_permissions up ON p.id = up.permission_id 
       WHERE up.user_id = ? AND p.active = 1
     `);
-    return stmt.all(userId);
+    return await stmt.all(userId);
   }
 
-  createSession(user) {
-    const permissions = this.getUserPermissions(user.id);
+  async createSession(user) {
+    const permissions = await this.getUserPermissions(user.id);
     const permissionNames = permissions.map(p => p.name);
     
     const userData = {
@@ -40,23 +40,23 @@ class AuthRepository {
     return this.currentSession;
   }
 
-  destroySession() {
+  async destroySession() {
     this.currentSession.deactivate();
     return this.currentSession;
   }
 
-  getCurrentSession() {
+  async getCurrentSession() {
     return this.currentSession;
   }
 
-  isSessionActive() {
+  async isSessionActive() {
     return this.currentSession.isAuthenticated();
   }
 
-  getSessionWithPermissions() {
+  async getSessionWithPermissions() {
     if (!this.currentSession.isAuthenticated()) return null;
     
-    const permissions = this.getUserPermissions(this.currentSession.getUserId());
+    const permissions = await this.getUserPermissions(this.currentSession.getUserId());
     const permissionNames = permissions.map(p => p.name);
     
     // Actualizar permisos en la sesión actual

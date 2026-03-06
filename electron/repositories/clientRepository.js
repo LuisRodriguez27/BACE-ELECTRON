@@ -3,37 +3,37 @@ const Client = require('../domain/client');
 
 class ClientRepository {
 
-  findAll() {
+  async findAll() {
     const stmt = db.prepare('SELECT * FROM clients WHERE active = 1');
-    const clients = stmt.all();
+    const clients = await stmt.all();
     
     return clients.map(client => new Client(client));
   }
 
-  findById(id) {
+  async findById(id) {
     const stmt = db.prepare('SELECT * FROM clients WHERE id = ? AND active = 1');
-    const client = stmt.get(id);
+    const client = await stmt.get(id);
     
     if (!client) return null;
     
     return new Client(client);
   }
 
-  findByPhone(phone) {
+  async findByPhone(phone) {
     const stmt = db.prepare('SELECT * FROM clients WHERE phone = ? AND active = 1');
-    const client = stmt.get(phone);
+    const client = await stmt.get(phone);
     
     if (!client) return null;
     
     return new Client(client);
   }
 
-  create(clientData) {
+  async create(clientData) {
     const stmt = db.prepare(`
       INSERT INTO clients (name, phone, address, description, color) 
       VALUES (?, ?, ?, ?, ?)
     `);
-    const result = stmt.run(
+    const result = await stmt.run(
       clientData.name,
       clientData.phone,
       clientData.address || null,
@@ -52,13 +52,13 @@ class ClientRepository {
     });
   }
 
-  update(id, clientData) {
+  async update(id, clientData) {
     const stmt = db.prepare(`
       UPDATE clients 
       SET name = ?, phone = ?, address = ?, description = ?, color = ? 
       WHERE id = ?
     `);
-    const result = stmt.run(
+    const result = await stmt.run(
       clientData.name,
       clientData.phone,
       clientData.address || null,
@@ -70,14 +70,14 @@ class ClientRepository {
     return result.changes > 0;
   }
 
-  delete(id) {
+  async delete(id) {
     const stmt = db.prepare('UPDATE clients SET active = 0 WHERE id = ?');
-    const result = stmt.run(id);
+    const result = await stmt.run(id);
     
     return result.changes > 0;
   }
 
-  existsByPhone(phone, excludeClientId = null) {
+  async existsByPhone(phone, excludeClientId = null) {
     let query = 'SELECT id FROM clients WHERE phone = ? AND active = 1';
     let params = [phone];
     
@@ -87,26 +87,26 @@ class ClientRepository {
     }
     
     const stmt = db.prepare(query);
-    const result = stmt.get(...params);
+    const result = await stmt.get(...params);
     
     return !!result;
   }
 
   // Búsqueda por términos (para funcionalidades futuras)
-  searchByTerm(searchTerm) {
+  async searchByTerm(searchTerm) {
     const stmt = db.prepare(`
       SELECT * FROM clients 
       WHERE active = 1 AND (
-        id LIKE ? OR
-        name LIKE ? OR 
-        phone LIKE ? OR 
-        address LIKE ? OR 
-        description LIKE ?
+        CAST(id AS TEXT) ILIKE ? OR
+        name ILIKE ? OR 
+        phone ILIKE ? OR 
+        address ILIKE ? OR 
+        description ILIKE ?
       )
       ORDER BY name
     `);
     const term = `%${searchTerm}%`;
-    const clients = stmt.all(term, term, term, term);
+    const clients = await stmt.all(term, term, term, term);
     
     return clients.map(client => new Client(client));
   }

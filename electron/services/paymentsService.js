@@ -6,7 +6,7 @@ class PaymentsService {
 
   async getAllPayments() {
     try {
-      const payments = paymentsRepository.findAll();
+      const payments = await paymentsRepository.findAll();
       return payments.map(payment => payment.toPlainObject());
     } catch (error) {
       console.error('Error al obtener todos los pagos:', error);
@@ -21,12 +21,12 @@ class PaymentsService {
       }
 
       // Verificar que la orden existe
-      const order = orderRepository.findById(parseInt(orderId));
+      const order = await orderRepository.findById(parseInt(orderId));
       if (!order) {
         throw new Error('Orden no encontrada');
       }
 
-      const payments = paymentsRepository.findByOrderId(parseInt(orderId));
+      const payments = await paymentsRepository.findByOrderId(parseInt(orderId));
       return payments.map(payment => payment.toPlainObject());
     } catch (error) {
       console.error('Error al obtener pagos por orden:', error);
@@ -40,7 +40,7 @@ class PaymentsService {
         throw new Error('ID de pago inválido');
       }
 
-      const payment = paymentsRepository.findById(parseInt(id));
+      const payment = await paymentsRepository.findById(parseInt(id));
       
       if (!payment) {
         throw new Error('Pago no encontrado');
@@ -75,7 +75,7 @@ class PaymentsService {
       }
 
       // Verificar que la orden exists
-      const order = orderRepository.findById(parseInt(orderId));
+      const order = await orderRepository.findById(parseInt(orderId));
       if (!order) {
         throw new Error('La orden especificada no existe');
       }
@@ -86,7 +86,7 @@ class PaymentsService {
       }
 
       // Validar que no se exceda el total de la orden
-      const currentPaymentsTotal = paymentsRepository.getTotalPaymentsByOrderId(parseInt(orderId));
+      const currentPaymentsTotal = await paymentsRepository.getTotalPaymentsByOrderId(parseInt(orderId));
       const newTotal = currentPaymentsTotal + parseFloat(amount);
       
       if (newTotal > order.total) {
@@ -98,7 +98,7 @@ class PaymentsService {
       }
 
       // Crear pago
-      const payment = paymentsRepository.create({
+      const payment = await paymentsRepository.create({
         order_id: parseInt(orderId),
         amount: parseFloat(amount),
         date: paymentDate.toISOString(),
@@ -122,7 +122,7 @@ class PaymentsService {
       const paymentId = parseInt(id);
 
       // Verificar si el pago existe
-      const existingPayment = paymentsRepository.findById(paymentId);
+      const existingPayment = await paymentsRepository.findById(paymentId);
       if (!existingPayment) {
         throw new Error('Pago no encontrado');
       }
@@ -139,7 +139,7 @@ class PaymentsService {
         }
 
         // Validar que no se exceda el total de la orden
-        const currentPaymentsTotal = paymentsRepository.getTotalPaymentsByOrderId(existingPayment.order_id);
+        const currentPaymentsTotal = await paymentsRepository.getTotalPaymentsByOrderId(existingPayment.order_id);
         const newTotal = currentPaymentsTotal - existingPayment.amount + parseFloat(amount);
         
         if (existingPayment.hasOrder() && newTotal > existingPayment.order.total) {
@@ -152,7 +152,7 @@ class PaymentsService {
       }
 
       // Actualizar pago
-      const updated = paymentsRepository.update(paymentId, {
+      const updated = await paymentsRepository.update(paymentId, {
         amount: amount !== undefined ? parseFloat(amount) : existingPayment.amount,
         descripcion: descripcion !== undefined ? (descripcion?.trim() || null) : existingPayment.descripcion
       });
@@ -162,7 +162,7 @@ class PaymentsService {
       }
 
       // Obtener pago actualizado
-      const updatedPayment = paymentsRepository.findById(paymentId);
+      const updatedPayment = await paymentsRepository.findById(paymentId);
       return updatedPayment.toPlainObject();
 
     } catch (error) {
@@ -180,7 +180,7 @@ class PaymentsService {
       const paymentId = parseInt(id);
 
       // Verificar si el pago existe
-      const existingPayment = paymentsRepository.findById(paymentId);
+      const existingPayment = await paymentsRepository.findById(paymentId);
       if (!existingPayment) {
         throw new Error('Pago no encontrado');
       }
@@ -190,7 +190,7 @@ class PaymentsService {
         throw new Error('No se puede eliminar un pago de una orden completada o cancelada');
       }
 
-      const deleted = paymentsRepository.delete(paymentId);
+      const deleted = await paymentsRepository.delete(paymentId);
 
       if (!deleted) {
         throw new Error('Error al eliminar pago');
@@ -209,7 +209,7 @@ class PaymentsService {
         throw new Error('ID de cliente inválido');
       }
 
-      const payments = paymentsRepository.findByClientId(parseInt(clientId));
+      const payments = await paymentsRepository.findByClientId(parseInt(clientId));
       return payments.map(payment => payment.toPlainObject());
     } catch (error) {
       console.error('Error al obtener pagos del cliente:', error);

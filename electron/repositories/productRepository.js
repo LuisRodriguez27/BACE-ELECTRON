@@ -3,37 +3,37 @@ const Product = require('../domain/product');
 
 class ProductRepository {
 
-  findAll() {
+  async findAll() {
     const stmt = db.prepare('SELECT * FROM products WHERE active = 1 ORDER BY id DESC');
-    const products = stmt.all();
+    const products = await stmt.all();
     
     return products.map(product => new Product(product));
   }
 
-  findById(id) {
+  async findById(id) {
     const stmt = db.prepare('SELECT * FROM products WHERE id = ? AND active = 1');
-    const product = stmt.get(id);
+    const product = await stmt.get(id);
     
     if (!product) return null;
     
     return new Product(product);
   }
 
-  findBySerialNumber(serialNumber) {
+  async findBySerialNumber(serialNumber) {
     const stmt = db.prepare('SELECT * FROM products WHERE serial_number = ? AND active = 1');
-    const product = stmt.get(serialNumber);
+    const product = await stmt.get(serialNumber);
     
     if (!product) return null;
     
     return new Product(product);
   }
 
-  create(productData) {
+  async create(productData) {
     const stmt = db.prepare(`
       INSERT INTO products (name, serial_number, price, description) 
       VALUES (?, ?, ?, ?)
     `);
-    const result = stmt.run(
+    const result = await stmt.run(
       productData.name,
       productData.serial_number || null,
       productData.price,
@@ -50,13 +50,13 @@ class ProductRepository {
     });
   }
 
-  update(id, productData) {
+  async update(id, productData) {
     const stmt = db.prepare(`
       UPDATE products 
       SET name = ?, serial_number = ?, price = ?, description = ?
       WHERE id = ?
     `);
-    const result = stmt.run(
+    const result = await stmt.run(
       productData.name,
       productData.serial_number || null,
       productData.price,
@@ -67,14 +67,14 @@ class ProductRepository {
     return result.changes > 0;
   }
 
-  delete(id) {
+  async delete(id) {
     const stmt = db.prepare('UPDATE products SET active = 0 WHERE id = ?');
-    const result = stmt.run(id);
+    const result = await stmt.run(id);
     
     return result.changes > 0;
   }
 
-  existsBySerialNumber(serialNumber, excludeProductId = null) {
+  async existsBySerialNumber(serialNumber, excludeProductId = null) {
     if (!serialNumber || serialNumber.trim() === '') {
       return false; // Serial number vacío es válido (no único)
     }
@@ -88,40 +88,40 @@ class ProductRepository {
     }
     
     const stmt = db.prepare(query);
-    const result = stmt.get(...params);
+    const result = await stmt.get(...params);
     
     return !!result;
   }
 
-  countActiveProducts() {
+  async countActiveProducts() {
     const stmt = db.prepare('SELECT COUNT(*) as count FROM products WHERE active = 1');
-    const result = stmt.get();
+    const result = await stmt.get();
     return result.count;
   }
 
   // Búsqueda avanzada
-  searchByTerm(searchTerm) {
+  async searchByTerm(searchTerm) {
     const stmt = db.prepare(`
       SELECT * FROM products 
       WHERE active = 1 AND (
-        name LIKE ? OR 
-        serial_number LIKE ? OR 
-        description LIKE ?
+        name ILIKE ? OR 
+        serial_number ILIKE ? OR 
+        description ILIKE ?
       )
       ORDER BY name
     `);
     const term = `%${searchTerm}%`;
-    const products = stmt.all(term, term, term);
+    const products = await stmt.all(term, term, term);
     
     return products.map(product => new Product(product));
   }
 
   // Productos con plantillas (funcionalidad avanzada)
-  findWithTemplates(productId) {
-    const product = this.findById(productId);
+  async findWithTemplates(productId) {
+    const product = await this.findById(productId);
     if (!product) return null;
 
-    const templates = db.prepare(`
+    const templates = await db.prepare(`
       SELECT pt.*, u.username as created_by_username
       FROM product_templates pt
       LEFT JOIN users u ON pt.created_by = u.id
@@ -135,19 +135,19 @@ class ProductRepository {
   }
 
   // Productos por rango de precio
-  findByPriceRange(minPrice, maxPrice) {
+  async findByPriceRange(minPrice, maxPrice) {
     const stmt = db.prepare(`
       SELECT * FROM products 
       WHERE active = 1 AND price BETWEEN ? AND ?
       ORDER BY price, name
     `);
-    const products = stmt.all(minPrice, maxPrice);
+    const products = await stmt.all(minPrice, maxPrice);
     
     return products.map(product => new Product(product));
   }
 
   // Productos más utilizados (basado en plantillas)
-  findMostUsed(limit = 10) {
+  async findMostUsed(limit = 10) {
     const stmt = db.prepare(`
       SELECT p.*, COUNT(pt.id) as template_count
       FROM products p
@@ -157,14 +157,14 @@ class ProductRepository {
       ORDER BY template_count DESC, p.name
       LIMIT ?
     `);
-    const products = stmt.all(limit);
+    const products = await stmt.all(limit);
     
     return products.map(product => new Product(product));
   }
 
   // Obtener todos los productos con sus plantillas
-  findAllWithTemplates() {
-    const products = this.findAll();
+  async findAllWithTemplates() {
+    const products = await this.findAll();
     const stmt = db.prepare(`
       SELECT pt.*, u.username as created_by_username
       FROM product_templates pt
@@ -172,13 +172,13 @@ class ProductRepository {
       WHERE pt.product_id = ? AND pt.active = 1
     `);
 
-    return products.map(product => {
-      const templates = stmt.all(product.id);
+    return await Promise.all(products.map(async product => {
+      const templates = await stmt.all(product.id);
       return {
         ...product.toPlainObject(),
         templates
       };
-    });
+    }));
   }
 }
 

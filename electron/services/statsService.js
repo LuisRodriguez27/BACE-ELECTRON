@@ -18,8 +18,8 @@ class StatsService {
       
       // Handle custom specific dates (multi-select)
       if (period === 'custom' && dates && Array.isArray(dates) && dates.length > 0) {
-          const salesOverTime = statsRepository.getSalesBySpecificDates(dates, productId);
-          const salesByProduct = statsRepository.getSalesByProductForDates(dates);
+          const salesOverTime = await statsRepository.getSalesBySpecificDates(dates, productId);
+          const salesByProduct = await statsRepository.getSalesByProductForDates(dates);
           
           const sortedDates = [...dates].sort();
           return {
@@ -74,8 +74,8 @@ class StatsService {
         }
       }
 
-      const salesOverTime = statsRepository.getSalesByDate(startDate, endDate, productId);
-      const salesByProduct = statsRepository.getSalesByProduct(startDate, endDate);
+      const salesOverTime = await statsRepository.getSalesByDate(startDate, endDate, productId);
+      const salesByProduct = await statsRepository.getSalesByProduct(startDate, endDate);
 
       return {
         salesOverTime,
@@ -89,12 +89,12 @@ class StatsService {
   }
 
   async getAvailableYears() {
-    return statsRepository.getAvailableYears();
+    return await statsRepository.getAvailableYears();
   }
 
   async getAvailableWeeks(year) {
     // Get raw dates from repo and calculate weeks using date-fns to match frontend logic
-    const dates = statsRepository.getAvailableWeeks(year);
+    const dates = await statsRepository.getAvailableWeeks(year);
     const weeks = dates.map(dateStr => {
       // Create date at noon to avoid timezone rolling to previous day
       const d = new Date(dateStr + 'T12:00:00'); 
@@ -108,7 +108,7 @@ class StatsService {
   // Helper to get products list for the filter
   async getProducts() {
      // We can reuse productRepository
-     return productRepository.findAll();
+     return await productRepository.findAll();
   }
 }
 

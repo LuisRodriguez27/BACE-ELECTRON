@@ -9,7 +9,7 @@ class OrderService {
 
   async getAllOrders() {
     try {
-      const orders = orderRepository.findAll();
+      const orders = await orderRepository.findAll();
       return orders.map(order => order.toPlainObject());
     } catch (error) {
       console.error('Error al obtener órdenes:', error);
@@ -23,7 +23,7 @@ class OrderService {
         throw new Error('ID de orden inválido');
       }
 
-      const order = orderRepository.findById(parseInt(id));
+      const order = await orderRepository.findById(parseInt(id));
       
       if (!order) {
         throw new Error('Orden no encontrada');
@@ -42,7 +42,7 @@ class OrderService {
         throw new Error('ID de cliente inválido');
       }
 
-      const orders = orderRepository.findByClientId(parseInt(clientId));
+      const orders = await orderRepository.findByClientId(parseInt(clientId));
       return orders.map(order => order.toPlainObject());
     } catch (error) {
       console.error('Error al obtener órdenes del cliente:', error);
@@ -52,7 +52,7 @@ class OrderService {
 
   async getPendingOrdersForLogbook() {
     try {
-      const orders = orderRepository.findPendingForLogbook();
+      const orders = await orderRepository.findPendingForLogbook();
       return orders.map(order => order.toPlainObject());
     } catch (error) {
       console.error('Error al obtener bitácora de órdenes:', error);
@@ -62,7 +62,7 @@ class OrderService {
 
   async getSales() {
     try {
-      const sales = orderRepository.findCompleted();
+      const sales = await orderRepository.findCompleted();
       return sales.map(sale => sale.toPlainObject());
     } catch (error) {
       console.error('Error al obtener ventas:', error);
@@ -75,7 +75,7 @@ class OrderService {
       if (page < 1) page = 1;
       if (limit < 1 || limit > 100) limit = 10;
       
-      const result = orderRepository.findCompletedPaginated(page, limit, searchTerm);
+      const result = await orderRepository.findCompletedPaginated(page, limit, searchTerm);
       
       return {
         data: result.data.map(sale => sale.toPlainObject()),
@@ -132,13 +132,13 @@ class OrderService {
       }
 
       // Verificar que el cliente existe
-      const client = clientRepository.findById(parseInt(client_id));
+      const client = await clientRepository.findById(parseInt(client_id));
       if (!client) {
         throw new Error('El cliente especificado no existe');
       }
 
       // Verificar que el usuario existe
-      const user = userRepository.findById(parseInt(user_id));
+      const user = await userRepository.findById(parseInt(user_id));
       if (!user) {
         throw new Error('El usuario especificado no existe');
       }
@@ -206,14 +206,14 @@ class OrderService {
 
         // Verificar que el producto o plantilla existe
         if (hasProduct) {
-          const productExists = productRepository.findById(parseInt(item.product_id));
+          const productExists = await productRepository.findById(parseInt(item.product_id));
           if (!productExists) {
             throw new Error(`Item ${index + 1}: El producto especificado no existe`);
           }
         }
 
         if (hasTemplate) {
-          const templateExists = productTemplateRepository.findById(parseInt(item.template_id));
+          const templateExists = await productTemplateRepository.findById(parseInt(item.template_id));
           if (!templateExists) {
             throw new Error(`Item ${index + 1}: La plantilla especificada no existe`);
           }
@@ -239,7 +239,7 @@ class OrderService {
       };
 
       // Crear orden usando el repository actualizado
-      const order = orderRepository.create(orderToCreate);
+      const order = await orderRepository.create(orderToCreate);
 
       return order.toPlainObject();
 
@@ -258,7 +258,7 @@ class OrderService {
       const orderId = parseInt(id);
 
       // Verificar si la orden existe
-      const existingOrder = orderRepository.findById(orderId);
+      const existingOrder = await orderRepository.findById(orderId);
       if (!existingOrder) {
         throw new Error('Orden no encontrada');
       }
@@ -275,7 +275,7 @@ class OrderService {
         if (isNaN(client_id)) {
           throw new Error('ID de cliente inválido');
         }
-        const client = clientRepository.findById(parseInt(client_id));
+        const client = await clientRepository.findById(parseInt(client_id));
         if (!client) {
           throw new Error('El cliente especificado no existe');
         }
@@ -316,7 +316,7 @@ class OrderService {
         if (isNaN(edited_by)) {
           throw new Error('ID de usuario editor inválido');
         }
-        const editorUser = userRepository.findById(parseInt(edited_by));
+        const editorUser = await userRepository.findById(parseInt(edited_by));
         if (!editorUser) {
           throw new Error('El usuario editor especificado no existe');
         }
@@ -346,13 +346,13 @@ class OrderService {
             throw new Error(`Item ${index + 1}: Precio unitario inválido`);
           }
           if (hasProduct) {
-            const productExists = productRepository.findById(parseInt(item.product_id));
+            const productExists = await productRepository.findById(parseInt(item.product_id));
             if (!productExists) {
               throw new Error(`Item ${index + 1}: El producto especificado no existe`);
             }
           }
           if (hasTemplate) {
-            const templateExists = productTemplateRepository.findById(parseInt(item.template_id));
+            const templateExists = await productTemplateRepository.findById(parseInt(item.template_id));
             if (!templateExists) {
               throw new Error(`Item ${index + 1}: La plantilla especificada no existe`);
             }
@@ -381,7 +381,7 @@ class OrderService {
         }));
       }
 
-      const updatedOrder = orderRepository.update(orderId, updatePayload);
+      const updatedOrder = await orderRepository.update(orderId, updatePayload);
 
       if (!updatedOrder) {
         throw new Error('Error al actualizar orden');
@@ -408,7 +408,7 @@ class OrderService {
       const orderId = parseInt(id);
 
       // Verificar si la orden existe
-      const existingOrder = orderRepository.findById(orderId);
+      const existingOrder = await orderRepository.findById(orderId);
       if (!existingOrder) {
         throw new Error('Orden no encontrada');
       }
@@ -418,7 +418,7 @@ class OrderService {
         throw new Error('No se puede eliminar una orden completada. Considere cancelarla en su lugar.');
       }
 
-      const deleted = orderRepository.delete(orderId);
+      const deleted = await orderRepository.delete(orderId);
 
       if (!deleted) {
         throw new Error('Error al eliminar orden');
@@ -437,7 +437,7 @@ class OrderService {
         throw new Error('ID de orden inválido');
       }
 
-      const products = orderRepository.getOrderProducts(parseInt(orderId));
+      const products = await orderRepository.getOrderProducts(parseInt(orderId));
       return products;
     } catch (error) {
       console.error('Error al obtener productos de orden:', error);
@@ -454,12 +454,12 @@ class OrderService {
       const orderId = parseInt(id);
 
       // Verificar si la orden existe
-      const existingOrder = orderRepository.findById(orderId);
+      const existingOrder = await orderRepository.findById(orderId);
       if (!existingOrder) {
         throw new Error('Orden no encontrada');
       }
 
-      const newTotal = orderRepository.recalculateTotal(orderId);
+      const newTotal = await orderRepository.recalculateTotal(orderId);
       
       return {
         orderId,

@@ -3,11 +3,12 @@ import { Button } from '@/components/ui';
 import { X, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import cotizacionImage from '@/assets/COTIZACION.jpg';
-import specialPriceImage from '@/assets/special-price.png';
 import { getBudgetItemDescription, getBudgetItemDisplayName, getBudgetItemType, type Budget } from '../types';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
+import ClientColorIndicator from '../../clients/components/ClientColorIndicator';
+import type { ClientColor } from '../../clients/types';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -76,10 +77,6 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
       // Obtener la imagen en base64
       const base64Image = await imageToBase64(cotizacionImage);
 
-      let base64SpecialPrice = '';
-      if (hasPreferentialPrice) {
-        base64SpecialPrice = await imageToBase64(specialPriceImage);
-      }
 
       // Generar HTML con el mismo diseño del preview visual
       const printHTML = `
@@ -161,7 +158,9 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
     <div class="print-container">
         ${hasPreferentialPrice ? `
         <!-- Sello de precio especial -->
-        <img src="${base64SpecialPrice}" style="position: absolute; bottom: 3.75rem; right: 1.25rem; width: 5.5rem; opacity: 0.8; transform: rotate(-12deg); z-index: 10;" alt="Precio Especial" />
+        <div style="position: absolute; bottom: 4rem; right: 1.25rem; width: 5.5rem; background-color: rgb(220, 38, 38); color: white; font-weight: bold; font-size: 0.5rem; text-align: center; padding: 0.35rem 0.25rem; box-sizing: border-box; z-index: 10; line-height: 1.2;">
+          USTED HA ADQUIRIDO UN PRECIO ESPECIAL
+        </div>
         ` : ''}
 
         <!-- Imagen de fondo como elemento IMG en lugar de background-image -->
@@ -177,7 +176,13 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
       <!-- Use fixed column widths to avoid shifting when name is short -->
       <div style="display: grid; grid-template-columns: 17rem 8rem 1rem; column-gap: 5.5rem; align-items: center;">
         <!-- Cliente -->
-        <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(1em - 2px);">
+        <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(1em - 2px); display: flex; align-items: center; gap: 0.5rem;">
+          ${budgetData.client?.color ?
+          `<div style="width: 1rem; height: 1rem; border-radius: 9999px; background-color: ${budgetData.client.color === 'green' ? '#22c55e' :
+            budgetData.client.color === 'yellow' ? '#eab308' :
+              budgetData.client.color === 'red' ? '#ef4444' : 'transparent'
+          }; flex-shrink: 0;"></div>`
+          : ''}
           ${budgetData.client?.name || 'Cliente no especificado'}
         </div>
 
@@ -212,7 +217,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
                         </div>
                         <div>
                           ${getBudgetItemDescription(item) ?
-          `<div style="font-size: 0.875rem; color: rgb(55, 65, 81); margin-top: -0.2rem; line-height: 1.25;">
+              `<div style="font-size: 0.875rem; color: rgb(55, 65, 81); margin-top: -0.2rem; line-height: 1.25;">
                               ${getBudgetItemDescription(item)}
                             </div>` : ''}
                         </div>
@@ -319,12 +324,12 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
               }}
             >
               {hasPreferentialPrice && (
-                <img
-                  src={specialPriceImage}
-                  alt="Precio Especial"
-                  className="absolute bottom-15 right-5 w-22 opacity-80 -rotate-12 select-none"
-                  style={{ zIndex: 10 }}
-                />
+                <div
+                  className="absolute bottom-16 right-5 w-22 bg-red-600 text-white font-bold text-center p-1.5 select-none"
+                  style={{ zIndex: 10, fontSize: '0.55rem', lineHeight: '1.2' }}
+                >
+                  USTED HA ADQUIRIDO UN PRECIO ESPECIAL
+                </div>
               )}
 
               <div className='absolute top-13 right-28 text-2xl font-bold text-red-600'>
@@ -336,8 +341,11 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
                 {/* fixed columns to prevent shifting */}
                 <div style={{ display: 'grid', gridTemplateColumns: '17rem 8rem 1rem', columnGap: '5rem', alignItems: 'center' }}>
                   {/* Cliente */}
-                  <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', fontSize: 'calc(1em - 2px)' }}>
-                    {budgetData.client?.name || 'Cliente no especificado'}
+                  <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', fontSize: 'calc(1em - 2px)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    {budgetData.client?.color && (
+                      <ClientColorIndicator color={budgetData.client.color as ClientColor} size="md" />
+                    )}
+                    <span>{budgetData.client?.name || 'Cliente no especificado'}</span>
                   </div>
 
                   {/* Numero de telefono */}
