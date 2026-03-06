@@ -7,13 +7,14 @@
   "license": "ISC",
   "scripts": {
     "postinstall": "",
-    "dev": "electron ./electron --no-sandbox",
-    "devg": "concurrently -k --success first \"npm run dev\" \"cd renderer && npm run dev\"",
-    "build": "cd renderer && npm run build",
-    "dist": "npm run build && electron-builder",
-    "dist:win": "npm run build && electron-builder --win"
+    "dev:electron": "electron ./electron --no-sandbox",
+    "dev": "concurrently -k --success first \"pnpm run dev:electron\" \"cd renderer && pnpm run dev\"",
+    "build": "cd renderer && pnpm run build",
+    "dist": "pnpm run build && electron-builder",
+    "dist:win": "pnpm run build && electron-builder --win"
   },
   "keywords": [],
+  "packageManager": "pnpm@10.29.1",
   "devDependencies": {
     "@electron/rebuild": "4.0.1",
     "concurrently": "^9.2.0",

@@ -6,7 +6,7 @@ const fs = require('fs');
 require('dotenv').config();
 
 // CAMBIAR `isProd` A `true` para usar la ruta de producción en el NAS
-const isProd = true;
+const isProd = false;
 
 const sqliteDbPath = isProd
   ? '/home/luis/Descargas/data.db'
