@@ -224,8 +224,9 @@ const pgSchema = `
 `;
 
 async function initDb() {
-  const client = await pool.connect();
+  let client;
   try {
+    client = await pool.connect();
     await client.query(pgSchema);
 
     // MIGRACIONES COMPATIBILIDAD V2 DE SQLITE a PG AUTOMATIZADAS
@@ -272,7 +273,7 @@ async function initDb() {
   } catch (e) {
     console.error("❌ Error inicializando Postgres DB:", e);
   } finally {
-    client.release();
+    if (client) client.release();
   }
 }
 
