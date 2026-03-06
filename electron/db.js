@@ -18,7 +18,7 @@ const fs = require('fs');
 const isDev = !app.isPackaged;
 
 // Cargar las variables de entorno desde el archivo .env
-require('dotenv').config({ path: path.join(app.getAppPath(), '.env') });
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const pool = new Pool({
   user: process.env.DB_USER || 'admin',

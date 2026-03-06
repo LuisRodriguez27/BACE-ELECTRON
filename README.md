@@ -58,25 +58,9 @@ Genera los archivos optimizados de React + TypeScript:
 Útil después de instalar paquetes que contienen bindings nativos:
 
 `npm run frebuild`
+`npx electron-rebuild better-sqlite3`
 
+### Migrar base de datos de SQLite a PostgreSQL
 
-## Instalación de paquetes
+`ELECTRON_RUN_AS_NODE=1 npx electron migrate_sqlite_to_pg.js`
 
-Durante el desarrollo se instalaron los siguientes paquetes:
-
-Electron:
-
-npm install electron --save-dev
-
-
-
-- `npm i @electron/rebuild`
-- `npm create vite@latest rederer`
-- `npm i better-sqlite3`
-- `npm i tailwindcss @tailwindcss/vite`
-- `npm i concurrently --save-dev`
-
-### Nota
-
-- concurrently permite ejecutar varios procesos de desarrollo a la vez (Electron + frontend) en una sola terminal.
-- @electron/rebuild es necesario para que los módulos nativos (como better-sqlite3) funcionen correctamente con la versión de Electron instalada.
