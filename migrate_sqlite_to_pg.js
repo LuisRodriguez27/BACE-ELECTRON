@@ -2,18 +2,22 @@ const Database = require('better-sqlite3');
 const { Pool } = require('pg');
 const fs = require('fs');
 
-// CAMBIAR `isProd` A `true` para usar la ruta de producción en el NAS
-const isProd = false; 
+// Cargar variables de entorno
+require('dotenv').config();
 
-const sqliteDbPath = isProd 
-  ? '\\\\192.168.1.90\\personal_folder\\bace-electron\\database\\data.db' 
-  : './sqlite/data.db'; 
+// CAMBIAR `isProd` A `true` para usar la ruta de producción en el NAS
+const isProd = true;
+
+const sqliteDbPath = isProd
+  ? '/home/luis/Descargas/data.db'
+  : './sqlite/data.db';
+
 const pgPool = new Pool({
-  user: 'postgres',
-  host: isProd ? '192.168.1.90' : 'localhost',
-  database: isProd ? 'bace_electron' : 'testdb', // Asegurate de poner el nombre correcto que creaste de postgres en producción
-  password: '1234', // Contraseña de tu NAS
-  port: 5432,
+  user: process.env.DB_USER || 'NOE',
+  host: process.env.DB_HOST || (isProd ? '192.168.1.90' : 'localhost'),
+  database: process.env.DB_NAME || (isProd ? 'bace-electron' : 'testdb'), // Asegurate de poner el nombre correcto que creaste de postgres en producción
+  password: process.env.DB_PASSWORD || 'Bacepanterita', // Contraseña de tu NAS
+  port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 40517,
 });
 
 if (!fs.existsSync(sqliteDbPath)) {
@@ -119,19 +123,19 @@ async function migrateData() {
           'INSERT INTO orders (id, client_id, user_id, edited_by, date, estimated_delivery_date, status, total, notes, description, responsable, created_from_budget_id, active) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) ON CONFLICT (id) DO UPDATE SET active=EXCLUDED.active',
           [o.id, o.client_id, o.user_id, o.edited_by || null, new Date(o.date), o.estimated_delivery_date ? new Date(o.estimated_delivery_date) : null, o.status, Number(o.total) || 0, o.notes, o.description, o.responsable, o.created_from_budget_id || null, o.active]
         );
-      } catch(e) { console.error('Error en orders ID:', o.id, o); throw e; }
+      } catch (e) { console.error('Error en orders ID:', o.id, o); throw e; }
     }
 
     // MIGRAR BUDGET_PRODUCTS
     console.log('Migrando budget_products...');
     const budgetProducts = fetchSqliteTable('budget_products');
     for (const bp of budgetProducts) {
-      try{
+      try {
         await pgClient.query(
           'INSERT INTO budget_products (id, budget_id, product_id, template_id, quantity, unit_price, total_price) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (id) DO NOTHING',
           [bp.id, bp.budget_id, bp.product_id || null, bp.template_id || null, Number(bp.quantity) || 0, Number(bp.unit_price) || 0, Number(bp.total_price) || 0]
         );
-       } catch(e) { console.error('Error en budget_products ID:', bp.id, bp); throw e; }
+      } catch (e) { console.error('Error en budget_products ID:', bp.id, bp); throw e; }
     }
 
     // MIGRAR ORDER_PRODUCTS
@@ -143,7 +147,7 @@ async function migrateData() {
           'INSERT INTO order_products (id, order_id, product_id, template_id, quantity, unit_price, total_price) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (id) DO NOTHING',
           [op.id, op.order_id, op.product_id || null, op.template_id || null, Number(op.quantity) || 0, Number(op.unit_price) || 0, Number(op.total_price) || 0]
         );
-      } catch(e) { console.error('Error en order_products ID:', op.id, op); throw e; }
+      } catch (e) { console.error('Error en order_products ID:', op.id, op); throw e; }
     }
 
     // MIGRAR PAYMENTS
@@ -175,7 +179,7 @@ async function migrateData() {
     // Intentar reactivar constraints si falló
     try {
       await pgClient.query('SET session_replication_role = DEFAULT');
-    } catch(e) {}
+    } catch (e) { }
   } finally {
     pgClient.release();
     sqliteDb.close();

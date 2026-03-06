@@ -17,12 +17,15 @@ const fs = require('fs');
 // En producción (app empaquetada), se conectará al servidor PostgreSQL en el NAS de la red.
 const isDev = !app.isPackaged;
 
+// Cargar las variables de entorno desde el archivo .env
+require('dotenv').config({ path: path.join(app.getAppPath(), '.env') });
+
 const pool = new Pool({
-  user: 'postgres',
-  host: isDev ? 'localhost' : '192.168.1.90',
-  database: isDev ? 'testdb' : 'bace_electron', // Ajusta el nombre de la BD para produccion si es diferente
-  password: '1234', // Pon la contraseña que use postgres en el NAS
-  port: 5432,
+  user: process.env.DB_USER || 'admin',
+  host: process.env.DB_HOST || 'localhost',
+  database: process.env.DB_NAME || 'db', // Ajusta el nombre de la BD para produccion si es diferente
+  password: process.env.DB_PASSWORD || '1234', // Pon la contraseña que use postgres en el NAS
+  port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 5432,
 });
 
 const asyncLocalStorage = new AsyncLocalStorage();
@@ -31,34 +34,34 @@ async function queryWithContext(sql, args, method) {
   let i = 1;
   // Convertimos '?' a '$1', '$2', etc.
   let pgSql = sql.replace(/\?/g, () => `$${i++}`);
-  
+
   // Agregar RETURNING id si es insert para postgres y no lo tiene
   if (method === 'run' && pgSql.trim().toUpperCase().startsWith('INSERT') && !pgSql.toUpperCase().includes('RETURNING')) {
     pgSql += ' RETURNING id';
   }
 
   const client = asyncLocalStorage.getStore() || pool;
-  
-  try{
-     const result = await client.query(pgSql, args);
-     if (method === 'get') {
-       return result.rows[0] || null;
-     }
-     if (method === 'all') {
-       return result.rows;
-     }
-     if (method === 'run') {
-       return {
-         changes: result.rowCount,
-         lastInsertRowid: result.rows.length > 0 && result.rows[0].id ? result.rows[0].id : null
-       };
-     }
-  } catch(e) {
-    if(e.code === '42P01') {
-       // Table does not exist (posiblemente inicio sin esquema creado). Ignoralos por el script
-       if (method === 'get') return null;
-       if (method === 'all') return [];
-       return { changes: 0, lastInsertRowid: null };
+
+  try {
+    const result = await client.query(pgSql, args);
+    if (method === 'get') {
+      return result.rows[0] || null;
+    }
+    if (method === 'all') {
+      return result.rows;
+    }
+    if (method === 'run') {
+      return {
+        changes: result.rowCount,
+        lastInsertRowid: result.rows.length > 0 && result.rows[0].id ? result.rows[0].id : null
+      };
+    }
+  } catch (e) {
+    if (e.code === '42P01') {
+      // Table does not exist (posiblemente inicio sin esquema creado). Ignoralos por el script
+      if (method === 'get') return null;
+      if (method === 'all') return [];
+      return { changes: 0, lastInsertRowid: null };
     }
     throw e;
   }
@@ -90,7 +93,7 @@ const db = {
       }
     };
   },
-  
+
   exec: async (sql) => {
     const client = asyncLocalStorage.getStore() || pool;
     return await client.query(sql);
@@ -224,7 +227,7 @@ async function initDb() {
   const client = await pool.connect();
   try {
     await client.query(pgSchema);
-    
+
     // MIGRACIONES COMPATIBILIDAD V2 DE SQLITE a PG AUTOMATIZADAS
     // MIGRACION ESTADISTICAS Y PRESUPUESTOS
     const existingStatPerm = await db.prepare("SELECT id FROM permissions WHERE name = 'Estadisticas'").get();
@@ -236,20 +239,20 @@ async function initDb() {
     if (statPermId) {
       const existingUserPerm = await db.prepare("SELECT * FROM user_permissions WHERE user_id = 1 AND permission_id = ?").get(statPermId);
       if (!existingUserPerm) {
-        try { await db.prepare("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (1, ?, 1)").run(statPermId); } catch(e){}
+        try { await db.prepare("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (1, ?, 1)").run(statPermId); } catch (e) { }
       }
     }
 
     const existingEditPerm = await db.prepare("SELECT id FROM permissions WHERE name = 'Editar Presupuestos'").get();
     let editPermId = existingEditPerm ? existingEditPerm.id : null;
     if (!editPermId) {
-       const res = await db.prepare("INSERT INTO permissions (name, description, active) VALUES ('Editar Presupuestos', 'Permite editar los presupuestos registrados', 1)").run();
-       editPermId = res.lastInsertRowid;
+      const res = await db.prepare("INSERT INTO permissions (name, description, active) VALUES ('Editar Presupuestos', 'Permite editar los presupuestos registrados', 1)").run();
+      editPermId = res.lastInsertRowid;
     }
     if (editPermId) {
       const existingUserPerm2 = await db.prepare("SELECT * FROM user_permissions WHERE user_id = 1 AND permission_id = ?").get(editPermId);
       if (!existingUserPerm2) {
-         try { await db.prepare("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (1, ?, 1)").run(editPermId); } catch(e){}
+        try { await db.prepare("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (1, ?, 1)").run(editPermId); } catch (e) { }
       }
     }
 
@@ -258,15 +261,15 @@ async function initDb() {
     await db.prepare("UPDATE orders SET status = 'Produccion' WHERE status = 'en proceso'").run();
     await db.prepare("UPDATE orders SET status = 'Completado' WHERE status = 'completado'").run();
     await db.prepare("UPDATE orders SET status = 'Cancelado' WHERE status = 'cancelado'").run();
-    
+
     // Auto incremento check
     const checkOrderCount = await db.prepare('SELECT COUNT(*) as count, MAX(id) as maxId FROM orders').get();
     if (checkOrderCount && (checkOrderCount.count === '0' || (checkOrderCount.maxid && parseInt(checkOrderCount.maxid) < 14549))) {
       await client.query("SELECT setval('orders_id_seq', 14549, false)");
     }
-    
+
     console.log("✅ Base de datos PG Inicializada");
-  } catch(e) {
+  } catch (e) {
     console.error("❌ Error inicializando Postgres DB:", e);
   } finally {
     client.release();

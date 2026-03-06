@@ -24,6 +24,7 @@
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "better-sqlite3": "^12.6.2",
+    "dotenv": "^17.3.1",
     "pg": "^8.19.0"
   },
   "build": {
@@ -37,6 +38,7 @@
       "electron/**/*",
       "renderer/dist/**/*",
       "node_modules/**/*",
+      ".env",
       "package.json"
     ],
     "win": {
