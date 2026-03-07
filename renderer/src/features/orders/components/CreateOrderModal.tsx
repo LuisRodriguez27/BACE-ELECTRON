@@ -620,13 +620,17 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
 
   // Función para filtrar clientes por nombre o teléfono
   const getFilteredClients = () => {
-    if (!clientSearchTerm) return clients;
+    let result = clients;
     
-    return clients.filter(client => 
-      client.name.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
-      client.phone.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
-      client.id.toString().includes(clientSearchTerm.toLowerCase())
-    );
+    if (clientSearchTerm) {
+      result = clients.filter(client => 
+        client.name.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
+        client.phone.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
+        client.id.toString().includes(clientSearchTerm.toLowerCase())
+      );
+    }
+    
+    return [...result].sort((a, b) => a.id - b.id);
   };
 
   // Función para seleccionar un cliente

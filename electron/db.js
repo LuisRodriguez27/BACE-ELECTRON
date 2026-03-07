@@ -5,6 +5,9 @@ types.setTypeParser(1700, val => parseFloat(val));
 types.setTypeParser(700, val => parseFloat(val));
 types.setTypeParser(701, val => parseFloat(val));
 
+// Forzar que los campos TIMESTAMP sin zona horaria (1114) se interpreten como UTC para mantener la compatibilidad y no aplicar el timezone por defecto del driver
+types.setTypeParser(1114, val => new Date(val + 'Z'));
+
 const { AsyncLocalStorage } = require('async_hooks');
 const path = require('path');
 const { app, dialog } = require('electron');
