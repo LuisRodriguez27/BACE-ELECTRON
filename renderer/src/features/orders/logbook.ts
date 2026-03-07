@@ -109,3 +109,90 @@ export const generateLogbookHtml = (ordersToPrint: Order[], currentDate: string)
     </html>
   `;
 };
+
+export const generateUnpaidOrdersHtml = (ordersData: { order: Order; totalPaid: number; remaining: number }[], currentDate: string): string => {
+  const totalGeneral = ordersData.reduce((acc, curr) => acc + curr.order.total, 0);
+  const totalPaidGeneral = ordersData.reduce((acc, curr) => acc + curr.totalPaid, 0);
+  const totalRemainingGeneral = ordersData.reduce((acc, curr) => acc + curr.remaining, 0);
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Reporte de Órdenes No Liquidadas - ${currentDate}</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 20px; font-size: 11px; }
+        h1 { text-align: center; margin-bottom: 5px; font-size: 16px; }
+        p.date { text-align: center; margin-top: 0; margin-bottom: 15px; color: #666; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #000; padding: 6px; text-align: left; vertical-align: middle; }
+        th { background-color: #f0f0f0; text-align: center; font-weight: bold; font-size: 11px; }
+        .center { text-align: center; }
+        .right { text-align: right; }
+        .bold { font-weight: bold; }
+        .bg-totals { background-color: #e6f2ff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        
+        /* Print optimizations */
+        @media print {
+          @page { size: portrait; margin: 0.5cm; }
+          body { margin: 0; }
+          tr { break-inside: avoid; }
+          td, th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+      </style>
+    </head>
+    <body>
+      <h1>REPORTE DE ÓRDENES NO LIQUIDADAS - BACE</h1>
+      <p class="date">${currentDate}</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 50px;">Folio</th>
+            <th style="width: 80px;">Fecha R.</th>
+            <th>Cliente</th>
+            <th>Descripción</th>
+            <th style="width: 70px;">Total</th>
+            <th style="width: 70px;">Anticipo</th>
+            <th style="width: 70px;">Resta</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${ordersData.length === 0 ? '<tr><td colspan="7" class="center">No hay órdenes sin liquidar</td></tr>' : ''}
+          ${ordersData.map(({ order, totalPaid, remaining }) => {
+            const dateR = dayjs(order.date).format('DD/MM/YYYY');
+            
+            return `
+              <tr>
+                <td class="center bold">${order.id}</td>
+                <td class="center">${dateR}</td>
+                <td>${order.client_name || order.client?.name || 'Sin Cliente'}</td>
+                <td>${order.description || order.notes || ''}</td>
+                <td class="right">$${order.total.toFixed(2)}</td>
+                <td class="right">$${totalPaid.toFixed(2)}</td>
+                <td class="right bold" style="color: #d90000;">$${remaining.toFixed(2)}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+        <tfoot>
+          <tr class="bg-totals">
+            <td colspan="4" class="right bold">TOTALES:</td>
+            <td class="right bold">$${totalGeneral.toFixed(2)}</td>
+            <td class="right bold">$${totalPaidGeneral.toFixed(2)}</td>
+            <td class="right bold" style="color: #d90000;">$${totalRemainingGeneral.toFixed(2)}</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <script>
+        window.onload = function() { 
+          setTimeout(function() {
+            window.print();
+          }, 500);
+        }
+      </script>
+    </body>
+    </html>
+  `;
+};

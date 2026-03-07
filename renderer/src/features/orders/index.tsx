@@ -11,7 +11,7 @@ import OrderDetailsModal from './components/OrderDetailsModal';
 import { OrdersApiService } from './OrdersApiService';
 import type { Order } from './types';
 import { getOrderItemDisplayName } from './types';
-import { generateLogbookHtml } from './logbook';
+import { generateLogbookHtml, generateUnpaidOrdersHtml } from './logbook';
 import { usePermissions } from '@/hooks/use-permissions';
 import ClientColorIndicator from '../clients/components/ClientColorIndicator';
 import type { ClientColor } from '../clients/types';
@@ -94,6 +94,38 @@ const OrdersPage: React.FC = () => {
       printWindow.document.close();
     } catch (err) {
       console.error('Error imprimiendo bitácora:', err);
+    }
+  };
+
+  const handlePrintUnpaidOrders = () => {
+    try {
+      const ordersData = orders
+        .filter(order => getRemainingAmount(order) > 0)
+        .map(order => ({
+          order,
+          totalPaid: getTotalPaid(order.id),
+          remaining: getRemainingAmount(order)
+        }));
+      
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        alert('Por favor permite ventanas emergentes para imprimir');
+        return;
+      }
+
+      const currentDate = new Date().toLocaleDateString('es-MX', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+
+      const htmlContent = generateUnpaidOrdersHtml(ordersData, currentDate);
+
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+    } catch (err) {
+      console.error('Error imprimiendo reporte de no liquidadas:', err);
     }
   };
 
@@ -358,6 +390,14 @@ const OrdersPage: React.FC = () => {
           >
             <Printer size={16} />
             Bitácora
+          </Button>
+          <Button
+            className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700"
+            onClick={handlePrintUnpaidOrders}
+            title="Imprimir Órdenes No Liquidadas"
+          >
+            <Printer size={16} />
+            No Liquidadas
           </Button>
           <Button
             className="flex items-center gap-2"
