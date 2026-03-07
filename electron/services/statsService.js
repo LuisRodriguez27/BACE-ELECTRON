@@ -14,12 +14,12 @@ function getISOWeek(date) {
 class StatsService {
   async getSalesStats(params) {
     try {
-      const { period, productId, customStartDate, customEndDate, month, year, dates } = params;
+      const { period, productId, customStartDate, customEndDate, month, year, dates, paymentMethod } = params;
       
       // Handle custom specific dates (multi-select)
       if (period === 'custom' && dates && Array.isArray(dates) && dates.length > 0) {
-          const salesOverTime = await statsRepository.getSalesBySpecificDates(dates, productId);
-          const salesByProduct = await statsRepository.getSalesByProductForDates(dates);
+          const salesOverTime = await statsRepository.getSalesBySpecificDates(dates, productId, paymentMethod);
+          const salesByProduct = await statsRepository.getSalesByProductForDates(dates, paymentMethod);
           
           const sortedDates = [...dates].sort();
           return {
@@ -74,8 +74,8 @@ class StatsService {
         }
       }
 
-      const salesOverTime = await statsRepository.getSalesByDate(startDate, endDate, productId);
-      const salesByProduct = await statsRepository.getSalesByProduct(startDate, endDate);
+      const salesOverTime = await statsRepository.getSalesByDate(startDate, endDate, productId, paymentMethod);
+      const salesByProduct = await statsRepository.getSalesByProduct(startDate, endDate, paymentMethod);
 
       return {
         salesOverTime,

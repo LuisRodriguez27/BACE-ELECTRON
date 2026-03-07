@@ -5,7 +5,8 @@ export const StatsService = {
     customStartDate?: string, 
     customEndDate?: string,
     month?: number,
-    year?: number 
+    year?: number,
+    paymentMethod?: string | null
   }) => {
     return await window.api.getSalesStats(params);
   },
