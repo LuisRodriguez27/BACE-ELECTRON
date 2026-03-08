@@ -48,7 +48,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
     const val = parseFloat(e.target.value);
     const newPercent = isNaN(val) ? 0 : val;
     setPercentage(newPercent);
-    
+
     const calculatedPrice = basePrice * (1 + (newPercent / 100));
     setValue('price', parseFloat(calculatedPrice.toFixed(2)));
   };
@@ -60,8 +60,10 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       setValue('price', product.price);
       setBasePrice(product.price);
       setPercentage(0);
+      setValue('promo_price', product.promo_price ?? null);
+      setValue('discount_price', product.discount_price ?? null);
       setValue('description', product.description || '');
-      
+
       setError(null);
     }
   }, [product, isOpen, setValue]);
@@ -158,7 +160,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
             {/* Serial Number */}
             <div>
               <Label htmlFor='serial_number' className='text-sm font-medium text-gray-700'>
-                Número de Serie 
+                Número de Serie
               </Label>
               <div className='mt-1 relative'>
                 <ScanBarcode className='absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400' size={16} />
@@ -189,7 +191,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
                   min='0'
                   placeholder='Precio del producto'
                   className='pl-10'
-                  {...register('price', { 
+                  {...register('price', {
                     valueAsNumber: true,
                     onChange: handlePriceChange
                   })}
@@ -197,6 +199,54 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
               </div>
               {errors.price && (
                 <p className='mt-1 text-sm text-red-600'>{errors.price.message}</p>
+              )}
+            </div>
+
+            {/* Promo Price */}
+            <div>
+              <Label htmlFor="promo_price" className="text-sm font-medium text-gray-700">
+                Precio Promoción
+              </Label>
+              <div className="mt-1 relative">
+                <CircleDollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <Input
+                  id="promo_price"
+                  type="number"
+                  step='0.01'
+                  min='0'
+                  placeholder="0.00"
+                  className="pl-10"
+                  {...register('promo_price', {
+                    setValueAs: v => (v === '' || v === null || v === undefined || Number.isNaN(Number(v))) ? null : parseFloat(v as string)
+                  })}
+                />
+              </div>
+              {errors.promo_price && (
+                <p className="mt-1 text-sm text-red-600">{errors.promo_price.message}</p>
+              )}
+            </div>
+
+            {/* Discount Price */}
+            <div>
+              <Label htmlFor="discount_price" className="text-sm font-medium text-gray-700">
+                Precio Descuento
+              </Label>
+              <div className="mt-1 relative">
+                <CircleDollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <Input
+                  id="discount_price"
+                  type="number"
+                  step='0.01'
+                  min='0'
+                  placeholder="0.00"
+                  className="pl-10"
+                  {...register('discount_price', {
+                    setValueAs: v => (v === '' || v === null || v === undefined || Number.isNaN(Number(v))) ? null : parseFloat(v as string)
+                  })}
+                />
+              </div>
+              {errors.discount_price && (
+                <p className="mt-1 text-sm text-red-600">{errors.discount_price.message}</p>
               )}
             </div>
 
@@ -265,7 +315,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
         </form>
       </div>
     </div>
-  );  
-};  
+  );
+};
 
 export default EditProductModal;

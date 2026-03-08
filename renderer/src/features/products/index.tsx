@@ -440,11 +440,11 @@ const ProductsPage: React.FC = () => {
                 <div key={product.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex flex-col overflow-hidden mr-2">
-                        <h3 className="font-semibold text-gray-900 truncate" title={product.name}>{product.name}</h3>
-                        <span className="inline-flex items-center text-xs text-gray-500 mt-1">
-                            <Layers size={12} className="mr-1" />
-                            {product.templates?.length || 0} {(product.templates?.length || 0) === 1 ? 'plantilla' : 'plantillas'}
-                        </span>
+                      <h3 className="font-semibold text-gray-900 truncate" title={product.name}>{product.name}</h3>
+                      <span className="inline-flex items-center text-xs text-gray-500 mt-1">
+                        <Layers size={12} className="mr-1" />
+                        {product.templates?.length || 0} {(product.templates?.length || 0) === 1 ? 'plantilla' : 'plantillas'}
+                      </span>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <Button 
@@ -456,13 +456,13 @@ const ProductsPage: React.FC = () => {
                         <Edit3 size={14} />
                       </Button>
                       <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => openDeleteModal(product)}
-                          className="p-1 h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 size={14} />
-                        </Button>
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => openDeleteModal(product)}
+                        className="p-1 h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 size={14} />
+                      </Button>
                     </div>
                   </div>
                   
@@ -473,14 +473,55 @@ const ProductsPage: React.FC = () => {
                         <span className="font-mono text-xs">{product.serial_number}</span>
                       </div>
                     )}
-                    
-                    <div className="flex items-center gap-2">
-                      <DollarSign size={14} />
-                      <span className="font-semibold text-green-600">
-                        ${product.price.toFixed(2)} MXN
-                      </span>
-                    </div>
-                    
+
+                    {(() => {
+                      let activePrice = product.price;
+                      let isPromo = false;
+                      let isDiscount = false;
+
+                      if (product.promo_price !== null && product.promo_price !== undefined && product.promo_price < product.price) {
+                        activePrice = product.promo_price;
+                        isPromo = true;
+                      }
+
+                      if (product.discount_price !== null && product.discount_price !== undefined && product.discount_price < activePrice) {
+                        activePrice = product.discount_price;
+                        isPromo = false;
+                        isDiscount = true;
+                      }
+
+                      if (isPromo || isDiscount) {
+                        return (
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <DollarSign size={12} className="text-gray-400" />
+                              <span className="text-gray-400 line-through text-xs">
+                                ${product.price.toFixed(2)} MXN
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <DollarSign size={14} className={isPromo ? "text-blue-600" : "text-orange-600"} />
+                              <span className={`font-semibold ${isPromo ? "text-blue-600" : "text-orange-600"}`}>
+                                ${activePrice.toFixed(2)} MXN
+                              </span>
+                              <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${isPromo ? "bg-blue-100 text-blue-800" : "bg-orange-100 text-orange-800"}`}>
+                                {isPromo ? 'Promo' : 'Desc'}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="flex items-center gap-2">
+                          <DollarSign size={14} />
+                          <span className="font-semibold text-green-600">
+                            ${product.price.toFixed(2)} MXN
+                          </span>
+                        </div>
+                      );
+                    })()}
+
                     {product.description && (
                       <p className="text-xs text-gray-500 line-clamp-2 mt-2">
                         {product.description}

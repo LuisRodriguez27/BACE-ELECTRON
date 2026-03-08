@@ -30,13 +30,15 @@ class ProductRepository {
 
   async create(productData) {
     const stmt = db.prepare(`
-      INSERT INTO products (name, serial_number, price, description) 
-      VALUES (?, ?, ?, ?)
+      INSERT INTO products (name, serial_number, price, promo_price, discount_price, description) 
+      VALUES (?, ?, ?, ?, ?, ?)
     `);
     const result = await stmt.run(
       productData.name,
       productData.serial_number || null,
       productData.price,
+      productData.promo_price !== undefined ? productData.promo_price : null,
+      productData.discount_price !== undefined ? productData.discount_price : null,
       productData.description || null
     );
 
@@ -45,6 +47,8 @@ class ProductRepository {
       name: productData.name,
       serial_number: productData.serial_number,
       price: productData.price,
+      promo_price: productData.promo_price,
+      discount_price: productData.discount_price,
       description: productData.description,
       active: 1
     });
@@ -53,13 +57,15 @@ class ProductRepository {
   async update(id, productData) {
     const stmt = db.prepare(`
       UPDATE products 
-      SET name = ?, serial_number = ?, price = ?, description = ?
+      SET name = ?, serial_number = ?, price = ?, promo_price = ?, discount_price = ?, description = ?
       WHERE id = ?
     `);
     const result = await stmt.run(
       productData.name,
       productData.serial_number || null,
       productData.price,
+      productData.promo_price !== undefined ? productData.promo_price : null,
+      productData.discount_price !== undefined ? productData.discount_price : null,
       productData.description || null,
       id
     );

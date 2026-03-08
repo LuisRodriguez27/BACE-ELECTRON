@@ -124,7 +124,7 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   };
 
   const handleTemplateUpdated = (updatedTemplate: ProductTemplate) => {
-    setTemplates(prev => 
+    setTemplates(prev =>
       prev.map(t => t.id === updatedTemplate.id ? updatedTemplate : t)
     );
     toast.success('Plantilla actualizada exitosamente');
@@ -150,7 +150,7 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
     setProduct(updatedProduct);
     toast.success(`Producto ${updatedProduct.name} actualizado exitosamente`);
     setShowEditProductModal(false);
-    
+
     // Notificar al componente padre si hay callback
     if (onProductUpdated) {
       onProductUpdated(updatedProduct);
@@ -187,8 +187,8 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
   if (error || !product) {
     return (
       <div className="p-6">
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           onClick={onBack}
           className="mb-4 flex items-center gap-2"
         >
@@ -206,8 +206,8 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           onClick={onBack}
           className="flex items-center gap-2"
         >
@@ -218,7 +218,7 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
           <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
           <p className="text-gray-600">Gestión de producto y plantillas</p>
         </div>
-        <Button 
+        <Button
           onClick={openEditProductModal}
           className="flex items-center gap-2"
         >
@@ -237,21 +237,62 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                 <Package className="text-gray-400" size={16} />
                 <span className="font-medium">{product.name}</span>
               </div>
-              
+
               {product.serial_number && (
                 <div className="flex items-center gap-3">
                   <Hash className="text-gray-400" size={16} />
                   <span className="font-mono text-sm">{product.serial_number}</span>
                 </div>
               )}
-              
-              <div className="flex items-center gap-3">
-                <DollarSign className="text-gray-400" size={16} />
-                <span className="font-semibold text-green-600">
-                  ${product.price.toFixed(2)} MXN
-                </span>
-              </div>
-              
+
+              {(() => {
+                let activePrice = product.price;
+                let isPromo = false;
+                let isDiscount = false;
+
+                if (product.promo_price !== null && product.promo_price !== undefined && product.promo_price < product.price) {
+                  activePrice = product.promo_price;
+                  isPromo = true;
+                }
+
+                if (product.discount_price !== null && product.discount_price !== undefined && product.discount_price < activePrice) {
+                  activePrice = product.discount_price;
+                  isPromo = false;
+                  isDiscount = true;
+                }
+
+                if (isPromo || isDiscount) {
+                  return (
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-3">
+                        <DollarSign className="text-gray-400" size={16} />
+                        <span className="text-gray-400 line-through text-lg">
+                          ${product.price.toFixed(2)} MXN
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <DollarSign className={isPromo ? "text-blue-500" : "text-orange-500"} size={16} />
+                        <span className={`font-semibold text-lg ${isPromo ? "text-blue-600" : "text-orange-600"}`}>
+                          ${activePrice.toFixed(2)} MXN
+                        </span>
+                        <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${isPromo ? "bg-blue-100 text-blue-800" : "bg-orange-100 text-orange-800"}`}>
+                          {isPromo ? 'Precio Promoción' : 'Precio con Descuento'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="flex items-center gap-3">
+                    <DollarSign className="text-gray-400" size={16} />
+                    <span className="font-semibold text-green-600 text-lg">
+                      ${product.price.toFixed(2)} MXN
+                    </span>
+                  </div>
+                );
+              })()}
+
               {product.description && (
                 <div className="flex items-start gap-3">
                   <FileText className="text-gray-400 mt-0.5" size={16} />
@@ -268,13 +309,12 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                 <BarChart3 className="text-gray-400" size={14} />
                 <span>{templates.length} plantillas</span>
               </div>
-                            
+
               <div className="flex items-center gap-2">
-                <span className={`px-2 py-1 text-xs rounded-full ${
-                  product.active === 1 
-                    ? 'bg-green-100 text-green-800' 
+                <span className={`px-2 py-1 text-xs rounded-full ${product.active === 1
+                    ? 'bg-green-100 text-green-800'
                     : 'bg-red-100 text-red-800'
-                }`}>
+                  }`}>
                   {product.active === 1 ? 'Activo' : 'Inactivo'}
                 </span>
               </div>
@@ -301,7 +341,7 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                 Configuraciones personalizadas para este producto
               </p>
             </div>
-            <Button 
+            <Button
               onClick={openCreateTemplateModal}
               className="flex items-center gap-2"
             >
@@ -346,13 +386,13 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                 {searchTerm ? 'No se encontraron plantillas' : 'No hay plantillas'}
               </h3>
               <p className="text-gray-500 mb-4">
-                {searchTerm 
+                {searchTerm
                   ? 'Intenta con otros términos de búsqueda'
                   : 'Crea la primera plantilla para este producto'
                 }
               </p>
               {!searchTerm && (
-                <Button 
+                <Button
                   onClick={openCreateTemplateModal}
                   className="flex items-center gap-2 mx-auto"
                 >
@@ -365,7 +405,7 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
             <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
               {filteredTemplates.map((template) => {
                 const colors = formatColors(template.colors);
-                
+
                 return (
                   <div key={template.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                     <div className="flex items-start justify-between mb-3">
@@ -382,7 +422,7 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                           )}
                         </div> */}
                       </div>
-                      
+
                     </div>
 
                     {/* Template Specifications */}
@@ -393,21 +433,21 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                           ${template.final_price.toFixed(2)} MXN
                         </span>
                       </div>
-                      
+
                       {(template.width || template.height) && (
                         <div className="flex items-center gap-2">
                           <Ruler size={14} />
                           <span>
                             {template.width && template.height
                               ? `${template.width}m × ${template.height}m`
-                              : template.width 
+                              : template.width
                                 ? `Ancho: ${template.width}m`
                                 : `Alto: ${template.height}m`
                             }
                           </span>
                         </div>
                       )}
-                      
+
                       {template.position && (
                         <div className="flex items-center gap-2">
                           <MapPin size={14} />
@@ -425,7 +465,7 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                         </div>
                         <div className="flex flex-wrap gap-1">
                           {colors.map((color, index) => (
-                            <span 
+                            <span
                               key={index}
                               className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded"
                             >
@@ -438,8 +478,8 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
 
                     {/* Actions */}
                     <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={() => openEditTemplateModal(template)}
                         className="flex-1 flex items-center gap-1"
@@ -447,8 +487,8 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                         <Edit3 size={14} />
                         Editar
                       </Button>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={() => openDeleteTemplateModal(template)}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center gap-1"
@@ -473,7 +513,7 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
           product={product}
         />
       )}
-      
+
       <EditTemplateModal
         isOpen={showEditTemplateModal}
         onClose={closeModals}

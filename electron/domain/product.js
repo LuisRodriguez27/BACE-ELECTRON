@@ -1,9 +1,11 @@
 class Product {
-  constructor({ id, name, serial_number, price, description, active = 1 }) {
+  constructor({ id, name, serial_number, price, promo_price, discount_price, description, active = 1 }) {
     this.id = id;
     this.name = name;
     this.serial_number = serial_number || null;
     this.price = parseFloat(price) || 0;
+    this.promo_price = promo_price !== null && promo_price !== undefined ? parseFloat(promo_price) : null;
+    this.discount_price = discount_price !== null && discount_price !== undefined ? parseFloat(discount_price) : null;
     this.description = description || null;
     this.active = active;
   }
@@ -67,6 +69,8 @@ class Product {
       name: this.name,
       serial_number: this.serial_number,
       price: this.price,
+      promo_price: this.promo_price,
+      discount_price: this.discount_price,
       description: this.description,
       active: this.active
     };

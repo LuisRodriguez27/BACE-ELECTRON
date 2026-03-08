@@ -31,7 +31,7 @@ class ProductService {
     }
   }
 
-  async createProduct({ name, serial_number, price, description }) {
+  async createProduct({ name, serial_number, price, promo_price, discount_price, description }) {
     try {
       // Validaciones de negocio
       if (!name) {
@@ -65,6 +65,8 @@ class ProductService {
         name: name.trim(),
         serial_number: serial_number?.trim() || null,
         price: numericPrice,
+        promo_price: promo_price !== undefined && promo_price !== null && promo_price !== '' ? parseFloat(promo_price) : null,
+        discount_price: discount_price !== undefined && discount_price !== null && discount_price !== '' ? parseFloat(discount_price) : null,
         description: description?.trim() || null
       });
 
@@ -76,7 +78,7 @@ class ProductService {
     }
   }
 
-  async updateProduct(id, { name, serial_number, price, description }) {
+  async updateProduct(id, { name, serial_number, price, promo_price, discount_price, description }) {
     try {
       if (!id || isNaN(id)) {
         throw new Error('ID de producto inválido');
@@ -121,6 +123,8 @@ class ProductService {
         name: name.trim(),
         serial_number: serial_number?.trim() || null,
         price: numericPrice,
+        promo_price: promo_price !== undefined && promo_price !== null && promo_price !== '' ? parseFloat(promo_price) : null,
+        discount_price: discount_price !== undefined && discount_price !== null && discount_price !== '' ? parseFloat(discount_price) : null,
         description: description?.trim() || null
       });
 
@@ -130,21 +134,21 @@ class ProductService {
 
       // Obtener producto actualizado
       const updatedProduct = await productRepository.findById(productId);
-      
+
       if (!updatedProduct) {
         throw new Error('Error: no se pudo recuperar el producto actualizado');
       }
-      
+
       const result = updatedProduct.toPlainObject();
-      
+
       // Validar que el resultado tenga las propiedades necesarias
       if (!result.id || !result.name) {
         console.error('Producto actualizado inválido:', result);
         throw new Error('Datos del producto actualizado inválidos');
       }
-      
+
       return result;
-      
+
     } catch (error) {
       console.error('Error al actualizar producto:', error);
       throw error;
@@ -164,20 +168,6 @@ class ProductService {
       if (!existingProduct) {
         throw new Error('Producto no encontrado');
       }
-
-      // Lógica de negocio: verificar si el producto tiene plantillas activas
-      // TODO: Implementar verificación de plantillas cuando esté listo el service de templates
-      // const hasActiveTemplates = await templateService.hasActiveTemplatesByProductId(productId);
-      // if (hasActiveTemplates) {
-      //   throw new Error('No se puede eliminar un producto con plantillas activas');
-      // }
-
-      // Lógica de negocio: verificar si el producto está en órdenes activas
-      // TODO: Implementar verificación de órdenes cuando esté listo el service de orders
-      // const hasActiveOrders = await orderService.hasActiveOrdersByProductId(productId);
-      // if (hasActiveOrders) {
-      //   throw new Error('No se puede eliminar un producto que está en órdenes activas');
-      // }
 
       const deleted = await productRepository.delete(productId);
 

@@ -140,9 +140,14 @@ const pgSchema = `
     name VARCHAR(255) NOT NULL,
     serial_number VARCHAR(255) UNIQUE,
     price DECIMAL(10,2) NOT NULL,
+    promo_price DECIMAL(10,2),
+    discount_price DECIMAL(10,2),
     description TEXT,
     active INTEGER NOT NULL DEFAULT 1
   );
+
+  ALTER TABLE products ADD COLUMN IF NOT EXISTS promo_price DECIMAL(10,2);
+  ALTER TABLE products ADD COLUMN IF NOT EXISTS discount_price DECIMAL(10,2);
 
   CREATE TABLE IF NOT EXISTS product_templates (
     id SERIAL PRIMARY KEY,
@@ -282,6 +287,14 @@ async function initDb() {
     await db.prepare("UPDATE orders SET status = 'Produccion' WHERE status = 'en proceso'").run();
     await db.prepare("UPDATE orders SET status = 'Completado' WHERE status = 'completado'").run();
     await db.prepare("UPDATE orders SET status = 'Cancelado' WHERE status = 'cancelado'").run();
+
+    // MIGRACION NUEVAS COLUMNAS PRODUCTOS
+    try {
+      await client.query("ALTER TABLE products ADD COLUMN IF NOT EXISTS promo_price DECIMAL(10,2)");
+      await client.query("ALTER TABLE products ADD COLUMN IF NOT EXISTS discount_price DECIMAL(10,2)");
+    } catch (e) {
+      console.log("Aviso: No se pudieron crear las columnas de precio (tal vez ya existen):", e.message);
+    }
 
     // Auto incremento check
     const checkOrderCount = await db.prepare('SELECT COUNT(*) as count, MAX(id) as maxId FROM orders').get();
