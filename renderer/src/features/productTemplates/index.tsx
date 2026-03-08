@@ -9,7 +9,8 @@ import {
   Palette, Ruler,
   Search,
   Trash2,
-  User
+  User,
+  FileText
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -39,7 +40,7 @@ const ProductTemplatesPage: React.FC = () => {
           ProductTemplatesApiService.findAll(),
           ProductsApiService.findAll(),
         ]);
-        
+
         setTemplates(templatesData);
         setProducts(productsData);
       } catch (err) {
@@ -54,10 +55,10 @@ const ProductTemplatesPage: React.FC = () => {
 
   const filteredTemplates = templates.filter(template => {
     const matchesSearch = template.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          template.product_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      template.product_name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesProduct = selectedProduct === 'all' || template.product_id.toString() === selectedProduct;
     const matchesUser = selectedUser === 'all' || template.created_by_username === selectedUser;
-    
+
     return matchesSearch && matchesProduct && matchesUser;
   });
 
@@ -111,8 +112,8 @@ const ProductTemplatesPage: React.FC = () => {
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">{error}</p>
-          <Button 
-            onClick={() => window.location.reload()} 
+          <Button
+            onClick={() => window.location.reload()}
             className="mt-2"
             size="sm"
           >
@@ -149,7 +150,7 @@ const ProductTemplatesPage: React.FC = () => {
           </div>
         </div>
 
-        
+
       </div>
 
       {/* Filters and Search */}
@@ -167,7 +168,7 @@ const ProductTemplatesPage: React.FC = () => {
               />
             </div>
           </div>
-          
+
           <div className="flex flex-col sm:flex-row gap-4">
             <select
               value={selectedProduct}
@@ -224,7 +225,7 @@ const ProductTemplatesPage: React.FC = () => {
             Plantillas ({filteredTemplates.length})
           </h2>
         </div>
-        
+
         <div className="p-6">
           {filteredTemplates.length === 0 ? (
             <div className="text-center py-12">
@@ -243,20 +244,18 @@ const ProductTemplatesPage: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div className={`grid gap-4 ${
-              viewMode === 'grid' 
-                ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
-                : 'grid-cols-1'
-            }`}>
+            <div className={`grid gap-4 ${viewMode === 'grid'
+              ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+              : 'grid-cols-1'
+              }`}>
               {filteredTemplates.map((template) => {
                 const colors = formatColors(template.colors);
-                
+
                 return (
-                  <div 
-                    key={template.id} 
-                    className={`border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow ${
-                      viewMode === 'list' ? 'flex items-center gap-4' : ''
-                    }`}
+                  <div
+                    key={template.id}
+                    className={`border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow ${viewMode === 'list' ? 'flex items-center gap-4' : ''
+                      }`}
                   >
                     <div className={`${viewMode === 'list' ? 'flex-1' : ''}`}>
                       {/* Header */}
@@ -281,31 +280,81 @@ const ProductTemplatesPage: React.FC = () => {
 
                       {/* Specifications */}
                       <div className={`${viewMode === 'list' ? 'flex items-center gap-6' : 'space-y-2'} text-sm text-gray-600 mb-4`}>
-                        <div className="flex items-center gap-2">
-                          <DollarSign size={14} className="text-green-600" />
-                          <span className="font-semibold text-green-600">
-                            ${template.final_price.toFixed(2)} MXN
-                          </span>
-                        </div>
-                        
+                        {(() => {
+                          let activePrice = template.final_price;
+                          let isPromo = false;
+                          let isDiscount = false;
+
+                          if (template.promo_price !== null && template.promo_price !== undefined && template.promo_price < template.final_price) {
+                            activePrice = template.promo_price;
+                            isPromo = true;
+                          }
+
+                          if (template.discount_price !== null && template.discount_price !== undefined && template.discount_price < activePrice) {
+                            activePrice = template.discount_price;
+                            isPromo = false;
+                            isDiscount = true;
+                          }
+
+                          if (isPromo || isDiscount) {
+                            return (
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-2">
+                                  <DollarSign size={12} className="text-gray-400" />
+                                  <span className="text-gray-400 line-through text-xs">
+                                    ${template.final_price.toFixed(2)} MXN
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <DollarSign size={14} className={isPromo ? "text-blue-600" : "text-orange-600"} />
+                                  <span className={`font-semibold ${isPromo ? "text-blue-600" : "text-orange-600"}`}>
+                                    ${activePrice.toFixed(2)} MXN
+                                  </span>
+                                  <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${isPromo ? "bg-blue-100 text-blue-800" : "bg-orange-100 text-orange-800"}`}>
+                                    {isPromo ? 'Promo' : 'Desc'}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div className="flex items-center gap-2">
+                              <DollarSign size={14} className="text-green-600" />
+                              <span className="font-semibold text-green-600">
+                                ${template.final_price.toFixed(2)} MXN
+                              </span>
+                            </div>
+                          );
+                        })()}
+
                         {(template.width || template.height) && (
                           <div className="flex items-center gap-2">
                             <Ruler size={14} />
                             <span>
                               {template.width && template.height
                                 ? `${template.width}m × ${template.height}m`
-                                : template.width 
+                                : template.width
                                   ? `Ancho: ${template.width}m`
                                   : `Alto: ${template.height}m`
                               }
                             </span>
                           </div>
                         )}
-                        
+
                         {template.position && (
                           <div className="flex items-center gap-2">
                             <MapPin size={14} />
                             <span className="capitalize">{template.position}</span>
+                          </div>
+                        )}
+
+                        {template.texts && (
+                          <div className="flex items-start gap-2 max-w-full">
+                            <FileText size={14} className="shrink-0 mt-0.5" />
+                            <span className="text-sm truncate" title={template.texts}>
+                              {template.texts}
+                            </span>
                           </div>
                         )}
                       </div>
@@ -319,7 +368,7 @@ const ProductTemplatesPage: React.FC = () => {
                           </div>
                           <div className="flex flex-wrap gap-1">
                             {colors.map((color, index) => (
-                              <span 
+                              <span
                                 key={index}
                                 className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded"
                               >
@@ -333,8 +382,8 @@ const ProductTemplatesPage: React.FC = () => {
 
                     {/* Actions */}
                     <div className={`${viewMode === 'list' ? 'flex items-center' : 'flex items-center justify-between pt-3 border-t border-gray-100'} gap-2`}>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={() => openDeleteModal(template)}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center gap-1"

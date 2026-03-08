@@ -2,7 +2,7 @@ import { Button, Input, Label } from "@/components/ui";
 import { ProductTemplatesApiService } from "@/features/productTemplates/ProductTemplatesApiService";
 import { editProductTemplateSchema, type EditProductTemplateForm, type ProductTemplate } from "@/features/productTemplates/types";
 import { zodResolver } from '@hookform/resolvers/zod';
-import { FileText, Loader, MapPin, Package, Palette, Percent, Ruler, X } from "lucide-react";
+import { CircleDollarSign, FileText, Loader, MapPin, Package, Palette, Percent, Ruler, X } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useForm } from 'react-hook-form';
 import { extractErrorMessage } from '@/utils/errorHandling';
@@ -57,11 +57,15 @@ const EditTemplateModal: React.FC<EditTemplateModalProps> = ({
       setBasePrice(template.final_price);
       setPercentage(0);
 
+      setValue('promo_price', template.promo_price ?? null);
+      setValue('discount_price', template.discount_price ?? null);
+
       setValue('description', template.description || '');
+      setValue('texts', template.texts || '');
       setValue('width', template.width);
       setValue('height', template.height);
       setValue('position', template.position || '');
-      
+
       // Handle colors - ahora es texto plano
       if (template.colors) {
         setColorsInput(template.colors);
@@ -73,12 +77,12 @@ const EditTemplateModal: React.FC<EditTemplateModalProps> = ({
 
   const onSubmit = async (data: EditProductTemplateForm) => {
     if (!template) return;
-    
+
     try {
       setIsSubmitting(true);
       setError(null);
 
-      let processedData = { 
+      let processedData = {
         ...data,
         colors: colorsInput.trim() || undefined,
         product_id: template.product_id
@@ -144,6 +148,46 @@ const EditTemplateModal: React.FC<EditTemplateModalProps> = ({
 
           {/* Template Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Description */}
+            <div>
+              <Label htmlFor="description" className="text-sm font-medium text-gray-700">
+                Nombre de la Plantilla *
+              </Label>
+              <div className="mt-1 relative">
+                <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <Input
+                  id="description"
+                  type="text"
+                  placeholder="Ej: PROMOCIONES - Lona roja comercial"
+                  className="pl-10"
+                  {...register('description')}
+                />
+              </div>
+              {errors.description && (
+                <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
+              )}
+            </div>
+
+            {/* Texts */}
+            <div>
+              <Label htmlFor="texts" className="text-sm font-medium text-gray-700">
+                Descripción
+              </Label>
+              <div className="mt-1 relative">
+                <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <Input
+                  id="texts"
+                  type="text"
+                  placeholder="Ej: SE RENTA - VENTA - PROMOCIONES"
+                  className="pl-10"
+                  {...register('texts')}
+                />
+              </div>
+              {errors.texts && (
+                <p className="mt-1 text-sm text-red-600">{errors.texts.message}</p>
+              )}
+            </div>
+
             {/* Final Price */}
             <div>
               <Label htmlFor="final_price" className="text-sm font-medium text-gray-700">
@@ -158,7 +202,7 @@ const EditTemplateModal: React.FC<EditTemplateModalProps> = ({
                   min='0'
                   placeholder="0.00"
                   className="pl-8"
-                  {...register('final_price', { 
+                  {...register('final_price', {
                     valueAsNumber: true,
                     onChange: handlePriceChange
                   })}
@@ -166,6 +210,54 @@ const EditTemplateModal: React.FC<EditTemplateModalProps> = ({
               </div>
               {errors.final_price && (
                 <p className="mt-1 text-sm text-red-600">{errors.final_price.message}</p>
+              )}
+            </div>
+
+            {/* Promo Price */}
+            <div>
+              <Label htmlFor="promo_price" className="text-sm font-medium text-gray-700">
+                Precio Promoción
+              </Label>
+              <div className="mt-1 relative">
+                <CircleDollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <Input
+                  id="promo_price"
+                  type="number"
+                  step='0.01'
+                  min='0'
+                  placeholder="0.00"
+                  className="pl-10"
+                  {...register('promo_price', {
+                    setValueAs: v => (v === '' || v === null || v === undefined || Number.isNaN(Number(v))) ? null : parseFloat(v as string)
+                  })}
+                />
+              </div>
+              {errors.promo_price && (
+                <p className="mt-1 text-sm text-red-600">{errors.promo_price.message}</p>
+              )}
+            </div>
+
+            {/* Discount Price */}
+            <div>
+              <Label htmlFor="discount_price" className="text-sm font-medium text-gray-700">
+                Precio Descuento
+              </Label>
+              <div className="mt-1 relative">
+                <CircleDollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <Input
+                  id="discount_price"
+                  type="number"
+                  step='0.01'
+                  min='0'
+                  placeholder="0.00"
+                  className="pl-10"
+                  {...register('discount_price', {
+                    setValueAs: v => (v === '' || v === null || v === undefined || Number.isNaN(Number(v))) ? null : parseFloat(v as string)
+                  })}
+                />
+              </div>
+              {errors.discount_price && (
+                <p className="mt-1 text-sm text-red-600">{errors.discount_price.message}</p>
               )}
             </div>
 
@@ -186,26 +278,6 @@ const EditTemplateModal: React.FC<EditTemplateModalProps> = ({
                   onChange={handlePercentageChange}
                 />
               </div>
-            </div>
-
-            {/* Description */}
-            <div>
-              <Label htmlFor="description" className="text-sm font-medium text-gray-700">
-                Descripción de la Plantilla *
-              </Label>
-              <div className="mt-1 relative">
-                <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                <Input
-                  id="description"
-                  type="text"
-                  placeholder="Ej: PROMOCIONES - Lona roja comercial"
-                  className="pl-10"
-                  {...register('description')}
-                />
-              </div>
-              {errors.description && (
-                <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
-              )}
             </div>
 
             {/* Width */}

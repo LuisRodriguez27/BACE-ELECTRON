@@ -16,7 +16,7 @@ class ProductTemplateRepository {
       WHERE pt.active = 1
       ORDER BY pt.id DESC
     `);
-    
+
     const templates = await stmt.all();
     return templates.map(template => new ProductTemplate(template));
   }
@@ -33,10 +33,10 @@ class ProductTemplateRepository {
       LEFT JOIN users u ON pt.created_by = u.id
       WHERE pt.id = ? AND pt.active = 1
     `);
-    
+
     const template = await stmt.get(id);
     if (!template) return null;
-    
+
     return new ProductTemplate(template);
   }
 
@@ -53,7 +53,7 @@ class ProductTemplateRepository {
       WHERE pt.product_id = ? AND pt.active = 1
       ORDER BY pt.id DESC
     `);
-    
+
     const templates = await stmt.all(productId);
     return templates.map(template => new ProductTemplate(template));
   }
@@ -61,14 +61,16 @@ class ProductTemplateRepository {
   async create(templateData) {
     const stmt = db.prepare(`
       INSERT INTO product_templates (
-        product_id, final_price, width, height, colors, position, 
+        product_id, final_price, promo_price, discount_price, width, height, colors, position, 
         texts, description, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    
+
     const result = await stmt.run(
       templateData.product_id,
       templateData.final_price,
+      templateData.promo_price !== undefined ? templateData.promo_price : null,
+      templateData.discount_price !== undefined ? templateData.discount_price : null,
       templateData.width || null,
       templateData.height || null,
       templateData.colors || null,
@@ -77,21 +79,23 @@ class ProductTemplateRepository {
       templateData.description || null,
       templateData.created_by || null
     );
-    
+
     return await this.findById(result.lastInsertRowid);
   }
 
   async update(id, templateData) {
     const stmt = db.prepare(`
       UPDATE product_templates 
-      SET product_id = ?, final_price = ?, width = ?, height = ?, colors = ?, 
+      SET product_id = ?, final_price = ?, promo_price = ?, discount_price = ?, width = ?, height = ?, colors = ?, 
           position = ?, texts = ?, description = ?
       WHERE id = ?
     `);
-    
+
     const result = await stmt.run(
       templateData.product_id,
       templateData.final_price,
+      templateData.promo_price !== undefined ? templateData.promo_price : null,
+      templateData.discount_price !== undefined ? templateData.discount_price : null,
       templateData.width || null,
       templateData.height || null,
       templateData.colors || null,
@@ -100,14 +104,14 @@ class ProductTemplateRepository {
       templateData.description || null,
       id
     );
-    
+
     return result.changes > 0;
   }
 
   async delete(id) {
     const stmt = db.prepare('UPDATE product_templates SET active = 0 WHERE id = ?');
     const result = await stmt.run(id);
-    
+
     return result.changes > 0;
   }
 
@@ -132,7 +136,7 @@ class ProductTemplateRepository {
       )
       ORDER BY pt.id DESC
     `);
-    
+
     const term = `%${searchTerm}%`;
     const templates = await stmt.all(term, term, term, term, term, term);
     return templates.map(template => new ProductTemplate(template));

@@ -57,12 +57,12 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
       try {
         setLoading(true);
         setTemplatesLoading(true);
-        
+
         const [productData, templatesData] = await Promise.all([
           ProductsApiService.findById(productId),
           ProductTemplatesApiService.findByProductId(productId)
         ]);
-        
+
         setProduct(productData);
         setTemplates(templatesData);
 
@@ -312,8 +312,8 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
 
               <div className="flex items-center gap-2">
                 <span className={`px-2 py-1 text-xs rounded-full ${product.active === 1
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-red-100 text-red-800'
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-red-100 text-red-800'
                   }`}>
                   {product.active === 1 ? 'Activo' : 'Inactivo'}
                 </span>
@@ -427,12 +427,53 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
 
                     {/* Template Specifications */}
                     <div className="space-y-2 text-sm text-gray-600 mb-4">
-                      <div className="flex items-center gap-2">
-                        <DollarSign size={14} />
-                        <span className="font-semibold text-green-600">
-                          ${template.final_price.toFixed(2)} MXN
-                        </span>
-                      </div>
+                      {(() => {
+                        let activePrice = template.final_price;
+                        let isPromo = false;
+                        let isDiscount = false;
+
+                        if (template.promo_price !== null && template.promo_price !== undefined && template.promo_price < template.final_price) {
+                          activePrice = template.promo_price;
+                          isPromo = true;
+                        }
+
+                        if (template.discount_price !== null && template.discount_price !== undefined && template.discount_price < activePrice) {
+                          activePrice = template.discount_price;
+                          isPromo = false;
+                          isDiscount = true;
+                        }
+
+                        if (isPromo || isDiscount) {
+                          return (
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-2">
+                                <DollarSign size={12} className="text-gray-400" />
+                                <span className="text-gray-400 line-through text-xs">
+                                  ${template.final_price.toFixed(2)} MXN
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <DollarSign size={14} className={isPromo ? "text-blue-600" : "text-orange-600"} />
+                                <span className={`font-semibold ${isPromo ? "text-blue-600" : "text-orange-600"}`}>
+                                  ${activePrice.toFixed(2)} MXN
+                                </span>
+                                <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${isPromo ? "bg-blue-100 text-blue-800" : "bg-orange-100 text-orange-800"}`}>
+                                  {isPromo ? 'Promo' : 'Desc'}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className="flex items-center gap-2">
+                            <DollarSign size={14} />
+                            <span className="font-semibold text-green-600">
+                              ${template.final_price.toFixed(2)} MXN
+                            </span>
+                          </div>
+                        );
+                      })()}
 
                       {(template.width || template.height) && (
                         <div className="flex items-center gap-2">
@@ -452,6 +493,15 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
                         <div className="flex items-center gap-2">
                           <MapPin size={14} />
                           <span className="capitalize">{template.position}</span>
+                        </div>
+                      )}
+
+                      {template.texts && (
+                        <div className="flex items-start gap-2 max-w-full">
+                          <FileText size={14} className="shrink-0 mt-0.5" />
+                          <span className="text-sm truncate" title={template.texts}>
+                            {template.texts}
+                          </span>
                         </div>
                       )}
                     </div>

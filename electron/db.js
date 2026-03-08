@@ -153,6 +153,8 @@ const pgSchema = `
     id SERIAL PRIMARY KEY,
     product_id INTEGER NOT NULL REFERENCES products(id),
     final_price DECIMAL(10,2) NOT NULL,
+    promo_price DECIMAL(10,2),
+    discount_price DECIMAL(10,2),
     width DECIMAL(10,2),
     height DECIMAL(10,2),
     colors TEXT,
@@ -162,6 +164,9 @@ const pgSchema = `
     created_by INTEGER REFERENCES users(id),
     active INTEGER NOT NULL DEFAULT 1
   );
+
+  ALTER TABLE product_templates ADD COLUMN IF NOT EXISTS promo_price DECIMAL(10,2);
+  ALTER TABLE product_templates ADD COLUMN IF NOT EXISTS discount_price DECIMAL(10,2);
 
   CREATE TABLE IF NOT EXISTS budgets (
     id SERIAL PRIMARY KEY,
@@ -293,7 +298,15 @@ async function initDb() {
       await client.query("ALTER TABLE products ADD COLUMN IF NOT EXISTS promo_price DECIMAL(10,2)");
       await client.query("ALTER TABLE products ADD COLUMN IF NOT EXISTS discount_price DECIMAL(10,2)");
     } catch (e) {
-      console.log("Aviso: No se pudieron crear las columnas de precio (tal vez ya existen):", e.message);
+      console.log("Aviso: No se pudieron crear las columnas de precio en products:", e.message);
+    }
+
+    // MIGRACION NUEVAS COLUMNAS PRODUCT TEMPLATES
+    try {
+      await client.query("ALTER TABLE product_templates ADD COLUMN IF NOT EXISTS promo_price DECIMAL(10,2)");
+      await client.query("ALTER TABLE product_templates ADD COLUMN IF NOT EXISTS discount_price DECIMAL(10,2)");
+    } catch (e) {
+      console.log("Aviso: No se pudieron crear las columnas de precio en product_templates:", e.message);
     }
 
     // Auto incremento check

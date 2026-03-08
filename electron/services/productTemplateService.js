@@ -20,7 +20,7 @@ class ProductTemplateService {
       }
 
       const template = await productTemplateRepository.findById(parseInt(id));
-      
+
       if (!template) {
         throw new Error('Plantilla no encontrada');
       }
@@ -60,7 +60,7 @@ class ProductTemplateService {
     }
   }
 
-  async createTemplate({ product_id, final_price, width, height, colors, position, texts, description, created_by }) {
+  async createTemplate({ product_id, final_price, promo_price, discount_price, width, height, colors, position, texts, description, created_by }) {
     try {
       // Validaciones de negocio
       if (!product_id || isNaN(product_id)) {
@@ -103,10 +103,11 @@ class ProductTemplateService {
         processedTexts = texts.trim();
       }
 
-      // Crear plantilla
       const template = await productTemplateRepository.create({
         product_id: parseInt(product_id),
         final_price: numericFinalPrice,
+        promo_price: promo_price !== undefined ? promo_price : null,
+        discount_price: discount_price !== undefined ? discount_price : null,
         width: width ? parseFloat(width) : null,
         height: height ? parseFloat(height) : null,
         colors: processedColors,
@@ -124,7 +125,7 @@ class ProductTemplateService {
     }
   }
 
-  async updateTemplate(id, { product_id, final_price, width, height, colors, position, texts, description }) {
+  async updateTemplate(id, { product_id, final_price, promo_price, discount_price, width, height, colors, position, texts, description }) {
     try {
       if (!id || isNaN(id)) {
         throw new Error('ID de plantilla inválido');
@@ -182,6 +183,8 @@ class ProductTemplateService {
       const updated = await productTemplateRepository.update(templateId, {
         product_id: parseInt(product_id),
         final_price: numericFinalPrice,
+        promo_price: promo_price !== undefined ? promo_price : null,
+        discount_price: discount_price !== undefined ? discount_price : null,
         width: width ? parseFloat(width) : null,
         height: height ? parseFloat(height) : null,
         colors: processedColors,
@@ -196,21 +199,21 @@ class ProductTemplateService {
 
       // Obtener plantilla actualizada
       const updatedTemplate = await productTemplateRepository.findById(templateId);
-      
+
       if (!updatedTemplate) {
         throw new Error('Error: no se pudo recuperar la plantilla actualizada');
       }
-      
+
       const result = updatedTemplate.toPlainObject();
-      
+
       // Validar que el resultado tenga las propiedades necesarias
       if (!result.id || !result.product_id) {
         console.error('Plantilla actualizada inválida:', result);
         throw new Error('Datos de la plantilla actualizada inválidos');
       }
-      
+
       return result;
-      
+
     } catch (error) {
       console.error('Error al actualizar plantilla:', error);
       throw error;
