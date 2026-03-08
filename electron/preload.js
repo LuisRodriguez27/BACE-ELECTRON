@@ -103,4 +103,15 @@ contextBridge.exposeInMainWorld('api', {
   getStatsProducts: () => ipcRenderer.invoke('stats:getProducts'),
   getAvailableYears: () => ipcRenderer.invoke('stats:getYears'),
   getAvailableWeeks: (year) => ipcRenderer.invoke('stats:getWeeks', year),
+
+  // Ordenes rapidas (Simple Orders)
+  getAllSimpleOrders: () => ipcRenderer.invoke('simpleOrders:getAll'),
+  getSimpleOrderById: (id) => ipcRenderer.invoke('simpleOrders:getById', id),
+  createSimpleOrder: (data) => ipcRenderer.invoke('simpleOrders:create', data),
+  updateSimpleOrder: (id, data) => ipcRenderer.invoke('simpleOrders:update', id, data),
+  deleteSimpleOrder: (id) => ipcRenderer.invoke('simpleOrders:delete', id),
+  addSimpleOrderPayment: (data) => ipcRenderer.invoke('simpleOrders:addPayment', data),
+  getSimpleOrderPayments: (id) => ipcRenderer.invoke('simpleOrders:getPayments', id),
+  updateSimpleOrderPayment: (id, data) => ipcRenderer.invoke('simpleOrders:updatePayment', id, data),
+  deleteSimpleOrderPayment: (id) => ipcRenderer.invoke('simpleOrders:deletePayment', id),
 });

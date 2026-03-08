@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as DashboardUsersRouteImport } from './routes/dashboard.users'
 import { Route as DashboardStatsRouteImport } from './routes/dashboard.stats'
+import { Route as DashboardSimpleOrdersRouteImport } from './routes/dashboard.simple-orders'
 import { Route as DashboardProductsRouteImport } from './routes/dashboard.products'
 import { Route as DashboardOrdersRouteImport } from './routes/dashboard.orders'
 import { Route as DashboardHistoryRouteImport } from './routes/dashboard.history'
@@ -85,6 +86,11 @@ const DashboardStatsRoute = DashboardStatsRouteImport.update({
   path: '/stats',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardSimpleOrdersRoute = DashboardSimpleOrdersRouteImport.update({
+  id: '/simple-orders',
+  path: '/simple-orders',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardProductsRoute = DashboardProductsRouteImport.update({
   id: '/products',
   path: '/products',
@@ -131,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/history': typeof DashboardHistoryRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/products': typeof DashboardProductsRoute
+  '/dashboard/simple-orders': typeof DashboardSimpleOrdersRoute
   '/dashboard/stats': typeof DashboardStatsRoute
   '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -149,6 +156,7 @@ export interface FileRoutesByTo {
   '/dashboard/history': typeof DashboardHistoryRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/products': typeof DashboardProductsRoute
+  '/dashboard/simple-orders': typeof DashboardSimpleOrdersRoute
   '/dashboard/stats': typeof DashboardStatsRoute
   '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard': typeof DashboardIndexRoute
@@ -169,6 +177,7 @@ export interface FileRoutesById {
   '/dashboard/history': typeof DashboardHistoryRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/products': typeof DashboardProductsRoute
+  '/dashboard/simple-orders': typeof DashboardSimpleOrdersRoute
   '/dashboard/stats': typeof DashboardStatsRoute
   '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -190,6 +199,7 @@ export interface FileRouteTypes {
     | '/dashboard/history'
     | '/dashboard/orders'
     | '/dashboard/products'
+    | '/dashboard/simple-orders'
     | '/dashboard/stats'
     | '/dashboard/users'
     | '/dashboard/'
@@ -208,6 +218,7 @@ export interface FileRouteTypes {
     | '/dashboard/history'
     | '/dashboard/orders'
     | '/dashboard/products'
+    | '/dashboard/simple-orders'
     | '/dashboard/stats'
     | '/dashboard/users'
     | '/dashboard'
@@ -227,6 +238,7 @@ export interface FileRouteTypes {
     | '/dashboard/history'
     | '/dashboard/orders'
     | '/dashboard/products'
+    | '/dashboard/simple-orders'
     | '/dashboard/stats'
     | '/dashboard/users'
     | '/dashboard/'
@@ -322,6 +334,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardStatsRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/simple-orders': {
+      id: '/dashboard/simple-orders'
+      path: '/simple-orders'
+      fullPath: '/dashboard/simple-orders'
+      preLoaderRoute: typeof DashboardSimpleOrdersRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/products': {
       id: '/dashboard/products'
       path: '/products'
@@ -374,6 +393,7 @@ interface DashboardRouteChildren {
   DashboardHistoryRoute: typeof DashboardHistoryRoute
   DashboardOrdersRoute: typeof DashboardOrdersRoute
   DashboardProductsRoute: typeof DashboardProductsRoute
+  DashboardSimpleOrdersRoute: typeof DashboardSimpleOrdersRoute
   DashboardStatsRoute: typeof DashboardStatsRoute
   DashboardUsersRoute: typeof DashboardUsersRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
@@ -386,6 +406,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardHistoryRoute: DashboardHistoryRoute,
   DashboardOrdersRoute: DashboardOrdersRoute,
   DashboardProductsRoute: DashboardProductsRoute,
+  DashboardSimpleOrdersRoute: DashboardSimpleOrdersRoute,
   DashboardStatsRoute: DashboardStatsRoute,
   DashboardUsersRoute: DashboardUsersRoute,
   DashboardIndexRoute: DashboardIndexRoute,

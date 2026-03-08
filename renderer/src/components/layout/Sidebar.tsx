@@ -9,7 +9,8 @@ import {
   Menu,
   Home,
   Calculator,
-  BarChart3
+  BarChart3,
+  Zap
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSidebarStore } from '@/store/sidebar'
@@ -35,6 +36,12 @@ const menuItems: MenuItem[] = [
     label: 'Órdenes',
     icon: ShoppingCart,
     path: '/dashboard/orders'
+  },
+  {
+    id: 'simple-orders',
+    label: 'Órdenes Rápidas',
+    icon: Zap,
+    path: '/dashboard/simple-orders'
   },
   {
     id: 'history',

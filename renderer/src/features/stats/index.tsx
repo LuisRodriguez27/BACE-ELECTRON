@@ -15,6 +15,7 @@ const StatsPage: React.FC = () => {
   const [availableYears, setAvailableYears] = useState<number[]>([new Date().getFullYear()])
   const [availableWeeks, setAvailableWeeks] = useState<number[]>([])
   const [productId, setProductId] = useState<string>('all')
+  const [paymentMethod, setPaymentMethod] = useState<string>('all')
   const [products, setProducts] = useState<any[]>([])
   const [selectedDates, setSelectedDates] = useState<string[]>([format(new Date(), 'yyyy-MM-dd')])
   const [tempDate, setTempDate] = useState<string>('')
@@ -90,7 +91,7 @@ const StatsPage: React.FC = () => {
 
   useEffect(() => {
     loadStats()
-  }, [period, productId, selectedMonth, selectedYear, selectedWeek, selectedDates])
+  }, [period, productId, paymentMethod, selectedMonth, selectedYear, selectedWeek, selectedDates])
 
   const loadYears = async () => {
     try {
@@ -131,6 +132,7 @@ const StatsPage: React.FC = () => {
       let params: any = {
         period,
         productId: productId === 'all' ? null : parseInt(productId),
+        paymentMethod: paymentMethod === 'all' ? null : paymentMethod,
         month: selectedMonth,
         year: selectedYear
       }
@@ -438,6 +440,18 @@ const StatsPage: React.FC = () => {
             ))}
           </select>
 
+          <select
+            className="flex h-10 w-40 items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={paymentMethod}
+            onChange={(e) => setPaymentMethod(e.target.value)}
+          >
+            <option value="all">Todos los pagos</option>
+            <option value="Efectivo">Efectivo</option>
+            <option value="Transferencia">Transferencia</option>
+            <option value="Tarjeta">Tarjeta</option>
+            <option value="Otro">Otro</option>
+          </select>
+
           <Button onClick={handlePrint} className="flex items-center gap-2">
             <Printer size={16} />
             Imprimir
@@ -475,6 +489,11 @@ const StatsPage: React.FC = () => {
               <span className="text-sm text-blue-500 capitalize text-center">
                 {getPeriodLabel()}
               </span>
+              {paymentMethod !== 'all' && (
+                <span className="text-xs text-blue-600 text-center mt-2 max-w-lg bg-blue-100 p-2 rounded-md">
+                  Nota: El total refleja la suma del valor completo de las órdenes que incluyen este método de pago, no solo el monto parcial abonado.
+                </span>
+              )}
             </div>
           </CardContent>
         </Card>
