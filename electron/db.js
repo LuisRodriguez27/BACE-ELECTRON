@@ -219,10 +219,27 @@ const pgSchema = `
     descripcion TEXT
   );
 
+  CREATE TABLE IF NOT EXISTS simple_orders (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    date TIMESTAMP NOT NULL,
+    concept TEXT NOT NULL,
+    total DECIMAL(10,2) DEFAULT 0,
+    active INTEGER NOT NULL DEFAULT 1
+  );
+
+  CREATE TABLE IF NOT EXISTS simple_order_payments (
+    id SERIAL PRIMARY KEY,
+    simple_order_id INTEGER NOT NULL REFERENCES simple_orders(id),
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    amount DECIMAL(10,2) NOT NULL,
+    date TIMESTAMP NOT NULL,
+    descripcion TEXT
+  );
+
   CREATE INDEX IF NOT EXISTS idx_products_active ON products(active);
   CREATE INDEX IF NOT EXISTS idx_orders_client_id ON orders(client_id);
   CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
-  CREATE INDEX IF NOT EXISTS idx_budgets_client_id ON budgets(client_id);
   CREATE INDEX IF NOT EXISTS idx_budgets_active ON budgets(active);
 `;
 

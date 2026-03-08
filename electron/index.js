@@ -15,6 +15,7 @@ const paymentService = require('./services/paymentsService');
 const authService = require('./services/authService');
 const budgetService = require('./services/budgetService');
 const statsService = require('./services/statsService');
+const simpleOrderService = require('./services/simpleOrderService');
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -156,6 +157,17 @@ ipcMain.handle('stats:getSales', async (event, params) => await statsService.get
 ipcMain.handle('stats:getProducts', async () => await statsService.getProducts());
 ipcMain.handle('stats:getYears', async () => await statsService.getAvailableYears());
 ipcMain.handle('stats:getWeeks', async (event, year) => await statsService.getAvailableWeeks(year));
+
+// Manejo de eventos IPC para ordenes rapidas
+ipcMain.handle('simpleOrders:getAll', async () => await simpleOrderService.getAllSimpleOrders());
+ipcMain.handle('simpleOrders:getById', async (event, id) => await simpleOrderService.getSimpleOrderById(id));
+ipcMain.handle('simpleOrders:create', async (event, data) => await simpleOrderService.createSimpleOrder(data));
+ipcMain.handle('simpleOrders:update', async (event, id, data) => await simpleOrderService.updateSimpleOrder(id, data));
+ipcMain.handle('simpleOrders:delete', async (event, id) => await simpleOrderService.deleteSimpleOrder(id));
+ipcMain.handle('simpleOrders:addPayment', async (event, data) => await simpleOrderService.addPayment(data));
+ipcMain.handle('simpleOrders:getPayments', async (event, id) => await simpleOrderService.getPayments(id));
+ipcMain.handle('simpleOrders:updatePayment', async (event, id, data) => await simpleOrderService.updatePayment(id, data));
+ipcMain.handle('simpleOrders:deletePayment', async (event, id) => await simpleOrderService.deletePayment(id));
 
 app.whenReady().then(createWindow);
 

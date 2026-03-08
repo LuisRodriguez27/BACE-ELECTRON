@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useAuthStore } from '@/store/auth';
 import { Button, Input, Label } from '@/components/ui';
 import { X, DollarSign, Loader, Calendar, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { PaymentsApiService } from '../PaymentsApiService';
+import { SimpleOrdersApiService } from '../../simple-orders/SimpleOrdersApiService';
 import { createPaymentSchema, type CreatePaymentForm, type Payment } from '../types';
 import { extractErrorMessage } from '@/utils/errorHandling';
 import dayjs from 'dayjs';
@@ -20,6 +22,7 @@ interface CreatePaymentModalProps {
   currentPayments: number;
   onPaymentCreated: (payment: Payment) => void;
   clientName: string;
+  isSimpleOrder?: boolean;
 }
 
 const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
@@ -29,8 +32,10 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
   orderTotal,
   currentPayments,
   onPaymentCreated,
-  clientName
+  clientName,
+  isSimpleOrder = false,
 }) => {
+  const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<CreatePaymentForm>({
@@ -61,7 +66,24 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
         return;
       }
 
-      const newPayment = await PaymentsApiService.create(validatedData);
+      let newPayment: any;
+      if (isSimpleOrder) {
+        if (!user?.id) {
+          setError('Atención: No se ha detectado el usuario activo');
+          setLoading(false);
+          return;
+        }
+        newPayment = await SimpleOrdersApiService.addPayment({
+          simple_order_id: orderId,
+          user_id: user.id,
+          amount: validatedData.amount,
+          date: validatedData.date,
+          descripcion: validatedData.descripcion
+        });
+      } else {
+        newPayment = await PaymentsApiService.create(validatedData);
+      }
+      
       console.log('Pago creado:', newPayment);
       
       toast.success('Pago registrado exitosamente');

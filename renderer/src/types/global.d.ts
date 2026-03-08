@@ -7,6 +7,13 @@ import { Order, CreateOrderForm, EditOrderForm, OrderProduct, CreateOrderProduct
 import { Payment, CreatePaymentForm, EditPaymentForm } from "../features/payments/types";
 import type { LoginCredentials, LoginResponse } from "@/features/auth/types";
 import type { Budget, BudgetProduct, CreateBudgetForm } from "@/features/budgets";
+import { 
+  SimpleOrder, 
+  CreateSimpleOrderForm, 
+  SimpleOrderPayment, 
+  CreateSimpleOrderPaymentForm, 
+  UpdateSimpleOrderPaymentForm 
+} from "../features/simple-orders/types";
 
 declare global {
   interface Window {
@@ -110,6 +117,18 @@ declare global {
       getStatsProducts: () => Promise<any>;
       getAvailableYears: () => Promise<number[]>;
       getAvailableWeeks: (year: number) => Promise<number[]>;
+
+      // Órdenes Rápidas (Simple Orders)
+      getAllSimpleOrders: () => Promise<SimpleOrder[]>;
+      getSimpleOrderById: (id: number) => Promise<SimpleOrder>;
+      createSimpleOrder: (data: CreateSimpleOrderForm) => Promise<SimpleOrder>;
+      updateSimpleOrder: (id: number, data: Partial<CreateSimpleOrderForm>) => Promise<SimpleOrder>;
+      deleteSimpleOrder: (id: number) => Promise<void>;
+      
+      addSimpleOrderPayment: (data: CreateSimpleOrderPaymentForm) => Promise<SimpleOrderPayment>;
+      getSimpleOrderPayments: (id: number) => Promise<SimpleOrderPayment[]>;
+      updateSimpleOrderPayment: (id: number, data: UpdateSimpleOrderPaymentForm) => Promise<SimpleOrderPayment>;
+      deleteSimpleOrderPayment: (id: number) => Promise<void>;
     };
   }
 }
