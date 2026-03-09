@@ -408,7 +408,7 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
               )}
             </div>
           ) : (
-            <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-2">
               {filteredTemplates.map((template) => {
                 const colors = formatColors(template.colors);
 
