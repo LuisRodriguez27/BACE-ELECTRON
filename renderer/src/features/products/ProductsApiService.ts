@@ -1,4 +1,4 @@
-import type { Product, CreateProductForm, EditProductForm } from "./types";
+import type { Product, CreateProductForm, EditProductForm, SimilarNameResult } from "./types";
 import type { ProductTemplate } from "@/features/productTemplates/types";
 
 export const ProductsApiService = {
@@ -32,5 +32,9 @@ export const ProductsApiService = {
 
   search: async (searchTerm: string): Promise<Product[]> => {
     return window.api.searchProducts(searchTerm);
+  },
+
+  findSimilarNames: async (): Promise<SimilarNameResult[]> => {
+    return window.api.findSimilarNames();
   },
 };

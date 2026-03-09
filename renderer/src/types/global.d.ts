@@ -1,18 +1,18 @@
 import { Client, CreateClientForm, EditClientForm } from "../features/clients/types";
 import { User, CreateUserForm, EditUserForm } from "../features/users/types";
 import { Permission, CreatePermissionForm, EditPermissionForm } from "../features/permissions/types";
-import { Product, CreateProductForm, EditProductForm } from "../features/products/types";
+import { Product, CreateProductForm, EditProductForm, SimilarNameResult } from "../features/products/types";
 import { ProductTemplate, CreateProductTemplateForm, EditProductTemplateForm } from "../features/productTemplates/types";
 import { Order, CreateOrderForm, EditOrderForm, OrderProduct, CreateOrderProductForm, EditOrderProductForm } from "../features/orders/types";
 import { Payment, CreatePaymentForm, EditPaymentForm } from "../features/payments/types";
 import type { LoginCredentials, LoginResponse } from "@/features/auth/types";
 import type { Budget, BudgetProduct, CreateBudgetForm } from "@/features/budgets";
-import { 
-  SimpleOrder, 
-  CreateSimpleOrderForm, 
-  SimpleOrderPayment, 
-  CreateSimpleOrderPaymentForm, 
-  UpdateSimpleOrderPaymentForm 
+import {
+  SimpleOrder,
+  CreateSimpleOrderForm,
+  SimpleOrderPayment,
+  CreateSimpleOrderPaymentForm,
+  UpdateSimpleOrderPaymentForm
 } from "../features/simple-orders/types";
 
 declare global {
@@ -65,6 +65,7 @@ declare global {
       getProductWithTemplates: (productId: number) => Promise<Product & { templates: ProductTemplate[] }>;
       getAllProductsWithTemplates: () => Promise<(Product & { templates: ProductTemplate[] })[]>;
       searchProducts: (searchTerm: string) => Promise<Product[]>;
+      findSimilarNames: () => Promise<SimilarNameResult[]>;
 
       // Plantillas de productos
       getAllTemplates: () => Promise<ProductTemplate[]>;
@@ -85,8 +86,8 @@ declare global {
       deleteOrder: (id: number) => Promise<void>;
       recalculateOrderTotal: (id: number) => Promise<number>;
       getSales: () => Promise<Order[]>;
-      getSalesPaginated: (page: number, limit: number, searchTerm: string) => Promise<{data: Order[], pagination: {page: number, limit: number, total: number, totalPages: number, hasNext: boolean, hasPrev: boolean}}>;
-      searchSales: (page: number, limit: number, searchTerm: string) => Promise<{data: Order[], pagination: {page: number, limit: number, total: number, totalPages: number, hasNext: boolean, hasPrev: boolean}}>;
+      getSalesPaginated: (page: number, limit: number, searchTerm: string) => Promise<{ data: Order[], pagination: { page: number, limit: number, total: number, totalPages: number, hasNext: boolean, hasPrev: boolean } }>;
+      searchSales: (page: number, limit: number, searchTerm: string) => Promise<{ data: Order[], pagination: { page: number, limit: number, total: number, totalPages: number, hasNext: boolean, hasPrev: boolean } }>;
       getOrderProducts: (orderId: number) => Promise<OrderProduct[]>;
 
       // Pagos
@@ -100,8 +101,8 @@ declare global {
 
       // Presupuestos
       getAllBudgets: () => Promise<Budget[]>;
-      getBudgetsPaginated: (page: number, limit: number, searchTerm: string) => Promise<{data: Budget[], pagination: {page: number, limit: number, total: number, totalPages: number, hasNext: boolean, hasPrev: boolean}}>;
-      searchBudgets: (page: number, limit: number, searchTerm: string) => Promise<{data: Budget[], pagination: {page: number, limit: number, total: number, totalPages: number, hasNext: boolean, hasPrev: boolean}}>;
+      getBudgetsPaginated: (page: number, limit: number, searchTerm: string) => Promise<{ data: Budget[], pagination: { page: number, limit: number, total: number, totalPages: number, hasNext: boolean, hasPrev: boolean } }>;
+      searchBudgets: (page: number, limit: number, searchTerm: string) => Promise<{ data: Budget[], pagination: { page: number, limit: number, total: number, totalPages: number, hasNext: boolean, hasPrev: boolean } }>;
       getBudgetById: (id: number) => Promise<Budget>;
       getBudgetByClientId: (clientId: number) => Promise<Budget[]>;
       createBudget: (data: CreateBudgetForm) => Promise<Budget>;
@@ -124,7 +125,7 @@ declare global {
       createSimpleOrder: (data: CreateSimpleOrderForm) => Promise<SimpleOrder>;
       updateSimpleOrder: (id: number, data: Partial<CreateSimpleOrderForm>) => Promise<SimpleOrder>;
       deleteSimpleOrder: (id: number) => Promise<void>;
-      
+
       addSimpleOrderPayment: (data: CreateSimpleOrderPaymentForm) => Promise<SimpleOrderPayment>;
       getSimpleOrderPayments: (id: number) => Promise<SimpleOrderPayment[]>;
       updateSimpleOrderPayment: (id: number, data: UpdateSimpleOrderPaymentForm) => Promise<SimpleOrderPayment>;
@@ -133,4 +134,4 @@ declare global {
   }
 }
 
-export {};
+export { };

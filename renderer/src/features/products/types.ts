@@ -27,3 +27,15 @@ export interface Product {
 
 	templates?: ProductTemplate[];
 }
+
+export interface SimilarNameProduct {
+	id: number;
+	name: string;
+	serial_number?: string | null;
+}
+
+export interface SimilarNameResult {
+	word: string;
+	count: number;
+	products: SimilarNameProduct[];
+}

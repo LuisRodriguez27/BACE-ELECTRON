@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { DollarSign, Edit3, Hash, Package, Plus, Search, Trash2, Printer, Layers } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { CreateProductModal, DeleteProductModal, EditProductModal, ProductDetailView } from './components';
+import { CreateProductModal, DeleteProductModal, EditProductModal, ProductDetailView, SimilarNamesModal } from './components';
 import { ProductsApiService } from './ProductsApiService';
 import type { Product } from './types';
 import type { ProductTemplate } from '@/features/productTemplates/types';
@@ -22,6 +22,8 @@ const ProductsPage: React.FC = () => {
   // Estados para vista detallada
   const [currentView, setCurrentView] = useState<'list' | 'detail'>('list');
   const [detailProductId, setDetailProductId] = useState<number | null>(null);
+  
+  const [showSimilarModal, setShowSimilarModal] = useState(false);
 
   const { checkPermission } = usePermissions();
 
@@ -384,6 +386,14 @@ const ProductsPage: React.FC = () => {
             Imprimir Inventario
           </Button>
           <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={() => setShowSimilarModal(true)}
+          >
+            <Layers size={16} />
+            Buscar Similares
+          </Button>
+          <Button
             className="flex items-center gap-2"
             onClick={openCreateModal}
           >
@@ -571,6 +581,11 @@ const ProductsPage: React.FC = () => {
         onClose={closeModals}
         onProductDeleted={handleProductDeleted}
         product={selectedProduct}
+      />
+      
+      <SimilarNamesModal
+        isOpen={showSimilarModal}
+        onClose={() => setShowSimilarModal(false)}
       />
       
     </div>

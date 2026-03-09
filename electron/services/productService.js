@@ -1,4 +1,5 @@
 const productRepository = require('../repositories/productRepository');
+const SimilarProductNames = require('../domain/similarProductNames');
 
 class ProductService {
 
@@ -266,6 +267,56 @@ class ProductService {
     } catch (error) {
       console.error('Error al obtener productos más utilizados:', error);
       throw new Error('Error al obtener productos más utilizados');
+    }
+  }
+  async getProductsWithSimilarNames() {
+    try {
+      const products = await productRepository.findAll();
+      const plainProducts = products.map(product => product.toPlainObject());
+      
+      const wordGroups = {};
+      
+      const sanitizeWord = (word) => {
+        return word.toLowerCase()
+          .replace(/[.,:;()\-]/g, '')
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // remove accents
+      };
+
+      const ignoredWords = ['de', 'la', 'el', 'los', 'las', 'un', 'una', 'y', 'o', 'en', 'para', 'con', 'por', 'a', 'al', 'del', 'sin', 'sus', 'tu', 'su'];
+
+      plainProducts.forEach(product => {
+        if (!product.name) return;
+        const words = product.name.split(/\s+/);
+        // Usar Set para no contar una palabra repetida dentro del mismo producto
+        const uniqueWords = new Set(words.map(sanitizeWord).filter(w => w.length > 2 && !ignoredWords.includes(w)));
+        
+        uniqueWords.forEach(word => {
+          if (!wordGroups[word]) {
+            wordGroups[word] = [];
+          }
+          wordGroups[word].push({ id: product.id, name: product.name, serial_number: product.serial_number });
+        });
+      });
+
+      const result = [];
+      Object.keys(wordGroups).forEach(word => {
+        if (wordGroups[word].length > 1) { // más de un producto comparte esta palabra
+          const similarObj = new SimilarProductNames({
+            word,
+            count: wordGroups[word].length,
+            products: wordGroups[word]
+          });
+          result.push(similarObj);
+        }
+      });
+      
+      // Ordenar mayor frecuencia primero
+      result.sort((a, b) => b.count - a.count);
+
+      return result.map(item => item.toPlainObject());
+    } catch (error) {
+      console.error('Error al obtener nombres similares:', error);
+      throw new Error('Error al obtener nombres similares');
     }
   }
 }
