@@ -215,7 +215,10 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
           Volver
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            <span className="text-gray-500 font-normal mr-2">#{product.id}</span>
+            {product.name}
+          </h1>
           <p className="text-gray-600">Gestión de producto y plantillas</p>
         </div>
         <Button
@@ -235,7 +238,10 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <Package className="text-gray-400" size={16} />
-                <span className="font-medium">{product.name}</span>
+                <span className="font-medium">
+                  <span className="text-gray-500 font-normal mr-2">#{product.id}</span>
+                  {product.name}
+                </span>
               </div>
 
               {product.serial_number && (

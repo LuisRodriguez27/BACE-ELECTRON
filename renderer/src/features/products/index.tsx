@@ -450,7 +450,10 @@ const ProductsPage: React.FC = () => {
                 <div key={product.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex flex-col overflow-hidden mr-2">
-                      <h3 className="font-semibold text-gray-900 truncate" title={product.name}>{product.name}</h3>
+                      <h3 className="font-semibold text-gray-900 truncate" title={product.name}>
+                        <span className="text-gray-500 font-normal mr-2">#{product.id}</span>
+                        {product.name}
+                      </h3>
                       <span className="inline-flex items-center text-xs text-gray-500 mt-1">
                         <Layers size={12} className="mr-1" />
                         {product.templates?.length || 0} {(product.templates?.length || 0) === 1 ? 'plantilla' : 'plantillas'}
