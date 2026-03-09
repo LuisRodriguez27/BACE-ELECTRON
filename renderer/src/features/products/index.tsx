@@ -56,7 +56,7 @@ const ProductsPage: React.FC = () => {
     return (
       product.name.toLowerCase().includes(searchLower) ||
       (product.serial_number && product.serial_number.toLowerCase().includes(searchLower)) ||
-      (product.description && product.description.toLowerCase().includes(searchLower))
+      (product.id && product.id.toString().includes(searchLower))
     );
   });
   
