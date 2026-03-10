@@ -12,6 +12,7 @@ import type { SimpleOrder, SimpleOrderPayment } from './types';
 import CreatePaymentModal from '../payments/components/CreatePaymentModal';
 import CreateSimpleOrderModal from './components/CreateSimpleOrderModal';
 import EditPaymentModal from '../payments/components/EditPaymentModal';
+import SimpleOrderPrintPreviewModal from './components/SimpleOrderPrintPreviewModal';
 import { Eye, Pencil } from 'lucide-react';
 
 dayjs.extend(utc);
@@ -27,6 +28,7 @@ const SimpleOrdersPage: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showPaymentsListModal, setShowPaymentsListModal] = useState(false);
   const [showEditPaymentModal, setShowEditPaymentModal] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<SimpleOrderPayment | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all'|'pending'|'paid'>('all');
@@ -67,6 +69,7 @@ const SimpleOrdersPage: React.FC = () => {
     setShowPaymentModal(false);
     setShowPaymentsListModal(false);
     setShowEditPaymentModal(false);
+    setShowPrintModal(false);
     setSelectedOrderId(null);
     setSelectedPayment(null);
   };
@@ -297,6 +300,16 @@ const SimpleOrdersPage: React.FC = () => {
                     <button 
                       onClick={() => {
                         setSelectedOrderId(order.id);
+                        setShowPrintModal(true);
+                      }}
+                      className="p-1.5 rounded text-gray-400 hover:text-purple-600 bg-gray-50 hover:bg-purple-50"
+                      title="Imprimir Orden"
+                    >
+                      <Printer size={16} />
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setSelectedOrderId(order.id);
                         setShowPaymentsListModal(true);
                       }}
                       className="p-1.5 rounded text-gray-400 hover:text-blue-600 bg-gray-50 hover:bg-blue-50"
@@ -401,6 +414,14 @@ const SimpleOrdersPage: React.FC = () => {
           onPaymentDeleted={handlePaymentCreated}
           clientName={orders.find(o => o.id === selectedOrderId)?.concept || 'Orden Rápida'}
           isSimpleOrder={true}
+        />
+      )}
+
+      {selectedOrderId && showPrintModal && (
+        <SimpleOrderPrintPreviewModal
+          isOpen={showPrintModal}
+          onClose={closeModals}
+          orderData={orders.find(o => o.id === selectedOrderId) || null}
         />
       )}
 
