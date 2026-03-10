@@ -38,7 +38,8 @@ class SimpleOrderService {
         date: order.date || new Date().toISOString(),
         concept: order.concept,
         total: order.total,
-        active: order.active
+        active: order.active,
+        client_name: order.client_name
       });
 
       const newOrder = await simpleOrderRepository.getById(newId);

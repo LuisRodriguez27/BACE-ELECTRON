@@ -43,12 +43,13 @@ export const generateSimpleOrdersLogbookHtml = (ordersToPrint: SimpleOrder[], cu
         <thead>
           <tr>
             <th style="width: 50px;">Folio</th>
-            <th style="width: 90px;">Fecha</th>
+            <th style="width: 70px;">Fecha</th>
             <th>Concepto</th>
-            <th style="width: 90px;">Empleado</th>
-            <th style="width: 70px;">Total</th>
-            <th style="width: 70px;">Abonado</th>
-            <th style="width: 70px;">Saldo</th>
+            <th style="width: 100px;">Cliente</th>
+            <th style="width: 70px;">Empleado</th>
+            <th style="width: 60px;">Total</th>
+            <th style="width: 60px;">Abonado</th>
+            <th style="width: 60px;">Saldo</th>
           </tr>
         </thead>
         <tbody>
@@ -58,7 +59,7 @@ export const generateSimpleOrdersLogbookHtml = (ordersToPrint: SimpleOrder[], cu
             if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
               date = date.add(1, 'day');
             }
-            const dateStr = date.tz('America/Mexico_City').format('DD/MM/YY HH:mm');
+            const dateStr = date.tz('America/Mexico_City').format('DD/MM HH:mm');
             
             const isSinAbono = order.totalPaid <= 0 && order.balance > 0;
             const isPendiente = order.totalPaid > 0 && order.balance > 0;
@@ -70,6 +71,7 @@ export const generateSimpleOrdersLogbookHtml = (ordersToPrint: SimpleOrder[], cu
                 <td class="center"><strong>${order.id}</strong></td>
                 <td class="center">${dateStr}</td>
                 <td>${order.concept}</td>
+                <td class="center">${order.client_name || '-'}</td>
                 <td class="center">${order.user?.username || 'N/A'}</td>
                 <td class="right">$${order.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 <td class="right">$${order.totalPaid.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>

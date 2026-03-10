@@ -137,6 +137,7 @@ const SimpleOrdersPage: React.FC = () => {
     return (
       order.id.toString().includes(s) ||
       order.concept.toLowerCase().includes(s) ||
+      (order.client_name && order.client_name.toLowerCase().includes(s)) ||
       (order.user?.username && order.user.username.toLowerCase().includes(s))
     );
   });
@@ -224,7 +225,7 @@ const SimpleOrdersPage: React.FC = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
             <input 
               type="text" 
-              placeholder="Buscar por concepto, vendedor o ID..." 
+              placeholder="Buscar por concepto, cliente o ID..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -262,6 +263,7 @@ const SimpleOrdersPage: React.FC = () => {
                 <th className="py-3 px-4 font-semibold uppercase">ID</th>
                 <th className="py-3 px-4 font-semibold uppercase">Fecha</th>
                 <th className="py-3 px-4 font-semibold uppercase">Concepto</th>
+                <th className="py-3 px-4 font-semibold uppercase">Cliente</th>
                 <th className="py-3 px-4 font-semibold uppercase">Empleado</th>
                 <th className="py-3 px-4 font-semibold uppercase text-right">Total</th>
                 <th className="py-3 px-4 font-semibold uppercase text-right">Pagado</th>
@@ -272,7 +274,7 @@ const SimpleOrdersPage: React.FC = () => {
             <tbody className="text-sm divide-y divide-gray-100">
               {filteredOrders.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-gray-500">
+                  <td colSpan={9} className="py-8 text-center text-gray-500">
                     No se encontraron órdenes rápidas.
                   </td>
                 </tr>
@@ -282,6 +284,7 @@ const SimpleOrdersPage: React.FC = () => {
                   <td className="py-3 px-4 text-gray-900 font-medium">#{order.id}</td>
                   <td className="py-3 px-4 text-gray-500">{formatDateTime(order.date)}</td>
                   <td className="py-3 px-4 text-gray-900">{order.concept}</td>
+                  <td className="py-3 px-4 text-gray-500">{order.client_name || '-'}</td>
                   <td className="py-3 px-4 text-gray-500">{order.user?.username || 'N/A'}</td>
                   <td className="py-3 px-4 text-gray-900 font-medium text-right">${order.total.toFixed(2)}</td>
                   <td className={`py-3 px-4 font-medium text-right ${order.balance > 0 && order.totalPaid > 0 ? 'text-orange-600' : order.balance <= 0 ? 'text-green-600' : 'text-gray-500'}`}>

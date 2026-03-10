@@ -234,6 +234,7 @@ const pgSchema = `
     user_id INTEGER NOT NULL REFERENCES users(id),
     date TIMESTAMP NOT NULL,
     concept TEXT NOT NULL,
+    client_name VARCHAR(255),
     total DECIMAL(10,2) DEFAULT 0,
     active INTEGER NOT NULL DEFAULT 1
   );
@@ -305,8 +306,9 @@ async function initDb() {
     try {
       await client.query("ALTER TABLE product_templates ADD COLUMN IF NOT EXISTS promo_price DECIMAL(10,2)");
       await client.query("ALTER TABLE product_templates ADD COLUMN IF NOT EXISTS discount_price DECIMAL(10,2)");
+      await client.query("ALTER TABLE simple_orders ADD COLUMN IF NOT EXISTS client_name VARCHAR(255)");
     } catch (e) {
-      console.log("Aviso: No se pudieron crear las columnas de precio en product_templates:", e.message);
+      console.log("Aviso: No se pudieron crear las columnas de precio en product_templates o simple_orders:", e.message);
     }
 
     // Auto incremento check

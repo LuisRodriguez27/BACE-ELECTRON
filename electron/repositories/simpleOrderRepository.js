@@ -45,22 +45,22 @@ class SimpleOrderRepository {
   }
 
   async create(orderData) {
-    const { user_id, date, concept, total, active = 1 } = orderData;
+    const { user_id, date, concept, total, active = 1, client_name } = orderData;
     const result = await db.prepare(`
-      INSERT INTO simple_orders (user_id, date, concept, total, active)
-      VALUES ($1, $2, $3, $4, $5)
-    `).run(user_id, this._normalizeDate(date), concept, total, active);
+      INSERT INTO simple_orders (user_id, date, concept, total, active, client_name)
+      VALUES ($1, $2, $3, $4, $5, $6)
+    `).run(user_id, this._normalizeDate(date), concept, total, active, client_name);
 
     return result.lastInsertRowid;
   }
 
   async update(id, orderData) {
-    const { user_id, date, concept, total, active = 1 } = orderData;
+    const { user_id, date, concept, total, active = 1, client_name } = orderData;
     const result = await db.prepare(`
       UPDATE simple_orders 
-      SET user_id = $1, date = $2, concept = $3, total = $4, active = $5
-      WHERE id = $6
-    `).run(user_id, this._normalizeDate(date), concept, total, active, id);
+      SET user_id = $1, date = $2, concept = $3, total = $4, active = $5, client_name = $6
+      WHERE id = $7
+    `).run(user_id, this._normalizeDate(date), concept, total, active, client_name, id);
 
     return result.changes > 0;
   }

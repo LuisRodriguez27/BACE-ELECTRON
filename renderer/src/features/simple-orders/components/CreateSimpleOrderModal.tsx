@@ -21,6 +21,7 @@ const CreateSimpleOrderModal: React.FC<CreateSimpleOrderModalProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const [concept, setConcept] = useState('');
+  const [client_name, setClientName] = useState('');
   const [total, setTotal] = useState<number | ''>('');
   const [abono, setAbono] = useState<number | ''>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('');
@@ -63,6 +64,7 @@ const CreateSimpleOrderModal: React.FC<CreateSimpleOrderModalProps> = ({
         user_id: user.id,
         concept,
         total: Number(total),
+        client_name: client_name,
       });
 
       // 2. Si hay abono inicial, creamos el pago automáticamente
@@ -89,6 +91,7 @@ const CreateSimpleOrderModal: React.FC<CreateSimpleOrderModalProps> = ({
 
   const handleClose = () => {
     setConcept('');
+    setClientName('');
     setTotal('');
     setAbono('');
     setPaymentMethod('');
@@ -129,6 +132,22 @@ const CreateSimpleOrderModal: React.FC<CreateSimpleOrderModalProps> = ({
               {error}
             </div>
           )}
+
+          {/* Cliente (Opcional) */}
+          <div>
+            <Label htmlFor="clientName" className="text-sm font-medium text-gray-700">
+              Cliente (Opcional)
+            </Label>
+            <div className="mt-1 relative">
+              <Input
+                id="clientName"
+                value={client_name}
+                onChange={(e) => setClientName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                placeholder="Nombre del cliente..."
+              />
+            </div>
+          </div>
 
           {/* Concepto */}
           <div>

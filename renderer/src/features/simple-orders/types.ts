@@ -13,6 +13,7 @@ export interface SimpleOrder {
   user_id: number;
   date: string;
   concept: string;
+  client_name?: string;
   total: number;
   active: number;
   user?: {
@@ -27,6 +28,7 @@ export interface SimpleOrder {
 export interface CreateSimpleOrderForm {
   user_id: number;
   date?: string;
+  client_name?: string;
   concept: string;
   total: number;
   active?: number;
