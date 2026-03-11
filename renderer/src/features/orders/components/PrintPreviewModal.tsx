@@ -354,7 +354,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-[60]"
+    <div className="fixed inset-0 flex items-center justify-center z-60"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}>
       <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full mx-4 max-h-[95vh] overflow-hidden">
         {/* Header */}

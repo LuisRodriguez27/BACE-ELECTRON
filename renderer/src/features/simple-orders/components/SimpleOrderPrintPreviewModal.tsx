@@ -104,7 +104,6 @@ const SimpleOrderPrintPreviewModal: React.FC<SimpleOrderPrintPreviewModalProps> 
       const base64Image = await imageToBase64(notaImage);
 
       const pagesHtml = productChunks.map((chunkProducts, index) => {
-        const isLastPage = index === productChunks.length - 1;
         const pageBreak = index > 0 ? 'page-break-before: always;' : '';
 
         return `
