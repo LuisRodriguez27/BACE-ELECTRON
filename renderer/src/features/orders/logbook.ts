@@ -1,4 +1,4 @@
-import dayjs from 'dayjs';
+import { formatDateMX } from '@/utils/dateUtils';
 import type { Order } from './types';
 
 export const generateLogbookHtml = (ordersToPrint: Order[], currentDate: string): string => {
@@ -61,13 +61,8 @@ export const generateLogbookHtml = (ordersToPrint: Order[], currentDate: string)
         <tbody>
           ${ordersToPrint.length === 0 ? '<tr><td colspan="10" class="center">No hay órdenes pendientes</td></tr>' : ''}
           ${ordersToPrint.map(order => {
-            const dateR = dayjs(order.date).format('DD/MM/YYYY');
-            
-            let dateEObj = order.estimated_delivery_date ? dayjs(order.estimated_delivery_date) : null;
-            if (dateEObj && dateEObj.utc().hour() === 0 && dateEObj.utc().minute() === 0) {
-              dateEObj = dateEObj.add(1, 'day');
-            }
-            const dateE = dateEObj ? dateEObj.format('DD/MM/YYYY') : '-';
+            const dateR = formatDateMX(order.date, 'DD/MM/YYYY');
+            const dateE = order.estimated_delivery_date ? formatDateMX(order.estimated_delivery_date, 'DD/MM/YYYY') : '-';
             
             // Mapeo de estados a columnas
             // Diseño -> Columna Diseño

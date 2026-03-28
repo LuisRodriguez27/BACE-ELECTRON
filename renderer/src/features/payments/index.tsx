@@ -6,12 +6,7 @@ import { OrdersApiService } from '../orders/OrdersApiService';
 import type { Payment } from './types';
 import type { Order } from '../orders/types';
 import { usePermissions } from '@/hooks/use-permissions';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
+import { formatDateMX } from '@/utils/dateUtils';
 
 const PaymentsPage: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -81,7 +76,7 @@ const PaymentsPage: React.FC = () => {
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'No especificada';
-    return dayjs(dateString).tz('America/Mexico_City').format('D MMM YYYY h:mm A');
+    return formatDateMX(dateString, 'D MMM YYYY h:mm A');
   };
 
   const getTotalPayments = () => {

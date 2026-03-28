@@ -7,6 +7,7 @@ import { ProductsApiService } from './ProductsApiService';
 import type { Product } from './types';
 import type { ProductTemplate } from '@/features/productTemplates/types';
 import { usePermissions } from '@/hooks/use-permissions';
+import { formatDateMX, nowISO } from '@/utils/dateUtils';
 
 const ProductsPage: React.FC = () => {
   const [products, setProducts] = useState<(Product & { templates?: ProductTemplate[] })[]>([]);
@@ -237,7 +238,7 @@ const ProductsPage: React.FC = () => {
           </style>
         </head>
         <body>
-          <div class="date">Generado el: ${new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} a las ${new Date().toLocaleTimeString('es-MX')}</div>
+          <div class="date">Generado el: ${formatDateMX(nowISO(), 'dddd, D [de] MMMM [de] YYYY')} a las ${formatDateMX(nowISO(), 'HH:mm:ss')}</div>
           <h1>Inventario General</h1>
           <div class="subtitle">BACE - LISTA DE PRODUCTOS Y SUBPRODUCTOS</div>
           

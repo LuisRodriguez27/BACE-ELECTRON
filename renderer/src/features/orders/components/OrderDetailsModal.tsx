@@ -31,12 +31,7 @@ import { PaymentsApiService } from '../../payments/PaymentsApiService';
 import { PaymentsList } from '../../payments/components';
 import type { Payment } from '../../payments/types';
 import { usePermissions } from '@/hooks/use-permissions';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
+import { formatDateMX, isoToDateInputMX, startOfDayUTC } from '@/utils/dateUtils';
 
 interface OrderDetailsModalProps {
   isOpen: boolean;
@@ -99,7 +94,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       setEditFormData({
         status: orderData.status,
         responsable: orderData.responsable || '',
-        estimated_delivery_date: orderData.estimated_delivery_date || '',
+        estimated_delivery_date: orderData.estimated_delivery_date ? isoToDateInputMX(orderData.estimated_delivery_date) : '',
         notes: orderData.notes || '',
         description: orderData.description || ''
       });
@@ -151,7 +146,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       const updateData = {
         status: editFormData.status as any,
         responsable: editFormData.responsable as any,
-        estimated_delivery_date: editFormData.estimated_delivery_date || undefined,
+        estimated_delivery_date: editFormData.estimated_delivery_date ? startOfDayUTC(editFormData.estimated_delivery_date) : undefined,
         notes: editFormData.notes || undefined,
         description: editFormData.description || undefined,
         edited_by: user.id // ← SIEMPRE pasar el ID del usuario loggeado
@@ -182,7 +177,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     setEditFormData({
       status: order.status,
       responsable: order.responsable || '',
-      estimated_delivery_date: order.estimated_delivery_date || '',
+      estimated_delivery_date: order.estimated_delivery_date ? isoToDateInputMX(order.estimated_delivery_date) : '',
       notes: order.notes || '',
       description: order.description || ''
     });
@@ -191,21 +186,11 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   };
 
   const formatDate = (dateString: string) => {
-    let date = dayjs(dateString);
-    // Si la hora es exactamente medianoche en UTC, sumar un día
-    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
-      date = date.add(1, 'day');
-    }
-  return date.tz('America/Mexico_City').format('D MMM YYYY h:mm A');
+    return formatDateMX(dateString, 'D MMM YYYY h:mm A');
   };
 
   const formatDateOnly = (dateString: string) => {
-    let date = dayjs(dateString);
-    // Si la hora es exactamente medianoche en UTC, sumar un día
-    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
-      date = date.add(1, 'day');
-    }
-    return date.tz('America/Mexico_City').format('D MMM YYYY');
+    return formatDateMX(dateString, 'D MMM YYYY');
   };
 
 

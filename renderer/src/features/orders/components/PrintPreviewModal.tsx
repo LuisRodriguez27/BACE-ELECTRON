@@ -4,14 +4,9 @@ import { X, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import notaImage from '@/assets/NOTA.jpg';
 import { getOrderItemDisplayName, getOrderItemDescription, getOrderItemType } from '../types';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
+import { formatDateMX } from '@/utils/dateUtils';
 import ClientColorIndicator from '../../clients/components/ClientColorIndicator';
 import type { ClientColor } from '../../clients/types';
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
 
 interface PrintPreviewModalProps {
   isOpen: boolean;
@@ -39,41 +34,10 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
   }
   if (productChunks.length === 0) productChunks.push([]);
 
-  // Funciones para obtener componentes de fecha por separado
-  const getDay = (dateString: string) => {
-    let date = dayjs(dateString);
-
-    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
-      date = date.add(1, 'day');
-    }
-    return date.date().toString().padStart(1, '0');
-  };
-
-  const getMonth = (dateString: string) => {
-    let date = dayjs(dateString);
-
-    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
-      date = date.add(1, 'day');
-    }
-    return (date.month() + 1).toString().padStart(1, '0');
-  };
-
-  const getYear = (dateString: string) => {
-    let date = dayjs(dateString);
-
-    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
-      date = date.add(1, 'day');
-    }
-    return date.year().toString();
-  };
-
-  const getHours = (dateString: string) => {
-    let date = dayjs(dateString);
-    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
-      date = date.add(1, 'day');
-    }
-    return date.format('HH:mm');
-  };
+  const getDay = (dateString: string) => formatDateMX(dateString, 'DD');
+  const getMonth = (dateString: string) => formatDateMX(dateString, 'MM');
+  const getYear = (dateString: string) => formatDateMX(dateString, 'YYYY');
+  const getHours = (dateString: string) => formatDateMX(dateString, 'HH:mm');
 
   const hasPreferentialPrice = productsData.some(product => {
     const type = getOrderItemType(product);

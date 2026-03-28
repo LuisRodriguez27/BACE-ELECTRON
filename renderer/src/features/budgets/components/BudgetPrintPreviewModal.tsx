@@ -4,14 +4,11 @@ import { X, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import cotizacionImage from '@/assets/COTIZACION.jpg';
 import { getBudgetItemDescription, getBudgetItemDisplayName, getBudgetItemType, type Budget } from '../types';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
+import { formatDateMX } from '@/utils/dateUtils';
 import ClientColorIndicator from '../../clients/components/ClientColorIndicator';
 import type { ClientColor } from '../../clients/types';
 
-dayjs.extend(utc);
-dayjs.extend(timezone);
+
 
 interface BudgetPrintPreviewModalProps {
   isOpen: boolean;
@@ -30,16 +27,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
 
   // Función para formatear fecha como DD/MM/YYYY
   const formatDate = (dateString: string) => {
-    let date = dayjs(dateString);
-
-    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
-      date = date.add(1, 'day');
-    }
-
-    const day = date.date().toString().padStart(2, '0');
-    const month = (date.month() + 1).toString().padStart(2, '0');
-    const year = date.year().toString();
-    return `${day}/${month}/${year}`;
+    return formatDateMX(dateString, 'DD/MM/YYYY');
   };
 
   const hasPreferentialPrice = budgetData.budgetProducts?.some(product => {
@@ -274,7 +262,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-[60]"
+    <div className="fixed inset-0 flex items-center justify-center z-60"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}>
       <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full mx-4 max-h-[95vh] overflow-hidden">
         {/* Header */}
@@ -396,7 +384,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
               </div>
 
               {/* Total */}
-              <div className="absolute bottom-5 right-15 min-w-[8rem] flex flex-col items-center justify-center text-red-600 font-bold border-2 border-red-600 bg-white/50 px-2 py-1">
+              <div className="absolute bottom-5 right-15 min-w-32 flex flex-col items-center justify-center text-red-600 font-bold border-2 border-red-600 bg-white/50 px-2 py-1">
                 <div className="text-sm leading-tight">TOTAL</div>
                 <div className="text-xl leading-none">
                   ${budgetData.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

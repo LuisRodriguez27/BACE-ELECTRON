@@ -3,13 +3,8 @@ import { Button } from '@/components/ui';
 import { X, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import notaImage from '@/assets/NOTA.jpg';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
+import { formatDateMX } from '@/utils/dateUtils';
 import { type SimpleOrder } from '../types';
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
 
 interface SimpleOrderPrintPreviewModalProps {
   isOpen: boolean;
@@ -45,37 +40,10 @@ const SimpleOrderPrintPreviewModal: React.FC<SimpleOrderPrintPreviewModalProps> 
   }
   if (productChunks.length === 0) productChunks.push([]);
 
-  const getDay = (dateString: string) => {
-    let date = dayjs(dateString);
-    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
-      date = date.add(1, 'day');
-    }
-    return date.date().toString().padStart(2, '0');
-  };
-
-  const getMonth = (dateString: string) => {
-    let date = dayjs(dateString);
-    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
-      date = date.add(1, 'day');
-    }
-    return (date.month() + 1).toString().padStart(2, '0');
-  };
-
-  const getYear = (dateString: string) => {
-    let date = dayjs(dateString);
-    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
-      date = date.add(1, 'day');
-    }
-    return date.year().toString();
-  };
-
-  const getHours = (dateString: string) => {
-    let date = dayjs(dateString);
-    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
-      date = date.add(1, 'day');
-    }
-    return date.format('HH:mm');
-  };
+  const getDay = (dateString: string) => formatDateMX(dateString, 'DD');
+  const getMonth = (dateString: string) => formatDateMX(dateString, 'MM');
+  const getYear = (dateString: string) => formatDateMX(dateString, 'YYYY');
+  const getHours = (dateString: string) => formatDateMX(dateString, 'HH:mm');
 
   const totalPagos = paymentsData.reduce((sum, payment) => sum + Number(payment.amount), 0);
   const saldoPendiente = orderData.total - totalPagos;

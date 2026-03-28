@@ -15,12 +15,7 @@ import { generateLogbookHtml } from './logbook';
 import { usePermissions } from '@/hooks/use-permissions';
 import ClientColorIndicator from '../clients/components/ClientColorIndicator';
 import type { ClientColor } from '../clients/types';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
+import { formatDateMX, nowISO } from '@/utils/dateUtils';
 
 const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -81,12 +76,7 @@ const OrdersPage: React.FC = () => {
         return;
       }
 
-      const currentDate = new Date().toLocaleDateString('es-MX', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      });
+      const currentDate = formatDateMX(nowISO(), 'dddd, D [de] MMMM [de] YYYY');
 
       const htmlContent = generateLogbookHtml(ordersToPrint, currentDate);
 
@@ -146,21 +136,11 @@ const OrdersPage: React.FC = () => {
   }
 
   const formatDate = (dateString: string) => {
-    let date = dayjs(dateString);
-    // Si la hora es exactamente medianoche en UTC, sumar un día
-    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
-      date = date.add(1, 'day');
-    }
-    return date.tz('America/Mexico_City').format('D MMM YYYY');
+    return formatDateMX(dateString, 'D MMM YYYY');
   };
 
   const formatDateTime = (dateString: string) => {
-    let date = dayjs(dateString);
-    // Si la hora es exactamente medianoche en UTC, sumar un día
-    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
-      date = date.add(1, 'day');
-    }
-    return date.tz('America/Mexico_City').format('D MMM YYYY, h:mm A');
+    return formatDateMX(dateString, 'D MMM YYYY, h:mm A');
   }
 
   const getStatusColor = (status: string) => {
@@ -446,7 +426,7 @@ const OrdersPage: React.FC = () => {
                     <div className="flex items-start justify-between mb-4">
                       <div>
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-gray-900">Orden #{order.id}</h3>
+                          <h3 className="font-semibold text-gray-900 wrap-break-word">Orden #{order.id}</h3>
                           <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(order.status)}`}>
                             {getStatusText(order.status)}
                           </span>
@@ -541,7 +521,7 @@ const OrdersPage: React.FC = () => {
                       {order.client && (
                         <div>
                           <span className="text-sm font-medium text-gray-700">Cliente:</span>
-                          <div className="text-sm text-gray-600">ID: {order.client_id}</div>
+                          <div className="text-gray-500 wrap-break-word font-sm">ID: {order.client_id}</div>
                           <p className="text-sm text-gray-600">{order.client.name}</p>
                           <div className="flex items-center gap-2 mt-1">
                             {order.client.phone && (

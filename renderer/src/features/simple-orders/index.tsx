@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, DollarSign, Plus, Search, ShoppingCart, Printer } from 'lucide-react';
 import { toast } from 'sonner';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
+import { formatDateMX, nowISO } from '@/utils/dateUtils';
 
 import { SimpleOrdersApiService } from './SimpleOrdersApiService';
 import { generateSimpleOrdersLogbookHtml } from './logbook';
@@ -15,8 +13,7 @@ import EditPaymentModal from '../payments/components/EditPaymentModal';
 import SimpleOrderPrintPreviewModal from './components/SimpleOrderPrintPreviewModal';
 import { Eye, Pencil } from 'lucide-react';
 
-dayjs.extend(utc);
-dayjs.extend(timezone);
+
 
 const SimpleOrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<SimpleOrder[]>([]);
@@ -93,7 +90,7 @@ const SimpleOrdersPage: React.FC = () => {
       return;
     }
 
-    const currentDate = dayjs().tz('America/Mexico_City').format('DD/MM/YYYY, h:mm A');
+    const currentDate = formatDateMX(nowISO(), 'DD/MM/YYYY, h:mm A');
     printWindow.document.write(generateSimpleOrdersLogbookHtml(pendingOrders, currentDate));
     printWindow.document.close();
   };
@@ -121,11 +118,7 @@ const SimpleOrdersPage: React.FC = () => {
   };
 
   const formatDateTime = (dateString: string) => {
-    let date = dayjs(dateString);
-    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
-      date = date.add(1, 'day');
-    }
-    return date.tz('America/Mexico_City').format('DD MMM YYYY, h:mm A');
+    return formatDateMX(dateString, 'DD MMM YYYY, h:mm A');
   };
 
   // Filter

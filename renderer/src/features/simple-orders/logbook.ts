@@ -1,10 +1,5 @@
-import dayjs from 'dayjs';
+import { formatDateMX } from '@/utils/dateUtils';
 import type { SimpleOrder } from './types';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
 
 export const generateSimpleOrdersLogbookHtml = (ordersToPrint: SimpleOrder[], currentDate: string): string => {
   return `
@@ -55,11 +50,7 @@ export const generateSimpleOrdersLogbookHtml = (ordersToPrint: SimpleOrder[], cu
         <tbody>
           ${ordersToPrint.length === 0 ? '<tr><td colspan="7" class="center">No hay órdenes pendientes</td></tr>' : ''}
           ${ordersToPrint.map(order => {
-            let date = dayjs(order.date);
-            if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
-              date = date.add(1, 'day');
-            }
-            const dateStr = date.tz('America/Mexico_City').format('DD/MM HH:mm');
+            const dateStr = formatDateMX(order.date, 'DD/MM HH:mm');
             
             const isSinAbono = order.totalPaid <= 0 && order.balance > 0;
             const isPendiente = order.totalPaid > 0 && order.balance > 0;
