@@ -22,8 +22,6 @@ interface PaginationInfo {
   hasPrev: boolean;
 }
 
-
-
 const BudgetsPage: React.FC = () => {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);

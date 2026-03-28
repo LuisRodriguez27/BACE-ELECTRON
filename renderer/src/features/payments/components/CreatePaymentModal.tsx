@@ -7,7 +7,7 @@ import { PaymentsApiService } from '../PaymentsApiService';
 import { SimpleOrdersApiService } from '../../simple-orders/SimpleOrdersApiService';
 import { createPaymentSchema, type CreatePaymentForm, type Payment } from '../types';
 import { extractErrorMessage } from '@/utils/errorHandling';
-import { isoToDateInputMX, startOfDayUTC, todayDateInputMX, preserveTimeOrStartOfDay } from '@/utils/dateUtils';
+import { isoToDateInputMX, todayDateInputMX, preserveTimeOrStartOfDay } from '@/utils/dateUtils';
 
 interface CreatePaymentModalProps {
   isOpen: boolean;

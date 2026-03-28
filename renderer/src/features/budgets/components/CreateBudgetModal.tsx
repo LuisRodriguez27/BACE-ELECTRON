@@ -1,5 +1,5 @@
 import { Button, Input, Label } from '@/components/ui';
-import { todayDateInputMX, isoToDateInputMX, startOfDayUTC, preserveTimeOrStartOfDay } from '@/utils/dateUtils';
+import { todayDateInputMX, isoToDateInputMX, preserveTimeOrStartOfDay } from '@/utils/dateUtils';
 import type { Client } from '@/features/clients/types';
 import CreateClientModal from '@/features/clients/components/CreateClientModal';
 import CreateTemplateModal from '@/features/products/components/CreateTemplateModal';
@@ -575,40 +575,18 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
     setTemplates(prev => [...prev, newTemplate]);
   };
 
-  // Función para abrir la vista previa de impresión
-  // const handlePrint = () => {
-  //   // Validar que hay un cliente seleccionado
-  //   if (!selectedClientId) {
-  //     toast.error('Debe seleccionar un cliente para imprimir');
-  //     return;
-  //   }
-
-  //   if (budgetItems.length === 0) {
-  //     toast.error('Debe agregar al menos un producto o plantilla para imprimir');
-  //     return;
-  //   }
-
-  //   // Validar que todos los items tienen datos válidos
-  //   const invalidItems = budgetItems.filter(item => !item.id || item.id === 0 || !item.name.trim());
-  //   if (invalidItems.length > 0) {
-  //     toast.error('Todos los productos/plantillas deben estar seleccionados antes de imprimir');
-  //     return;
-  //   }
-
-  //   // Abrir el modal de vista previa
-  //   setShowPrintPreview(true);
-  // };
-
   // Obtener lista filtrada de clientes
   const getFilteredClients = () => {
-    if (!clientSearchTerm.trim()) return clients;
-    
-    const searchLower = clientSearchTerm.toLowerCase();
-    return clients.filter(client => 
-      client.name.toLowerCase().includes(searchLower) ||
-      (client.phone && client.phone.includes(searchLower)) ||
-      (client.id.toString().includes(searchLower))
-    );
+    let result = clients;
+    if (clientSearchTerm.trim()) {
+      const searchLower = clientSearchTerm.toLowerCase();
+      result = clients.filter(client => 
+        client.name.toLowerCase().includes(searchLower) ||
+        (client.phone && client.phone.includes(searchLower)) ||
+        (client.id.toString().includes(searchLower))
+      );
+    }
+    return [...result].sort((a, b) => a.id - b.id);
   };
 
   // Seleccionar un cliente
@@ -618,11 +596,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
     setClientSearchTerm(`${client.name} - ${client.phone}`);
     setShowClientDropdown(false);
   };
-
-
-
-
-
+  
   if (!isOpen) return null;
 
   return (
