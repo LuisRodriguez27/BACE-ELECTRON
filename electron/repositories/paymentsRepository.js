@@ -23,6 +23,7 @@ class PaymentsRepository {
       amount: row.amount,
       date: row.date,
       descripcion: row.descripcion,
+      info: row.info,
       order: row.o_id
         ? {
             id: row.o_id,
@@ -56,6 +57,7 @@ class PaymentsRepository {
       amount: row.amount,
       date: row.date,
       descripcion: row.descripcion,
+      info: row.info,
       order: row.o_id
         ? {
             id: row.o_id,
@@ -90,6 +92,7 @@ class PaymentsRepository {
       amount: row.amount,
       date: row.date,
       descripcion: row.descripcion,
+      info: row.info,
       order: row.o_id
         ? {
             id: row.o_id,
@@ -101,11 +104,11 @@ class PaymentsRepository {
     });
   }
 
-  async create({ order_id, amount, date, descripcion }) {
+  async create({ order_id, amount, date, descripcion, info }) {
     const stmt = db.prepare(
-      'INSERT INTO payments (order_id, amount, date, descripcion) VALUES (?, ?, ?, ?)'
+      'INSERT INTO payments (order_id, amount, date, descripcion, info) VALUES (?, ?, ?, ?, ?)'
     );
-    const result = await stmt.run(order_id, amount, date, descripcion);
+    const result = await stmt.run(order_id || null, amount, date, descripcion, info || null);
 
     return await this.findById(result.lastInsertRowid);
   }
@@ -148,6 +151,7 @@ class PaymentsRepository {
       amount: row.amount,
       date: row.date,
       descripcion: row.descripcion,
+      info: row.info,
       order: row.o_id
         ? {
             id: row.o_id,

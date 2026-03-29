@@ -223,10 +223,11 @@ const pgSchema = `
 
   CREATE TABLE IF NOT EXISTS payments (
     id SERIAL PRIMARY KEY,
-    order_id INTEGER NOT NULL REFERENCES orders(id),
+    order_id INTEGER REFERENCES orders(id),
     amount DECIMAL(10,2) NOT NULL,
     date TIMESTAMP,
-    descripcion TEXT
+    descripcion TEXT,
+    info TEXT
   );
 
   CREATE TABLE IF NOT EXISTS simple_orders (
@@ -309,6 +310,18 @@ async function initDb() {
       await client.query("ALTER TABLE simple_orders ADD COLUMN IF NOT EXISTS client_name VARCHAR(255)");
     } catch (e) {
       console.log("Aviso: No se pudieron crear las columnas de precio en product_templates o simple_orders:", e.message);
+    }
+
+    // MIGRACION PAYMENTS: order_id nullable + columna info
+    try {
+      await client.query("ALTER TABLE payments ALTER COLUMN order_id DROP NOT NULL");
+    } catch (e) {
+      console.log("Aviso: No se pudo hacer order_id nullable en payments:", e.message);
+    }
+    try {
+      await client.query("ALTER TABLE payments ADD COLUMN IF NOT EXISTS info TEXT");
+    } catch (e) {
+      console.log("Aviso: No se pudo agregar columna info en payments:", e.message);
     }
 
     // Auto incremento check

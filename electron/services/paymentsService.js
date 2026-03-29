@@ -48,18 +48,13 @@ class PaymentsService {
 
       return payment.toPlainObject();
     } catch (error) {
-      console.error('Error al obtener pago:', error);
+      console.error('Error al obtene,r pago:', error);
       throw error;
     }
   }
 
-  async createPayment({ orderId, amount, date, descripcion }) {
+  async createPayment({ orderId, amount, date, descripcion, info }) {
     try {
-      // Validaciones de negocio
-      if (!orderId || isNaN(orderId)) {
-        throw new Error('ID de orden inválido');
-      }
-
       if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
         throw new Error('Monto inválido. Debe ser un número mayor a 0');
       }
@@ -74,35 +69,51 @@ class PaymentsService {
         throw new Error('Fecha de pago inválida');
       }
 
-      // Verificar que la orden exists
-      const order = await orderRepository.findById(parseInt(orderId));
-      if (!order) {
-        throw new Error('La orden especificada no existe');
+      // Pago asociado a una orden
+      if (orderId && !isNaN(orderId)) {
+        const order = await orderRepository.findById(parseInt(orderId));
+        if (!order) {
+          throw new Error('La orden especificada no existe');
+        }
+
+        if (order.isCancelled()) {
+          throw new Error('No se pueden agregar pagos a órdenes canceladas');
+        }
+
+        // Validar que no se exceda el total de la orden
+        const currentPaymentsTotal = await paymentsRepository.getTotalPaymentsByOrderId(parseInt(orderId));
+        const newTotal = currentPaymentsTotal + parseFloat(amount);
+        
+        if (newTotal > order.total) {
+          const remaining = order.total - currentPaymentsTotal;
+          throw new Error(`El pago excede el monto pendiente. Monto restante: ${new Intl.NumberFormat('es-MX', {
+            style: 'currency',
+            currency: 'MXN'
+          }).format(remaining)}`);
+        }
+
+        const payment = await paymentsRepository.create({
+          order_id: parseInt(orderId),
+          amount: parseFloat(amount),
+          date: paymentDate.toISOString(),
+          descripcion: descripcion?.trim() || null,
+          info: null
+        });
+
+        return payment.toPlainObject();
       }
 
-      // Validaciones de negocio específicas de pagos
-      if (order.isCancelled()) {
-        throw new Error('No se pueden agregar pagos a órdenes canceladas');
+      // Pago libre (sin orden) — requiere info
+      if (!info || !info.trim()) {
+        throw new Error('El campo "info" es requerido para pagos sin orden');
       }
 
-      // Validar que no se exceda el total de la orden
-      const currentPaymentsTotal = await paymentsRepository.getTotalPaymentsByOrderId(parseInt(orderId));
-      const newTotal = currentPaymentsTotal + parseFloat(amount);
-      
-      if (newTotal > order.total) {
-        const remaining = order.total - currentPaymentsTotal;
-        throw new Error(`El pago excede el monto pendiente. Monto restante: ${new Intl.NumberFormat('es-MX', {
-          style: 'currency',
-          currency: 'MXN'
-        }).format(remaining)}`);
-      }
-
-      // Crear pago
       const payment = await paymentsRepository.create({
-        order_id: parseInt(orderId),
+        order_id: null,
         amount: parseFloat(amount),
         date: paymentDate.toISOString(),
-        descripcion: descripcion?.trim() || null
+        descripcion: descripcion?.trim() || null,
+        info: info.trim()
       });
 
       return payment.toPlainObject();

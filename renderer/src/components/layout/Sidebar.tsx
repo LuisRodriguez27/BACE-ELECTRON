@@ -10,7 +10,8 @@ import {
   Home,
   Calculator,
   BarChart3,
-  Zap
+  Zap,
+  DollarSign
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSidebarStore } from '@/store/sidebar'
@@ -60,6 +61,12 @@ const menuItems: MenuItem[] = [
     label: 'Productos',
     icon: Package,
     path: '/dashboard/products'
+  },
+  {
+    id: 'payments',
+    label: 'Pagos',
+    icon: DollarSign,
+    path: '/dashboard/payments'
   },
   {
     id: 'stats',

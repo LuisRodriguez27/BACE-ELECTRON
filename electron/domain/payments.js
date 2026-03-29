@@ -5,13 +5,15 @@ class Payment {
     amount, 
     date, 
     descripcion,
+    info,
     order = null 
   }) {
     this.id = id;
-    this.order_id = order_id;
+    this.order_id = order_id || null;
     this.amount = parseFloat(amount) || 0;
     this.date = date;
     this.descripcion = descripcion || null;
+    this.info = info || null;
     this.order = order;
   }
 
@@ -80,8 +82,6 @@ class Payment {
   // Validar consistencia del pago
   isValid() {
     return (
-      this.order_id && 
-      this.order_id > 0 && 
       this.isValidAmount() && 
       this.isValidDate()
     );
@@ -181,6 +181,7 @@ class Payment {
       amount: this.amount,
       date: this.date,
       descripcion: this.descripcion,
+      info: this.info,
       order: this.getOrder(),
       formattedAmount: this.getFormattedAmount(),
       formattedDate: this.getFormattedDate(),
