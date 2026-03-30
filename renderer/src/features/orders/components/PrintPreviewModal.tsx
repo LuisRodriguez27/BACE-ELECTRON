@@ -3,6 +3,7 @@ import { Button } from '@/components/ui';
 import { X, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import notaImage from '@/assets/NOTA.jpg';
+import specialPriceImage from '@/assets/special-price.png';
 import { getOrderItemDisplayName, getOrderItemDescription, getOrderItemType } from '../types';
 import { formatDateMX } from '@/utils/dateUtils';
 import ClientColorIndicator from '../../clients/components/ClientColorIndicator';
@@ -51,6 +52,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
 
   const totalPagos = paymentsData.reduce((sum, payment) => sum + payment.amount, 0);
   const saldoPendiente = orderData.total - totalPagos;
+  const isSaldada = saldoPendiente <= 0.01;
 
   const handlePrint = async () => {
     setIsLoading(true);
@@ -76,6 +78,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
 
       // Obtener la imagen en base64
       const base64Image = await imageToBase64(notaImage);
+      const base64SpecialPrice = isSaldada ? await imageToBase64(specialPriceImage) : null;
 
 
       // Generar HTML con el mismo diseño del preview visual
@@ -90,6 +93,11 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
         <div style="position: absolute; bottom: 4rem; right: 4.8rem; width: 6.5rem; background-color: rgb(220, 38, 38); color: white; font-weight: bold; font-size: 0.55rem; text-align: center; padding: 0.35rem 0.25rem; box-sizing: border-box; z-index: 10; line-height: 1.2;">
           USTED HA ADQUIRIDO UN PRECIO ESPECIAL
         </div>
+        ` : ''}
+
+        ${base64SpecialPrice ? `
+        <!-- Sello de saldada -->
+        <img src="${base64SpecialPrice}" alt="Saldada" style="position: absolute; top: 0.5rem; right: 0.5rem; width: 7rem; height: auto; z-index: 10; opacity: 0.9;" />
         ` : ''}
 
         <!-- Imagen de fondo como elemento IMG en lugar de background-image -->
@@ -378,6 +386,14 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                       >
                         USTED HA ADQUIRIDO UN PRECIO ESPECIAL
                       </div>
+                    )}
+                    {isSaldada && (
+                      <img
+                        src={specialPriceImage}
+                        alt="Saldada"
+                        className="absolute top-2 right-2"
+                        style={{ width: '7rem', height: 'auto', zIndex: 10, opacity: 0.9 }}
+                      />
                     )}
                     {/* Fechas en dos columnas */}
                     <div className="absolute top-18 right-1 text-sm font-bold text-black">
