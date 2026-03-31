@@ -253,9 +253,11 @@ const OrdersPage: React.FC = () => {
 
   const handlePaymentCreated = (newPayment: Payment) => {
     // Actualizar los pagos de la orden específica
+    if (newPayment.order_id == null) return;
+    const orderId = newPayment.order_id;
     setOrderPayments(prev => ({
       ...prev,
-      [newPayment.order_id]: [...(prev[newPayment.order_id] || []), newPayment]
+      [orderId]: [...(prev[orderId] || []), newPayment]
     }));
   };
 
