@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui';
 import { X, Printer } from 'lucide-react';
 import { toast } from 'sonner';
@@ -25,6 +25,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
   paymentsData
 }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const previewRef = useRef<HTMLDivElement>(null);
 
   if (!isOpen || !orderData) return null;
 
@@ -325,6 +326,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
     }
   };
 
+
   return (
     <div className="fixed inset-0 flex items-center justify-center z-60"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}>
@@ -366,7 +368,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
 
         {/* Preview Content */}
         <div className="p-6 overflow-auto max-h-[calc(95vh-100px)]">
-          <div className="flex flex-col items-center gap-8">
+          <div ref={previewRef} className="flex flex-col items-center gap-8">
             {productChunks.map((chunkProducts, index) => {
               const isLastPage = index === productChunks.length - 1;
               return (

@@ -12,6 +12,7 @@ import {
   Info,
   Layers,
   Loader,
+  MessageCircle,
   Package,
   Phone,
   Printer,
@@ -32,6 +33,7 @@ import { PaymentsList } from '../../payments/components';
 import type { Payment } from '../../payments/types';
 import { usePermissions } from '@/hooks/use-permissions';
 import { formatDateMX, isoToDateInputMX, startOfDayUTC } from '@/utils/dateUtils';
+import { useWhatsAppOrder } from '../hooks/useWhatsAppOrder';
 
 interface OrderDetailsModalProps {
   isOpen: boolean;
@@ -64,6 +66,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   });
   const { user } = useAuth();
   const { checkPermission } = usePermissions();
+  const { isSendingWhatsApp, sendWhatsApp } = useWhatsAppOrder();
 
   // Cargar datos de la orden al abrir el modal
   useEffect(() => {
@@ -322,7 +325,16 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">            
+          <div className="flex items-center gap-3">
+            <Button
+              size="sm"
+              onClick={() => order && sendWhatsApp(order, orderProducts, payments)}
+              disabled={isSendingWhatsApp || !order}
+              className="flex items-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] text-white border-0"
+            >
+              <MessageCircle size={16} />
+              {isSendingWhatsApp ? 'Preparando...' : 'Enviar por WhatsApp'}
+            </Button>
             <Button
               variant="outline"
               size="sm"

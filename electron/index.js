@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, protocol, net } = require('electron');
+const { app, BrowserWindow, ipcMain, protocol, net, shell } = require('electron');
 const path = require('path');
 
 // Deshabilitar aceleración de hardware para evitar problemas de renderizado
@@ -174,6 +174,11 @@ ipcMain.handle('simpleOrders:deletePayment', async (event, id) => await simpleOr
 // Manejo de eventos IPC para imágenes
 ipcMain.handle('upload-image', async (event, productId, buffer, originalName) => await imageService.uploadImage(productId, buffer, originalName));
 ipcMain.handle('delete-image', async (event, relativePath) => await imageService.deleteImage(relativePath));
+
+// Abrir URLs en el navegador predeterminado del sistema
+ipcMain.handle('shell:openExternal', async (_event, url) => {
+  await shell.openExternal(url);
+});
 
 require('dotenv').config();
 

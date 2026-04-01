@@ -119,4 +119,7 @@ contextBridge.exposeInMainWorld('api', {
   // Imágenes en NAS
   uploadImage: (productId, buffer, originalName) => ipcRenderer.invoke('upload-image', productId, buffer, originalName),
   deleteImage: (relativePath) => ipcRenderer.invoke('delete-image', relativePath),
+
+  // Abrir URL en el navegador predeterminado del sistema
+  openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),
 });
