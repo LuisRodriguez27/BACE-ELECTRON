@@ -112,20 +112,20 @@ export function useWhatsAppOrder() {
         </div>
 
         <!-- Cliente y teléfono -->
-        <div style="position:absolute;top:120px;left:100px;font-size:20px;line-height:1;font-weight:700;color:rgb(0,0,0);">
+        <div style="position:absolute;top:112px;left:100px;font-size:20px;line-height:1;font-weight:700;color:rgb(0,0,0);">
           <div style="display:flex;gap:80px;align-items:center;">
             <div style="display:flex;align-items:center;gap:8px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
               ${clientCircleColor ? `<div style="width:16px;height:16px;border-radius:9999px;background-color:${clientCircleColor};flex-shrink:0;"></div>` : ''}
-              <span style="font-size:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${orderData.client?.name || 'Cliente no especificado'}</span>
+              <span style="display:flex;align-items:center;height:36px;font-size:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${orderData.client?.name || 'Cliente no especificado'}</span>
             </div>
-            <div style="margin-left:168px;font-size:18px;">${orderData.client?.phone || ''}</div>
+            <div style="margin-left:168px;font-size:18px;height:36px;display:flex;align-items:center;">${orderData.client?.phone || ''}</div>
           </div>
         </div>
 
         <!-- Tabla de productos -->
         <div style="position:absolute;top:144px;left:32px;right:40px;color:rgb(0,0,0);">
           <!-- Encabezado -->
-          <div style="display:grid;grid-template-columns:50px 1fr 90px 90px;gap:8px;font-size:16px;line-height:1;font-weight:600;margin-bottom:8px;border-bottom:1px solid rgb(156,163,175);padding-bottom:4px;">
+          <div style="display:grid;grid-template-columns:50px 1fr 90px 90px;gap:8px;font-size:16px;line-height:1;font-weight:600;margin-bottom:0px;border-bottom:1px solid rgb(156,163,175);padding-bottom:12px;">
             <div style="text-align:center;">Cant.</div>
             <div style="text-align:left;">Producto</div>
             <div style="text-align:right;">P. Unit.</div>
@@ -133,52 +133,52 @@ export function useWhatsAppOrder() {
           </div>
           <!-- Filas -->
           ${firstChunk.map(product => `
-          <div style="display:grid;grid-template-columns:50px 1fr 90px 90px;gap:8px;margin-bottom:8px;font-size:16px;line-height:24px;padding:4px 0;">
+          <div style="display:grid; grid-template-columns:50px 1fr 90px 90px; gap:8px; font-size:16px; line-height:1.2; padding:0 0 6px 0; border-bottom: 1px solid rgb(230,230,230);">
             <div style="text-align:center;">${product.quantity}</div>
             <div style="padding-left:4px;">
               <div style="font-weight:500;">${getOrderItemDisplayName(product)}</div>
               ${getOrderItemDescription(product)
-                ? `<div style="font-size:14px;color:rgb(70,80,90);margin-top:-3px;line-height:1;">${getOrderItemDescription(product)}</div>`
+                ? `<div style="font-size:13px; color:rgb(80,90,100); margin-top:1px; line-height:1.1;">${getOrderItemDescription(product)}</div>`
                 : ''}
             </div>
-            <div style="text-align:right;font-weight:500;">${money(product.unit_price)}</div>
-            <div style="text-align:right;font-weight:500;">${money(product.total_price)}</div>
+            <div style="text-align:right; font-weight:500;">${money(product.unit_price)}</div>
+            <div style="text-align:right; font-weight:500;">${money(product.total_price)}</div>
           </div>`).join('')}
         </div>
 
         <!-- Descripción de la orden -->
         ${orderData.description ? `
-        <div style="position:absolute;bottom:141px;left:80px;right:48px;font-size:16px;color:rgb(153,27,27);font-weight:700;padding:8px;overflow:hidden;word-break:break-word;line-height:1.2em;max-height:67px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;">
+        <div style="position:absolute;bottom:145px;left:80px;right:48px;font-size:16px;color:rgb(153,27,27);font-weight:700;padding:8px;overflow:hidden;word-break:break-word;line-height:1.2em;max-height:70px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;">
           ${orderData.description}
         </div>` : ''}
 
         <!-- Nº de orden -->
-        <div style="position:absolute;bottom:35px;right:80px;font-size:20px;line-height:1;font-weight:700;color:rgb(220,38,38);text-align:center;">
+        <div style="position:absolute;bottom:55px;right:80px;font-size:20px;line-height:1;font-weight:700;color:rgb(220,38,38);text-align:center;">
           No. ${orderData.id}
         </div>
 
         <!-- Agradecimiento -->
-        <div style="position:absolute;bottom:104px;left:200px;font-size:16px;line-height:1;font-weight:700;color:rgb(3,105,161);">
+        <div style="position:absolute;bottom:124px;left:200px;font-size:16px;line-height:1;font-weight:700;color:rgb(3,105,161);">
           GRACIAS POR SU COMPRA. LE ATENDIÓ ${orderData.user?.username || ''}
         </div>
 
         <!-- Método de pago -->
-        <div style="position:absolute;bottom:88px;left:280px;font-size:16px;line-height:1;">
+        <div style="position:absolute;bottom:108px;left:280px;font-size:16px;line-height:1;">
           ${paymentsData.length > 0 ? `Pago realizado con: ${paymentsData[0]?.descripcion || ''}` : ''}
         </div>
 
         <!-- Monto pagado -->
-        <div style="position:absolute;bottom:44px;left:176px;width:128px;height:32px;display:flex;align-items:center;justify-content:center;color:rgb(21,128,61);font-weight:700;font-size:24px;line-height:1;">
+        <div style="position:absolute;bottom:64px;left:176px;width:128px;height:32px;display:flex;align-items:center;justify-content:center;color:rgb(21,128,61);font-weight:700;font-size:24px;line-height:1;">
           ${paymentsData.length > 0 ? `$${money(totalPagos)}` : ''}
         </div>
 
         <!-- Saldo pendiente -->
-        <div style="position:absolute;bottom:44px;left:320px;width:128px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:700;color:rgb(220,38,38);font-size:24px;line-height:1;">
+        <div style="position:absolute;bottom:64px;left:320px;width:128px;height:32px;display:flex;align-items:center;justify-content:center;font-weight:700;color:rgb(220,38,38);font-size:24px;line-height:1;">
           $${money(saldoPendiente)}
         </div>
 
         <!-- Total -->
-        <div style="position:absolute;bottom:44px;left:464px;width:128px;height:32px;display:flex;align-items:center;justify-content:center;color:rgb(0,0,0);font-weight:700;font-size:24px;line-height:1;">
+        <div style="position:absolute;bottom:64px;left:464px;width:128px;height:32px;display:flex;align-items:center;justify-content:center;color:rgb(0,0,0);font-weight:700;font-size:24px;line-height:1;">
           $${money(orderData.total)}
         </div>
       `;
@@ -216,7 +216,7 @@ export function useWhatsAppOrder() {
 
       try {
         await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-        toast.success('✅ Imagen copiada. ¡Pégala en WhatsApp con Ctrl+V!');
+        toast.success('Imagen copiada. ¡Pégala en WhatsApp con Ctrl+V!');
       } catch {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
