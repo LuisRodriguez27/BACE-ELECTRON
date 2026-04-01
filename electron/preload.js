@@ -115,4 +115,8 @@ contextBridge.exposeInMainWorld('api', {
   getSimpleOrderPayments: (id) => ipcRenderer.invoke('simpleOrders:getPayments', id),
   updateSimpleOrderPayment: (id, data) => ipcRenderer.invoke('simpleOrders:updatePayment', id, data),
   deleteSimpleOrderPayment: (id) => ipcRenderer.invoke('simpleOrders:deletePayment', id),
+
+  // Imágenes en NAS
+  uploadImage: (productId, buffer, originalName) => ipcRenderer.invoke('upload-image', productId, buffer, originalName),
+  deleteImage: (relativePath) => ipcRenderer.invoke('delete-image', relativePath),
 });

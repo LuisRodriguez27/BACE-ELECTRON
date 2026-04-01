@@ -6,7 +6,6 @@ import DeleteTemplateModal from '@/features/productTemplates/components/DeleteTe
 import { usePermissions } from '@/hooks/use-permissions';
 import {
   ArrowLeft,
-  BarChart3,
   DollarSign,
   Edit3,
   FileText,
@@ -22,6 +21,7 @@ import {
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { CreateTemplateModal, EditProductModal, EditTemplateModal } from '../components';
+import ImageGallery from './ImageGallery';
 import { ProductsApiService } from '../ProductsApiService';
 import type { Product } from '../types';
 
@@ -157,6 +157,52 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
     }
   };
 
+  const handleImageAdded = async (relativePath: string) => {
+    if (!product) return;
+    try {
+      const currentImages = product.images || [];
+      const updatedImages = [...currentImages, relativePath];
+
+      const updatedProduct = await ProductsApiService.update(product.id, {
+         name: product.name,
+         serial_number: product.serial_number || '',
+         price: product.price,
+         promo_price: product.promo_price,
+         discount_price: product.discount_price,
+         description: product.description || '',
+         images: updatedImages
+      });
+      setProduct(updatedProduct);
+      if (onProductUpdated) onProductUpdated(updatedProduct);
+    } catch (err) {
+      console.error(err);
+      toast.error('La imagen se subió pero no se pudo asociar al producto en la BD');
+    }
+  };
+
+  const handleImageDeleted = async (relativePath: string) => {
+    if (!product) return;
+    try {
+      const currentImages = product.images || [];
+      const updatedImages = currentImages.filter(img => img !== relativePath);
+
+      const updatedProduct = await ProductsApiService.update(product.id, {
+         name: product.name,
+         serial_number: product.serial_number || '',
+         price: product.price,
+         promo_price: product.promo_price,
+         discount_price: product.discount_price,
+         description: product.description || '',
+         images: updatedImages
+      });
+      setProduct(updatedProduct);
+      if (onProductUpdated) onProductUpdated(updatedProduct);
+    } catch (err) {
+      console.error(err);
+      toast.error('Error al actualizar las imágenes en la base de datos');
+    }
+  };
+
 
   const formatColors = (colors?: string) => {
     if (!colors) return null;
@@ -232,8 +278,8 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
 
       {/* Product Info Card */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Información del Producto</h2>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
@@ -309,22 +355,12 @@ const ProductDetailView: React.FC<ProductDetailViewProps> = ({
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-3">Estadísticas</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="text-gray-400" size={14} />
-                <span>{templates.length} plantillas</span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className={`px-2 py-1 text-xs rounded-full ${product.active === 1
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-red-100 text-red-800'
-                  }`}>
-                  {product.active === 1 ? 'Activo' : 'Inactivo'}
-                </span>
-              </div>
-            </div>
+            <ImageGallery
+              productId={product.id}
+              images={product.images}
+              onImageAdded={handleImageAdded}
+              onImageDeleted={handleImageDeleted}
+            />
           </div>
         </div>
       </div>

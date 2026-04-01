@@ -148,6 +148,7 @@ const pgSchema = `
 
   ALTER TABLE products ADD COLUMN IF NOT EXISTS promo_price DECIMAL(10,2);
   ALTER TABLE products ADD COLUMN IF NOT EXISTS discount_price DECIMAL(10,2);
+  ALTER TABLE products ADD COLUMN IF NOT EXISTS images TEXT;
 
   CREATE TABLE IF NOT EXISTS product_templates (
     id SERIAL PRIMARY KEY,
@@ -299,8 +300,9 @@ async function initDb() {
     try {
       await client.query("ALTER TABLE products ADD COLUMN IF NOT EXISTS promo_price DECIMAL(10,2)");
       await client.query("ALTER TABLE products ADD COLUMN IF NOT EXISTS discount_price DECIMAL(10,2)");
+      await client.query("ALTER TABLE products ADD COLUMN IF NOT EXISTS images TEXT");
     } catch (e) {
-      console.log("Aviso: No se pudieron crear las columnas de precio en products:", e.message);
+      console.log("Aviso: No se pudieron crear las columnas extra en products:", e.message);
     }
 
     // MIGRACION NUEVAS COLUMNAS PRODUCT TEMPLATES

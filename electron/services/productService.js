@@ -32,7 +32,7 @@ class ProductService {
     }
   }
 
-  async createProduct({ name, serial_number, price, promo_price, discount_price, description }) {
+  async createProduct({ name, serial_number, price, promo_price, discount_price, description, images }) {
     try {
       // Validaciones de negocio
       if (!name) {
@@ -68,7 +68,8 @@ class ProductService {
         price: numericPrice,
         promo_price: promo_price !== undefined && promo_price !== null && promo_price !== '' ? parseFloat(promo_price) : null,
         discount_price: discount_price !== undefined && discount_price !== null && discount_price !== '' ? parseFloat(discount_price) : null,
-        description: description?.trim() || null
+        description: description?.trim() || null,
+        images: Array.isArray(images) ? images : []
       });
 
       return product.toPlainObject();
@@ -79,7 +80,7 @@ class ProductService {
     }
   }
 
-  async updateProduct(id, { name, serial_number, price, promo_price, discount_price, description }) {
+  async updateProduct(id, { name, serial_number, price, promo_price, discount_price, description, images }) {
     try {
       if (!id || isNaN(id)) {
         throw new Error('ID de producto inválido');
@@ -126,7 +127,8 @@ class ProductService {
         price: numericPrice,
         promo_price: promo_price !== undefined && promo_price !== null && promo_price !== '' ? parseFloat(promo_price) : null,
         discount_price: discount_price !== undefined && discount_price !== null && discount_price !== '' ? parseFloat(discount_price) : null,
-        description: description?.trim() || null
+        description: description?.trim() || null,
+        images: Array.isArray(images) ? images : []
       });
 
       if (!updated) {
@@ -213,7 +215,7 @@ class ProductService {
       }
 
       const productWithTemplates = await productRepository.findWithTemplates(parseInt(productId));
-      
+
       if (!productWithTemplates) {
         throw new Error('Producto no encontrado');
       }
@@ -273,9 +275,9 @@ class ProductService {
     try {
       const products = await productRepository.findAll();
       const plainProducts = products.map(product => product.toPlainObject());
-      
+
       const wordGroups = {};
-      
+
       const sanitizeWord = (word) => {
         return word.toLowerCase()
           .replace(/[.,:;()\-]/g, '')
@@ -289,7 +291,7 @@ class ProductService {
         const words = product.name.split(/\s+/);
         // Usar Set para no contar una palabra repetida dentro del mismo producto
         const uniqueWords = new Set(words.map(sanitizeWord).filter(w => w.length > 2 && !ignoredWords.includes(w)));
-        
+
         uniqueWords.forEach(word => {
           if (!wordGroups[word]) {
             wordGroups[word] = [];
@@ -309,7 +311,7 @@ class ProductService {
           result.push(similarObj);
         }
       });
-      
+
       // Ordenar mayor frecuencia primero
       result.sort((a, b) => b.count - a.count);
 

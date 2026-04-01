@@ -19,11 +19,11 @@ const ProductsPage: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  
+
   // Estados para vista detallada
   const [currentView, setCurrentView] = useState<'list' | 'detail'>('list');
   const [detailProductId, setDetailProductId] = useState<number | null>(null);
-  
+
   const [showSimilarModal, setShowSimilarModal] = useState(false);
 
   const { checkPermission } = usePermissions();
@@ -51,16 +51,16 @@ const ProductsPage: React.FC = () => {
       console.warn('Producto inválido encontrado en la lista:', product);
       return false;
     }
-    
+
     const searchLower = searchTerm.toLowerCase();
-    
+
     return (
       product.name.toLowerCase().includes(searchLower) ||
       (product.serial_number && product.serial_number.toLowerCase().includes(searchLower)) ||
       (product.id && product.id.toString().includes(searchLower))
     );
   });
-  
+
   const handleProductCreated = (newProduct: Product) => {
     // Prepend the new product so it shows at the top of the list immediately
     setProducts(prevProducts => [newProduct, ...prevProducts]);
@@ -73,15 +73,14 @@ const ProductsPage: React.FC = () => {
       toast.error('Error: datos del producto inválidos');
       return;
     }
-    
+
     setProducts(prevProducts =>
       prevProducts.map(product =>
-        product && product.id === updatedProduct.id 
-          ? { ...updatedProduct, templates: product.templates } 
+        product && product.id === updatedProduct.id
+          ? { ...updatedProduct, templates: product.templates }
           : product
       )
     );
-    toast.success(`Producto ${updatedProduct.name} actualizado exitosamente`);
   };
 
   const handleProductDeleted = (deletedProductId: number) => {
@@ -355,8 +354,8 @@ const ProductsPage: React.FC = () => {
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">{error}</p>
-          <Button 
-            onClick={() => window.location.reload()} 
+          <Button
+            onClick={() => window.location.reload()}
             className="mt-2"
             size="sm"
           >
@@ -437,7 +436,7 @@ const ProductsPage: React.FC = () => {
               <p className="text-gray-500 mb-4">
                 Comienza agregando tu primer producto al catálogo
               </p>
-              <Button 
+              <Button
                 className="flex items-center gap-2 mx-auto"
                 onClick={openCreateModal}
               >
@@ -461,16 +460,16 @@ const ProductsPage: React.FC = () => {
                       </span>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <Button 
-                        variant="ghost"  
+                      <Button
+                        variant="ghost"
                         size="sm"
                         onClick={() => openEditModal(product)}
                         className='p-1 h-8 w-8'
                       >
                         <Edit3 size={14} />
                       </Button>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="sm"
                         onClick={() => openDeleteModal(product)}
                         className="p-1 h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
@@ -479,7 +478,7 @@ const ProductsPage: React.FC = () => {
                       </Button>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2 text-sm text-gray-600">
                     {product.serial_number && (
                       <div className="flex items-center gap-2">
@@ -542,17 +541,16 @@ const ProductsPage: React.FC = () => {
                       </p>
                     )}
                   </div>
-                  
+
                   <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      product.active === 1 
-                        ? 'bg-green-100 text-green-800' 
+                    <span className={`px-2 py-1 text-xs rounded-full ${product.active === 1
+                        ? 'bg-green-100 text-green-800'
                         : 'bg-red-100 text-red-800'
-                    }`}>
+                      }`}>
                       {product.active === 1 ? 'Activo' : 'Inactivo'}
                     </span>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => openProductDetail(product.id)}
                     >
@@ -572,26 +570,26 @@ const ProductsPage: React.FC = () => {
         onClose={closeModals}
         onProductCreated={handleProductCreated}
       />
-      
+
       <EditProductModal
         isOpen={showEditModal}
         onClose={closeModals}
         onProductUpdated={handleProductUpdated}
         product={selectedProduct}
       />
-      
+
       <DeleteProductModal
         isOpen={showDeleteModal}
         onClose={closeModals}
         onProductDeleted={handleProductDeleted}
         product={selectedProduct}
       />
-      
+
       <SimilarNamesModal
         isOpen={showSimilarModal}
         onClose={() => setShowSimilarModal(false)}
       />
-      
+
     </div>
   );
 };

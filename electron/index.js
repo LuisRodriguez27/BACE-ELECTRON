@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, protocol, net } = require('electron');
 const path = require('path');
 
 // Deshabilitar aceleración de hardware para evitar problemas de renderizado
@@ -16,6 +16,7 @@ const authService = require('./services/authService');
 const budgetService = require('./services/budgetService');
 const statsService = require('./services/statsService');
 const simpleOrderService = require('./services/simpleOrderService');
+const imageService = require('./services/imageService');
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -170,7 +171,44 @@ ipcMain.handle('simpleOrders:getPayments', async (event, id) => await simpleOrde
 ipcMain.handle('simpleOrders:updatePayment', async (event, id, data) => await simpleOrderService.updatePayment(id, data));
 ipcMain.handle('simpleOrders:deletePayment', async (event, id) => await simpleOrderService.deletePayment(id));
 
-app.whenReady().then(createWindow);
+// Manejo de eventos IPC para imágenes
+ipcMain.handle('upload-image', async (event, productId, buffer, originalName) => await imageService.uploadImage(productId, buffer, originalName));
+ipcMain.handle('delete-image', async (event, relativePath) => await imageService.deleteImage(relativePath));
+
+require('dotenv').config();
+
+app.whenReady().then(() => {
+  const baseImagePath = imageService.getBasePath();
+  
+  if (protocol.handle) {
+    // Para Electron >= 25 (el usado es v37)
+    protocol.handle('imagenes', (request) => {
+      const urlPath = request.url.replace(/^imagenes:\/\//i, '');
+      const absolutePath = path.normalize(path.join(baseImagePath, decodeURIComponent(urlPath)));
+      
+      // Prevenir directory traversal
+      if (!absolutePath.startsWith(path.normalize(baseImagePath))) {
+        return new Response('Acceso denegado', { status: 403 });
+      }
+
+      return net.fetch('file://' + absolutePath);
+    });
+  } else {
+    // Compatibilidad para versiones legacy como solicitado
+    protocol.registerFileProtocol('imagenes', (request, callback) => {
+      const urlPath = request.url.replace(/^imagenes:\/\//i, '');
+      const absolutePath = path.normalize(path.join(baseImagePath, decodeURIComponent(urlPath)));
+      
+      if (!absolutePath.startsWith(path.normalize(baseImagePath))) {
+        callback({ error: -3 }); // Acceso denegado (ERR_ACCESS_DENIED)
+        return;
+      }
+      callback({ path: absolutePath });
+    });
+  }
+
+  createWindow();
+});
 
 // Limpiar sesión al cerrar la aplicación
 app.on('before-quit', () => {

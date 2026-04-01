@@ -30,8 +30,8 @@ class ProductRepository {
 
   async create(productData) {
     const stmt = db.prepare(`
-      INSERT INTO products (name, serial_number, price, promo_price, discount_price, description) 
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO products (name, serial_number, price, promo_price, discount_price, description, images) 
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
     const result = await stmt.run(
       productData.name,
@@ -39,7 +39,8 @@ class ProductRepository {
       productData.price,
       productData.promo_price !== undefined ? productData.promo_price : null,
       productData.discount_price !== undefined ? productData.discount_price : null,
-      productData.description || null
+      productData.description || null,
+      productData.images ? JSON.stringify(productData.images) : '[]'
     );
 
     return new Product({
@@ -50,6 +51,7 @@ class ProductRepository {
       promo_price: productData.promo_price,
       discount_price: productData.discount_price,
       description: productData.description,
+      images: productData.images || [],
       active: 1
     });
   }
@@ -57,7 +59,7 @@ class ProductRepository {
   async update(id, productData) {
     const stmt = db.prepare(`
       UPDATE products 
-      SET name = ?, serial_number = ?, price = ?, promo_price = ?, discount_price = ?, description = ?
+      SET name = ?, serial_number = ?, price = ?, promo_price = ?, discount_price = ?, description = ?, images = ?
       WHERE id = ?
     `);
     const result = await stmt.run(
@@ -67,6 +69,7 @@ class ProductRepository {
       productData.promo_price !== undefined ? productData.promo_price : null,
       productData.discount_price !== undefined ? productData.discount_price : null,
       productData.description || null,
+      productData.images ? JSON.stringify(productData.images) : '[]',
       id
     );
 

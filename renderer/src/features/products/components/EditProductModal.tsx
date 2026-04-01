@@ -75,8 +75,10 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       setIsSubmitting(true);
       setError(null);
 
-      // Convertir colors de string a array si es necesario
-      let processedData = { ...data };
+      let processedData = {
+        ...data,
+        images: product.images || []
+      };
 
       const updatedProduct = await ProductsApiService.update(product.id, processedData);
       // Aseguramos que el producto actualizado tenga el ID correcto

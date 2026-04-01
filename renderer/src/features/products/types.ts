@@ -8,6 +8,7 @@ export const createProductSchema = z.object({
 	promo_price: z.number().min(0).optional().nullable(),
 	discount_price: z.number().min(0).optional().nullable(),
 	description: z.string().optional().or(z.literal('')),
+	images: z.array(z.string()).optional().nullable(),
 });
 
 export const editProductSchema = createProductSchema.partial();
@@ -23,6 +24,7 @@ export interface Product {
 	promo_price?: number | null;
 	discount_price?: number | null;
 	description?: string;
+	images?: string[] | null;
 	active: number; 
 
 	templates?: ProductTemplate[];
