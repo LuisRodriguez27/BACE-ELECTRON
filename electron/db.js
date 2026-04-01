@@ -38,9 +38,9 @@ async function queryWithContext(sql, args, method) {
   // Convertimos '?' a '$1', '$2', etc.
   let pgSql = sql.replace(/\?/g, () => `$${i++}`);
 
-  // Agregar RETURNING id si es insert para postgres y no lo tiene
+  // Agregar RETURNING * si es insert para postgres y no lo tiene
   if (method === 'run' && pgSql.trim().toUpperCase().startsWith('INSERT') && !pgSql.toUpperCase().includes('RETURNING')) {
-    pgSql += ' RETURNING id';
+    pgSql += ' RETURNING *';
   }
 
   const client = asyncLocalStorage.getStore() || pool;
@@ -287,6 +287,19 @@ async function initDb() {
       const existingUserPerm2 = await db.prepare("SELECT * FROM user_permissions WHERE user_id = 1 AND permission_id = ?").get(editPermId);
       if (!existingUserPerm2) {
         try { await db.prepare("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (1, ?, 1)").run(editPermId); } catch (e) { }
+      }
+    }
+
+    const existingSeePay = await db.prepare("SELECT id FROM permissions WHERE name = 'Ver Pagos'").get();
+    let payPermId = existingSeePay ? existingSeePay.id : null;
+    if (!payPermId) {
+      const res = await db.prepare("INSERT INTO permissions (name, description, active) VALUES ('Ver Pagos', 'Permite ver los pagos registrados', 1)").run();
+      payPermId = res.lastInsertRowid;
+    }
+    if (payPermId) {
+      const existingUserPerm3 = await db.prepare("SELECT * FROM user_permissions WHERE user_id = 1 AND permission_id = ?").get(payPermId);
+      if (!existingUserPerm3) {
+        try { await db.prepare("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (1, ?, 1)").run(payPermId); } catch (e) { }
       }
     }
 

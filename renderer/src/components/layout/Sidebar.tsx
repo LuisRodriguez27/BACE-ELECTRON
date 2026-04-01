@@ -110,7 +110,7 @@ const Sidebar: React.FC = () => {
           variant="ghost"
           size="icon"
           onClick={toggleSidebar}
-          className="text-white hover:bg-gray-700 flex-shrink-0"
+          className="text-white hover:bg-gray-700 shrink-0"
         >
           <Menu size={20} className="w-5 h-5" />
         </Button>
@@ -128,6 +128,10 @@ const Sidebar: React.FC = () => {
             return null
           } 
 
+          if (item.id === 'payments' && !canAccess('Ver Pagos')) {
+            return null
+          }
+
           const Icon = item.icon
           const isActive = location.pathname === item.path
           
@@ -136,14 +140,14 @@ const Sidebar: React.FC = () => {
               key={item.id}
               to={item.path}
               className={cn(
-                'flex items-center px-3 py-2 rounded-lg transition-colors duration-200 group min-w-[40px]',
+                'flex items-center px-3 py-2 rounded-lg transition-colors duration-200 group min-w-10',
                 isActive 
                   ? 'bg-blue-600 text-white' 
                   : 'text-gray-300 hover:bg-gray-700 hover:text-white',
                 !isExpanded && 'justify-center'
               )}
             >
-              <Icon size={20} className="flex-shrink-0 w-5 h-5" />
+              <Icon size={20} className="shrink-0 w-5 h-5" />
               <span className={cn(
                 'ml-3 transition-all duration-300 whitespace-nowrap',
                 isExpanded 
