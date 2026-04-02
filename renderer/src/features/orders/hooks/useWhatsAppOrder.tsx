@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import html2canvas from 'html2canvas';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { useAuthStore } from '@/store/auth';
 import notaImage from '@/assets/NOTA.jpg';
 import specialPriceImage from '@/assets/special-price.png';
 import { getOrderItemDisplayName, getOrderItemDescription, getOrderItemType } from '../types';
 import { formatDateMX } from '@/utils/dateUtils';
 
 // ─── Helpers de fecha ────────────────────────────────────────────────────────
-const getDay   = (d: string) => formatDateMX(d, 'DD');
+const getDay = (d: string) => formatDateMX(d, 'DD');
 const getMonth = (d: string) => formatDateMX(d, 'MM');
-const getYear  = (d: string) => formatDateMX(d, 'YYYY');
+const getYear = (d: string) => formatDateMX(d, 'YYYY');
 const getHours = (d: string) => formatDateMX(d, 'HH:mm');
 
 // ─── Conversión de imágenes a base64 ─────────────────────────────────────────
@@ -30,20 +32,40 @@ const imageToBase64 = (url: string): Promise<string> =>
 
 export function useWhatsAppOrder() {
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [messageText, setMessageText] = useState('');
+  const [pendingArgs, setPendingArgs] = useState<{
+    orderData: any;
+    productsData: any[];
+    paymentsData: any[];
+  } | null>(null);
 
-  const sendWhatsApp = async (
+  const { user } = useAuthStore();
+
+  const startWhatsAppFlow = (
     orderData: any,
     productsData: any[],
     paymentsData: any[]
   ) => {
+    const userName = user?.username || orderData.user?.username || 'un asesor';
+    const initialMsg = `BACE Grupo Impresor agradece su preferencia, esperamos atenderle como usted se merece, nuestro compromiso siempre será brindarle el mejor servicio en diseño e impresión le atiende ${userName}`;
+    setMessageText(initialMsg);
+    setPendingArgs({ orderData, productsData, paymentsData });
+    setIsDialogOpen(true);
+  };
+
+  const confirmAndSend = async () => {
+    if (!pendingArgs) return;
+    setIsDialogOpen(false);
     setIsSendingWhatsApp(true);
     let offscreenContainer: HTMLDivElement | null = null;
+    const { orderData, productsData, paymentsData } = pendingArgs;
 
     try {
       // ── Cálculos ──────────────────────────────────────────────────────────
-      const totalPagos     = paymentsData.reduce((s, p) => s + p.amount, 0);
+      const totalPagos = paymentsData.reduce((s, p) => s + p.amount, 0);
       const saldoPendiente = orderData.total - totalPagos;
-      const isSaldada      = saldoPendiente <= 0.01;
+      const isSaldada = saldoPendiente <= 0.01;
 
       const hasPreferentialPrice = productsData.some(p => {
         const type = getOrderItemType(p);
@@ -53,7 +75,7 @@ export function useWhatsAppOrder() {
       });
 
       // ── Imágenes a base64 ─────────────────────────────────────────────────
-      const base64Bg    = await imageToBase64(notaImage);
+      const base64Bg = await imageToBase64(notaImage);
       const base64Stamp = isSaldada ? await imageToBase64(specialPriceImage) : null;
 
       // ── Helper de moneda ──────────────────────────────────────────────────
@@ -61,9 +83,9 @@ export function useWhatsAppOrder() {
 
       // ── Color del círculo del cliente ─────────────────────────────────────
       const clientCircleColor =
-        orderData.client?.color === 'green'  ? '#22c55e' :
-        orderData.client?.color === 'yellow' ? '#eab308' :
-        orderData.client?.color === 'red'    ? '#ef4444' : null;
+        orderData.client?.color === 'green' ? '#22c55e' :
+          orderData.client?.color === 'yellow' ? '#eab308' :
+            orderData.client?.color === 'red' ? '#ef4444' : null;
 
       // ── Primeros 5 productos (primera página) ─────────────────────────────
       const firstChunk = productsData.slice(0, 5);
@@ -74,8 +96,8 @@ export function useWhatsAppOrder() {
       const pageHtml = `
         <!-- Sello precio especial -->
         ${hasPreferentialPrice ? `
-        <div style="position:absolute;bottom:64px;right:77px;width:104px;background-color:rgb(220,38,38);color:white;font-weight:bold;font-size:9px;text-align:center;padding:6px 4px;box-sizing:border-box;z-index:10;line-height:1.2;">
-          USTED HA ADQUIRIDO UN PRECIO ESPECIAL
+        <div style="position:absolute;bottom:64px;right:77px;width:104px;background-color:rgb(220,38,38);color:white;font-weight:bold;font-size:9px;text-align:center;padding:1px 4px 8px 4px;box-sizing:border-box;z-index:10;line-height:1.1;">
+          USTED HA<br>ADQUIRIDO UN<br>PRECIO ESPECIAL
         </div>` : ''}
 
         <!-- Sello saldada -->
@@ -138,8 +160,8 @@ export function useWhatsAppOrder() {
             <div style="padding-left:4px;">
               <div style="font-weight:500;">${getOrderItemDisplayName(product)}</div>
               ${getOrderItemDescription(product)
-                ? `<div style="font-size:13px; color:rgb(80,90,100); margin-top:1px; line-height:1.1;">${getOrderItemDescription(product)}</div>`
-                : ''}
+          ? `<div style="font-size:13px; color:rgb(80,90,100); margin-top:1px; line-height:1.1;">${getOrderItemDescription(product)}</div>`
+          : ''}
             </div>
             <div style="text-align:right; font-weight:500;">${money(product.unit_price)}</div>
             <div style="text-align:right; font-weight:500;">${money(product.total_price)}</div>
@@ -228,9 +250,7 @@ export function useWhatsAppOrder() {
       }
 
       // ── Abrir WhatsApp ────────────────────────────────────────────────────
-      const clientName = orderData.client?.name || 'Cliente';
-      const total = money(orderData.total);
-      const message = `Hola ${clientName}, te compartimos el resumen de tu Orden #${orderData.id} por un total de $${total} MXN. Quedamos a tus órdenes.`;
+      const message = messageText;
 
       const rawPhone = (orderData.client?.phone || '').replace(/\D/g, '');
       const phoneWithCountry = rawPhone.length === 10 ? `52${rawPhone}` : rawPhone;
@@ -258,8 +278,30 @@ export function useWhatsAppOrder() {
         document.body.removeChild(offscreenContainer);
       }
       setIsSendingWhatsApp(false);
+      setPendingArgs(null);
     }
   };
 
-  return { isSendingWhatsApp, sendWhatsApp };
+  const WhatsAppDialog = () => {
+    if (!isDialogOpen) return null;
+    return (
+      <div className="fixed inset-0 flex items-center justify-center z-9999" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+        <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg mx-4">
+          <h2 className="text-xl font-bold mb-4 text-gray-900">Mensaje de WhatsApp</h2>
+          <p className="text-sm text-gray-500 mb-4">Edita el mensaje que se enviará al cliente (orden #{pendingArgs?.orderData?.id}).</p>
+          <textarea
+            className="w-full h-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#25d366] focus:border-transparent resize-none"
+            value={messageText}
+            onChange={(e) => setMessageText(e.target.value)}
+          />
+          <div className="flex justify-end gap-3 mt-6">
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={confirmAndSend} className="bg-[#25D366] hover:bg-[#1ebe5d] text-white" disabled={isSendingWhatsApp}>Generar y Enviar</Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return { isSendingWhatsApp, sendWhatsApp: startWhatsAppFlow, WhatsAppDialog };
 }

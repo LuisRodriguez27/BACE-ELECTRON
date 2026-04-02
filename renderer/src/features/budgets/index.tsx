@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useAuthStore } from '@/store/auth';
-import { ArrowRight, Calendar, DollarSign, FileText, Loader2, Plus, Printer, Search, Trash2, Pencil } from 'lucide-react';
+import { ArrowRight, Calendar, DollarSign, FileText, Loader2, MessageCircle, Plus, Printer, Search, Trash2, Pencil } from 'lucide-react';
 import { formatDateMX } from '@/utils/dateUtils';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -12,6 +12,7 @@ import type { Budget } from './types';
 import BudgetPrintPreviewModal from './components/BudgetPrintPreviewModal';
 import ClientColorIndicator from '../clients/components/ClientColorIndicator';
 import type { ClientColor } from '../clients/types';
+import { useWhatsAppBudget } from './hooks/useWhatsAppBudget';
 
 interface PaginationInfo {
   page: number;
@@ -50,6 +51,7 @@ const BudgetsPage: React.FC = () => {
   const [selectedBudgetForPrint, setSelectedBudgetForPrint] = useState<Budget | null>(null);
 
   const { user } = useAuthStore();
+  const { isSendingWhatsApp, sendWhatsApp, WhatsAppDialog } = useWhatsAppBudget();
 
   const observerRef = useRef<IntersectionObserver | null>(null);
   const lastBudgetElementRef = useCallback((node: HTMLDivElement) => {
@@ -379,6 +381,15 @@ const BudgetsPage: React.FC = () => {
                             </Button>
                           )}
                           <Button
+                            size="sm"
+                            onClick={() => sendWhatsApp(budget)}
+                            disabled={isSendingWhatsApp}
+                            className="flex items-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] text-white border-0"
+                          >
+                            <MessageCircle size={14} />
+                            WhatsApp
+                          </Button>
+                          <Button
                             variant={"outline"}
                             size="sm"
                             onClick={() => handlePrint(budget)}
@@ -520,6 +531,8 @@ const BudgetsPage: React.FC = () => {
           budgetData={selectedBudgetForPrint}
         />
       )}
+
+      {WhatsAppDialog && <WhatsAppDialog />}
     </div>
   );
 };
