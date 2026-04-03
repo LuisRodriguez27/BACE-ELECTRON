@@ -3,6 +3,8 @@ import { DollarSign, Edit3, Hash, Package, Plus, Search, Trash2, Printer, Layers
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { CreateProductModal, DeleteProductModal, EditProductModal, ProductDetailView, SimilarNamesModal } from './components';
+import ProductImageCarousel from './components/ProductImageCarousel';
+import { useImagePreloader } from './hooks/useImagePreloader';
 import { ProductsApiService } from './ProductsApiService';
 import type { Product } from './types';
 import type { ProductTemplate } from '@/features/productTemplates/types';
@@ -27,6 +29,9 @@ const ProductsPage: React.FC = () => {
   const [showSimilarModal, setShowSimilarModal] = useState(false);
 
   const { checkPermission } = usePermissions();
+
+  // Precargar imágenes en background cuando la lista de productos esté disponible
+  useImagePreloader(products);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -447,116 +452,132 @@ const ProductsPage: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
               {filteredProducts.map((product) => (
-                <div key={product.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex flex-col overflow-hidden mr-2">
-                      <h3 className="font-semibold text-gray-900 truncate" title={product.name}>
-                        <span className="text-gray-500 font-normal mr-2">#{product.id}</span>
-                        {product.name}
-                      </h3>
-                      <span className="inline-flex items-center text-xs text-gray-500 mt-1">
-                        <Layers size={12} className="mr-1" />
-                        {product.templates?.length || 0} {(product.templates?.length || 0) === 1 ? 'plantilla' : 'plantillas'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditModal(product)}
-                        className='p-1 h-8 w-8'
-                      >
-                        <Edit3 size={14} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openDeleteModal(product)}
-                        className="p-1 h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 size={14} />
-                      </Button>
-                    </div>
-                  </div>
+                <div key={product.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow flex">
 
-                  <div className="space-y-2 text-sm text-gray-600">
-                    {product.serial_number && (
-                      <div className="flex items-center gap-2">
-                        <Hash size={14} />
-                        <span className="font-mono text-xs">{product.serial_number}</span>
+                  {/* Columna izquierda — Información */}
+                  <div className="w-[60%] p-4 flex flex-col min-w-0">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex flex-col overflow-hidden mr-2">
+                        <h3 className="font-semibold text-gray-900 truncate" title={product.name}>
+                          <span className="text-gray-500 font-normal mr-2">#{product.id}</span>
+                          {product.name}
+                        </h3>
+                        <span className="inline-flex items-center text-xs text-gray-500 mt-1">
+                          <Layers size={12} className="mr-1" />
+                          {product.templates?.length || 0} {(product.templates?.length || 0) === 1 ? 'plantilla' : 'plantillas'}
+                        </span>
                       </div>
-                    )}
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEditModal(product)}
+                          className='p-1 h-8 w-8'
+                        >
+                          <Edit3 size={14} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openDeleteModal(product)}
+                          className="p-1 h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
+                    </div>
 
-                    {(() => {
-                      let activePrice = product.price;
-                      let isPromo = false;
-                      let isDiscount = false;
+                    <div className="space-y-2 text-sm text-gray-600 flex-1">
+                      {product.serial_number && (
+                        <div className="flex items-center gap-2">
+                          <Hash size={14} />
+                          <span className="font-mono text-xs">{product.serial_number}</span>
+                        </div>
+                      )}
 
-                      if (product.promo_price !== null && product.promo_price !== undefined && product.promo_price < product.price) {
-                        activePrice = product.promo_price;
-                        isPromo = true;
-                      }
+                      {(() => {
+                        let activePrice = product.price;
+                        let isPromo = false;
+                        let isDiscount = false;
 
-                      if (product.discount_price !== null && product.discount_price !== undefined && product.discount_price < activePrice) {
-                        activePrice = product.discount_price;
-                        isPromo = false;
-                        isDiscount = true;
-                      }
+                        if (product.promo_price !== null && product.promo_price !== undefined && product.promo_price < product.price) {
+                          activePrice = product.promo_price;
+                          isPromo = true;
+                        }
 
-                      if (isPromo || isDiscount) {
+                        if (product.discount_price !== null && product.discount_price !== undefined && product.discount_price < activePrice) {
+                          activePrice = product.discount_price;
+                          isPromo = false;
+                          isDiscount = true;
+                        }
+
+                        if (isPromo || isDiscount) {
+                          return (
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-2">
+                                <DollarSign size={12} className="text-gray-400" />
+                                <span className="text-gray-400 line-through text-xs">
+                                  ${product.price.toFixed(2)} MXN
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <DollarSign size={14} className={isPromo ? "text-blue-600" : "text-orange-600"} />
+                                <span className={`font-semibold ${isPromo ? "text-blue-600" : "text-orange-600"}`}>
+                                  ${activePrice.toFixed(2)} MXN
+                                </span>
+                                <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${isPromo ? "bg-blue-100 text-blue-800" : "bg-orange-100 text-orange-800"}`}>
+                                  {isPromo ? 'Promo' : 'Desc'}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        }
+
                         return (
-                          <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-2">
-                              <DollarSign size={12} className="text-gray-400" />
-                              <span className="text-gray-400 line-through text-xs">
-                                ${product.price.toFixed(2)} MXN
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <DollarSign size={14} className={isPromo ? "text-blue-600" : "text-orange-600"} />
-                              <span className={`font-semibold ${isPromo ? "text-blue-600" : "text-orange-600"}`}>
-                                ${activePrice.toFixed(2)} MXN
-                              </span>
-                              <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${isPromo ? "bg-blue-100 text-blue-800" : "bg-orange-100 text-orange-800"}`}>
-                                {isPromo ? 'Promo' : 'Desc'}
-                              </span>
-                            </div>
+                          <div className="flex items-center gap-2">
+                            <DollarSign size={14} />
+                            <span className="font-semibold text-green-600">
+                              ${product.price.toFixed(2)} MXN
+                            </span>
                           </div>
                         );
-                      }
+                      })()}
 
-                      return (
-                        <div className="flex items-center gap-2">
-                          <DollarSign size={14} />
-                          <span className="font-semibold text-green-600">
-                            ${product.price.toFixed(2)} MXN
-                          </span>
-                        </div>
-                      );
-                    })()}
+                      {product.description && (
+                        <p className="text-xs text-gray-500 line-clamp-2 mt-2">
+                          {product.description}
+                        </p>
+                      )}
+                    </div>
 
-                    {product.description && (
-                      <p className="text-xs text-gray-500 line-clamp-2 mt-2">
-                        {product.description}
-                      </p>
-                    )}
+                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
+                      <span className={`px-2 py-1 text-xs rounded-full ${product.active === 1
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                        }`}>
+                        {product.active === 1 ? 'Activo' : 'Inactivo'}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openProductDetail(product.id)}
+                      >
+                        Ver Detalles
+                      </Button>
+                    </div>
                   </div>
 
-                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-                    <span className={`px-2 py-1 text-xs rounded-full ${product.active === 1
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
-                      }`}>
-                      {product.active === 1 ? 'Activo' : 'Inactivo'}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openProductDetail(product.id)}
-                    >
-                      Ver Detalles
-                    </Button>
+                  {/* Columna derecha — Imagen (contenedor fijo) */}
+                  <div className="w-[40%] shrink-0 border-l border-gray-100 bg-gray-50">
+                    <ProductImageCarousel
+                      images={product.images}
+                      productName={product.name}
+                      height={undefined}
+                      showEmptyState
+                      fillContainer
+                    />
                   </div>
+
                 </div>
               ))}
             </div>

@@ -2,7 +2,6 @@ import React, { useState, useRef, useCallback } from 'react';
 import { Image as ImageIcon, Upload, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui';
 import useEmblaCarousel from 'embla-carousel-react';
-import Autoplay from 'embla-carousel-autoplay';
 
 interface ImageGalleryProps {
   productId: number;
@@ -24,11 +23,8 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Carousel hooks (Infinito y con Autoplay)
-  const [emblaRef, emblaApi] = useEmblaCarousel(
-    { loop: true },
-    [Autoplay({ delay: 4000, stopOnInteraction: true })]
-  );
+  // Carousel hooks (sin Autoplay, manual)
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [prevBtnEnabled, setPrevBtnEnabled] = useState(false);
   const [nextBtnEnabled, setNextBtnEnabled] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
