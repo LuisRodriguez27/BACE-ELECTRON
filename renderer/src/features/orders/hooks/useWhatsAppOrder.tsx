@@ -2,7 +2,6 @@ import { useState } from 'react';
 import html2canvas from 'html2canvas';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { useAuthStore } from '@/store/auth';
 import notaImage from '@/assets/NOTA.jpg';
 import specialPriceImage from '@/assets/special-price.png';
 import { getOrderItemDisplayName, getOrderItemDescription, getOrderItemType } from '../types';
@@ -40,15 +39,12 @@ export function useWhatsAppOrder() {
     paymentsData: any[];
   } | null>(null);
 
-  const { user } = useAuthStore();
-
   const startWhatsAppFlow = (
     orderData: any,
     productsData: any[],
     paymentsData: any[]
   ) => {
-    const userName = user?.username || orderData.user?.username || 'un asesor';
-    const initialMsg = `BACE Grupo Impresor agradece su preferencia, esperamos atenderle como usted se merece, nuestro compromiso siempre será brindarle el mejor servicio en diseño e impresión le atiende ${userName}`;
+    const initialMsg = `Se le envia la orden de compra en caso que extravie su nota.`;
     setMessageText(initialMsg);
     setPendingArgs({ orderData, productsData, paymentsData });
     setIsDialogOpen(true);
@@ -257,7 +253,7 @@ export function useWhatsAppOrder() {
 
       let whatsappUrl: string;
       if (phoneWithCountry) {
-        whatsappUrl = `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(message)}`;
+        whatsappUrl = `https://web.whatsapp.com/send?phone=${phoneWithCountry}&text=${encodeURIComponent(message)}`;
       } else {
         whatsappUrl = `https://web.whatsapp.com/`;
         toast.warning('El cliente no tiene número registrado. Selecciona el chat manualmente.');

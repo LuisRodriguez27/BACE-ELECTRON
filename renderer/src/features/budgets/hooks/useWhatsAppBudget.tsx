@@ -204,7 +204,7 @@ export function useWhatsAppBudget() {
 
       let whatsappUrl: string;
       if (phoneWithCountry) {
-        whatsappUrl = `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(messageText)}`;
+        whatsappUrl = `https://web.whatsapp.com/send?phone=${phoneWithCountry}&text=${encodeURIComponent(messageText)}`;
       } else {
         whatsappUrl = `https://web.whatsapp.com/`;
         toast.warning('El cliente no tiene número registrado. Selecciona el chat manualmente.');

@@ -1,10 +1,11 @@
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
-import { Calculator, CreditCard, Edit3, MapPin, Phone, Plus, Search, ShoppingBag, Trash2, Users } from 'lucide-react';
+import { Calculator, CreditCard, Edit3, MapPin, MessageCircle, Phone, Plus, Search, ShoppingBag, Trash2, Users } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ClientApiService } from './ClientApiService';
 import { ClientColorIndicator, ClientOrdersModal, ClientPaymentsModal, CreateClientModal, DeleteClientModal, EditClientModal, ClientBudgetModal } from './components';
+import { useWhatsAppClient } from './hooks/useWhatsAppClient';
 import type { Client } from './types';
 
 const ClientsPage: React.FC = () => {
@@ -13,6 +14,7 @@ const ClientsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const { checkPermission } = usePermissions();
+  const { sendWhatsApp, WhatsAppClientDialog } = useWhatsAppClient();
   
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -237,6 +239,15 @@ const ClientsPage: React.FC = () => {
                       <h3 className="font-semibold text-gray-900 truncate">{client.name}</h3>
                     </div>
                     <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => sendWhatsApp(client)}
+                        className="p-1 h-8 w-8 text-[#25D366] hover:text-[#1ebe5d] hover:bg-green-50"
+                        title="Enviar mensaje de bienvenida por WhatsApp"
+                      >
+                        <MessageCircle size={14} />
+                      </Button>
                       <Button 
                         variant="ghost" 
                         size="sm"
@@ -349,6 +360,7 @@ const ClientsPage: React.FC = () => {
         onClose={closeModals}
         client={selectedClient}
       />
+      <WhatsAppClientDialog />
     </div>
   );
 };
