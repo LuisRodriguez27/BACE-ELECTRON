@@ -3,7 +3,7 @@ import { Button } from '@/components/ui';
 import { X, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import notaImage from '@/assets/NOTA.jpg';
-import specialPriceImage from '@/assets/special-price.png';
+import paidStampImage from '@/assets/SELLO-PAGADO.png';
 import { getOrderItemDisplayName, getOrderItemDescription, getOrderItemType } from '../types';
 import { formatDateMX } from '@/utils/dateUtils';
 import ClientColorIndicator from '../../clients/components/ClientColorIndicator';
@@ -60,7 +60,7 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
     setIsLoading(true);
     try {
       const { pagesHtml } = await prepareOrderHtml(
-        orderData, productsData, paymentsData, notaImage, specialPriceImage
+        orderData, productsData, paymentsData, notaImage, paidStampImage
       );
       const printHTML = buildPrintHtml({ orderId: orderData.id, pagesHtml });
 
@@ -152,10 +152,10 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                     )}
                     {isSaldada && (
                       <img
-                        src={specialPriceImage}
+                        src={paidStampImage}
                         alt="Saldada"
-                        className="absolute top-2 right-2"
-                        style={{ width: '7rem', height: 'auto', zIndex: 10, opacity: 0.9 }}
+                        className="absolute top-120 right-10"
+                        style={{ width: '7rem', height: 'auto', zIndex: 10, opacity: 0.9, transform: 'rotate(15deg)' }}
                       />
                     )}
                     {/* Fechas en dos columnas */}

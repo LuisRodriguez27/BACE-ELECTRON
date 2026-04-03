@@ -3,7 +3,7 @@ import html2canvas from 'html2canvas';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import notaImage from '@/assets/NOTA.jpg';
-import specialPriceImage from '@/assets/special-price.png';
+import paidStampImage from '@/assets/SELLO-PAGADO.png';
 import { getOrderItemDisplayName, getOrderItemDescription, getOrderItemType } from '../types';
 import { formatDateMX } from '@/utils/dateUtils';
 
@@ -72,7 +72,7 @@ export function useWhatsAppOrder() {
 
       // ── Imágenes a base64 ─────────────────────────────────────────────────
       const base64Bg = await imageToBase64(notaImage);
-      const base64Stamp = isSaldada ? await imageToBase64(specialPriceImage) : null;
+      const base64Stamp = isSaldada ? await imageToBase64(paidStampImage) : null;
 
       // ── Helper de moneda ──────────────────────────────────────────────────
       const money = (n: number) => n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -98,7 +98,7 @@ export function useWhatsAppOrder() {
 
         <!-- Sello saldada -->
         ${base64Stamp ? `
-        <img src="${base64Stamp}" alt="Saldada" style="position:absolute;top:8px;right:8px;width:112px;height:auto;z-index:10;opacity:0.9;" />` : ''}
+        <img src="${base64Stamp}" alt="Saldada" style="position:absolute;top:480px;right:40px;width:112px;height:auto;z-index:10;opacity:0.9;transform:rotate(15deg);" />` : ''}
 
         <!-- Fondo de la nota -->
         <img src="${base64Bg}" alt="Fondo" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:-1;" />

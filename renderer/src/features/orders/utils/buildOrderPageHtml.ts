@@ -59,7 +59,7 @@ export function buildPageHtml(params: {
 
         ${base64SpecialPrice ? `
         <!-- Sello de saldada -->
-        <img src="${base64SpecialPrice}" alt="Saldada" style="position: absolute; top: 0.5rem; right: 0.5rem; width: 7rem; height: auto; z-index: 10; opacity: 0.9;" />
+        <img src="${base64SpecialPrice}" alt="Saldada" style="position: absolute; top: 30rem; right: 2.5rem; width: 7rem; height: auto; z-index: 10; opacity: 0.9; transform: rotate(15deg);" />
         ` : ''}
 
         <!-- Imagen de fondo -->
