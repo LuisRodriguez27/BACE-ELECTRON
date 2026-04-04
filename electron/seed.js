@@ -79,10 +79,15 @@ async function seed() {
   // Presupuestos
   ["Crear Presupuestos", "Permite registrar nuevos presupuestos", 1],
   ["Eliminar Presupuestos", "Permite eliminar presupuestos", 1],
+  ["Editar Presupuestos", "Permite editar los presupuestos registrados", 1],
 
   // Pagos
+  ["Ver pagos", "Permite ver los pagos registrados", 1],
   ["Registrar Pagos", "Permite registrar pagos en órdenes", 1],
   ["Eliminar Pagos", "Permite eliminar o anular pagos", 1],
+
+  // Estadisticas
+  ["Estadisticas", "Permite visualizar las estadisticas de ventas", 1],
   ];
   for (const perm of permissions) {
     await insertPermission.run(...perm);
