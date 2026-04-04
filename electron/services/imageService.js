@@ -14,11 +14,13 @@ class ImageService {
       return process.env.DEV_BASE_PATH || path.normalize(path.join(app.getPath('userData'), 'dev_images'));
     }
 
-    const ip = process.env.NAS_IP;
-    const nasPath = process.env.NAS_PATH;
+    const ip = process.env.NAS_IP ? process.env.NAS_IP.trim() : null;
+    const nasPath = process.env.NAS_PATH ? process.env.NAS_PATH.trim() : null;
 
     if (ip && nasPath) {
-      return path.normalize(`\\\\${ip}\\${nasPath}`);
+      // Remover barras/slashes iniciales de nasPath para que la concatenación no se rompa (ej. \\192.168.1.90\\carpeta)
+      const cleanNasPath = nasPath.replace(/^[/\\]+/, '');
+      return path.normalize(`\\\\${ip}\\${cleanNasPath}`);
     }
 
     return process.env.BASE_PATH || 'C:\\NAS\\Imagenes';
