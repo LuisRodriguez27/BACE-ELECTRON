@@ -1,4 +1,70 @@
 async function runMigrations(db, client) {
+  // MIGRACION INICIAL (SI LA BD ESTÁ VACÍA)
+  const userCount = await db.prepare("SELECT COUNT(*) as count FROM users").get();
+  if (userCount && parseInt(userCount.count) === 0) {
+    const bcrypt = require("bcryptjs");
+    const passwordHash = bcrypt.hashSync("admin123", 10);
+    const adminRes = await db.prepare("INSERT INTO users (username, password, active) VALUES (?, ?, ?)").run("admin", passwordHash, 1);
+    const adminId = adminRes.lastInsertRowid;
+
+    const permissions = [
+      // Usuarios y permisos
+      ["Gestionar Usuario", "Permite crear, editar o desactivar usuarios", 1],
+      ["Gestionar Permisos", "Permite asignar o revocar permisos a los usuarios", 1],
+
+      // Clientes
+      ["Crear Cliente", "Permite registrar nuevos clientes", 1],
+      ["Editar Cliente", "Permite modificar datos de clientes", 1],
+      ["Eliminar Cliente", "Permite eliminar o desactivar clientes", 1],
+
+      // Productos
+      ["Crear Producto", "Permite registrar nuevos productos", 1],
+      ["Editar Producto", "Permite modificar información de productos", 1],
+      ["Eliminar Producto", "Permite eliminar o desactivar productos", 1],
+
+      // Plantillas de productos
+      ["Crear Plantilla", "Permite crear plantillas de productos", 1],
+      ["Editar Plantilla", "Permite modificar plantillas de productos", 1],
+      ["Eliminar Plantilla", "Permite eliminar plantillas de productos", 1],
+
+      // Órdenes
+      ["Crear Órdenes", "Permite registrar nuevas órdenes", 1],
+      ["Editar Órdenes", "Permite modificar órdenes", 1],
+      ["Cancelar Órdenes", "Permite cancelar órdenes", 1],
+
+      // Presupuestos
+      ["Crear Presupuestos", "Permite registrar nuevos presupuestos", 1],
+      ["Eliminar Presupuestos", "Permite eliminar presupuestos", 1],
+      ["Editar Presupuestos", "Permite editar los presupuestos registrados", 1],
+
+      // Pagos
+      ["Ver pagos", "Permite ver los pagos registrados", 1],
+      ["Registrar Pagos", "Permite registrar pagos en órdenes", 1],
+      ["Eliminar Pagos", "Permite eliminar o anular pagos", 1],
+
+      // Estadisticas
+      ["Estadisticas", "Permite visualizar las estadisticas de ventas", 1],
+    ];
+
+    for (const perm of permissions) {
+      try {
+        await db.prepare("INSERT INTO permissions (name, description, active) VALUES (?, ?, ?)").run(...perm);
+      } catch (e) {
+        // Ignorar si ya existe
+      }
+    }
+
+    const allPermissions = await db.prepare(`SELECT id FROM permissions`).all();
+    for (const perm of allPermissions) {
+      try {
+        await db.prepare("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (?, ?, ?)").run(adminId, perm.id, 1);
+      } catch (e) {
+        // Ignorar si ya existe
+      }
+    }
+    console.log("Migración inicial: Usuario admin y permisos creados automáticamente.");
+  }
+
   // MIGRACION ESTADISTICAS Y PRESUPUESTOS
   const existingStatPerm = await db.prepare("SELECT id FROM permissions WHERE name = 'Estadisticas'").get();
   let statPermId = existingStatPerm ? existingStatPerm.id : null;
