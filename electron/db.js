@@ -262,7 +262,6 @@ async function initDb() {
     client = await pool.connect();
     await client.query(pgSchema);
 
-    // MIGRACIONES COMPATIBILIDAD V2 DE SQLITE a PG AUTOMATIZADAS
     // MIGRACION ESTADISTICAS Y PRESUPUESTOS
     const existingStatPerm = await db.prepare("SELECT id FROM permissions WHERE name = 'Estadisticas'").get();
     let statPermId = existingStatPerm ? existingStatPerm.id : null;
