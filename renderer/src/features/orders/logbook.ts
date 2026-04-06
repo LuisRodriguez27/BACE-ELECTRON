@@ -45,6 +45,7 @@ export const generateLogbookHtml = (ordersToPrint: Order[], currentDate: string)
             <th rowspan="2" style="width: 50px;">Folio</th>
             <th rowspan="2" style="width: 70px;">Fecha Rec.</th>
             <th rowspan="2" style="width: 150px;">Cliente</th>
+            <th rowspan="2" style="width: 80px;">Usuario</th>
             <th rowspan="2">Descripción</th>
             <th colspan="3">Estatus</th>
             <th colspan="2">Cliente</th>
@@ -59,7 +60,7 @@ export const generateLogbookHtml = (ordersToPrint: Order[], currentDate: string)
           </tr>
         </thead>
         <tbody>
-          ${ordersToPrint.length === 0 ? '<tr><td colspan="10" class="center">No hay órdenes pendientes</td></tr>' : ''}
+          ${ordersToPrint.length === 0 ? '<tr><td colspan="11" class="center">No hay órdenes pendientes</td></tr>' : ''}
           ${ordersToPrint.map(order => {
             const dateR = formatDateMX(order.date, 'DD/MM/YYYY');
             const dateE = order.estimated_delivery_date ? formatDateMX(order.estimated_delivery_date, 'DD/MM/YYYY') : '-';
@@ -80,6 +81,7 @@ export const generateLogbookHtml = (ordersToPrint: Order[], currentDate: string)
                 <td class="center"><strong>${order.id}</strong></td>
                 <td class="center">${dateR}</td>
                 <td>${order.client_name || order.client?.name || 'Sin Cliente'}</td>
+                <td class="center">${order.user?.username || '-'}</td>
                 <td>${order.description || order.notes || ''}</td>
                 <td class="center ${isDiseño ? 'bg-diseno' : ''}"></td>
                 <td class="center ${isProduccion ? 'bg-produccion' : ''}"></td>
