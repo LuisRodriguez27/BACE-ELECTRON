@@ -2,11 +2,11 @@ const db = require('../db');
 const Budget = require('../domain/budget');
 
 class BudgetRepository {
-  findAll() {
+  async findAll() {
     const stmt = db.prepare(`
       SELECT b.id, b.client_id, b.user_id, b.edited_by, b.date, 
             b.total, b.converted_to_order, b.active,
-            c.name AS client_name, c.phone AS client_phone,
+            c.name AS client_name, c.phone AS client_phone, c.color AS client_color,
             u.username AS user_username,
             ue.username AS edited_by_username
       FROM budgets b
@@ -17,18 +17,18 @@ class BudgetRepository {
       ORDER BY b.id DESC 
     `);
 
-    const budgets = stmt.all();
-    return budgets.map(budget => {
-      const budgetProducts = this.getBudgetProducts(budget.id);
+    const budgets = await stmt.all();
+    return await Promise.all(budgets.map(async budget => {
+      const budgetProducts = await this.getBudgetProducts(budget.id);
       return new Budget({ ...budget, budgetProducts });
-    });
+    }));
   }
 
-  findById(id) {
-    const budgetData = db.prepare(`
+  async findById(id) {
+    const budgetData = await db.prepare(`
       SELECT b.id, b.client_id, b.user_id, b.edited_by, b.date, 
             b.total, b.converted_to_order, b.active,
-            c.name AS client_name, c.phone AS client_phone,
+            c.name AS client_name, c.phone AS client_phone, c.color AS client_color,
             u.username AS user_username,
             ue.username AS edited_by_username
       FROM budgets b
@@ -40,15 +40,15 @@ class BudgetRepository {
 
     if (!budgetData) return null;
 
-    const budgetProducts = this.getBudgetProducts(budgetData.id);
+    const budgetProducts = await this.getBudgetProducts(budgetData.id);
     return new Budget({ ...budgetData, budgetProducts });
   }
 
-  findByClientId(clientId) {
+  async findByClientId(clientId) {
     const stmt = db.prepare(`
       SELECT b.id, b.client_id, b.user_id, b.edited_by, b.date, 
             b.total, b.converted_to_order, b.active,
-            c.name AS client_name, c.phone AS client_phone,
+            c.name AS client_name, c.phone AS client_phone, c.color AS client_color,
             u.username AS user_username,
             ue.username AS edited_by_username
       FROM budgets b
@@ -59,14 +59,14 @@ class BudgetRepository {
       ORDER BY b.id DESC
     `);
 
-    const budgets = stmt.all(clientId);
-    return budgets.map(budget => {
-      const budgetProducts = this.getBudgetProducts(budget.id);
+    const budgets = await stmt.all(clientId);
+    return await Promise.all(budgets.map(async budget => {
+      const budgetProducts = await this.getBudgetProducts(budget.id);
       return new Budget({ ...budget, budgetProducts });
-    });
+    }));
   }
 
-  findAllPaginated(page = 1, limit = 10, searchTerm = '') {
+  async findAllPaginated(page = 1, limit = 10, searchTerm = '') {
     const offset = (page - 1) * limit;
     
     // Construir la condición de búsqueda
@@ -77,9 +77,9 @@ class BudgetRepository {
       const term = `%${searchTerm.trim()}%`;
       searchCondition = `
         AND (
-          CAST(b.id AS TEXT) LIKE ?
-          OR c.name LIKE ?
-          OR c.phone LIKE ?
+          CAST(b.id AS TEXT) ILIKE ?
+          OR c.name ILIKE ?
+          OR c.phone ILIKE ?
           OR EXISTS (
             SELECT 1 FROM budget_products bp
             LEFT JOIN products p ON bp.product_id = p.id
@@ -87,10 +87,10 @@ class BudgetRepository {
             LEFT JOIN products pt_p ON pt.product_id = pt_p.id
             WHERE bp.budget_id = b.id
             AND (
-              p.name LIKE ? 
-              OR p.description LIKE ?
-              OR pt.description LIKE ?
-              OR pt_p.name LIKE ?
+              p.name ILIKE ? 
+              OR p.description ILIKE ?
+              OR pt.description ILIKE ?
+              OR pt_p.name ILIKE ?
             )
           )
         )
@@ -106,13 +106,13 @@ class BudgetRepository {
       WHERE b.active = 1 AND b.converted_to_order = 0 ${searchCondition}
     `;
     const countStmt = db.prepare(countQuery);
-    const { total } = countStmt.get(...searchParams);
+    const { total } = await countStmt.get(...searchParams);
     
     // Obtener registros paginados con búsqueda
     const dataQuery = `
       SELECT b.id, b.client_id, b.user_id, b.edited_by, b.date, 
             b.total, b.converted_to_order, b.active,
-            c.name AS client_name, c.phone AS client_phone,
+            c.name AS client_name, c.phone AS client_phone, c.color AS client_color,
             u.username AS user_username,
             ue.username AS edited_by_username
       FROM budgets b
@@ -124,12 +124,12 @@ class BudgetRepository {
       LIMIT ? OFFSET ?
     `;
     const stmt = db.prepare(dataQuery);
-    const budgets = stmt.all(...searchParams, limit, offset);
+    const budgets = await stmt.all(...searchParams, limit, offset);
     
-    const budgetsWithProducts = budgets.map(budget => {
-      const budgetProducts = this.getBudgetProducts(budget.id);
+    const budgetsWithProducts = await Promise.all(budgets.map(async budget => {
+      const budgetProducts = await this.getBudgetProducts(budget.id);
       return new Budget({ ...budget, budgetProducts });
-    });
+    }));
     
     return {
       data: budgetsWithProducts,
@@ -145,19 +145,19 @@ class BudgetRepository {
     };
   }
 
-  create(budgetData) {
+  async create(budgetData) {
     if (!budgetData.items || !Array.isArray(budgetData.items) || budgetData.items.length === 0) {
       throw new Error('El presupuesto debe tener al menos un producto o plantilla.');
     }
 
-    this.validateBudgetItems(budgetData.items);
+    await this.validateBudgetItems(budgetData.items);
 
-    const transaction = db.transaction(() => {
+    const transaction = db.transaction(async () => {
       const orderStmt = db.prepare(`
         INSERT INTO budgets (client_id, user_id, date, total, converted_to_order)
         VALUES (?, ?, ?, ?, 0)
       `);
-      const result = orderStmt.run(
+      const result = await orderStmt.run(
         budgetData.client_id,
         budgetData.user_id,
         budgetData.date,
@@ -165,19 +165,19 @@ class BudgetRepository {
       );
       const budgetId = result.lastInsertRowid;
 
-      this.addItemsToBudget(budgetId, budgetData.items);
+      await this.addItemsToBudget(budgetId, budgetData.items);
 
-      this.recalculateTotal(budgetId);
+      await this.recalculateTotal(budgetId);
 
       return budgetId;
     });
 
-    const budgetId = transaction();
-    return this.findById(budgetId);
+    const budgetId = await transaction();
+    return await this.findById(budgetId);
   }
 
-  update(id, budgetData) {
-    const existingBudget = this.findById(id);
+  async update(id, budgetData) {
+    const existingBudget = await this.findById(id);
     if (!existingBudget) {
       throw new Error('El presupuesto no existe');
     }
@@ -203,20 +203,20 @@ class BudgetRepository {
         WHERE id = ? AND active = 1
       `);
       
-      stmt.run(...values, id);
+      await stmt.run(...values, id);
     }
 
     if (budgetData.items && Array.isArray(budgetData.items)) {
-      this.validateBudgetItems(budgetData.items);
-      db.prepare('DELETE FROM budget_products WHERE budget_id = ?').run(id);
-      this.addItemsToBudget(id, budgetData.items);
-      this.recalculateTotal(id);
+      await this.validateBudgetItems(budgetData.items);
+      await db.prepare('DELETE FROM budget_products WHERE budget_id = ?').run(id);
+      await this.addItemsToBudget(id, budgetData.items);
+      await this.recalculateTotal(id);
     }
 
-    return this.findById(id);
+    return await this.findById(id);
   }
 
-  validateBudgetItems(items) {
+  async validateBudgetItems(items) {
     for (const item of items) {
       const hasProduct = item.product_id !== null && item.product_id !== undefined;
       const hasTemplate = item.template_id !== null && item.template_id !== undefined;
@@ -240,7 +240,7 @@ class BudgetRepository {
     }
   }
 
-  addItemsToBudget(budgetId, items) {
+  async addItemsToBudget(budgetId, items) {
     const stmt = db.prepare(`
       INSERT INTO budget_products (budget_id, product_id, template_id, quantity, unit_price, total_price)
       VALUES (?, ?, ?, ?, ?, ?)
@@ -253,21 +253,21 @@ class BudgetRepository {
       const unitPrice = parseFloat(item.unit_price);
       const totalPrice = quantity * unitPrice;
 
-      stmt.run(budgetId, productId, templateId, quantity, unitPrice, totalPrice);
+      await stmt.run(budgetId, productId, templateId, quantity, unitPrice, totalPrice);
     }
   }
 
-  delete(budgetId) {
+  async delete(budgetId) {
     const stmt = db.prepare(`
       UPDATE budgets SET active = 0 WHERE id = ?
     `);
-    const result = stmt.run(budgetId);
+    const result = await stmt.run(budgetId);
     return result.changes > 0;
   }
 
-  transformToOrder(budgetId, userId) {
+  async transformToOrder(budgetId, userId) {
     // Obtener el presupuesto completo
-    const budget = this.findById(budgetId);
+    const budget = await this.findById(budgetId);
     if (!budget) {
       throw new Error('El presupuesto no existe');
     }
@@ -278,19 +278,19 @@ class BudgetRepository {
     }
 
     // Obtener los productos del presupuesto
-    const budgetProducts = this.getBudgetProducts(budgetId);
+    const budgetProducts = await this.getBudgetProducts(budgetId);
     if (!budgetProducts || budgetProducts.length === 0) {
       throw new Error('El presupuesto no tiene productos');
     }
 
-    const transaction = db.transaction(() => {
+    const transaction = db.transaction(async () => {
       // Crear la orden con los mismos datos del presupuesto
       const orderStmt = db.prepare(`
         INSERT INTO orders (client_id, user_id, date, status, total, notes, created_from_budget_id)
         VALUES (?, ?, ?, 'Revision', ?, ?, ?)
       `);
       
-      const orderResult = orderStmt.run(
+      const orderResult = await orderStmt.run(
         budget.client_id,
         userId,
         new Date().toISOString(),
@@ -308,7 +308,7 @@ class BudgetRepository {
       `);
 
       for (const item of budgetProducts) {
-        orderProductStmt.run(
+        await orderProductStmt.run(
           orderId,
           item.product_id || null,
           item.template_id || null,
@@ -324,18 +324,18 @@ class BudgetRepository {
         SET converted_to_order = 1, converted_to_order_id = ?
         WHERE id = ?
       `);
-      updateBudgetStmt.run(orderId, budgetId);
+      await updateBudgetStmt.run(orderId, budgetId);
 
       return orderId;
     });
 
-    const orderId = transaction();
+    const orderId = await transaction();
     
     // Retornar el ID de la orden creada
     return orderId;
   }
 
-  getBudgetProducts(budgetId) {
+  async getBudgetProducts(budgetId) {
     const stmt = db.prepare(`
       SELECT 
         bp.*,
@@ -359,11 +359,11 @@ class BudgetRepository {
       ORDER BY bp.id
     `);
 
-    return stmt.all(budgetId);
+    return await stmt.all(budgetId);
   }
 
-  recalculateTotal(budgetId) {
-    const totalQuery = db.prepare(`
+  async recalculateTotal(budgetId) {
+    const totalQuery = await db.prepare(`
       SELECT SUM(total_price) as total
       FROM budget_products
       WHERE budget_id = ?
@@ -371,7 +371,7 @@ class BudgetRepository {
 
     const newTotal = totalQuery.total || 0;
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE budgets
       SET total = ?
       WHERE id = ?
@@ -380,8 +380,8 @@ class BudgetRepository {
     return newTotal;
   }
 
-  getNextId() {
-    const result = db.prepare(`
+  async getNextId() {
+    const result = await db.prepare(`
       SELECT COALESCE(MAX(id), 0) + 1 as next_id FROM budgets
     `).get();
     

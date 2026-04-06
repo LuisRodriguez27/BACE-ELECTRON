@@ -15,12 +15,7 @@ import { useForm } from 'react-hook-form';
 import { OrdersApiService } from '../OrdersApiService';
 import { calculateOrderTotal, type CreateOrderForm, createOrderItemFromFormItem, createOrderSchema, type Order, type OrderFormItem, getOrderItemType } from "../types";
 import { toast } from 'sonner';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
+import { todayDateInputMX, isoToDateInputMX, startOfDayUTC, preserveTimeOrStartOfDay } from '@/utils/dateUtils';
 
 interface CreateOrderModalProps {
   isOpen: boolean;
@@ -66,6 +61,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   const [clientSearchTerm, setClientSearchTerm] = useState('');
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+  const [originalOrderDate, setOriginalOrderDate] = useState<string | null>(null);
 
   const {
     register,
@@ -78,7 +74,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     resolver: zodResolver(createOrderSchema),
     defaultValues: {
       user_id: currentUserId,
-      date: dayjs().tz('America/Mexico_City').format('YYYY-MM-DD'),
+      date: todayDateInputMX(),
       status: 'Revision',
       items: []
     }
@@ -153,22 +149,20 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       
       // Llenar el formulario con los datos de la orden
       setValue('client_id', orderData.client_id);
+      setOriginalOrderDate(orderData.date);
       // Convertir fecha a formato YYYY-MM-DD para el input type="date"
-      const formattedDate = dayjs(orderData.date).format('YYYY-MM-DD');
+      const formattedDate = isoToDateInputMX(orderData.date);
       setValue('date', formattedDate);
       
       // Convertir fecha estimada si existe
       if (orderData.estimated_delivery_date) {
-        let parsedEstimated = dayjs(orderData.estimated_delivery_date);
-        if (parsedEstimated.utc().hour() === 0 && parsedEstimated.utc().minute() === 0 && parsedEstimated.utc().second() === 0) {
-          parsedEstimated = parsedEstimated.add(1, 'day');
-        }
-        const formattedEstimatedDate = parsedEstimated.format('YYYY-MM-DD');
+        const formattedEstimatedDate = isoToDateInputMX(orderData.estimated_delivery_date);
         setValue('estimated_delivery_date', formattedEstimatedDate);
       } else {
         setValue('estimated_delivery_date', '');
       }
       setValue('status', orderData.status);
+      setValue('responsable', orderData.responsable || 'Mostrador');
       setValue('notes', orderData.notes || '');
       setValue('description', orderData.description || '');
       
@@ -527,8 +521,8 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         // Modo edición
         const updateData = {
           client_id: formData.client_id,
-          date: formData.date,
-          estimated_delivery_date: formData.estimated_delivery_date || undefined,
+          date: preserveTimeOrStartOfDay(formData.date, originalOrderDate),
+          estimated_delivery_date: formData.estimated_delivery_date ? startOfDayUTC(formData.estimated_delivery_date) : undefined,
           status: formData.status,
           responsable: formData.responsable || 'Mostrador',
           notes: formData.notes || undefined,
@@ -551,8 +545,8 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         const orderData: CreateOrderForm = {
           client_id: formData.client_id,
           user_id: currentUserId,
-          date: dayjs().tz('America/Mexico_City').toISOString(),
-          estimated_delivery_date: formData.estimated_delivery_date || undefined,
+          date: preserveTimeOrStartOfDay(formData.date, null),
+          estimated_delivery_date: formData.estimated_delivery_date ? startOfDayUTC(formData.estimated_delivery_date) : undefined,
           status: formData.status || 'Revision',
           responsable: formData.responsable || 'Mostrador',
           notes: formData.notes || undefined,
@@ -592,6 +586,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     setClientSearchTerm('');
     setShowClientDropdown(false);
     setSelectedClientId(null);
+    setOriginalOrderDate(null);
     setError(null);
     onClose();
   };
@@ -619,13 +614,17 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
 
   // Función para filtrar clientes por nombre o teléfono
   const getFilteredClients = () => {
-    if (!clientSearchTerm) return clients;
+    let result = clients;
     
-    return clients.filter(client => 
-      client.name.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
-      client.phone.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
-      client.id.toString().includes(clientSearchTerm.toLowerCase())
-    );
+    if (clientSearchTerm) {
+      result = clients.filter(client => 
+        client.name.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
+        client.phone.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
+        client.id.toString().includes(clientSearchTerm.toLowerCase())
+      );
+    }
+    
+    return [...result].sort((a, b) => a.id - b.id);
   };
 
   // Función para seleccionar un cliente

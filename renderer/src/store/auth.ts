@@ -3,7 +3,7 @@ import { create } from "zustand";
 interface User {
   id: number;
   username: string;
-  active: number; // SQLite usa number (0 o 1)
+  active: number;
 }
 
 interface Business {

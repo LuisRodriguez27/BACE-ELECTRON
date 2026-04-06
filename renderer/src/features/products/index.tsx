@@ -2,11 +2,14 @@ import { Button } from '@/components/ui/button';
 import { DollarSign, Edit3, Hash, Package, Plus, Search, Trash2, Printer, Layers } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { CreateProductModal, DeleteProductModal, EditProductModal, ProductDetailView } from './components';
+import { CreateProductModal, DeleteProductModal, EditProductModal, ProductDetailView, SimilarNamesModal } from './components';
+import ProductImageCarousel from './components/ProductImageCarousel';
+import { useImagePreloader } from './hooks/useImagePreloader';
 import { ProductsApiService } from './ProductsApiService';
 import type { Product } from './types';
 import type { ProductTemplate } from '@/features/productTemplates/types';
 import { usePermissions } from '@/hooks/use-permissions';
+import { formatDateMX, nowISO } from '@/utils/dateUtils';
 
 const ProductsPage: React.FC = () => {
   const [products, setProducts] = useState<(Product & { templates?: ProductTemplate[] })[]>([]);
@@ -18,12 +21,17 @@ const ProductsPage: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  
+
   // Estados para vista detallada
   const [currentView, setCurrentView] = useState<'list' | 'detail'>('list');
   const [detailProductId, setDetailProductId] = useState<number | null>(null);
 
+  const [showSimilarModal, setShowSimilarModal] = useState(false);
+
   const { checkPermission } = usePermissions();
+
+  // Precargar imágenes en background cuando la lista de productos esté disponible
+  useImagePreloader(products);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -48,16 +56,16 @@ const ProductsPage: React.FC = () => {
       console.warn('Producto inválido encontrado en la lista:', product);
       return false;
     }
-    
+
     const searchLower = searchTerm.toLowerCase();
-    
+
     return (
       product.name.toLowerCase().includes(searchLower) ||
       (product.serial_number && product.serial_number.toLowerCase().includes(searchLower)) ||
-      (product.description && product.description.toLowerCase().includes(searchLower))
+      (product.id && product.id.toString().includes(searchLower))
     );
   });
-  
+
   const handleProductCreated = (newProduct: Product) => {
     // Prepend the new product so it shows at the top of the list immediately
     setProducts(prevProducts => [newProduct, ...prevProducts]);
@@ -70,15 +78,14 @@ const ProductsPage: React.FC = () => {
       toast.error('Error: datos del producto inválidos');
       return;
     }
-    
+
     setProducts(prevProducts =>
       prevProducts.map(product =>
-        product && product.id === updatedProduct.id 
-          ? { ...updatedProduct, templates: product.templates } 
+        product && product.id === updatedProduct.id
+          ? { ...updatedProduct, templates: product.templates }
           : product
       )
     );
-    toast.success(`Producto ${updatedProduct.name} actualizado exitosamente`);
   };
 
   const handleProductDeleted = (deletedProductId: number) => {
@@ -235,7 +242,7 @@ const ProductsPage: React.FC = () => {
           </style>
         </head>
         <body>
-          <div class="date">Generado el: ${new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} a las ${new Date().toLocaleTimeString('es-MX')}</div>
+          <div class="date">Generado el: ${formatDateMX(nowISO(), 'dddd, D [de] MMMM [de] YYYY')} a las ${formatDateMX(nowISO(), 'HH:mm:ss')}</div>
           <h1>Inventario General</h1>
           <div class="subtitle">BACE - LISTA DE PRODUCTOS Y SUBPRODUCTOS</div>
           
@@ -352,8 +359,8 @@ const ProductsPage: React.FC = () => {
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">{error}</p>
-          <Button 
-            onClick={() => window.location.reload()} 
+          <Button
+            onClick={() => window.location.reload()}
             className="mt-2"
             size="sm"
           >
@@ -382,6 +389,14 @@ const ProductsPage: React.FC = () => {
           >
             <Printer size={16} />
             Imprimir Inventario
+          </Button>
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={() => setShowSimilarModal(true)}
+          >
+            <Layers size={16} />
+            Buscar Similares
           </Button>
           <Button
             className="flex items-center gap-2"
@@ -426,7 +441,7 @@ const ProductsPage: React.FC = () => {
               <p className="text-gray-500 mb-4">
                 Comienza agregando tu primer producto al catálogo
               </p>
-              <Button 
+              <Button
                 className="flex items-center gap-2 mx-auto"
                 onClick={openCreateModal}
               >
@@ -435,75 +450,134 @@ const ProductsPage: React.FC = () => {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
               {filteredProducts.map((product) => (
-                <div key={product.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex flex-col overflow-hidden mr-2">
-                        <h3 className="font-semibold text-gray-900 truncate" title={product.name}>{product.name}</h3>
+                <div key={product.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow flex">
+
+                  {/* Columna izquierda — Información */}
+                  <div className="w-[60%] p-4 flex flex-col min-w-0">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex flex-col overflow-hidden mr-2">
+                        <h3 className="font-semibold text-gray-900 truncate" title={product.name}>
+                          <span className="text-gray-500 font-normal mr-2">#{product.id}</span>
+                          {product.name}
+                        </h3>
                         <span className="inline-flex items-center text-xs text-gray-500 mt-1">
-                            <Layers size={12} className="mr-1" />
-                            {product.templates?.length || 0} {(product.templates?.length || 0) === 1 ? 'plantilla' : 'plantillas'}
+                          <Layers size={12} className="mr-1" />
+                          {product.templates?.length || 0} {(product.templates?.length || 0) === 1 ? 'plantilla' : 'plantillas'}
                         </span>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Button 
-                        variant="ghost"  
-                        size="sm"
-                        onClick={() => openEditModal(product)}
-                        className='p-1 h-8 w-8'
-                      >
-                        <Edit3 size={14} />
-                      </Button>
-                      <Button 
-                          variant="ghost" 
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEditModal(product)}
+                          className='p-1 h-8 w-8'
+                        >
+                          <Edit3 size={14} />
+                        </Button>
+                        <Button
+                          variant="ghost"
                           size="sm"
                           onClick={() => openDeleteModal(product)}
                           className="p-1 h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
                         >
                           <Trash2 size={14} />
                         </Button>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2 text-sm text-gray-600">
-                    {product.serial_number && (
-                      <div className="flex items-center gap-2">
-                        <Hash size={14} />
-                        <span className="font-mono text-xs">{product.serial_number}</span>
                       </div>
-                    )}
-                    
-                    <div className="flex items-center gap-2">
-                      <DollarSign size={14} />
-                      <span className="font-semibold text-green-600">
-                        ${product.price.toFixed(2)} MXN
-                      </span>
                     </div>
-                    
-                    {product.description && (
-                      <p className="text-xs text-gray-500 line-clamp-2 mt-2">
-                        {product.description}
-                      </p>
-                    )}
+
+                    <div className="space-y-2 text-sm text-gray-600 flex-1">
+                      {product.serial_number && (
+                        <div className="flex items-center gap-2">
+                          <Hash size={14} />
+                          <span className="font-mono text-xs">{product.serial_number}</span>
+                        </div>
+                      )}
+
+                      {(() => {
+                        let activePrice = product.price;
+                        let isPromo = false;
+                        let isDiscount = false;
+
+                        if (product.promo_price !== null && product.promo_price !== undefined && product.promo_price < product.price) {
+                          activePrice = product.promo_price;
+                          isPromo = true;
+                        }
+
+                        if (product.discount_price !== null && product.discount_price !== undefined && product.discount_price < activePrice) {
+                          activePrice = product.discount_price;
+                          isPromo = false;
+                          isDiscount = true;
+                        }
+
+                        if (isPromo || isDiscount) {
+                          return (
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-2">
+                                <DollarSign size={12} className="text-gray-400" />
+                                <span className="text-gray-400 line-through text-xs">
+                                  ${product.price.toFixed(2)} MXN
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <DollarSign size={14} className={isPromo ? "text-blue-600" : "text-orange-600"} />
+                                <span className={`font-semibold ${isPromo ? "text-blue-600" : "text-orange-600"}`}>
+                                  ${activePrice.toFixed(2)} MXN
+                                </span>
+                                <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${isPromo ? "bg-blue-100 text-blue-800" : "bg-orange-100 text-orange-800"}`}>
+                                  {isPromo ? 'Promo' : 'Desc'}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className="flex items-center gap-2">
+                            <DollarSign size={14} />
+                            <span className="font-semibold text-green-600">
+                              ${product.price.toFixed(2)} MXN
+                            </span>
+                          </div>
+                        );
+                      })()}
+
+                      {product.description && (
+                        <p className="text-xs text-gray-500 line-clamp-2 mt-2">
+                          {product.description}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
+                      <span className={`px-2 py-1 text-xs rounded-full ${product.active === 1
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                        }`}>
+                        {product.active === 1 ? 'Activo' : 'Inactivo'}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openProductDetail(product.id)}
+                      >
+                        Ver Detalles
+                      </Button>
+                    </div>
                   </div>
-                  
-                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      product.active === 1 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {product.active === 1 ? 'Activo' : 'Inactivo'}
-                    </span>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => openProductDetail(product.id)}
-                    >
-                      Ver Detalles
-                    </Button>
+
+                  {/* Columna derecha — Imagen (contenedor fijo) */}
+                  <div className="w-[40%] shrink-0 border-l border-gray-100 bg-gray-50">
+                    <ProductImageCarousel
+                      images={product.images}
+                      productName={product.name}
+                      height={undefined}
+                      showEmptyState
+                      fillContainer
+                    />
                   </div>
+
                 </div>
               ))}
             </div>
@@ -517,21 +591,26 @@ const ProductsPage: React.FC = () => {
         onClose={closeModals}
         onProductCreated={handleProductCreated}
       />
-      
+
       <EditProductModal
         isOpen={showEditModal}
         onClose={closeModals}
         onProductUpdated={handleProductUpdated}
         product={selectedProduct}
       />
-      
+
       <DeleteProductModal
         isOpen={showDeleteModal}
         onClose={closeModals}
         onProductDeleted={handleProductDeleted}
         product={selectedProduct}
       />
-      
+
+      <SimilarNamesModal
+        isOpen={showSimilarModal}
+        onClose={() => setShowSimilarModal(false)}
+      />
+
     </div>
   );
 };

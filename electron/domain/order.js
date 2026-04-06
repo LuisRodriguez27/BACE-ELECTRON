@@ -14,6 +14,7 @@ class Order {
     active = 1,
     client_name,
     client_phone,
+    client_color,
     user_username,
     edited_by_username,
     orderProducts = []
@@ -34,6 +35,7 @@ class Order {
     // Información adicional del cliente y usuarios
     this.client_name = client_name || null;
     this.client_phone = client_phone || null;
+    this.client_color = client_color || null;
     this.user_username = user_username || null;
     this.edited_by_username = edited_by_username || null;
     this.orderProducts = orderProducts || [];
@@ -127,7 +129,8 @@ class Order {
     return {
       id: this.client_id,
       name: this.client_name,
-      phone: this.client_phone
+      phone: this.client_phone,
+      color: this.client_color
     };
   }
 

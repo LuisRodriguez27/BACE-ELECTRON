@@ -1,46 +1,49 @@
 import React, { useState } from 'react';
+import { useAuthStore } from '@/store/auth';
 import { Button, Input, Label } from '@/components/ui';
-import { X, DollarSign, Loader, Calendar, FileText } from 'lucide-react';
+import { X, DollarSign, Loader, Calendar, FileText, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { PaymentsApiService } from '../PaymentsApiService';
+import { SimpleOrdersApiService } from '../../simple-orders/SimpleOrdersApiService';
 import { createPaymentSchema, type CreatePaymentForm, type Payment } from '../types';
 import { extractErrorMessage } from '@/utils/errorHandling';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
+import { isoToDateInputMX, todayDateInputMX, preserveTimeOrStartOfDay } from '@/utils/dateUtils';
 
 interface CreatePaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  orderId: number;
-  orderTotal: number;
-  currentPayments: number;
+  orderId?: number;       // Opcional — si no se pasa, es un pago libre
+  orderTotal?: number;    // Opcional — solo aplica si hay orden
+  currentPayments?: number;
   onPaymentCreated: (payment: Payment) => void;
-  clientName: string;
+  clientName?: string;
+  isSimpleOrder?: boolean;
 }
 
 const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
   isOpen,
   onClose,
   orderId,
-  orderTotal,
-  currentPayments,
+  orderTotal = 0,
+  currentPayments = 0,
   onPaymentCreated,
-  clientName
+  clientName = 'Sin cliente',
+  isSimpleOrder = false,
 }) => {
+  const { user } = useAuthStore();
+  const isFreePayment = !orderId; // true si no hay orden asociada
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<CreatePaymentForm>({
     orderId: orderId,
     amount: 0,
-    date: dayjs().tz('America/Mexico_City').format(), // Fecha actual con zona horaria CDMX
-    descripcion: ''
+    date: todayDateInputMX(),
+    descripcion: '',
+    info: ''
   });
 
-  const pendingAmount = orderTotal - currentPayments;
+  const pendingAmount = isFreePayment ? Infinity : orderTotal - currentPayments;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,18 +54,41 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
       // Validar con zod
       const validatedData = createPaymentSchema.parse({
         ...formData,
+        date: preserveTimeOrStartOfDay(formData.date || ''),
         orderId: orderId
       });
 
-      // Verificar que el monto no exceda lo pendiente
-      if (validatedData.amount > pendingAmount) {
+      // Si tiene orden, verificar monto pendiente
+      if (!isFreePayment && validatedData.amount! > pendingAmount) {
         setError(`El monto no puede exceder el pendiente: $${pendingAmount.toFixed(2)}`);
         setLoading(false);
         return;
       }
 
-      const newPayment = await PaymentsApiService.create(validatedData);
-      console.log('Pago creado:', newPayment);
+      // Si es pago libre, requerir info
+      if (isFreePayment && (!formData.info || formData.info.trim() === '')) {
+        setError('El campo "Información/Concepto" es requerido para pagos sin orden');
+        setLoading(false);
+        return;
+      }
+
+      let newPayment: any;
+      if (isSimpleOrder && orderId) {
+        if (!user?.id) {
+          setError('Atención: No se ha detectado el usuario activo');
+          setLoading(false);
+          return;
+        }
+        newPayment = await SimpleOrdersApiService.addPayment({
+          simple_order_id: orderId,
+          user_id: user.id,
+          amount: validatedData.amount!,
+          date: validatedData.date,
+          descripcion: validatedData.descripcion
+        });
+      } else {
+        newPayment = await PaymentsApiService.create(validatedData);
+      }
       
       toast.success('Pago registrado exitosamente');
       onPaymentCreated(newPayment);
@@ -81,8 +107,9 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
     setFormData({
       orderId: orderId,
       amount: 0,
-      date: dayjs().tz('America/Mexico_City').format(), // Fecha actual con zona horaria CDMX
-      descripcion: ''
+      date: todayDateInputMX(),
+      descripcion: '',
+      info: ''
     });
     setError(null);
     onClose();
@@ -109,7 +136,11 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
             </div>
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Registrar Pago</h2>
-              <p className="text-sm text-gray-500">Orden #{orderId} - {clientName}</p>
+              {isFreePayment ? (
+                <p className="text-sm text-orange-600 font-medium">Pago libre (sin orden)</p>
+              ) : (
+                <p className="text-sm text-gray-500">Orden #{orderId} - {clientName}</p>
+              )}
             </div>
           </div>
           <Button
@@ -130,68 +161,70 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
             </div>
           )}
 
-          {/* Resumen de la orden */}
-          <div className="bg-blue-50 rounded-lg p-4">
-            <h3 className="font-medium text-gray-900 mb-3">Resumen de la Orden</h3>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-gray-600">Total de la orden:</span>
-                <p className="font-semibold text-gray-900">${orderTotal.toFixed(2)}</p>
-              </div>
-              <div>
-                <span className="text-gray-600">Total pagado:</span>
-                <p className="font-semibold text-green-600">${currentPayments.toFixed(2)}</p>
-              </div>
-              <div className="col-span-2">
-                <span className="text-gray-600">Monto pendiente:</span>
-                <p className="font-semibold text-orange-600">${pendingAmount.toFixed(2)}</p>
+          {/* Resumen de la orden (solo si tiene orden) */}
+          {!isFreePayment && (
+            <div className="bg-blue-50 rounded-lg p-4">
+              <h3 className="font-medium text-gray-900 mb-3">Resumen de la Orden</h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600">Total de la orden:</span>
+                  <p className="font-semibold text-gray-900">${orderTotal.toFixed(2)}</p>
+                </div>
+                <div>
+                  <span className="text-gray-600">Total pagado:</span>
+                  <p className="font-semibold text-green-600">${currentPayments.toFixed(2)}</p>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-gray-600">Monto pendiente:</span>
+                  <p className="font-semibold text-orange-600">${pendingAmount.toFixed(2)}</p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Botones de monto rápido */}
-          {pendingAmount > 0 && (
+          {/* Información/Concepto — solo para pagos libres */}
+          {isFreePayment && (
+            <div>
+              <Label htmlFor="info" className="text-sm font-medium text-gray-700">
+                Información / Concepto *
+              </Label>
+              <div className="mt-1 relative">
+                <Info className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <Input
+                  id="info"
+                  type="text"
+                  value={formData.info || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, info: e.target.value }))}
+                  className="pl-10"
+                  placeholder="Ej: Abono de cliente, pago de anticipo..."
+                  required
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Describe el concepto de este pago libre
+              </p>
+            </div>
+          )}
+
+          {/* Botones de monto rápido (solo con orden) */}
+          {!isFreePayment && pendingAmount > 0 && (
             <div>
               <Label className="text-sm font-medium text-gray-700 mb-2 block">
                 Monto rápido:
               </Label>
               <div className="grid grid-cols-4 gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleQuickAmount(25)}
-                  className="text-xs"
-                >
-                  25%
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleQuickAmount(50)}
-                  className="text-xs"
-                >
-                  50%
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleQuickAmount(75)}
-                  className="text-xs"
-                >
-                  75%
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleQuickAmount(100)}
-                  className="text-xs"
-                >
-                  100%
-                </Button>
+                {[25, 50, 75, 100].map(pct => (
+                  <Button
+                    key={pct}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleQuickAmount(pct)}
+                    className="text-xs"
+                  >
+                    {pct}%
+                  </Button>
+                ))}
               </div>
             </div>
           )}
@@ -208,7 +241,7 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
                 type="number"
                 step="0.01"
                 min="1"
-                max={pendingAmount}
+                max={isFreePayment ? undefined : pendingAmount}
                 value={formData.amount || ''}
                 onChange={(e) => setFormData(prev => ({ 
                   ...prev, 
@@ -219,7 +252,7 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
                 required
               />
             </div>
-            {pendingAmount > 0 && (
+            {!isFreePayment && pendingAmount > 0 && (
               <p className="text-xs text-gray-500 mt-1">
                 Máximo: ${pendingAmount.toFixed(2)}
               </p>
@@ -236,11 +269,9 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
               <Input
                 id="date"
                 type="date"
-                value={dayjs(formData.date).tz('America/Mexico_City').format('YYYY-MM-DD')}
+                value={isoToDateInputMX(formData.date)}
                 onChange={(e) => {
-                  // Convertir la fecha seleccionada a formato ISO con zona horaria CDMX
-                  const selectedDate = dayjs.tz(e.target.value, 'America/Mexico_City').format();
-                  setFormData(prev => ({ ...prev, date: selectedDate }));
+                  setFormData(prev => ({ ...prev, date: e.target.value }));
                 }}
                 className="pl-10"
               />
@@ -282,7 +313,7 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
             </Button>
             <Button
               type="submit"
-              disabled={loading || formData.amount <= 0 || formData.amount > pendingAmount}
+              disabled={loading || (formData.amount ?? 0) <= 0 || (!isFreePayment && (formData.amount ?? 0) > pendingAmount)}
               className="flex items-center gap-2"
             >
               {loading && <Loader className="animate-spin" size={16} />}

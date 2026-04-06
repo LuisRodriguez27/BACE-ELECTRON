@@ -11,13 +11,11 @@ import OrderDetailsModal from './components/OrderDetailsModal';
 import { OrdersApiService } from './OrdersApiService';
 import type { Order } from './types';
 import { getOrderItemDisplayName } from './types';
+import { generateLogbookHtml } from './logbook';
 import { usePermissions } from '@/hooks/use-permissions';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
+import ClientColorIndicator from '../clients/components/ClientColorIndicator';
+import type { ClientColor } from '../clients/types';
+import { formatDateMX, nowISO } from '@/utils/dateUtils';
 
 const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -78,110 +76,9 @@ const OrdersPage: React.FC = () => {
         return;
       }
 
-      const currentDate = new Date().toLocaleDateString('es-MX', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      });
+      const currentDate = formatDateMX(nowISO(), 'dddd, D [de] MMMM [de] YYYY');
 
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Bitácora de Trabajo - ${currentDate}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; font-size: 11px; }
-            h1 { text-align: center; margin-bottom: 5px; font-size: 16px; }
-            p.date { text-align: center; margin-top: 0; margin-bottom: 15px; color: #666; font-size: 12px; }
-            table { width: 100%; border-collapse: collapse; }
-            th, td { border: 1px solid #000; padding: 4px; text-align: left; vertical-align: middle; }
-            th { background-color: #f0f0f0; text-align: center; font-weight: bold; font-size: 10px; }
-            .center { text-align: center; }
-            .check-col { width: 40px; text-align: center; }
-            .client-subcol { width: 35px; }
-            
-            /* Status Checks */
-            .checkmark { font-size: 14px; font-weight: bold; }
-            
-            /* Print optimizations */
-            @media print {
-              @page { size: landscape; margin: 0.5cm; }
-              body { margin: 0; }
-              tr { break-inside: avoid; }
-            }
-          </style>
-        </head>
-        <body>
-          <h1>BITÁCORA DE TRABAJO - BACE</h1>
-          <p class="date">${currentDate}</p>
-
-          <table>
-            <thead>
-              <tr>
-                <th rowspan="2" style="width: 50px;">Folio</th>
-                <th rowspan="2" style="width: 70px;">Fecha Rec.</th>
-                <th rowspan="2" style="width: 150px;">Cliente</th>
-                <th rowspan="2">Descripción</th>
-                <th colspan="3">Estatus</th>
-                <th colspan="2">Cliente</th>
-                <th rowspan="2" style="width: 70px;">Fecha Ent.</th>
-              </tr>
-              <tr>
-                <th class="check-col">Diseño</th>
-                <th class="check-col">Prod.</th>
-                <th class="check-col">Entrega</th>
-                <th class="client-subcol">MOS</th>
-                <th class="client-subcol">MAQ</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${ordersToPrint.length === 0 ? '<tr><td colspan="10" class="center">No hay órdenes pendientes</td></tr>' : ''}
-              ${ordersToPrint.map(order => {
-                const dateR = dayjs(order.date).format('DD/MM/YYYY');
-                const dateE = order.estimated_delivery_date 
-                  ? dayjs(order.estimated_delivery_date).format('DD/MM/YYYY') 
-                  : '-';
-                
-                // Mapeo de estados a columnas
-                // Diseño -> Columna Diseño
-                const isDiseño = order.status === 'Diseño';
-                // Produccion -> Columna Prod.
-                const isProduccion = order.status === 'Produccion';
-                // Entrega -> Columna Entrega
-                const isEntrega = order.status === 'Entrega';
-
-                const isMostrador = order.responsable === 'Mostrador';
-                const isMaquila = order.responsable === 'Maquila';
-
-                return `
-                  <tr>
-                    <td class="center"><strong>${order.id}</strong></td>
-                    <td class="center">${dateR}</td>
-                    <td>${order.client_name || order.client?.name || 'Sin Cliente'}</td>
-                    <td>${order.description || order.notes || ''}</td>
-                    <td class="center">${isDiseño ? '<span class="checkmark">✓</span>' : ''}</td>
-                    <td class="center">${isProduccion ? '<span class="checkmark">✓</span>' : ''}</td>
-                    <td class="center">${isEntrega ? '<span class="checkmark">✓</span>' : ''}</td>
-                    <td class="center">${isMostrador ? '<span class="checkmark">✓</span>' : ''}</td>
-                    <td class="center">${isMaquila ? '<span class="checkmark">✓</span>' : ''}</td>
-                    <td class="center">${dateE}</td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
-
-          <script>
-            window.onload = function() { 
-              setTimeout(function() {
-                window.print();
-              }, 500);
-            }
-          </script>
-        </body>
-        </html>
-      `;
+      const htmlContent = generateLogbookHtml(ordersToPrint, currentDate);
 
       printWindow.document.write(htmlContent);
       printWindow.document.close();
@@ -239,21 +136,11 @@ const OrdersPage: React.FC = () => {
   }
 
   const formatDate = (dateString: string) => {
-    let date = dayjs(dateString);
-    // Si la hora es exactamente medianoche en UTC, sumar un día
-    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
-      date = date.add(1, 'day');
-    }
-    return date.tz('America/Mexico_City').format('D MMM YYYY');
+    return formatDateMX(dateString, 'D MMM YYYY');
   };
 
   const formatDateTime = (dateString: string) => {
-    let date = dayjs(dateString);
-    // Si la hora es exactamente medianoche en UTC, sumar un día
-    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
-      date = date.add(1, 'day');
-    }
-    return date.tz('America/Mexico_City').format('D MMM YYYY, h:mm A');
+    return formatDateMX(dateString, 'D MMM YYYY, h:mm A');
   }
 
   const getStatusColor = (status: string) => {
@@ -366,9 +253,11 @@ const OrdersPage: React.FC = () => {
 
   const handlePaymentCreated = (newPayment: Payment) => {
     // Actualizar los pagos de la orden específica
+    if (newPayment.order_id == null) return;
+    const orderId = newPayment.order_id;
     setOrderPayments(prev => ({
       ...prev,
-      [newPayment.order_id]: [...(prev[newPayment.order_id] || []), newPayment]
+      [orderId]: [...(prev[orderId] || []), newPayment]
     }));
   };
 
@@ -539,7 +428,7 @@ const OrdersPage: React.FC = () => {
                     <div className="flex items-start justify-between mb-4">
                       <div>
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-gray-900">Orden #{order.id}</h3>
+                          <h3 className="font-semibold text-gray-900 wrap-break-word">Orden #{order.id}</h3>
                           <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(order.status)}`}>
                             {getStatusText(order.status)}
                           </span>
@@ -634,11 +523,16 @@ const OrdersPage: React.FC = () => {
                       {order.client && (
                         <div>
                           <span className="text-sm font-medium text-gray-700">Cliente:</span>
-                          <div className="text-sm text-gray-600">ID: {order.client_id}</div>
+                          <div className="text-gray-500 wrap-break-word font-sm">ID: {order.client_id}</div>
                           <p className="text-sm text-gray-600">{order.client.name}</p>
-                          {order.client.phone && (
-                            <p className="text-xs text-gray-500">{order.client.phone}</p>
-                          )}
+                          <div className="flex items-center gap-2 mt-1">
+                            {order.client.phone && (
+                              <p className="text-xs text-gray-500">{order.client.phone}</p>
+                            )}
+                            {order.client.color && (
+                              <ClientColorIndicator color={order.client.color as ClientColor} size="sm" />
+                            )}
+                          </div>
                         </div>
                       )}
 

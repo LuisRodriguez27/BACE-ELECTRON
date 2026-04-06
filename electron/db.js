@@ -1,493 +1,278 @@
+const { Pool, types } = require('pg');
+
+// Forzar que los campos DECIMAL (OID 1700), float4 (700) y float8 (701) devuelvan Number en vez de String
+types.setTypeParser(1700, val => parseFloat(val));
+types.setTypeParser(700, val => parseFloat(val));
+types.setTypeParser(701, val => parseFloat(val));
+
+// Forzar que los campos TIMESTAMP sin zona horaria (1114) se interpreten como UTC para mantener la compatibilidad y no aplicar el timezone por defecto del driver
+types.setTypeParser(1114, val => new Date(val + 'Z'));
+
+const { AsyncLocalStorage } = require('async_hooks');
 const path = require('path');
-const Database = require('better-sqlite3');
 const { app, dialog } = require('electron');
 const fs = require('fs');
+const { runMigrations } = require('./migrations');
 
 // ============================================
-// CONFIGURACIÓN - EDITA AQUÍ PARA CADA INSTALADOR
+// CONFIGURACIÓN DE CONEXIÓN POSTGRESQL
 // ============================================
-const CONFIG = {
-  // PARA PC SERVIDOR: modo = 'local'
-  // PARA PC CLIENTES: modo = 'network'
-  modo: 'network',  
-  
-  // MODO LOCAL: Ruta absoluta donde se encuentra la base de datos en el servidor
-  // Si dejas null, usará el escritorio del usuario actual (app.getPath('desktop'))
-  serverLocalPath: 'C:\\Users\\Bace Gpo Impresor\\Desktop\\bace-electron\\database',
-  
-  // MODO RED 'network' (Clientes):
-  networkDrive: null, // 'Z:' si se usa unidad mapeada, null para usar ruta UNC con IP
-  serverIP: '192.168.1.90',
-  
-  // Ruta de la carpeta compartida en la red (relativa a la IP o unidad)
-  // Ejemplo: 'personal_folder/bace-electron' genera \\IP\personal_folder\bace-electron
-  networkFolder: 'personal_folder/bace-electron/database'
-};
-// ============================================
+// En desarrollo, la app usará PostgreSQL en tu PC (localhost).
+// En producción (app empaquetada), se conectará al servidor PostgreSQL en el NAS de la red.
+const isDev = !app.isPackaged;
 
-/**
- * Obtener la ruta de la base de datos
- */
-function getDatabasePath() {
-  // Modo desarrollo
-  if (!app.isPackaged) {
-    const devPath = path.join(__dirname, '../sqlite/data.db');
-    console.log('🔧 DESARROLLO:', devPath);
-    return devPath;
+// Cargar las variables de entorno desde el archivo .env
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+
+const pool = new Pool({
+  user: process.env.DB_USER || 'admin',
+  host: process.env.DB_HOST || 'localhost',
+  database: process.env.DB_NAME || 'db', // Ajusta el nombre de la BD para produccion si es diferente
+  password: process.env.DB_PASSWORD || '1234', // Pon la contraseña que use postgres en el NAS
+  port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 5432,
+});
+
+const asyncLocalStorage = new AsyncLocalStorage();
+
+async function queryWithContext(sql, args, method) {
+  let i = 1;
+  // Convertimos '?' a '$1', '$2', etc.
+  let pgSql = sql.replace(/\?/g, () => `$${i++}`);
+
+  // Agregar RETURNING * si es insert para postgres y no lo tiene
+  if (method === 'run' && pgSql.trim().toUpperCase().startsWith('INSERT') && !pgSql.toUpperCase().includes('RETURNING')) {
+    pgSql += ' RETURNING *';
   }
 
-  // Modo producción - LOCAL (PC Servidor)
-  if (CONFIG.modo === 'local') {
-    const dbDir = CONFIG.serverLocalPath;
-    
-    console.log('📂 Ruta local configurada:', dbDir);
-    
-    if (!fs.existsSync(dbDir)) {
-      console.log('⚠️ La carpeta no existe, intentando crearla...');
+  const client = asyncLocalStorage.getStore() || pool;
+
+  try {
+    const result = await client.query(pgSql, args);
+    if (method === 'get') {
+      return result.rows[0] || null;
+    }
+    if (method === 'all') {
+      return result.rows;
+    }
+    if (method === 'run') {
+      return {
+        changes: result.rowCount,
+        lastInsertRowid: result.rows.length > 0 && result.rows[0].id ? result.rows[0].id : null
+      };
+    }
+  } catch (e) {
+    if (e.code === '42P01') {
+      // Table does not exist (posiblemente inicio sin esquema creado). Ignoralos por el script
+      if (method === 'get') return null;
+      if (method === 'all') return [];
+      return { changes: 0, lastInsertRowid: null };
+    }
+    throw e;
+  }
+}
+
+const db = {
+  prepare: (sql) => {
+    return {
+      get: async (...args) => await queryWithContext(sql, args, 'get'),
+      all: async (...args) => await queryWithContext(sql, args, 'all'),
+      run: async (...args) => await queryWithContext(sql, args, 'run'),
+    };
+  },
+
+  transaction: (fn) => {
+    return async (...args) => {
+      const client = await pool.connect();
       try {
-        fs.mkdirSync(dbDir, { recursive: true });
-        console.log('✅ Carpeta creada exitosamente');
-      } catch (error) {
-        console.error('❌ Error al crear carpeta:', error);
+        await client.query('BEGIN');
+        const result = await asyncLocalStorage.run(client, () => fn(...args));
+        await client.query('COMMIT');
+        return result;
+      } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('Transaction Failed, rolling back:', err);
+        throw err;
+      } finally {
+        client.release();
       }
-    }
-    
-    const localPath = path.join(dbDir, 'data.db');
-    console.log('💻 MODO LOCAL (SERVIDOR):', localPath);
-    
-    if (!fs.existsSync(localPath)) {
-      console.error('❌ ERROR: data.db no encontrado en:', localPath);
-    } else {
-      console.log('✅ Base de datos encontrada');
-    }
-    
-    return localPath;
+    };
+  },
+
+  exec: async (sql) => {
+    const client = asyncLocalStorage.getStore() || pool;
+    return await client.query(sql);
   }
-
-  // Modo producción - NETWORK (PC Clientes)
-  if (CONFIG.modo === 'network') {
-    let networkPath;
-    
-    if (CONFIG.networkDrive) {
-      // Usar unidad mapeada
-      networkPath = path.join(CONFIG.networkDrive, CONFIG.networkFolder, 'data.db');
-      console.log('🌐 MODO RED (Unidad Mapeada):', networkPath);
-    } else {
-      // Usar ruta UNC manual para evitar problemas
-      const normalizedFolder = CONFIG.networkFolder.replace(/\//g, '\\');
-      networkPath = `\\\\${CONFIG.serverIP}\\${normalizedFolder}\\data.db`;
-      console.log('🌐 MODO RED (UNC Path):', networkPath);
-    }
-    
-    return networkPath;
-  }
-
-  // Fallback a local
-  console.warn('⚠️ Configuración no válida, usando modo local');
-  return path.join(app.getPath('userData'), 'database', 'data.db');
-}
-
-const dbPath = getDatabasePath();
-
-// Asegurar que el directorio existe (solo para modo local)
-if (CONFIG.modo === 'local' && app.isPackaged) {
-  const dbDir = path.dirname(dbPath);
-  if (!fs.existsSync(dbDir)) {
-    try {
-      fs.mkdirSync(dbDir, { recursive: true });
-    } catch (error) {
-      console.error('❌ Error creando directorio:', error);
-    }
-  }
-}
-
-// Validar acceso en modo network
-if (CONFIG.modo === 'network' && app.isPackaged) {
-  console.log('📁 Intentando acceder a:', dbPath);
-  
-  // Verificar si el archivo existe
-  if (!fs.existsSync(dbPath)) {
-    const dbDir = path.dirname(dbPath);
-    
-    let specificError = '';
-    try {
-      // Intentar leer obligatoriamente el directorio para verificar permisos reales
-      const files = fs.readdirSync(dbDir);
-      
-      // Si llegamos aquí, SÍ hay acceso a la carpeta
-      if (files.includes('data.db')) {
-        specificError = `
-⚠️ El sistema puede leer la carpeta y ve el archivo 'data.db', 
-pero fs.existsSync falló. Esto es inusual.`;
-      } else {
-        specificError = `
-✅ La carpeta del servidor ES accesible (Permisos OK).
-❌ PERO el archivo 'data.db' NO existe en esa ubicación.
-
-Archivos encontrados en la carpeta: 
-${files.slice(0, 10).join(', ')}
-
-SOLUCIÓN:
-Asegúrate de que la base de datos 'data.db' esté en esa carpeta.`;
-      }
-    } catch (err) {
-      // Capturamos el error real de acceso (EPERM, EACCES, ENOENT, etc)
-      specificError = `
-❌ ACCESO DENEGADO o RUTA INVÁLIDA
-La aplicación no tiene permiso para leer la carpeta o no la encuentra.
-
-Error Sistema: ${err.message}
-Código Error: ${err.code}
-
-NOTA IMPORTANTE: 
-Si ejecutas la app como Administrador, es posible que pierdas acceso 
-a las unidades de red del usuario normal. Intenta ejecutarla sin permisos de admin.`;
-    }
-
-    const driveInfo = CONFIG.networkDrive 
-      ? `Unidad mapeada: ${CONFIG.networkDrive}`
-      : `Servidor: ${CONFIG.serverIP}`;
-    
-    const checkPath = CONFIG.networkDrive
-      ? CONFIG.networkDrive
-      : `\\\\${CONFIG.serverIP}`;
-    
-    const fullFolderPath = CONFIG.networkDrive 
-      ? path.join(CONFIG.networkDrive, CONFIG.networkFolder)
-      : `\\\\${CONFIG.serverIP}\\${CONFIG.networkFolder.replace(/\//g, '\\')}`;
-
-    const errorMsg = `
-❌ ERROR DE CONEXIÓN A RED
-
-No se puede acceder a la base de datos del servidor.
-
-Ruta intentada: ${dbPath}
-
-DIAGNÓSTICO:
-${specificError}
-
-CONFIGURACIÓN:
-${driveInfo}
-Carpeta Red: ${CONFIG.networkFolder}
-
-POSIBLES CAUSAS:
-1. La PC servidor está apagada o no accesible en ${CONFIG.serverIP}
-2. La carpeta "${CONFIG.networkFolder}" no existe o no está compartida
-3. No tienes permisos de acceso a la ruta especificada
-4. El archivo data.db no ha sido creado todavía en el servidor
-
-SOLUCIÓN:
-1. Verifica que puedes abrir esta ruta en el Explorador:
-   ${fullFolderPath}
-
-2. Si usas unidad mapeada (${CONFIG.networkDrive}), verifica que está conectada.
-    `.trim();
-    
-    console.error(errorMsg);
-    
-    // Mostrar diálogo de error al usuario
-    dialog.showErrorBox('Error de Conexión a Red', errorMsg);
-    
-    app.quit();
-    process.exit(1);
-  }
-  
-  console.log('✅ Archivo de base de datos encontrado');
-}
-
-console.log('📁 Ruta final de base de datos:', dbPath);
-
-// Configuración de SQLite optimizada
-// Solo el servidor crea la base de datos, los clientes deben encontrarla existente
-const dbOptions = {
-  timeout: 30000, // 30 segundos de timeout (aumentado para red)
 };
 
-// Solo en modo network, requerir que el archivo exista
-if (CONFIG.modo === 'network' && app.isPackaged) {
-  dbOptions.fileMustExist = true;
-}
-
-const db = new Database(dbPath, dbOptions);
-
-// Configuraciones según el modo
-if (app.isPackaged) {
-  // En producción, SIEMPRE usar DELETE mode para compatibilidad de red
-  console.log('⚙️ Configurando SQLite para PRODUCCIÓN (modo compatible con red)');
-  db.pragma('journal_mode = DELETE');
-  db.pragma('synchronous = FULL');
-  db.pragma('locking_mode = NORMAL'); // Permitir múltiples conexiones
-  db.pragma('busy_timeout = 30000'); // 30 segundos esperando si está bloqueada
-} else {
-  // En desarrollo, usar WAL (mejor rendimiento)
-  console.log('⚙️ Configurando SQLite para DESARROLLO');
-  db.pragma('journal_mode = WAL');
-  db.pragma('synchronous = NORMAL');
-  db.pragma('busy_timeout = 5000');
-}
-
-db.pragma('cache_size = -64000');
-db.pragma('temp_store = MEMORY');
-db.pragma('foreign_keys = ON');
-
-db.exec(`
+const pgSchema = `
   CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT NOT NULL UNIQUE,
-    password TEXT NOT NULL,
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
     active INTEGER NOT NULL DEFAULT 1
   );
 
-  CREATE TABLE IF NOT EXISTS permissions  (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
+  CREATE TABLE IF NOT EXISTS permissions (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
     description TEXT,
     active INTEGER NOT NULL DEFAULT 1
   );
 
   CREATE TABLE IF NOT EXISTS user_permissions (
-    user_id INTEGER NOT NULL,
-    permission_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    permission_id INTEGER NOT NULL REFERENCES permissions(id),
     active INTEGER NOT NULL DEFAULT 1,
-    PRIMARY KEY (user_id, permission_id),
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (permission_id) REFERENCES permissions(id)
+    PRIMARY KEY (user_id, permission_id)
   );
 
   CREATE TABLE IF NOT EXISTS clients (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    phone TEXT NOT NULL,
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    phone VARCHAR(50) NOT NULL,
     address TEXT,
     description TEXT,
-    color TEXT,
+    color VARCHAR(50),
     active INTEGER NOT NULL DEFAULT 1
   );
 
   CREATE TABLE IF NOT EXISTS products (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    serial_number TEXT UNIQUE,
-    price REAL NOT NULL,
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    serial_number VARCHAR(255) UNIQUE,
+    price DECIMAL(10,2) NOT NULL,
+    promo_price DECIMAL(10,2),
+    discount_price DECIMAL(10,2),
     description TEXT,
     active INTEGER NOT NULL DEFAULT 1
   );
 
+  ALTER TABLE products ADD COLUMN IF NOT EXISTS promo_price DECIMAL(10,2);
+  ALTER TABLE products ADD COLUMN IF NOT EXISTS discount_price DECIMAL(10,2);
+  ALTER TABLE products ADD COLUMN IF NOT EXISTS images TEXT;
+
   CREATE TABLE IF NOT EXISTS product_templates (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    product_id INTEGER NOT NULL,
-    final_price REAL NOT NULL,
-    width REAL,
-    height REAL,
+    id SERIAL PRIMARY KEY,
+    product_id INTEGER NOT NULL REFERENCES products(id),
+    final_price DECIMAL(10,2) NOT NULL,
+    promo_price DECIMAL(10,2),
+    discount_price DECIMAL(10,2),
+    width DECIMAL(10,2),
+    height DECIMAL(10,2),
     colors TEXT,
     position TEXT,
     texts TEXT,
     description TEXT,
-    created_by INTEGER,
-    active INTEGER NOT NULL DEFAULT 1,
-    FOREIGN KEY (product_id) REFERENCES products(id),
-    FOREIGN KEY (created_by) REFERENCES users(id)
+    created_by INTEGER REFERENCES users(id),
+    active INTEGER NOT NULL DEFAULT 1
+  );
+
+  ALTER TABLE product_templates ADD COLUMN IF NOT EXISTS promo_price DECIMAL(10,2);
+  ALTER TABLE product_templates ADD COLUMN IF NOT EXISTS discount_price DECIMAL(10,2);
+
+  CREATE TABLE IF NOT EXISTS budgets (
+    id SERIAL PRIMARY KEY,
+    client_id INTEGER NOT NULL REFERENCES clients(id),
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    edited_by INTEGER REFERENCES users(id),
+    date TIMESTAMP NOT NULL,
+    total DECIMAL(10,2) DEFAULT 0,
+    converted_to_order INTEGER NOT NULL DEFAULT 0,
+    converted_to_order_id INTEGER,
+    active INTEGER NOT NULL DEFAULT 1
   );
 
   CREATE TABLE IF NOT EXISTS orders (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    client_id INTEGER NOT NULL,
-    user_id INTEGER NOT NULL,
-    edited_by INTEGER,
+    id SERIAL PRIMARY KEY,
+    client_id INTEGER NOT NULL REFERENCES clients(id),
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    edited_by INTEGER REFERENCES users(id),
     date TIMESTAMP NOT NULL,
     estimated_delivery_date TIMESTAMP,
-    status TEXT NOT NULL DEFAULT 'pendiente', 
-    total REAL DEFAULT 0,
+    status VARCHAR(50) NOT NULL DEFAULT 'Revision', 
+    total DECIMAL(10,2) DEFAULT 0,
     notes TEXT,
     description TEXT,
-    responsable TEXT,
-    created_from_budget_id INTEGER,
-    active INTEGER NOT NULL DEFAULT 1,
-    FOREIGN KEY (client_id) REFERENCES clients(id),
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (edited_by) REFERENCES users(id),
-    FOREIGN KEY (created_from_budget_id) REFERENCES budgets(id)
+    responsable VARCHAR(255),
+    created_from_budget_id INTEGER REFERENCES budgets(id),
+    active INTEGER NOT NULL DEFAULT 1
   );
 
+  ALTER TABLE budgets DROP CONSTRAINT IF EXISTS fk_converted_to_order_id;
+  ALTER TABLE budgets ADD CONSTRAINT fk_converted_to_order_id FOREIGN KEY (converted_to_order_id) REFERENCES orders(id);
+
   CREATE TABLE IF NOT EXISTS order_products (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_id INTEGER NOT NULL,
-    product_id INTEGER,
-    template_id INTEGER,
-    quantity INTEGER NOT NULL,
-    unit_price REAL NOT NULL,
-    total_price REAL NOT NULL,
-    FOREIGN KEY (order_id) REFERENCES orders(id),
-    FOREIGN KEY (product_id) REFERENCES products(id),
-    FOREIGN KEY (template_id) REFERENCES product_templates(id)
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER NOT NULL REFERENCES orders(id),
+    product_id INTEGER REFERENCES products(id),
+    template_id INTEGER REFERENCES product_templates(id),
+    quantity DECIMAL(10,4) NOT NULL,
+    unit_price DECIMAL(10,2) NOT NULL,
+    total_price DECIMAL(10,2) NOT NULL,
     CHECK (product_id IS NOT NULL OR template_id IS NOT NULL)
   );
 
-  CREATE TABLE IF NOT EXISTS budgets (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    client_id INTEGER NOT NULL,
-    user_id INTEGER NOT NULL,
-    edited_by INTEGER,
-    date TIMESTAMP NOT NULL,
-    total REAL DEFAULT 0,
-    converted_to_order INTEGER NOT NULL DEFAULT 0,
-    converted_to_order_id INTEGER,
-    active INTEGER NOT NULL DEFAULT 1,
-    FOREIGN KEY (client_id) REFERENCES clients(id),
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (edited_by) REFERENCES users(id),
-    FOREIGN KEY (converted_to_order_id) REFERENCES orders(id)
-  );
-
   CREATE TABLE IF NOT EXISTS budget_products (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    budget_id INTEGER NOT NULL,
-    product_id INTEGER,
-    template_id INTEGER,
-    quantity INTEGER NOT NULL,
-    unit_price REAL NOT NULL,
-    total_price REAL NOT NULL,
-    FOREIGN KEY (budget_id) REFERENCES budgets(id),
-    FOREIGN KEY (product_id) REFERENCES products(id),
-    FOREIGN KEY (template_id) REFERENCES product_templates(id)
+    id SERIAL PRIMARY KEY,
+    budget_id INTEGER NOT NULL REFERENCES budgets(id),
+    product_id INTEGER REFERENCES products(id),
+    template_id INTEGER REFERENCES product_templates(id),
+    quantity DECIMAL(10,4) NOT NULL,
+    unit_price DECIMAL(10,2) NOT NULL,
+    total_price DECIMAL(10,2) NOT NULL,
     CHECK (product_id IS NOT NULL OR template_id IS NOT NULL)
   );
 
   CREATE TABLE IF NOT EXISTS payments (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_id INTEGER NOT NULL,
-    amount REAL NOT NULL,
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER REFERENCES orders(id),
+    amount DECIMAL(10,2) NOT NULL,
     date TIMESTAMP,
     descripcion TEXT,
-    FOREIGN KEY (order_id) REFERENCES orders(id)
+    info TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS simple_orders (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    date TIMESTAMP NOT NULL,
+    concept TEXT NOT NULL,
+    client_name VARCHAR(255),
+    total DECIMAL(10,2) DEFAULT 0,
+    active INTEGER NOT NULL DEFAULT 1
+  );
+
+  CREATE TABLE IF NOT EXISTS simple_order_payments (
+    id SERIAL PRIMARY KEY,
+    simple_order_id INTEGER NOT NULL REFERENCES simple_orders(id),
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    amount DECIMAL(10,2) NOT NULL,
+    date TIMESTAMP NOT NULL,
+    descripcion TEXT
   );
 
   CREATE INDEX IF NOT EXISTS idx_products_active ON products(active);
   CREATE INDEX IF NOT EXISTS idx_orders_client_id ON orders(client_id);
   CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
-  CREATE INDEX IF NOT EXISTS idx_budgets_client_id ON budgets(client_id);
   CREATE INDEX IF NOT EXISTS idx_budgets_active ON budgets(active);
-`);
+`;
 
-// ==========================================================
-// Migraciones de esquema (para instalaciones existentes)
-// ==========================================================
-try {
-  const existingOrderColumns = db.prepare('PRAGMA table_info(orders)').all();
-  const hasDescription = existingOrderColumns.some(c => c.name === 'description');
-  if (!hasDescription) {
-    console.log('🛠 Migración: agregando columna description a orders');
-    db.exec('ALTER TABLE orders ADD COLUMN description TEXT');
-    console.log('✅ Columna description agregada correctamente');
+async function initDb() {
+  let client;
+  try {
+    client = await pool.connect();
+    await client.query(pgSchema);
+
+    await runMigrations(db, client);
+
+    console.log("✅ Base de datos PG Inicializada");
+  } catch (e) {
+    console.error("❌ Error inicializando Postgres DB:", e);
+  } finally {
+    if (client) client.release();
   }
-} catch (migrationError) {
-  console.error('❌ Error aplicando migración de orders.description:', migrationError);
 }
 
-// Configurar el autoincremento de orders para empezar desde 14550
-// Solo se ejecuta si no hay órdenes existentes o si el último ID es menor a 14550
-const checkOrderCount = db.prepare('SELECT COUNT(*) as count, MAX(id) as maxId FROM orders').get();
-if (checkOrderCount.count === 0 || (checkOrderCount.maxId && checkOrderCount.maxId < 14549)) {
-  console.log('⚙️ Configurando autoincremento de órdenes para empezar desde 14550');
-  db.exec(`UPDATE sqlite_sequence SET seq = 14549 WHERE name = 'orders'`);
-  
-  // Si no existe entrada en sqlite_sequence para orders, la creamos
-  const sequenceExists = db.prepare('SELECT name FROM sqlite_sequence WHERE name = ?').get('orders');
-  if (!sequenceExists) {
-    db.exec(`INSERT INTO sqlite_sequence (name, seq) VALUES ('orders', 14549)`);
-  }
-  
-  console.log('✅ Próxima orden será ID: 14550');
-}
-
-// ============================================
-// MIGRACIÓN: ESTADÍSTICAS
-// ============================================
-try {
-  let statPermId;
-  const existingStatPerm = db.prepare("SELECT id FROM permissions WHERE name = 'Estadisticas'").get();
-  
-  if (!existingStatPerm) {
-    console.log('🛠 Migración: agregando permiso Estadisticas');
-    const result = db.prepare("INSERT INTO permissions (name, description, active) VALUES ('Estadisticas', 'Permite visualizar las estadisticas de ventas', 1)").run();
-    statPermId = result.lastInsertRowid;
-    console.log('✅ Permiso Estadisticas creado con éxito.');
-  } else {
-    statPermId = existingStatPerm.id;
-  }
-
-  if (statPermId) {
-    const existingUserPerm = db.prepare("SELECT * FROM user_permissions WHERE user_id = 1 AND permission_id = ?").get(statPermId);
-    if (!existingUserPerm) {
-      db.prepare("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (1, ?, 1)").run(statPermId);
-      console.log(`✅ Permiso Estadisticas (${statPermId}) asignado al usuario 1`);
-    }
-  }
-
-  // ============================================
-  // MIGRACIÓN: EDITAR PRESUPUESTOS
-  // ============================================
-  const existingEditBudgetPerm = db.prepare("SELECT id FROM permissions WHERE name = 'Editar Presupuestos'").get();
-  let editBudgetPermId;
-
-  if (!existingEditBudgetPerm) {
-    console.log('🛠 Migración: agregando permiso Editar Presupuestos');
-    const result = db.prepare("INSERT INTO permissions (name, description, active) VALUES ('Editar Presupuestos', 'Permite editar los presupuestos registrados', 1)").run();
-    editBudgetPermId = result.lastInsertRowid;
-    console.log('✅ Permiso Editar Presupuestos creado con éxito.');
-  } else {
-    editBudgetPermId = existingEditBudgetPerm.id;
-  }
-
-  if (editBudgetPermId) {
-    const existingUserEditBudgetPerm = db.prepare("SELECT * FROM user_permissions WHERE user_id = 1 AND permission_id = ?").get(editBudgetPermId);
-    if (!existingUserEditBudgetPerm) {
-      db.prepare("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (1, ?, 1)").run(editBudgetPermId);
-      console.log(`✅ Permiso Editar Presupuestos (${editBudgetPermId}) asignado al usuario 1`);
-    }
-  }
-
-  // ============================================
-  // MIGRACIÓN: ESTADOS DE ORDEN
-  // ============================================
-  const pendingOrders = db.prepare("SELECT COUNT(*) as count FROM orders WHERE status = 'pendiente'").get();
-  if (pendingOrders.count > 0) {
-    console.log(`🛠 Migración: Actualizando ${pendingOrders.count} órdenes de 'pendiente' a 'Revision'`);
-    db.prepare("UPDATE orders SET status = 'Revision' WHERE status = 'pendiente'").run();
-  }
-
-  const inProgressOrders = db.prepare("SELECT COUNT(*) as count FROM orders WHERE status = 'en proceso'").get();
-  if (inProgressOrders.count > 0) {
-    console.log(`🛠 Migración: Actualizando ${inProgressOrders.count} órdenes de 'en proceso' a 'Produccion'`);
-    db.prepare("UPDATE orders SET status = 'Produccion' WHERE status = 'en proceso'").run();
-  }
-
-  const completedOrders = db.prepare("SELECT COUNT(*) as count FROM orders WHERE status = 'completado'").get();
-  if (completedOrders.count > 0) {
-    console.log(`🛠 Migración: Actualizando ${completedOrders.count} órdenes de 'completado' a 'Completado'`);
-    db.prepare("UPDATE orders SET status = 'Completado' WHERE status = 'completado'").run();
-  }
-
-  const cancelledOrders = db.prepare("SELECT COUNT(*) as count FROM orders WHERE status = 'cancelado'").get();
-  if (cancelledOrders.count > 0) {
-    console.log(`🛠 Migración: Actualizando ${cancelledOrders.count} órdenes de 'cancelado' a 'Cancelado'`);
-    db.prepare("UPDATE orders SET status = 'Cancelado' WHERE status = 'cancelado'").run();
-  }
-
-  // ============================================
-  // MIGRACION: RESPONSABLE DE LA ORDEN
-  // ============================================
-  const orderColumns = db.prepare('PRAGMA table_info(orders)').all();
-  const hasResponsable = orderColumns.some(c => c.name === 'responsable');
-  
-  if (!hasResponsable) {
-    console.log('🛠 Migración: agregando columna responsable a orders');
-    db.exec('ALTER TABLE orders ADD COLUMN responsable TEXT');
-    console.log('✅ Columna responsable agregada correctamente');
-  }
-
-} catch (error) {
-  console.error('❌ Error en migraciones:', error);
-}
+initDb();
 
 module.exports = db;

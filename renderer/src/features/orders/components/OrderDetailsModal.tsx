@@ -12,6 +12,7 @@ import {
   Info,
   Layers,
   Loader,
+  MessageCircle,
   Package,
   Phone,
   Printer,
@@ -31,12 +32,8 @@ import { PaymentsApiService } from '../../payments/PaymentsApiService';
 import { PaymentsList } from '../../payments/components';
 import type { Payment } from '../../payments/types';
 import { usePermissions } from '@/hooks/use-permissions';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
+import { formatDateMX, isoToDateInputMX, startOfDayUTC } from '@/utils/dateUtils';
+import { useWhatsAppOrder } from '../hooks/useWhatsAppOrder';
 
 interface OrderDetailsModalProps {
   isOpen: boolean;
@@ -69,6 +66,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   });
   const { user } = useAuth();
   const { checkPermission } = usePermissions();
+  const { isSendingWhatsApp, sendWhatsApp, WhatsAppDialog } = useWhatsAppOrder();
 
   // Cargar datos de la orden al abrir el modal
   useEffect(() => {
@@ -79,27 +77,27 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
   const loadOrderDetails = async () => {
     if (!orderId) return;
-    
+
     try {
       setLoading(true);
       setError(null);
-      
+
       // Cargar orden, productos y pagos en paralelo
       const [orderData, productsData, paymentsData] = await Promise.all([
         OrdersApiService.findById(orderId),
         OrdersApiService.getOrderProducts(orderId),
         PaymentsApiService.findByOrderId(orderId)
       ]);
-      
+
       setOrder(orderData);
       setOrderProducts(productsData);
       setPayments(paymentsData);
-      
+
       // Inicializar datos del formulario de edición
       setEditFormData({
         status: orderData.status,
         responsable: orderData.responsable || '',
-        estimated_delivery_date: orderData.estimated_delivery_date || '',
+        estimated_delivery_date: orderData.estimated_delivery_date ? isoToDateInputMX(orderData.estimated_delivery_date) : '',
         notes: orderData.notes || '',
         description: orderData.description || ''
       });
@@ -129,7 +127,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
   const loadPayments = async () => {
     if (!orderId) return;
-    
+
     try {
       const paymentsData = await PaymentsApiService.findByOrderId(orderId);
       setPayments(paymentsData);
@@ -144,27 +142,27 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       toast.error('Error: No se puede actualizar la orden');
       return;
     }
-    
+
     try {
       setLoading(true);
-      
+
       const updateData = {
         status: editFormData.status as any,
         responsable: editFormData.responsable as any,
-        estimated_delivery_date: editFormData.estimated_delivery_date || undefined,
+        estimated_delivery_date: editFormData.estimated_delivery_date ? startOfDayUTC(editFormData.estimated_delivery_date) : undefined,
         notes: editFormData.notes || undefined,
         description: editFormData.description || undefined,
         edited_by: user.id // ← SIEMPRE pasar el ID del usuario loggeado
       };
-      
+
       const updatedOrder = await OrdersApiService.update(order.id, updateData);
       setOrder(updatedOrder);
       setIsEditing(false);
-      
+
       if (onOrderUpdated) {
         onOrderUpdated(updatedOrder);
       }
-      
+
       toast.success('Orden actualizada exitosamente');
     } catch (err) {
       console.error('Error updating order:', err);
@@ -178,11 +176,11 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
   const handleCancelEdit = () => {
     if (!order) return;
-    
+
     setEditFormData({
       status: order.status,
       responsable: order.responsable || '',
-      estimated_delivery_date: order.estimated_delivery_date || '',
+      estimated_delivery_date: order.estimated_delivery_date ? isoToDateInputMX(order.estimated_delivery_date) : '',
       notes: order.notes || '',
       description: order.description || ''
     });
@@ -191,21 +189,11 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   };
 
   const formatDate = (dateString: string) => {
-    let date = dayjs(dateString);
-    // Si la hora es exactamente medianoche en UTC, sumar un día
-    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
-      date = date.add(1, 'day');
-    }
-  return date.tz('America/Mexico_City').format('D MMM YYYY h:mm A');
+    return formatDateMX(dateString, 'D MMM YYYY h:mm A');
   };
 
   const formatDateOnly = (dateString: string) => {
-    let date = dayjs(dateString);
-    // Si la hora es exactamente medianoche en UTC, sumar un día
-    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
-      date = date.add(1, 'day');
-    }
-    return date.tz('America/Mexico_City').format('D MMM YYYY');
+    return formatDateMX(dateString, 'D MMM YYYY');
   };
 
 
@@ -317,7 +305,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 flex items-center justify-center z-50"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
     >
@@ -337,7 +325,16 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">            
+          <div className="flex items-center gap-3">
+            <Button
+              size="sm"
+              onClick={() => order && sendWhatsApp(order, orderProducts, payments)}
+              disabled={isSendingWhatsApp || !order}
+              className="flex items-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] text-white border-0"
+            >
+              <MessageCircle size={16} />
+              {isSendingWhatsApp ? 'Preparando...' : 'Enviar por WhatsApp'}
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -391,8 +388,8 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
           {error && !order && (
             <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-red-800">{error}</p>
-              <Button 
-                onClick={loadOrderDetails} 
+              <Button
+                onClick={loadOrderDetails}
                 className="mt-3"
                 size="sm"
               >
@@ -482,7 +479,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                         ) : (
                           <div className="mt-1 flex items-center gap-2 text-sm text-gray-600">
                             <CalendarDays className="h-4 w-4" />
-                            {order.estimated_delivery_date 
+                            {order.estimated_delivery_date
                               ? formatDateOnly(order.estimated_delivery_date)
                               : 'No definida'
                             }
@@ -544,22 +541,22 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                         {order.notes || (
                           <span className="text-gray-400 italic">Sin notas adicionales</span>
                         )}
-                        
+
                         {/* Indicador de precios preferenciales en notas */}
                         {!isEditing && orderProducts.some(product => {
-                             const type = getOrderItemType(product);
-                             const originalPrice = type === 'product' 
-                               ? product.product_price 
-                               : product.template_final_price;
-                             
-                             return originalPrice !== undefined && originalPrice !== null &&
-                               Math.abs(Number(product.unit_price) - Number(originalPrice)) > 0.01;
+                          const type = getOrderItemType(product);
+                          const originalPrice = type === 'product'
+                            ? product.product_price
+                            : product.template_final_price;
+
+                          return originalPrice !== undefined && originalPrice !== null &&
+                            Math.abs(Number(product.unit_price) - Number(originalPrice)) > 0.01;
                         }) && (
-                           <div className="mt-3 flex items-start gap-2 text-amber-700 bg-amber-50 p-2 rounded border border-amber-100">
-                             <Tag size={16} className="mt-0.5 flex-shrink-0" />
-                             <span className="font-medium">Esta orden incluye precios preferenciales.</span>
-                           </div>
-                        )}
+                            <div className="mt-3 flex items-start gap-2 text-amber-700 bg-amber-50 p-2 rounded border border-amber-100">
+                              <Tag size={16} className="mt-0.5 shrink-0" />
+                              <span className="font-medium">Esta orden incluye precios preferenciales.</span>
+                            </div>
+                          )}
                       </div>
                     )}
                   </div>
@@ -639,61 +636,60 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                       {orderProducts.map((product, index) => (
                         <div key={product.id} className="border border-gray-200 rounded-lg p-4">
                           {(() => {
-                             const type = getOrderItemType(product);
-                             const originalPrice = type === 'product' 
-                               ? product.product_price 
-                               : product.template_final_price;
-                             
-                             const isPriceModified = originalPrice !== undefined && originalPrice !== null &&
-                               Math.abs(Number(product.unit_price) - Number(originalPrice)) > 0.01;
+                            const type = getOrderItemType(product);
+                            const originalPrice = type === 'product'
+                              ? product.product_price
+                              : product.template_final_price;
 
-                             return (
-                               <div className="flex justify-between items-start mb-3">
-                                 <div className="flex items-center gap-3">
-                                   <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-sm font-medium text-gray-600">
-                                     {index + 1}
-                                   </div>
-                                   <div>
-                                     <div className="flex items-center gap-2">
-                                       <h4 className="font-medium text-gray-900">
-                                         {getOrderItemDisplayName(product)}
-                                       </h4>
-                                       <span className={`px-2 py-1 text-xs rounded ${
-                                         type === 'product' 
-                                           ? 'bg-blue-100 text-blue-800' 
-                                           : 'bg-purple-100 text-purple-800'
-                                       }`}>
-                                         {type === 'product' ? (
-                                           <><Package className="h-3 w-3 inline mr-1" />Producto</>
-                                         ) : (
-                                           <><Layers className="h-3 w-3 inline mr-1" />Plantilla</>
-                                         )}
-                                       </span>
-                                       {isPriceModified && (
-                                          <span className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-amber-100 text-amber-800" title={`Precio original: $${Number(originalPrice).toFixed(2)}`}>
-                                            <Tag className="h-3 w-3 inline" />
-                                            Precio preferencial
-                                          </span>
-                                       )}
-                                     </div>
-                                     {product.serial_number && (
-                                       <p className="text-xs text-gray-500">SN: {product.serial_number}</p>
-                                     )}
-                                     {product.product_description && (
-                                       <p className="text-sm text-gray-600 mt-1">{product.product_description}</p>
-                                     )}
-                                   </div>
-                                 </div>
-                                 <div className="text-right">
-                                   <div className="text-lg font-semibold text-green-600">
-                                     ${product.total_price.toFixed(2)}
-                                   </div>
-                                   <div className="text-sm text-gray-500">
-                                     ${product.unit_price.toFixed(2)} × {product.quantity}
-                                   </div>
-                                 </div>
-                               </div>
-                             );
+                            const isPriceModified = originalPrice !== undefined && originalPrice !== null &&
+                              Math.abs(Number(product.unit_price) - Number(originalPrice)) > 0.01;
+
+                            return (
+                              <div className="flex justify-between items-start mb-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-sm font-medium text-gray-600">
+                                    {index + 1}
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <h4 className="font-medium text-gray-900">
+                                        {getOrderItemDisplayName(product)}
+                                      </h4>
+                                      <span className={`px-2 py-1 text-xs rounded ${type === 'product'
+                                          ? 'bg-blue-100 text-blue-800'
+                                          : 'bg-purple-100 text-purple-800'
+                                        }`}>
+                                        {type === 'product' ? (
+                                          <><Package className="h-3 w-3 inline mr-1" />Producto</>
+                                        ) : (
+                                          <><Layers className="h-3 w-3 inline mr-1" />Plantilla</>
+                                        )}
+                                      </span>
+                                      {isPriceModified && (
+                                        <span className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-amber-100 text-amber-800" title={`Precio original: $${Number(originalPrice).toFixed(2)}`}>
+                                          <Tag className="h-3 w-3 inline" />
+                                          Precio preferencial
+                                        </span>
+                                      )}
+                                    </div>
+                                    {product.serial_number && (
+                                      <p className="text-xs text-gray-500">SN: {product.serial_number}</p>
+                                    )}
+                                    {product.product_description && (
+                                      <p className="text-sm text-gray-600 mt-1">{product.product_description}</p>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-lg font-semibold text-green-600">
+                                    ${product.total_price.toFixed(2)}
+                                  </div>
+                                  <div className="text-sm text-gray-500">
+                                    ${product.unit_price.toFixed(2)} × {product.quantity}
+                                  </div>
+                                </div>
+                              </div>
+                            );
                           })()}
 
                           {/* Información adicional para plantillas */}
@@ -800,7 +796,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
           </div>
         )}
       </div>
-      
+
       {/* Modal de Previsualización de Impresión */}
       <PrintPreviewModal
         isOpen={showPrintPreview}
@@ -809,6 +805,8 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         productsData={orderProducts}
         paymentsData={payments}
       />
+
+      {WhatsAppDialog && <WhatsAppDialog />}
     </div>
   );
 };

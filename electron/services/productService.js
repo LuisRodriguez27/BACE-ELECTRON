@@ -1,10 +1,11 @@
 const productRepository = require('../repositories/productRepository');
+const SimilarProductNames = require('../domain/similarProductNames');
 
 class ProductService {
 
   async getAllProducts() {
     try {
-      const products = productRepository.findAll();
+      const products = await productRepository.findAll();
       return products.map(product => product.toPlainObject());
     } catch (error) {
       console.error('Error al obtener productos:', error);
@@ -18,7 +19,7 @@ class ProductService {
         throw new Error('ID de producto inválido');
       }
 
-      const product = productRepository.findById(parseInt(id));
+      const product = await productRepository.findById(parseInt(id));
 
       if (!product) {
         throw new Error('Producto no encontrado');
@@ -31,7 +32,7 @@ class ProductService {
     }
   }
 
-  async createProduct({ name, serial_number, price, description }) {
+  async createProduct({ name, serial_number, price, promo_price, discount_price, description, images }) {
     try {
       // Validaciones de negocio
       if (!name) {
@@ -55,17 +56,20 @@ class ProductService {
       // Validar número de serie si se proporciona
       if (serial_number && serial_number.trim() !== '') {
         // Verificar si el número de serie ya existe
-        if (productRepository.existsBySerialNumber(serial_number.trim())) {
+        if (await productRepository.existsBySerialNumber(serial_number.trim())) {
           throw new Error('Ya existe un producto con este número de serie');
         }
       }
 
       // Crear producto
-      const product = productRepository.create({
+      const product = await productRepository.create({
         name: name.trim(),
         serial_number: serial_number?.trim() || null,
         price: numericPrice,
-        description: description?.trim() || null
+        promo_price: promo_price !== undefined && promo_price !== null && promo_price !== '' ? parseFloat(promo_price) : null,
+        discount_price: discount_price !== undefined && discount_price !== null && discount_price !== '' ? parseFloat(discount_price) : null,
+        description: description?.trim() || null,
+        images: Array.isArray(images) ? images : []
       });
 
       return product.toPlainObject();
@@ -76,7 +80,7 @@ class ProductService {
     }
   }
 
-  async updateProduct(id, { name, serial_number, price, description }) {
+  async updateProduct(id, { name, serial_number, price, promo_price, discount_price, description, images }) {
     try {
       if (!id || isNaN(id)) {
         throw new Error('ID de producto inválido');
@@ -93,7 +97,7 @@ class ProductService {
       const productId = parseInt(id);
 
       // Verificar si el producto existe
-      const existingProduct = productRepository.findById(productId);
+      const existingProduct = await productRepository.findById(productId);
       if (!existingProduct) {
         throw new Error('Producto no encontrado');
       }
@@ -111,17 +115,20 @@ class ProductService {
       // Validar número de serie si se proporciona
       if (serial_number && serial_number.trim() !== '') {
         // Verificar si el número de serie ya está en uso por otro producto
-        if (productRepository.existsBySerialNumber(serial_number.trim(), productId)) {
+        if (await productRepository.existsBySerialNumber(serial_number.trim(), productId)) {
           throw new Error('Ya existe otro producto con este número de serie');
         }
       }
 
       // Actualizar producto
-      const updated = productRepository.update(productId, {
+      const updated = await productRepository.update(productId, {
         name: name.trim(),
         serial_number: serial_number?.trim() || null,
         price: numericPrice,
-        description: description?.trim() || null
+        promo_price: promo_price !== undefined && promo_price !== null && promo_price !== '' ? parseFloat(promo_price) : null,
+        discount_price: discount_price !== undefined && discount_price !== null && discount_price !== '' ? parseFloat(discount_price) : null,
+        description: description?.trim() || null,
+        images: Array.isArray(images) ? images : []
       });
 
       if (!updated) {
@@ -129,22 +136,22 @@ class ProductService {
       }
 
       // Obtener producto actualizado
-      const updatedProduct = productRepository.findById(productId);
-      
+      const updatedProduct = await productRepository.findById(productId);
+
       if (!updatedProduct) {
         throw new Error('Error: no se pudo recuperar el producto actualizado');
       }
-      
+
       const result = updatedProduct.toPlainObject();
-      
+
       // Validar que el resultado tenga las propiedades necesarias
       if (!result.id || !result.name) {
         console.error('Producto actualizado inválido:', result);
         throw new Error('Datos del producto actualizado inválidos');
       }
-      
+
       return result;
-      
+
     } catch (error) {
       console.error('Error al actualizar producto:', error);
       throw error;
@@ -160,26 +167,12 @@ class ProductService {
       const productId = parseInt(id);
 
       // Verificar si el producto existe
-      const existingProduct = productRepository.findById(productId);
+      const existingProduct = await productRepository.findById(productId);
       if (!existingProduct) {
         throw new Error('Producto no encontrado');
       }
 
-      // Lógica de negocio: verificar si el producto tiene plantillas activas
-      // TODO: Implementar verificación de plantillas cuando esté listo el service de templates
-      // const hasActiveTemplates = await templateService.hasActiveTemplatesByProductId(productId);
-      // if (hasActiveTemplates) {
-      //   throw new Error('No se puede eliminar un producto con plantillas activas');
-      // }
-
-      // Lógica de negocio: verificar si el producto está en órdenes activas
-      // TODO: Implementar verificación de órdenes cuando esté listo el service de orders
-      // const hasActiveOrders = await orderService.hasActiveOrdersByProductId(productId);
-      // if (hasActiveOrders) {
-      //   throw new Error('No se puede eliminar un producto que está en órdenes activas');
-      // }
-
-      const deleted = productRepository.delete(productId);
+      const deleted = await productRepository.delete(productId);
 
       if (!deleted) {
         throw new Error('Error al eliminar producto');
@@ -198,7 +191,7 @@ class ProductService {
         return this.getAllProducts();
       }
 
-      const products = productRepository.searchByTerm(searchTerm.trim());
+      const products = await productRepository.searchByTerm(searchTerm.trim());
       return products.map(product => product.toPlainObject());
     } catch (error) {
       console.error('Error al buscar productos:', error);
@@ -208,7 +201,7 @@ class ProductService {
 
   async getProductsCount() {
     try {
-      return productRepository.countActiveProducts();
+      return await productRepository.countActiveProducts();
     } catch (error) {
       console.error('Error al contar productos:', error);
       throw new Error('Error al contar productos');
@@ -221,8 +214,8 @@ class ProductService {
         throw new Error('ID de producto inválido');
       }
 
-      const productWithTemplates = productRepository.findWithTemplates(parseInt(productId));
-      
+      const productWithTemplates = await productRepository.findWithTemplates(parseInt(productId));
+
       if (!productWithTemplates) {
         throw new Error('Producto no encontrado');
       }
@@ -236,7 +229,7 @@ class ProductService {
 
   async getAllProductsWithTemplates() {
     try {
-      return productRepository.findAllWithTemplates();
+      return await productRepository.findAllWithTemplates();
     } catch (error) {
       console.error('Error al obtener productos con plantillas:', error);
       throw new Error('Error al obtener productos con plantillas');
@@ -257,7 +250,7 @@ class ProductService {
         throw new Error('El precio mínimo no puede ser mayor al precio máximo');
       }
 
-      const products = productRepository.findByPriceRange(minPrice, maxPrice);
+      const products = await productRepository.findByPriceRange(minPrice, maxPrice);
       return products.map(product => product.toPlainObject());
     } catch (error) {
       console.error('Error al obtener productos por rango de precio:', error);
@@ -271,11 +264,61 @@ class ProductService {
         limit = 10;
       }
 
-      const products = productRepository.findMostUsed(limit);
+      const products = await productRepository.findMostUsed(limit);
       return products.map(product => product.toPlainObject());
     } catch (error) {
       console.error('Error al obtener productos más utilizados:', error);
       throw new Error('Error al obtener productos más utilizados');
+    }
+  }
+  async getProductsWithSimilarNames() {
+    try {
+      const products = await productRepository.findAll();
+      const plainProducts = products.map(product => product.toPlainObject());
+
+      const wordGroups = {};
+
+      const sanitizeWord = (word) => {
+        return word.toLowerCase()
+          .replace(/[.,:;()\-]/g, '')
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // remove accents
+      };
+
+      const ignoredWords = ['de', 'la', 'el', 'los', 'las', 'un', 'una', 'y', 'o', 'en', 'para', 'con', 'por', 'a', 'al', 'del', 'sin', 'sus', 'tu', 'su'];
+
+      plainProducts.forEach(product => {
+        if (!product.name) return;
+        const words = product.name.split(/\s+/);
+        // Usar Set para no contar una palabra repetida dentro del mismo producto
+        const uniqueWords = new Set(words.map(sanitizeWord).filter(w => w.length > 2 && !ignoredWords.includes(w)));
+
+        uniqueWords.forEach(word => {
+          if (!wordGroups[word]) {
+            wordGroups[word] = [];
+          }
+          wordGroups[word].push({ id: product.id, name: product.name, serial_number: product.serial_number });
+        });
+      });
+
+      const result = [];
+      Object.keys(wordGroups).forEach(word => {
+        if (wordGroups[word].length > 1) { // más de un producto comparte esta palabra
+          const similarObj = new SimilarProductNames({
+            word,
+            count: wordGroups[word].length,
+            products: wordGroups[word]
+          });
+          result.push(similarObj);
+        }
+      });
+
+      // Ordenar mayor frecuencia primero
+      result.sort((a, b) => b.count - a.count);
+
+      return result.map(item => item.toPlainObject());
+    } catch (error) {
+      console.error('Error al obtener nombres similares:', error);
+      throw new Error('Error al obtener nombres similares');
     }
   }
 }

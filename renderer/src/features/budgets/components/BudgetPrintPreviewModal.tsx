@@ -3,14 +3,12 @@ import { Button } from '@/components/ui';
 import { X, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import cotizacionImage from '@/assets/COTIZACION.jpg';
-import specialPriceImage from '@/assets/special-price.png';
 import { getBudgetItemDescription, getBudgetItemDisplayName, getBudgetItemType, type Budget } from '../types';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
+import { formatDateMX } from '@/utils/dateUtils';
+import ClientColorIndicator from '../../clients/components/ClientColorIndicator';
+import type { ClientColor } from '../../clients/types';
 
-dayjs.extend(utc);
-dayjs.extend(timezone);
+
 
 interface BudgetPrintPreviewModalProps {
   isOpen: boolean;
@@ -29,16 +27,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
 
   // Función para formatear fecha como DD/MM/YYYY
   const formatDate = (dateString: string) => {
-    let date = dayjs(dateString);
-
-    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
-      date = date.add(1, 'day');
-    }
-
-    const day = date.date().toString().padStart(2, '0');
-    const month = (date.month() + 1).toString().padStart(2, '0');
-    const year = date.year().toString();
-    return `${day}/${month}/${year}`;
+    return formatDateMX(dateString, 'DD/MM/YYYY');
   };
 
   const hasPreferentialPrice = budgetData.budgetProducts?.some(product => {
@@ -76,10 +65,6 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
       // Obtener la imagen en base64
       const base64Image = await imageToBase64(cotizacionImage);
 
-      let base64SpecialPrice = '';
-      if (hasPreferentialPrice) {
-        base64SpecialPrice = await imageToBase64(specialPriceImage);
-      }
 
       // Generar HTML con el mismo diseño del preview visual
       const printHTML = `
@@ -161,7 +146,9 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
     <div class="print-container">
         ${hasPreferentialPrice ? `
         <!-- Sello de precio especial -->
-        <img src="${base64SpecialPrice}" style="position: absolute; bottom: 3.75rem; right: 1.25rem; width: 5.5rem; opacity: 0.8; transform: rotate(-12deg); z-index: 10;" alt="Precio Especial" />
+        <div style="position: absolute; bottom: 4rem; right: 1.25rem; width: 5.5rem; background-color: rgb(220, 38, 38); color: white; font-weight: bold; font-size: 0.5rem; text-align: center; padding: 0.35rem 0.25rem; box-sizing: border-box; z-index: 10; line-height: 1.2;">
+          USTED HA ADQUIRIDO UN PRECIO ESPECIAL
+        </div>
         ` : ''}
 
         <!-- Imagen de fondo como elemento IMG en lugar de background-image -->
@@ -177,7 +164,13 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
       <!-- Use fixed column widths to avoid shifting when name is short -->
       <div style="display: grid; grid-template-columns: 17rem 8rem 1rem; column-gap: 5.5rem; align-items: center;">
         <!-- Cliente -->
-        <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(1em - 2px);">
+        <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(1em - 2px); display: flex; align-items: center; gap: 0.5rem;">
+          ${budgetData.client?.color ?
+          `<div style="width: 1rem; height: 1rem; border-radius: 9999px; background-color: ${budgetData.client.color === 'green' ? '#22c55e' :
+            budgetData.client.color === 'yellow' ? '#eab308' :
+              budgetData.client.color === 'red' ? '#ef4444' : 'transparent'
+          }; flex-shrink: 0;"></div>`
+          : ''}
           ${budgetData.client?.name || 'Cliente no especificado'}
         </div>
 
@@ -212,7 +205,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
                         </div>
                         <div>
                           ${getBudgetItemDescription(item) ?
-          `<div style="font-size: 0.875rem; color: rgb(55, 65, 81); margin-top: -0.2rem; line-height: 1.25;">
+              `<div style="font-size: 0.875rem; color: rgb(55, 65, 81); margin-top: -0.2rem; line-height: 1.25;">
                               ${getBudgetItemDescription(item)}
                             </div>` : ''}
                         </div>
@@ -269,7 +262,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-[60]"
+    <div className="fixed inset-0 flex items-center justify-center z-60"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}>
       <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full mx-4 max-h-[95vh] overflow-hidden">
         {/* Header */}
@@ -319,12 +312,12 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
               }}
             >
               {hasPreferentialPrice && (
-                <img
-                  src={specialPriceImage}
-                  alt="Precio Especial"
-                  className="absolute bottom-15 right-5 w-22 opacity-80 -rotate-12 select-none"
-                  style={{ zIndex: 10 }}
-                />
+                <div
+                  className="absolute bottom-16 right-5 w-22 bg-red-600 text-white font-bold text-center p-1.5 select-none"
+                  style={{ zIndex: 10, fontSize: '0.55rem', lineHeight: '1.2' }}
+                >
+                  USTED HA ADQUIRIDO UN PRECIO ESPECIAL
+                </div>
               )}
 
               <div className='absolute top-13 right-28 text-2xl font-bold text-red-600'>
@@ -336,8 +329,11 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
                 {/* fixed columns to prevent shifting */}
                 <div style={{ display: 'grid', gridTemplateColumns: '17rem 8rem 1rem', columnGap: '5rem', alignItems: 'center' }}>
                   {/* Cliente */}
-                  <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', fontSize: 'calc(1em - 2px)' }}>
-                    {budgetData.client?.name || 'Cliente no especificado'}
+                  <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', fontSize: 'calc(1em - 2px)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    {budgetData.client?.color && (
+                      <ClientColorIndicator color={budgetData.client.color as ClientColor} size="md" />
+                    )}
+                    <span>{budgetData.client?.name || 'Cliente no especificado'}</span>
                   </div>
 
                   {/* Numero de telefono */}
@@ -388,7 +384,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
               </div>
 
               {/* Total */}
-              <div className="absolute bottom-5 right-15 min-w-[8rem] flex flex-col items-center justify-center text-red-600 font-bold border-2 border-red-600 bg-white/50 px-2 py-1">
+              <div className="absolute bottom-5 right-15 min-w-32 flex flex-col items-center justify-center text-red-600 font-bold border-2 border-red-600 bg-white/50 px-2 py-1">
                 <div className="text-sm leading-tight">TOTAL</div>
                 <div className="text-xl leading-none">
                   ${budgetData.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

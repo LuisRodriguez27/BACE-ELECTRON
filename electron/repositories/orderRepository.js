@@ -3,11 +3,11 @@ const Order = require('../domain/order');
 
 class OrderRepository {
 
-  findAll() {
+  async findAll() {
     const stmt = db.prepare(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
             o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.responsable, o.active,
-            c.name as client_name, c.phone as client_phone,
+            c.name as client_name, c.phone as client_phone, c.color as client_color,
             u.username as user_username,
             ue.username as edited_by_username
       FROM orders o
@@ -18,19 +18,19 @@ class OrderRepository {
       ORDER BY o.id DESC
     `);
     
-    const orders = stmt.all();
-    return orders.map(order => {
+    const orders = await stmt.all();
+    return await Promise.all(orders.map(async order => {
       // Cargar productos para cada orden
-      const orderProducts = this.getOrderProducts(order.id);
+      const orderProducts = await this.getOrderProducts(order.id);
       return new Order({ ...order, orderProducts });
-    });
+    }));
   }
 
-  findById(id) {
-    const orderData = db.prepare(`
+  async findById(id) {
+    const orderData = await db.prepare(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
             o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.responsable, o.active,
-            c.name as client_name, c.phone as client_phone,
+            c.name as client_name, c.phone as client_phone, c.color as client_color,
             u.username as user_username,
             ue.username as edited_by_username
       FROM orders o
@@ -42,16 +42,16 @@ class OrderRepository {
 
     if (!orderData) return null;
 
-    const orderProducts = this.getOrderProducts(id);
+    const orderProducts = await this.getOrderProducts(id);
 
     return new Order({ ...orderData, orderProducts });
   }
 
-  findByClientId(clientId) {
+  async findByClientId(clientId) {
     const stmt = db.prepare(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
             o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.active,
-            c.name as client_name, c.phone as client_phone,
+            c.name as client_name, c.phone as client_phone, c.color as client_color,
             u.username as user_username,
             ue.username as edited_by_username
       FROM orders o
@@ -62,19 +62,19 @@ class OrderRepository {
       ORDER BY o.id DESC
     `);
 
-    const orders = stmt.all(clientId);
-    return orders.map(order => {
+    const orders = await stmt.all(clientId);
+    return await Promise.all(orders.map(async order => {
       // Cargar productos para cada orden
-      const orderProducts = this.getOrderProducts(order.id);
+      const orderProducts = await this.getOrderProducts(order.id);
       return new Order({ ...order, orderProducts });
-    });
+    }));
   }
 
-  findPendingForLogbook() {
+  async findPendingForLogbook() {
     const stmt = db.prepare(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
             o.estimated_delivery_date, o.status, o.responsable, o.total, o.notes, o.description, o.active,
-            c.name as client_name, c.phone as client_phone,
+            c.name as client_name, c.phone as client_phone, c.color as client_color,
             u.username as user_username,
             ue.username as edited_by_username
       FROM orders o
@@ -85,19 +85,19 @@ class OrderRepository {
       ORDER BY o.id ASC
     `);
     
-    const orders = stmt.all();
-    return orders.map(order => {
+    const orders = await stmt.all();
+    return await Promise.all(orders.map(async order => {
       // Cargar productos para cada orden
-      const orderProducts = this.getOrderProducts(order.id);
+      const orderProducts = await this.getOrderProducts(order.id);
       return new Order({ ...order, orderProducts });
-    });
+    }));
   }
 
-  findCompleted() {
+  async findCompleted() {
     const stmt = db.prepare(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
             o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.active,
-            c.name as client_name, c.phone as client_phone,
+            c.name as client_name, c.phone as client_phone, c.color as client_color,
             u.username as user_username,
             ue.username as edited_by_username
       FROM orders o
@@ -108,15 +108,15 @@ class OrderRepository {
       ORDER BY o.id DESC
     `);
     
-    const orders = stmt.all();
-    return orders.map(order => {
+    const orders = await stmt.all();
+    return await Promise.all(orders.map(async order => {
       // Cargar productos para cada orden
-      const orderProducts = this.getOrderProducts(order.id);
+      const orderProducts = await this.getOrderProducts(order.id);
       return new Order({ ...order, orderProducts });
-    });
+    }));
   }
 
-  findCompletedPaginated(page = 1, limit = 10, searchTerm = '') {
+  async findCompletedPaginated(page = 1, limit = 10, searchTerm = '') {
     const offset = (page - 1) * limit;
     
     // Construir la condición de búsqueda
@@ -127,11 +127,11 @@ class OrderRepository {
       const term = `%${searchTerm.trim()}%`;
       searchCondition = `
         AND (
-          CAST(o.id AS TEXT) LIKE ?
-          OR o.notes LIKE ?
-          OR o.description LIKE ?
-          OR c.name LIKE ?
-          OR c.phone LIKE ?
+          CAST(o.id AS TEXT) ILIKE ?
+          OR o.notes ILIKE ?
+          OR o.description ILIKE ?
+          OR c.name ILIKE ?
+          OR c.phone ILIKE ?
           OR EXISTS (
             SELECT 1 FROM order_products op
             LEFT JOIN products p ON op.product_id = p.id
@@ -139,10 +139,10 @@ class OrderRepository {
             LEFT JOIN products pt_p ON pt.product_id = pt_p.id
             WHERE op.order_id = o.id
             AND (
-              p.name LIKE ? 
-              OR p.description LIKE ?
-              OR pt.description LIKE ?
-              OR pt_p.name LIKE ?
+              p.name ILIKE ? 
+              OR p.description ILIKE ?
+              OR pt.description ILIKE ?
+              OR pt_p.name ILIKE ?
             )
           )
         )
@@ -158,13 +158,13 @@ class OrderRepository {
       WHERE o.active = 1 AND o.status = 'Completado' ${searchCondition}
     `;
     const countStmt = db.prepare(countQuery);
-    const { total } = countStmt.get(...searchParams);
+    const { total } = await countStmt.get(...searchParams);
     
     // Obtener registros paginados con búsqueda
     const dataQuery = `
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
             o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.responsable, o.active,
-            c.name as client_name, c.phone as client_phone,
+            c.name as client_name, c.phone as client_phone, c.color as client_color,
             u.username as user_username,
             ue.username as edited_by_username
       FROM orders o
@@ -176,12 +176,12 @@ class OrderRepository {
       LIMIT ? OFFSET ?
     `;
     const stmt = db.prepare(dataQuery);
-    const orders = stmt.all(...searchParams, limit, offset);
+    const orders = await stmt.all(...searchParams, limit, offset);
     
-    const ordersWithProducts = orders.map(order => {
-      const orderProducts = this.getOrderProducts(order.id);
+    const ordersWithProducts = await Promise.all(orders.map(async order => {
+      const orderProducts = await this.getOrderProducts(order.id);
       return new Order({ ...order, orderProducts });
-    });
+    }));
     
     return {
       data: ordersWithProducts,
@@ -202,24 +202,24 @@ class OrderRepository {
    * La orden NUNCA se crea vacía, siempre debe tener al menos un producto o plantilla
    * Una vez creada, los productos/plantillas no se pueden editar
    */
-  create(orderData) {
+  async create(orderData) {
     // Validar que se proporcionen productos o plantillas
     if (!orderData.items || !Array.isArray(orderData.items) || orderData.items.length === 0) {
       throw new Error('Una orden debe tener al menos un producto o plantilla');
     }
 
     // Validar que cada item tenga los datos necesarios
-    this.validateOrderItems(orderData.items);
+    await this.validateOrderItems(orderData.items);
 
     // Iniciar transacción para garantizar consistencia
-    const transaction = db.transaction(() => {
+    const transaction = db.transaction(async () => {
       // Crear la orden
       const orderStmt = db.prepare(`
         INSERT INTO orders (client_id, user_id, date, estimated_delivery_date, status, responsable, total, notes, description)
         VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)
       `);
       
-      const orderResult = orderStmt.run(
+      const orderResult = await orderStmt.run(
         orderData.client_id,
         orderData.user_id,
         orderData.date,
@@ -233,22 +233,22 @@ class OrderRepository {
       const orderId = orderResult.lastInsertRowid;
 
       // Agregar productos/plantillas a la orden
-      this.addItemsToOrder(orderId, orderData.items);
+      await this.addItemsToOrder(orderId, orderData.items);
 
       // Recalcular y actualizar el total
-      this.recalculateTotal(orderId);
+      await this.recalculateTotal(orderId);
 
       return orderId;
     });
 
-    const orderId = transaction();
-    return this.findById(orderId);
+    const orderId = await transaction();
+    return await this.findById(orderId);
   }
 
   /**
    * Validar que los items de la orden tengan la estructura correcta
    */
-  validateOrderItems(items) {
+  async validateOrderItems(items) {
     for (const item of items) {
       // Verificar que tenga product_id O template_id (no ambos, no ninguno)
       const hasProduct = item.product_id !== null && item.product_id !== undefined;
@@ -277,7 +277,7 @@ class OrderRepository {
    * Agregar items (productos/plantillas) a una orden
    * Solo se usa durante la creación inicial
    */
-  addItemsToOrder(orderId, items) {
+  async addItemsToOrder(orderId, items) {
     const stmt = db.prepare(`
       INSERT INTO order_products (order_id, product_id, template_id, quantity, unit_price, total_price)
       VALUES (?, ?, ?, ?, ?, ?)
@@ -290,15 +290,15 @@ class OrderRepository {
       const unitPrice = parseFloat(item.unit_price);
       const totalPrice = quantity * unitPrice;
 
-      stmt.run(orderId, productId, templateId, quantity, unitPrice, totalPrice);
+      await stmt.run(orderId, productId, templateId, quantity, unitPrice, totalPrice);
     }
   }
 
   /**
    * Actualizar una orden
    */
-  update(id, orderData) {
-    const existingOrder = this.findById(id);
+  async update(id, orderData) {
+    const existingOrder = await this.findById(id);
     if (!existingOrder) {
       throw new Error('La orden no existe');
     }
@@ -329,27 +329,27 @@ class OrderRepository {
         WHERE id = ? AND active = 1
       `);
       
-      stmt.run(...values, id);
+      await stmt.run(...values, id);
     }
 
     if (orderData.items && Array.isArray(orderData.items)) {
-      this.validateOrderItems(orderData.items);
-      db.prepare('DELETE FROM order_products WHERE order_id = ?').run(id);
-      this.addItemsToOrder(id, orderData.items);
-      this.recalculateTotal(id);
+      await this.validateOrderItems(orderData.items);
+      await db.prepare('DELETE FROM order_products WHERE order_id = ?').run(id);
+      await this.addItemsToOrder(id, orderData.items);
+      await this.recalculateTotal(id);
     }
 
-    return this.findById(id);
+    return await this.findById(id);
   }
 
-  delete(id) {
+  async delete(id) {
     const stmt = db.prepare('UPDATE orders SET active = 0 WHERE id = ?');
-    const result = stmt.run(id);
+    const result = await stmt.run(id);
     
     return result.changes > 0;
   }
 
-  getOrderProducts(orderId) {
+  async getOrderProducts(orderId) {
     const stmt = db.prepare(`
       SELECT 
         op.*,
@@ -378,14 +378,14 @@ class OrderRepository {
       ORDER BY op.id
     `);
 
-    return stmt.all(orderId);
+    return await stmt.all(orderId);
   }
 
   /**
    * Recalcular el total de una orden basándose en sus productos
    */
-  recalculateTotal(orderId) {
-    const totalQuery = db.prepare(`
+  async recalculateTotal(orderId) {
+    const totalQuery = await db.prepare(`
       SELECT SUM(total_price) as total
       FROM order_products
       WHERE order_id = ?
@@ -393,7 +393,7 @@ class OrderRepository {
 
     const newTotal = totalQuery.total || 0;
 
-    db.prepare(`
+    await db.prepare(`
       UPDATE orders
       SET total = ?
       WHERE id = ?
@@ -405,16 +405,16 @@ class OrderRepository {
   /**
    * Verificar si una orden puede ser editada
    */
-  canEditOrder(orderId) {
-    const order = this.findById(orderId);
+  async canEditOrder(orderId) {
+    const order = await this.findById(orderId);
     return order && order.canEdit();
   }
 
   /**
    * Obtener el resumen de productos/plantillas de una orden
    */
-  getOrderSummary(orderId) {
-    const products = this.getOrderProducts(orderId);
+  async getOrderSummary(orderId) {
+    const products = await this.getOrderProducts(orderId);
     
     return {
       totalItems: products.length,
@@ -429,7 +429,7 @@ class OrderRepository {
    * DEPRECATED: Mantener por compatibilidad pero con error
    * No se debe permitir agregar productos después de crear la orden
    */
-  addProductsToOrder(orderId, products) {
+  async addProductsToOrder(orderId, products) {
     throw new Error('No se pueden agregar productos a una orden existente. Los productos solo se pueden agregar durante la creación inicial.');
   }
 }

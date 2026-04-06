@@ -4,7 +4,7 @@ class ClientService {
 
   async getAllClients() {
     try {
-      const clients = clientRepository.findAll();
+      const clients = await clientRepository.findAll();
       return clients.map(client => client.toPlainObject());
     } catch (error) {
       console.error('Error al obtener clientes:', error);
@@ -18,7 +18,7 @@ class ClientService {
         throw new Error('ID de cliente inválido');
       }
 
-      const client = clientRepository.findById(parseInt(id));
+      const client = await clientRepository.findById(parseInt(id));
       
       if (!client) {
         throw new Error('Cliente no encontrado');
@@ -53,12 +53,12 @@ class ClientService {
       }
 
       // Verificar si el teléfono ya existe
-      if (clientRepository.existsByPhone(phone.trim())) {
+      if (await clientRepository.existsByPhone(phone.trim())) {
         throw new Error('Ya existe un cliente con este teléfono');
       }
 
       // Crear cliente
-      const client = clientRepository.create({
+      const client = await clientRepository.create({
         name: name.trim(),
         phone: phone.trim(),
         address: address?.trim() || null,
@@ -95,7 +95,7 @@ class ClientService {
       const clientId = parseInt(id);
 
       // Verificar si el cliente existe
-      const existingClient = clientRepository.findById(clientId);
+      const existingClient = await clientRepository.findById(clientId);
       if (!existingClient) {
         throw new Error('Cliente no encontrado');
       }
@@ -107,12 +107,12 @@ class ClientService {
       }
 
       // Verificar si el teléfono ya está en uso por otro cliente
-      if (clientRepository.existsByPhone(phone.trim(), clientId)) {
+      if (await clientRepository.existsByPhone(phone.trim(), clientId)) {
         throw new Error('Ya existe otro cliente con este teléfono');
       }
 
       // Actualizar cliente
-      const updated = clientRepository.update(clientId, {
+      const updated = await clientRepository.update(clientId, {
         name: name.trim(),
         phone: phone.trim(),
         address: address?.trim() || null,
@@ -125,7 +125,7 @@ class ClientService {
       }
 
       // Obtener cliente actualizado
-      const updatedClient = clientRepository.findById(clientId);
+      const updatedClient = await clientRepository.findById(clientId);
       
       if (!updatedClient) {
         throw new Error('Error: no se pudo recuperar el cliente actualizado');
@@ -155,12 +155,12 @@ class ClientService {
 
       const clientId = parseInt(id);
 
-      const existingClient = clientRepository.findById(clientId);
+      const existingClient = await clientRepository.findById(clientId);
       if (!existingClient) {
         throw new Error('Cliente no encontrado');
       }
 
-      const deleted = clientRepository.delete(clientId);
+      const deleted = await clientRepository.delete(clientId);
 
       if (!deleted) {
         throw new Error('Error al eliminar cliente');
@@ -178,7 +178,7 @@ class ClientService {
         return this.getAllClients();
       }
 
-      const clients = clientRepository.searchByTerm(searchTerm.trim());
+      const clients = await clientRepository.searchByTerm(searchTerm.trim());
       return clients.map(client => client.toPlainObject());
     } catch (error) {
       console.error('Error al buscar clientes:', error);

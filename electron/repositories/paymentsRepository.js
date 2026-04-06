@@ -2,7 +2,7 @@ const db = require('../db');
 const Payment = require('../domain/payments');
 
 class PaymentsRepository {
-  findAll() {
+  async findAll() {
     const stmt = db.prepare(`
       SELECT 
         p.*,
@@ -15,7 +15,7 @@ class PaymentsRepository {
       ORDER BY p.date DESC
     `);
 
-    const rows = stmt.all();
+    const rows = await stmt.all();
 
     return rows.map(row => new Payment({
       id: row.id,
@@ -23,6 +23,7 @@ class PaymentsRepository {
       amount: row.amount,
       date: row.date,
       descripcion: row.descripcion,
+      info: row.info,
       order: row.o_id
         ? {
             id: row.o_id,
@@ -34,7 +35,7 @@ class PaymentsRepository {
     }));
   }
 
-  findByOrderId(orderId) {
+  async findByOrderId(orderId) {
     const stmt = db.prepare(`
       SELECT 
         p.*,
@@ -48,7 +49,7 @@ class PaymentsRepository {
       ORDER BY p.date DESC
     `);
 
-    const rows = stmt.all(orderId);
+    const rows = await stmt.all(orderId);
 
     return rows.map(row => new Payment({
       id: row.id,
@@ -56,6 +57,7 @@ class PaymentsRepository {
       amount: row.amount,
       date: row.date,
       descripcion: row.descripcion,
+      info: row.info,
       order: row.o_id
         ? {
             id: row.o_id,
@@ -67,7 +69,7 @@ class PaymentsRepository {
     }));
   }
 
-  findById(id) {
+  async findById(id) {
     const stmt = db.prepare(`
       SELECT 
         p.*,
@@ -80,7 +82,7 @@ class PaymentsRepository {
       WHERE p.id = ?
     `);
 
-    const row = stmt.get(id);
+    const row = await stmt.get(id);
 
     if (!row) return null;
 
@@ -90,6 +92,7 @@ class PaymentsRepository {
       amount: row.amount,
       date: row.date,
       descripcion: row.descripcion,
+      info: row.info,
       order: row.o_id
         ? {
             id: row.o_id,
@@ -101,32 +104,32 @@ class PaymentsRepository {
     });
   }
 
-  create({ order_id, amount, date, descripcion }) {
+  async create({ order_id, amount, date, descripcion, info }) {
     const stmt = db.prepare(
-      'INSERT INTO payments (order_id, amount, date, descripcion) VALUES (?, ?, ?, ?)'
+      'INSERT INTO payments (order_id, amount, date, descripcion, info) VALUES (?, ?, ?, ?, ?)'
     );
-    const result = stmt.run(order_id, amount, date, descripcion);
+    const result = await stmt.run(order_id || null, amount, date, descripcion, info || null);
 
-    return this.findById(result.lastInsertRowid);
+    return await this.findById(result.lastInsertRowid);
   }
 
-  update(id, { amount, descripcion }) {
+  async update(id, { amount, descripcion }) {
     const stmt = db.prepare(
       'UPDATE payments SET amount = ?, descripcion = ? WHERE id = ?'
     );
-    const result = stmt.run(amount, descripcion, id);
+    const result = await stmt.run(amount, descripcion, id);
 
     return result.changes > 0;
   }
 
-  delete(id) {
+  async delete(id) {
     const stmt = db.prepare('DELETE FROM payments WHERE id = ?');
-    const result = stmt.run(id);
+    const result = await stmt.run(id);
 
     return result.changes > 0;
   }
 
-  findByClientId(clientId) {
+  async findByClientId(clientId) {
     const stmt = db.prepare(`
       SELECT 
         p.*,
@@ -140,7 +143,7 @@ class PaymentsRepository {
       ORDER BY p.date DESC
     `);
 
-    const rows = stmt.all(clientId);
+    const rows = await stmt.all(clientId);
 
     return rows.map(row => new Payment({
       id: row.id,
@@ -148,6 +151,7 @@ class PaymentsRepository {
       amount: row.amount,
       date: row.date,
       descripcion: row.descripcion,
+      info: row.info,
       order: row.o_id
         ? {
             id: row.o_id,
@@ -159,14 +163,14 @@ class PaymentsRepository {
     }));
   }
 
-  getTotalPaymentsByOrderId(orderId) {
+  async getTotalPaymentsByOrderId(orderId) {
     const stmt = db.prepare(`
       SELECT COALESCE(SUM(amount), 0) as total
       FROM payments 
       WHERE order_id = ?
     `);
 
-    const result = stmt.get(orderId);
+    const result = await stmt.get(orderId);
     return result ? parseFloat(result.total) || 0 : 0;
   }
 }

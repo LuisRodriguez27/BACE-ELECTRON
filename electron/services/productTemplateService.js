@@ -5,7 +5,7 @@ class ProductTemplateService {
 
   async getAllTemplates() {
     try {
-      const templates = productTemplateRepository.findAll();
+      const templates = await productTemplateRepository.findAll();
       return templates.map(template => template.toPlainObject());
     } catch (error) {
       console.error('Error al obtener plantillas:', error);
@@ -19,8 +19,8 @@ class ProductTemplateService {
         throw new Error('ID de plantilla inválido');
       }
 
-      const template = productTemplateRepository.findById(parseInt(id));
-      
+      const template = await productTemplateRepository.findById(parseInt(id));
+
       if (!template) {
         throw new Error('Plantilla no encontrada');
       }
@@ -38,7 +38,7 @@ class ProductTemplateService {
         throw new Error('ID de producto inválido');
       }
 
-      const templates = productTemplateRepository.findByProductId(parseInt(productId));
+      const templates = await productTemplateRepository.findByProductId(parseInt(productId));
       return templates.map(template => template.toPlainObject());
     } catch (error) {
       console.error('Error al obtener plantillas del producto:', error);
@@ -52,7 +52,7 @@ class ProductTemplateService {
         throw new Error('ID de usuario inválido');
       }
 
-      const templates = productTemplateRepository.findByUserId(parseInt(userId));
+      const templates = await productTemplateRepository.findByUserId(parseInt(userId));
       return templates.map(template => template.toPlainObject());
     } catch (error) {
       console.error('Error al obtener plantillas del usuario:', error);
@@ -60,7 +60,7 @@ class ProductTemplateService {
     }
   }
 
-  async createTemplate({ product_id, final_price, width, height, colors, position, texts, description, created_by }) {
+  async createTemplate({ product_id, final_price, promo_price, discount_price, width, height, colors, position, texts, description, created_by }) {
     try {
       // Validaciones de negocio
       if (!product_id || isNaN(product_id)) {
@@ -77,7 +77,7 @@ class ProductTemplateService {
       }
 
       // Verificar que el producto existe
-      const product = productRepository.findById(parseInt(product_id));
+      const product = await productRepository.findById(parseInt(product_id));
       if (!product) {
         throw new Error('El producto especificado no existe');
       }
@@ -103,10 +103,11 @@ class ProductTemplateService {
         processedTexts = texts.trim();
       }
 
-      // Crear plantilla
-      const template = productTemplateRepository.create({
+      const template = await productTemplateRepository.create({
         product_id: parseInt(product_id),
         final_price: numericFinalPrice,
+        promo_price: promo_price !== undefined ? promo_price : null,
+        discount_price: discount_price !== undefined ? discount_price : null,
         width: width ? parseFloat(width) : null,
         height: height ? parseFloat(height) : null,
         colors: processedColors,
@@ -124,7 +125,7 @@ class ProductTemplateService {
     }
   }
 
-  async updateTemplate(id, { product_id, final_price, width, height, colors, position, texts, description }) {
+  async updateTemplate(id, { product_id, final_price, promo_price, discount_price, width, height, colors, position, texts, description }) {
     try {
       if (!id || isNaN(id)) {
         throw new Error('ID de plantilla inválido');
@@ -141,13 +142,13 @@ class ProductTemplateService {
       const templateId = parseInt(id);
 
       // Verificar si la plantilla existe
-      const existingTemplate = productTemplateRepository.findById(templateId);
+      const existingTemplate = await productTemplateRepository.findById(templateId);
       if (!existingTemplate) {
         throw new Error('Plantilla no encontrada');
       }
 
       // Verificar que el producto existe
-      const product = productRepository.findById(parseInt(product_id));
+      const product = await productRepository.findById(parseInt(product_id));
       if (!product) {
         throw new Error('El producto especificado no existe');
       }
@@ -179,9 +180,11 @@ class ProductTemplateService {
       }
 
       // Actualizar plantilla
-      const updated = productTemplateRepository.update(templateId, {
+      const updated = await productTemplateRepository.update(templateId, {
         product_id: parseInt(product_id),
         final_price: numericFinalPrice,
+        promo_price: promo_price !== undefined ? promo_price : null,
+        discount_price: discount_price !== undefined ? discount_price : null,
         width: width ? parseFloat(width) : null,
         height: height ? parseFloat(height) : null,
         colors: processedColors,
@@ -195,22 +198,22 @@ class ProductTemplateService {
       }
 
       // Obtener plantilla actualizada
-      const updatedTemplate = productTemplateRepository.findById(templateId);
-      
+      const updatedTemplate = await productTemplateRepository.findById(templateId);
+
       if (!updatedTemplate) {
         throw new Error('Error: no se pudo recuperar la plantilla actualizada');
       }
-      
+
       const result = updatedTemplate.toPlainObject();
-      
+
       // Validar que el resultado tenga las propiedades necesarias
       if (!result.id || !result.product_id) {
         console.error('Plantilla actualizada inválida:', result);
         throw new Error('Datos de la plantilla actualizada inválidos');
       }
-      
+
       return result;
-      
+
     } catch (error) {
       console.error('Error al actualizar plantilla:', error);
       throw error;
@@ -226,7 +229,7 @@ class ProductTemplateService {
       const templateId = parseInt(id);
 
       // Verificar si la plantilla existe
-      const existingTemplate = productTemplateRepository.findById(templateId);
+      const existingTemplate = await productTemplateRepository.findById(templateId);
       if (!existingTemplate) {
         throw new Error('Plantilla no encontrada');
       }
@@ -238,7 +241,7 @@ class ProductTemplateService {
       //   throw new Error('No se puede eliminar una plantilla que está en órdenes activas');
       // }
 
-      const deleted = productTemplateRepository.delete(templateId);
+      const deleted = await productTemplateRepository.delete(templateId);
 
       if (!deleted) {
         throw new Error('Error al eliminar plantilla');
@@ -257,7 +260,7 @@ class ProductTemplateService {
         return this.getAllTemplates();
       }
 
-      const templates = productTemplateRepository.searchByTerm(searchTerm.trim());
+      const templates = await productTemplateRepository.searchByTerm(searchTerm.trim());
       return templates.map(template => template.toPlainObject());
     } catch (error) {
       console.error('Error al buscar plantillas:', error);

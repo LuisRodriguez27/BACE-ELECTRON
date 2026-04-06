@@ -1,21 +1,18 @@
 const path = require("path");
-const Database = require("better-sqlite3");
 const bcrypt = require("bcryptjs");
 const { log } = require("console");
-require("./db"); // asegura la creación de tablas
+const db = require("./db"); // asegura la creación de tablas
 
 // Configuración
 const saltRounds = 10;
-const dbPath = path.join(__dirname, "../sqlite/data.db");
-const db = new Database(dbPath);
 
-function seed() {
+async function seed() {
   console.log("Inicializando base de datos...");
 
   // -------------------------
   // 1. Limpiar datos (en orden por FK)
   // -------------------------
-  db.exec(`
+  await db.exec(`
     DELETE FROM user_permissions;
     DELETE FROM payments;
     DELETE FROM order_products;
@@ -25,7 +22,6 @@ function seed() {
     DELETE FROM clients;
     DELETE FROM users;
     DELETE FROM permissions;
-    DELETE FROM sqlite_sequence;
   `);
 
   // -------------------------
@@ -36,7 +32,7 @@ function seed() {
     INSERT INTO users (username, password, active)
     VALUES (?, ?, ?)
   `);
-  const adminInfo = insertUser.run("admin", passwordHash, 1);
+  const adminInfo = await insertUser.run("admin", passwordHash, 1);
   const adminId = adminInfo.lastInsertRowid;
 
   const passwordHash2 = bcrypt.hashSync("user123", saltRounds);
@@ -44,7 +40,7 @@ function seed() {
     INSERT INTO users (username, password, active)
     VALUES (?, ?, ?)
   `);
-  const userInfo = insertUser2.run("user", passwordHash2, 1);
+  const userInfo = await insertUser2.run("user", passwordHash2, 1);
   const userId = userInfo.lastInsertRowid;
 
   // -------------------------
@@ -83,32 +79,39 @@ function seed() {
   // Presupuestos
   ["Crear Presupuestos", "Permite registrar nuevos presupuestos", 1],
   ["Eliminar Presupuestos", "Permite eliminar presupuestos", 1],
+  ["Editar Presupuestos", "Permite editar los presupuestos registrados", 1],
 
   // Pagos
+  ["Ver pagos", "Permite ver los pagos registrados", 1],
   ["Registrar Pagos", "Permite registrar pagos en órdenes", 1],
   ["Eliminar Pagos", "Permite eliminar o anular pagos", 1],
+
+  // Estadisticas
+  ["Estadisticas", "Permite visualizar las estadisticas de ventas", 1],
   ];
-  permissions.forEach((perm) => insertPermission.run(...perm));
+  for (const perm of permissions) {
+    await insertPermission.run(...perm);
+  }
 
   // -------------------------
   // 4. Asignar permisos al admin
   // -------------------------
-  const allPermissions = db.prepare(`SELECT id FROM permissions`).all();
+  const allPermissions = await db.prepare(`SELECT id FROM permissions`).all();
   const insertUserPermission = db.prepare(`
     INSERT INTO user_permissions (user_id, permission_id, active)
     VALUES (?, ?, ?)
   `);
-  allPermissions.forEach((perm) => {
-    insertUserPermission.run(adminId, perm.id, 1);
-  });
+  for (const perm of allPermissions) {
+    await insertUserPermission.run(adminId, perm.id, 1);
+  }
 
   // Asignar algunos permisos al usuario normal
-  const userPermissions = db.prepare(`
+  const userPermissions = await db.prepare(`
     SELECT id FROM permissions WHERE name IN (?)
   `).all("Crear Cliente");
-  userPermissions.forEach((perm) => {
-    insertUserPermission.run(userId, perm.id, 1);
-  });
+  for (const perm of userPermissions) {
+    await insertUserPermission.run(userId, perm.id, 1);
+  }
 
   // -------------------------
   // 5. Insertar clientes
@@ -124,7 +127,9 @@ function seed() {
     ["Taller Mecánico López", "951-444-7890", "Blvd. Eduardo Vasconcelos 321", "Letreros y promocionales"],
     ["Eventos Sociales Oaxaca", "951-333-2211", "Calle García Vigil 567", "Banners y lonas para eventos"]
   ];
-  clients.forEach((c) => insertClient.run(...c));
+  for (const c of clients) {
+    await insertClient.run(...c);
+  }
 
   // -------------------------
   // 6. Insertar productos (simplificado al esquema actual)
@@ -153,10 +158,10 @@ function seed() {
   ];
 
   const productIds = {};
-  products.forEach((p) => {
-    const result = insertProduct.run(...p);
+  for (const p of products) {
+    const result = await insertProduct.run(...p);
     productIds[p[1]] = result.lastInsertRowid;
-  });
+  }
 
   // -------------------------
   // 7. Insertar plantillas de productos
@@ -176,10 +181,10 @@ function seed() {
   ];
 
   const templateIds = {};
-  templates.forEach((t, i) => {
-    const result = insertTemplate.run(...t);
+  for (let i = 0; i < templates.length; i++) {
+    const result = await insertTemplate.run(...templates[i]);
     templateIds[`TEMPLATE-${i + 1}`] = result.lastInsertRowid;
-  });
+  }
 
   // -------------------------
   // 8. Insertar órdenes
@@ -189,11 +194,11 @@ function seed() {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
-  const panaderia = db.prepare("SELECT id FROM clients WHERE name = ?").get("Panadería San José").id;
-  const restaurant = db.prepare("SELECT id FROM clients WHERE name = ?").get("Restaurant El Buen Sabor").id;
-  const farmacia = db.prepare("SELECT id FROM clients WHERE name = ?").get("Farmacia Santa María").id;
-  const taller = db.prepare("SELECT id FROM clients WHERE name = ?").get("Taller Mecánico López").id;
-  const eventos = db.prepare("SELECT id FROM clients WHERE name = ?").get("Eventos Sociales Oaxaca").id;
+  const panaderia = (await db.prepare("SELECT id FROM clients WHERE name = ?").get("Panadería San José")).id;
+  const restaurant = (await db.prepare("SELECT id FROM clients WHERE name = ?").get("Restaurant El Buen Sabor")).id;
+  const farmacia = (await db.prepare("SELECT id FROM clients WHERE name = ?").get("Farmacia Santa María")).id;
+  const taller = (await db.prepare("SELECT id FROM clients WHERE name = ?").get("Taller Mecánico López")).id;
+  const eventos = (await db.prepare("SELECT id FROM clients WHERE name = ?").get("Eventos Sociales Oaxaca")).id;
 
   // Función para generar descripción aleatoria
   function generateRandomDescription() {
@@ -220,7 +225,7 @@ function seed() {
     const notes = generateRandomDescription();
     const description = generateRandomDescription();
 
-    const orderId = insertOrder.run(
+    const orderResult = await insertOrder.run(
       clientId,
       adminId,
       adminId,
@@ -229,9 +234,9 @@ function seed() {
       "completado",
       total,
       notes
-    ).lastInsertRowid;
+    );
 
-    orderIds.push(orderId);
+    orderIds.push(orderResult.lastInsertRowid);
   }
 
   // -------------------------
@@ -255,7 +260,7 @@ function seed() {
   ];
 
   // Asignar productos a cada orden
-  orderIds.forEach((orderId, index) => {
+  for (const orderId of orderIds) {
     const numProducts = Math.floor(Math.random() * 3) + 1; // 1-3 productos por orden
     
     for (let j = 0; j < numProducts; j++) {
@@ -263,9 +268,9 @@ function seed() {
       const quantity = Math.floor(Math.random() * 50) + 1; // 1-50 cantidad
       const totalPrice = product.price * quantity;
       
-      insertOrderProduct.run(orderId, product.id, null, quantity, product.price, totalPrice);
+      await insertOrderProduct.run(orderId, product.id, null, quantity, product.price, totalPrice);
     }
-  });
+  }
 
   // -------------------------
   // 10. Insertar pagos
@@ -276,16 +281,16 @@ function seed() {
   `);
 
   // Agregar pagos para algunas órdenes (aproximadamente 70% de las órdenes tendrán pagos)
-  orderIds.forEach((orderId, index) => {
+  for (const orderId of orderIds) {
     if (Math.random() < 0.7) { // 70% de probabilidad de tener pago
       const paymentAmount = Math.floor(Math.random() * 300) + 50; // Entre 50 y 350
       const paymentDate = new Date(Date.now() - Math.floor(Math.random() * 60) * 24 * 60 * 60 * 1000);
       const descriptions = ["Anticipo", "Pago completo", "Pago parcial", "Liquidación"];
       const description = descriptions[Math.floor(Math.random() * descriptions.length)];
       
-      insertPayment.run(orderId, paymentAmount, paymentDate.toISOString(), description);
+      await insertPayment.run(orderId, paymentAmount, paymentDate.toISOString(), description);
     }
-  });
+  }
 
   // -------------------------
   // 12. Insertar 3 presupuestos de ejemplo
@@ -301,18 +306,18 @@ function seed() {
   `);
 
   // Presupuesto 1 - Panadería
-  const budget1 = insertBudget.run(panaderia, adminId, new Date().toISOString(), 195.0);
-  insertBudgetProduct.run(budget1.lastInsertRowid, productIds["LP-001"], 1, 130.0, 130.0);
-  insertBudgetProduct.run(budget1.lastInsertRowid, productIds["TP-001"], 26, 2.5, 65.0);
+  const budget1 = await insertBudget.run(panaderia, adminId, new Date().toISOString(), 195.0);
+  await insertBudgetProduct.run(budget1.lastInsertRowid, productIds["LP-001"], 1, 130.0, 130.0);
+  await insertBudgetProduct.run(budget1.lastInsertRowid, productIds["TP-001"], 26, 2.5, 65.0);
 
   // Presupuesto 2 - Restaurant
-  const budget2 = insertBudget.run(restaurant, adminId, new Date().toISOString(), 320.0);
-  insertBudgetProduct.run(budget2.lastInsertRowid, productIds["MV-001"], 1, 200.0, 200.0);
-  insertBudgetProduct.run(budget2.lastInsertRowid, productIds["VP-001"], 150, 0.8, 120.0);
+  const budget2 = await insertBudget.run(restaurant, adminId, new Date().toISOString(), 320.0);
+  await insertBudgetProduct.run(budget2.lastInsertRowid, productIds["MV-001"], 1, 200.0, 200.0);
+  await insertBudgetProduct.run(budget2.lastInsertRowid, productIds["VP-001"], 150, 0.8, 120.0);
 
   // Presupuesto 3 - Farmacia
-  const budget3 = insertBudget.run(farmacia, adminId, new Date().toISOString(), 240.0);
-  insertBudgetProduct.run(budget3.lastInsertRowid, productIds["RL-001"], 1, 450.0, 450.0);
+  const budget3 = await insertBudget.run(farmacia, adminId, new Date().toISOString(), 240.0);
+  await insertBudgetProduct.run(budget3.lastInsertRowid, productIds["RL-001"], 1, 450.0, 450.0);
 
   console.log("Base de datos inicializada con datos de ejemplo");
   console.log("Usuario admin: admin / admin123");
@@ -320,5 +325,7 @@ function seed() {
   
 }
 
-seed();
-db.close();
+seed().then(() => process.exit(0)).catch((err) => {
+  console.error("Error al poblar BD:", err);
+  process.exit(1);
+});

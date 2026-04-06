@@ -14,12 +14,12 @@ function getISOWeek(date) {
 class StatsService {
   async getSalesStats(params) {
     try {
-      const { period, productId, customStartDate, customEndDate, month, year, dates } = params;
+      const { period, productId, customStartDate, customEndDate, month, year, dates, paymentMethod } = params;
       
       // Handle custom specific dates (multi-select)
       if (period === 'custom' && dates && Array.isArray(dates) && dates.length > 0) {
-          const salesOverTime = statsRepository.getSalesBySpecificDates(dates, productId);
-          const salesByProduct = statsRepository.getSalesByProductForDates(dates);
+          const salesOverTime = await statsRepository.getSalesBySpecificDates(dates, productId, paymentMethod);
+          const salesByProduct = await statsRepository.getSalesByProductForDates(dates, paymentMethod);
           
           const sortedDates = [...dates].sort();
           return {
@@ -31,8 +31,8 @@ class StatsService {
 
       let startDate, endDate;
       const now = new Date();
-      const currentYear = year || now.getFullYear();
-      const currentMonth = month ? month - 1 : now.getMonth(); // 0-indexed
+      const currentYear = year || now.getUTCFullYear();
+      const currentMonth = month ? month - 1 : now.getUTCMonth(); // 0-indexed
       
       // Determine date range based on period
       if (customStartDate && customEndDate) {
@@ -40,18 +40,20 @@ class StatsService {
         endDate = customEndDate;
       } else {
         if (period === 'week') {
-          // Last 7 days
-           const weekAgo = new Date(now);
-           weekAgo.setDate(now.getDate() - 7);
-           startDate = weekAgo.toISOString();
-           endDate = now.toISOString();
+          // Last 7 days, absolute UTC
+           const endUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
+           const startUtc = new Date(endUtc.getTime() - 6 * 24 * 60 * 60 * 1000); // 7 days inclusive: today + 6 previous days = 7 days
+           startUtc.setUTCHours(0, 0, 0, 0);
+           
+           startDate = startUtc.toISOString();
+           endDate = endUtc.toISOString();
         } else if (period === 'month') {
            // Construct manually for the month to avoid timezone shifts
            const mStart = (currentMonth + 1).toString().padStart(2, '0');
            startDate = `${currentYear}-${mStart}-01T00:00:00.000Z`;
            
-           // Calculate last day of month
-           const lastDay = new Date(currentYear, currentMonth + 1, 0).getDate();
+           // Calculate last day of month purely in UTC
+           const lastDay = new Date(Date.UTC(currentYear, currentMonth + 1, 0)).getUTCDate();
            endDate = `${currentYear}-${mStart}-${lastDay}T23:59:59.999Z`;
 
         } else if (period === 'year') {
@@ -68,14 +70,14 @@ class StatsService {
            const mStart = (currentMonth + 1).toString().padStart(2, '0');
            startDate = `${currentYear}-${mStart}-01T00:00:00.000Z`;
            
-           // Calculate last day of month
-           const lastDay = new Date(currentYear, currentMonth + 1, 0).getDate();
+           // Calculate last day of month purely in UTC
+           const lastDay = new Date(Date.UTC(currentYear, currentMonth + 1, 0)).getUTCDate();
            endDate = `${currentYear}-${mStart}-${lastDay}T23:59:59.999Z`;
         }
       }
 
-      const salesOverTime = statsRepository.getSalesByDate(startDate, endDate, productId);
-      const salesByProduct = statsRepository.getSalesByProduct(startDate, endDate);
+      const salesOverTime = await statsRepository.getSalesByDate(startDate, endDate, productId, paymentMethod);
+      const salesByProduct = await statsRepository.getSalesByProduct(startDate, endDate, paymentMethod);
 
       return {
         salesOverTime,
@@ -89,15 +91,15 @@ class StatsService {
   }
 
   async getAvailableYears() {
-    return statsRepository.getAvailableYears();
+    return await statsRepository.getAvailableYears();
   }
 
   async getAvailableWeeks(year) {
     // Get raw dates from repo and calculate weeks using date-fns to match frontend logic
-    const dates = statsRepository.getAvailableWeeks(year);
+    const dates = await statsRepository.getAvailableWeeks(year);
     const weeks = dates.map(dateStr => {
-      // Create date at noon to avoid timezone rolling to previous day
-      const d = new Date(dateStr + 'T12:00:00'); 
+      // Create date at strict UTC to avoid any timezone shifting
+      const d = new Date(dateStr + 'T00:00:00.000Z'); 
       return getISOWeek(d);
     });
     
@@ -108,7 +110,7 @@ class StatsService {
   // Helper to get products list for the filter
   async getProducts() {
      // We can reuse productRepository
-     return productRepository.findAll();
+     return await productRepository.findAll();
   }
 }
 

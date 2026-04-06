@@ -21,7 +21,7 @@ export type ChangePasswordForm = z.infer<typeof changePasswordSchema>;
 export interface User {
   id: number;
   username: string;
-  active: number; // En SQLite es number (0 o 1)
+  active: number;
 }
 
 // Función helper para convertir active number a boolean

@@ -4,6 +4,7 @@ import { DollarSign, FileText, Loader, Trash2, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { PaymentsApiService } from '../PaymentsApiService';
+import { SimpleOrdersApiService } from '../../simple-orders/SimpleOrdersApiService';
 import { editPaymentSchema, type EditPaymentForm, type Payment } from '../types';
 
 interface EditPaymentModalProps {
@@ -15,6 +16,7 @@ interface EditPaymentModalProps {
   onPaymentUpdated: (payment: Payment) => void;
   onPaymentDeleted: (paymentId: number) => void;
   clientName: string;
+  isSimpleOrder?: boolean;
 }
 
 const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
@@ -25,7 +27,8 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
   currentPayments,
   onPaymentUpdated,
   onPaymentDeleted,
-  clientName
+  clientName,
+  isSimpleOrder = false
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,10 +69,19 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
         return;
       }
 
-      const updatedPayment = await PaymentsApiService.update(payment.id, {
-        ...payment,
-        ...validatedData
-      });
+      let updatedPayment: Payment;
+      if (isSimpleOrder) {
+        updatedPayment = await SimpleOrdersApiService.updatePayment(payment.id, {
+          amount: validatedData.amount,
+          date: payment.date,
+          descripcion: validatedData.descripcion
+        }) as any;
+      } else {
+        updatedPayment = await PaymentsApiService.update(payment.id, {
+          ...payment,
+          ...validatedData
+        });
+      }
       
       toast.success('Pago actualizado exitosamente');
       onPaymentUpdated(updatedPayment);
@@ -89,7 +101,11 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
     
     setLoading(true);
     try {
-      await PaymentsApiService.delete(payment.id);
+      if (isSimpleOrder) {
+        await SimpleOrdersApiService.deletePayment(payment.id);
+      } else {
+        await PaymentsApiService.delete(payment.id);
+      }
       toast.success('Pago eliminado exitosamente');
       onPaymentDeleted(payment.id);
       handleClose();

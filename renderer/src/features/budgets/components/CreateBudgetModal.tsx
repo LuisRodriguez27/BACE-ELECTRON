@@ -1,7 +1,5 @@
 import { Button, Input, Label } from '@/components/ui';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
+import { todayDateInputMX, isoToDateInputMX, preserveTimeOrStartOfDay } from '@/utils/dateUtils';
 import type { Client } from '@/features/clients/types';
 import CreateClientModal from '@/features/clients/components/CreateClientModal';
 import CreateTemplateModal from '@/features/products/components/CreateTemplateModal';
@@ -29,8 +27,7 @@ interface CreateBudgetModalProps {
   budgetToEdit?: Budget | null;
 }
 
-dayjs.extend(utc);
-dayjs.extend(timezone);
+
 
 export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
   isOpen,
@@ -56,6 +53,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
   const [clientSearchTerm, setClientSearchTerm] = useState('');
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+  const [originalBudgetDate, setOriginalBudgetDate] = useState<string | null>(null);
   
   // Estado de los items de la orden (productos y plantillas)
   const [budgetItems, setBudgetItems] = useState<BudgetFormItem[]>([]);
@@ -75,7 +73,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
     resolver: zodResolver(createBudgetSchema),
     defaultValues: {
       user_id: currentUserId,
-      date: dayjs().tz('America/Mexico_City').format('YYYY-MM-DD'),
+      date: todayDateInputMX(),
       items: []
     }
   });
@@ -84,7 +82,8 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
   useEffect(() => {
     if (isOpen && budgetToEdit) {
       // Establecer valores del formulario
-      const formattedDate = dayjs(budgetToEdit.date).format('YYYY-MM-DD');
+      const formattedDate = isoToDateInputMX(budgetToEdit.date);
+      setOriginalBudgetDate(budgetToEdit.date);
       
       setValue('client_id', budgetToEdit.client_id);
       setValue('date', formattedDate);
@@ -139,7 +138,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
       // Resetear formulario para nueva creación
       reset({
         user_id: currentUserId,
-        date: dayjs().tz('America/Mexico_City').format('YYYY-MM-DD'),
+        date: todayDateInputMX(),
         items: []
       });
       setSelectedClientId(null);
@@ -503,6 +502,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
       if (budgetToEdit) {
         const updateData: any = {
            ...formData,
+           date: preserveTimeOrStartOfDay(formData.date, originalBudgetDate),
            client_id: selectedClientId,
            // Si estamos editando, usamos edited_by en lugar de user_id
            edited_by: currentUserId
@@ -523,6 +523,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
         // Crear el objeto de presupuesto
         const budgetData: CreateBudgetForm = {
             ...formData,
+            date: preserveTimeOrStartOfDay(formData.date, null),
             client_id: selectedClientId,
             user_id: currentUserId
         };
@@ -553,6 +554,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
     setSelectedProductForTemplate(null);
     setClientSearchTerm('');
     setSelectedClientId(null);
+    setOriginalBudgetDate(null);
     setShowClientDropdown(false);
     setError(null);
     onClose();
@@ -573,40 +575,18 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
     setTemplates(prev => [...prev, newTemplate]);
   };
 
-  // Función para abrir la vista previa de impresión
-  // const handlePrint = () => {
-  //   // Validar que hay un cliente seleccionado
-  //   if (!selectedClientId) {
-  //     toast.error('Debe seleccionar un cliente para imprimir');
-  //     return;
-  //   }
-
-  //   if (budgetItems.length === 0) {
-  //     toast.error('Debe agregar al menos un producto o plantilla para imprimir');
-  //     return;
-  //   }
-
-  //   // Validar que todos los items tienen datos válidos
-  //   const invalidItems = budgetItems.filter(item => !item.id || item.id === 0 || !item.name.trim());
-  //   if (invalidItems.length > 0) {
-  //     toast.error('Todos los productos/plantillas deben estar seleccionados antes de imprimir');
-  //     return;
-  //   }
-
-  //   // Abrir el modal de vista previa
-  //   setShowPrintPreview(true);
-  // };
-
   // Obtener lista filtrada de clientes
   const getFilteredClients = () => {
-    if (!clientSearchTerm.trim()) return clients;
-    
-    const searchLower = clientSearchTerm.toLowerCase();
-    return clients.filter(client => 
-      client.name.toLowerCase().includes(searchLower) ||
-      (client.phone && client.phone.includes(searchLower)) ||
-      (client.id.toString().includes(searchLower))
-    );
+    let result = clients;
+    if (clientSearchTerm.trim()) {
+      const searchLower = clientSearchTerm.toLowerCase();
+      result = clients.filter(client => 
+        client.name.toLowerCase().includes(searchLower) ||
+        (client.phone && client.phone.includes(searchLower)) ||
+        (client.id.toString().includes(searchLower))
+      );
+    }
+    return [...result].sort((a, b) => a.id - b.id);
   };
 
   // Seleccionar un cliente
@@ -616,11 +596,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
     setClientSearchTerm(`${client.name} - ${client.phone}`);
     setShowClientDropdown(false);
   };
-
-
-
-
-
+  
   if (!isOpen) return null;
 
   return (
@@ -748,7 +724,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
                     {showClientDropdown && (
                       <div 
                         id="client-dropdown"
-                        className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto"
+                        className="absolute z-9999 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto"
                       >
                         {getFilteredClients().length > 0 ? (
                           getFilteredClients().map((client) => (
@@ -1053,7 +1029,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
                             {showDropdowns[index] && dropdownPositions[index] && createPortal(
                               <div 
                                 id={`item-dropdown-${index}`}
-                                className="fixed z-[9999] bg-white border border-gray-300 rounded-md shadow-lg overflow-y-auto"
+                                className="fixed z-9999 bg-white border border-gray-300 rounded-md shadow-lg overflow-y-auto"
                                 style={{
                                   top: `${dropdownPositions[index].top}px`,
                                   left: `${dropdownPositions[index].left}px`,
@@ -1286,7 +1262,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
             id: nextBudgetId,
             client_id: selectedClientId || 0,
             user_id: currentUserId,
-            date: (document.getElementById('date') as HTMLInputElement)?.value || new Date().toISOString().split('T')[0],
+            date: (document.getElementById('date') as HTMLInputElement)?.value || todayDateInputMX(),
             total: total,
             client: selectedClientId ? clients.find(c => c.id === selectedClientId) : undefined,
             budgetProducts: budgetItems.map((item, index) => ({

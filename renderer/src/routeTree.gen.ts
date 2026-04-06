@@ -16,7 +16,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as DashboardUsersRouteImport } from './routes/dashboard.users'
 import { Route as DashboardStatsRouteImport } from './routes/dashboard.stats'
+import { Route as DashboardSimpleOrdersRouteImport } from './routes/dashboard.simple-orders'
 import { Route as DashboardProductsRouteImport } from './routes/dashboard.products'
+import { Route as DashboardPaymentsRouteImport } from './routes/dashboard.payments'
 import { Route as DashboardOrdersRouteImport } from './routes/dashboard.orders'
 import { Route as DashboardHistoryRouteImport } from './routes/dashboard.history'
 import { Route as DashboardConfigurationsRouteImport } from './routes/dashboard.configurations'
@@ -85,9 +87,19 @@ const DashboardStatsRoute = DashboardStatsRouteImport.update({
   path: '/stats',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardSimpleOrdersRoute = DashboardSimpleOrdersRouteImport.update({
+  id: '/simple-orders',
+  path: '/simple-orders',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardProductsRoute = DashboardProductsRouteImport.update({
   id: '/products',
   path: '/products',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardPaymentsRoute = DashboardPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardOrdersRoute = DashboardOrdersRouteImport.update({
@@ -130,7 +142,9 @@ export interface FileRoutesByFullPath {
   '/dashboard/configurations': typeof DashboardConfigurationsRoute
   '/dashboard/history': typeof DashboardHistoryRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
+  '/dashboard/payments': typeof DashboardPaymentsRoute
   '/dashboard/products': typeof DashboardProductsRoute
+  '/dashboard/simple-orders': typeof DashboardSimpleOrdersRoute
   '/dashboard/stats': typeof DashboardStatsRoute
   '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -148,7 +162,9 @@ export interface FileRoutesByTo {
   '/dashboard/configurations': typeof DashboardConfigurationsRoute
   '/dashboard/history': typeof DashboardHistoryRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
+  '/dashboard/payments': typeof DashboardPaymentsRoute
   '/dashboard/products': typeof DashboardProductsRoute
+  '/dashboard/simple-orders': typeof DashboardSimpleOrdersRoute
   '/dashboard/stats': typeof DashboardStatsRoute
   '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard': typeof DashboardIndexRoute
@@ -168,7 +184,9 @@ export interface FileRoutesById {
   '/dashboard/configurations': typeof DashboardConfigurationsRoute
   '/dashboard/history': typeof DashboardHistoryRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
+  '/dashboard/payments': typeof DashboardPaymentsRoute
   '/dashboard/products': typeof DashboardProductsRoute
+  '/dashboard/simple-orders': typeof DashboardSimpleOrdersRoute
   '/dashboard/stats': typeof DashboardStatsRoute
   '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -189,7 +207,9 @@ export interface FileRouteTypes {
     | '/dashboard/configurations'
     | '/dashboard/history'
     | '/dashboard/orders'
+    | '/dashboard/payments'
     | '/dashboard/products'
+    | '/dashboard/simple-orders'
     | '/dashboard/stats'
     | '/dashboard/users'
     | '/dashboard/'
@@ -207,7 +227,9 @@ export interface FileRouteTypes {
     | '/dashboard/configurations'
     | '/dashboard/history'
     | '/dashboard/orders'
+    | '/dashboard/payments'
     | '/dashboard/products'
+    | '/dashboard/simple-orders'
     | '/dashboard/stats'
     | '/dashboard/users'
     | '/dashboard'
@@ -226,7 +248,9 @@ export interface FileRouteTypes {
     | '/dashboard/configurations'
     | '/dashboard/history'
     | '/dashboard/orders'
+    | '/dashboard/payments'
     | '/dashboard/products'
+    | '/dashboard/simple-orders'
     | '/dashboard/stats'
     | '/dashboard/users'
     | '/dashboard/'
@@ -322,11 +346,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardStatsRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/simple-orders': {
+      id: '/dashboard/simple-orders'
+      path: '/simple-orders'
+      fullPath: '/dashboard/simple-orders'
+      preLoaderRoute: typeof DashboardSimpleOrdersRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/products': {
       id: '/dashboard/products'
       path: '/products'
       fullPath: '/dashboard/products'
       preLoaderRoute: typeof DashboardProductsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/payments': {
+      id: '/dashboard/payments'
+      path: '/payments'
+      fullPath: '/dashboard/payments'
+      preLoaderRoute: typeof DashboardPaymentsRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/orders': {
@@ -373,7 +411,9 @@ interface DashboardRouteChildren {
   DashboardConfigurationsRoute: typeof DashboardConfigurationsRoute
   DashboardHistoryRoute: typeof DashboardHistoryRoute
   DashboardOrdersRoute: typeof DashboardOrdersRoute
+  DashboardPaymentsRoute: typeof DashboardPaymentsRoute
   DashboardProductsRoute: typeof DashboardProductsRoute
+  DashboardSimpleOrdersRoute: typeof DashboardSimpleOrdersRoute
   DashboardStatsRoute: typeof DashboardStatsRoute
   DashboardUsersRoute: typeof DashboardUsersRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
@@ -385,7 +425,9 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardConfigurationsRoute: DashboardConfigurationsRoute,
   DashboardHistoryRoute: DashboardHistoryRoute,
   DashboardOrdersRoute: DashboardOrdersRoute,
+  DashboardPaymentsRoute: DashboardPaymentsRoute,
   DashboardProductsRoute: DashboardProductsRoute,
+  DashboardSimpleOrdersRoute: DashboardSimpleOrdersRoute,
   DashboardStatsRoute: DashboardStatsRoute,
   DashboardUsersRoute: DashboardUsersRoute,
   DashboardIndexRoute: DashboardIndexRoute,

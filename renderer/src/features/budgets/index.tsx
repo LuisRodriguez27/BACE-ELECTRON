@@ -2,16 +2,17 @@ import { Button } from '@/components/ui/button';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useAuthStore } from '@/store/auth';
-import { ArrowRight, Calendar, DollarSign, FileText, Loader2, Plus, Printer, Search, Trash2, Pencil } from 'lucide-react';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
+import { ArrowRight, Calendar, DollarSign, FileText, Loader2, MessageCircle, Plus, Printer, Search, Trash2, Pencil } from 'lucide-react';
+import { formatDateMX } from '@/utils/dateUtils';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { BudgetApiService } from './BudgetApiService';
 import CreateBudgetModal from './components/CreateBudgetModal';
 import type { Budget } from './types';
 import BudgetPrintPreviewModal from './components/BudgetPrintPreviewModal';
+import ClientColorIndicator from '../clients/components/ClientColorIndicator';
+import type { ClientColor } from '../clients/types';
+import { useWhatsAppBudget } from './hooks/useWhatsAppBudget';
 
 interface PaginationInfo {
   page: number;
@@ -21,9 +22,6 @@ interface PaginationInfo {
   hasNext: boolean;
   hasPrev: boolean;
 }
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
 
 const BudgetsPage: React.FC = () => {
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -53,6 +51,7 @@ const BudgetsPage: React.FC = () => {
   const [selectedBudgetForPrint, setSelectedBudgetForPrint] = useState<Budget | null>(null);
 
   const { user } = useAuthStore();
+  const { isSendingWhatsApp, sendWhatsApp, WhatsAppDialog } = useWhatsAppBudget();
 
   const observerRef = useRef<IntersectionObserver | null>(null);
   const lastBudgetElementRef = useCallback((node: HTMLDivElement) => {
@@ -224,12 +223,7 @@ const BudgetsPage: React.FC = () => {
   };
 
   const formatDate = (dateString: string) => {
-    let date = dayjs(dateString);
-    // Si la hora es exactamente medianoche en UTC, sumar un día
-    if (date.utc().hour() === 0 && date.utc().minute() === 0 && date.utc().second() === 0) {
-      date = date.add(1, 'day');
-    }
-    return date.tz('America/Mexico_City').format('D MMM YYYY');
+    return formatDateMX(dateString, 'D MMM YYYY');
   };
 
   const handlePrint = (budget: Budget) => {
@@ -387,6 +381,15 @@ const BudgetsPage: React.FC = () => {
                             </Button>
                           )}
                           <Button
+                            size="sm"
+                            onClick={() => sendWhatsApp(budget)}
+                            disabled={isSendingWhatsApp}
+                            className="flex items-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] text-white border-0"
+                          >
+                            <MessageCircle size={14} />
+                            WhatsApp
+                          </Button>
+                          <Button
                             variant={"outline"}
                             size="sm"
                             onClick={() => handlePrint(budget)}
@@ -421,9 +424,14 @@ const BudgetsPage: React.FC = () => {
                             <span className="text-sm font-medium text-gray-700">Cliente:</span>
                             <p className="text-xs text-gray-600">ID: {budget.client.id}</p>
                             <p className="text-sm text-gray-600">{budget.client.name}</p>
-                            {budget.client.phone && (
-                              <p className="text-xs text-gray-500">{budget.client.phone}</p>
-                            )}
+                            <div className="flex items-center gap-2 mt-1">
+                              {budget.client.phone && (
+                                <p className="text-xs text-gray-500">{budget.client.phone}</p>
+                              )}
+                              {budget.client.color && (
+                                <ClientColorIndicator color={budget.client.color as ClientColor} size="sm" />
+                              )}
+                            </div>
                           </div>
                         )}
 
@@ -523,6 +531,8 @@ const BudgetsPage: React.FC = () => {
           budgetData={selectedBudgetForPrint}
         />
       )}
+
+      {WhatsAppDialog && <WhatsAppDialog />}
     </div>
   );
 };

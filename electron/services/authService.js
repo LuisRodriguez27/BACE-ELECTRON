@@ -25,7 +25,7 @@ class AuthService {
       }
 
       // Buscar usuario
-      const user = authRepository.findUserByUsername(trimmedUsername);
+      const user = await authRepository.findUserByUsername(trimmedUsername);
       
       if (!user) {
         throw new Error('Usuario no encontrado');
@@ -37,14 +37,14 @@ class AuthService {
       }
 
       // Validar contraseña
-      const isValidPassword = authRepository.validatePassword(password, user.password);
+      const isValidPassword = await authRepository.validatePassword(password, user.password);
       
       if (!isValidPassword) {
         throw new Error('Contraseña incorrecta');
       }
 
       // Crear sesión
-      const session = authRepository.createSession(user);
+      const session = await authRepository.createSession(user);
 
       return {
         success: true,
@@ -64,7 +64,7 @@ class AuthService {
 
   async logout() {
     try {
-      const session = authRepository.destroySession();
+      const session = await authRepository.destroySession();
       
       return {
         success: true,
@@ -82,7 +82,7 @@ class AuthService {
 
   async getCurrentUser() {
     try {
-      const session = authRepository.getCurrentSession();
+      const session = await authRepository.getCurrentSession();
       
       if (!session.isAuthenticated()) {
         return null;
@@ -98,7 +98,7 @@ class AuthService {
 
   async isAuthenticated() {
     try {
-      return authRepository.isSessionActive();
+      return await authRepository.isSessionActive();
     } catch (error) {
       console.error('Error al verificar autenticación:', error);
       return false;
@@ -107,7 +107,7 @@ class AuthService {
 
   async getUserWithPermissions() {
     try {
-      const session = authRepository.getSessionWithPermissions();
+      const session = await authRepository.getSessionWithPermissions();
       
       if (!session) {
         return null;
@@ -131,7 +131,7 @@ class AuthService {
 
   async getSessionInfo() {
     try {
-      const session = authRepository.getCurrentSession();
+      const session = await authRepository.getCurrentSession();
       
       if (!session.isAuthenticated()) {
         return {
@@ -185,7 +185,7 @@ class AuthService {
         return false;
       }
 
-      const session = authRepository.getCurrentSession();
+      const session = await authRepository.getCurrentSession();
       
       if (!session.isAuthenticated()) {
         return false;
@@ -205,7 +205,7 @@ class AuthService {
         return false;
       }
 
-      const session = authRepository.getCurrentSession();
+      const session = await authRepository.getCurrentSession();
       
       if (!session.isAuthenticated()) {
         return false;
@@ -221,7 +221,7 @@ class AuthService {
 
   async canPerformAction(requiredPermission) {
     try {
-      const session = authRepository.getCurrentSession();
+      const session = await authRepository.getCurrentSession();
       
       if (!session.isAuthenticated()) {
         return {

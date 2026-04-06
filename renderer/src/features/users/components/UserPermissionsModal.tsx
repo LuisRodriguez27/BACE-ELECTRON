@@ -21,9 +21,9 @@ interface UserPermissionsModalProps {
   user: UserType | null;
 }
 
-const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({ 
-  isOpen, 
-  onClose, 
+const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
+  isOpen,
+  onClose,
   onPermissionsUpdated,
   user
 }) => {
@@ -47,7 +47,7 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
     try {
       setIsLoading(true);
       setError(null);
-      
+
       // Obtener todos los permisos disponibles
       const allPermissions = await PermissionsApiService.findAll();
       setAvailablePermissions(allPermissions);
@@ -55,7 +55,7 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
       // Obtener permisos del usuario
       const currentUserPermissions = await PermissionsApiService.findByUserId(user.id);
       setUserPermissions(currentUserPermissions);
-      
+
     } catch (err) {
       console.error('Error fetching permissions:', err);
       setError('Error al cargar los permisos');
@@ -84,10 +84,10 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
             user_id: user.id,
             permission_id: permission.id
           });
-          
+
           // Actualizar estado local
           setUserPermissions(prev => [...prev, permission]);
-          
+
           // Notificar al componente padre del usuario actualizado
           onPermissionsUpdated(updatedUser);
         } catch (err: any) {
@@ -124,10 +124,10 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
             user_id: user.id,
             permission_id: permission.id
           });
-          
+
           // Actualizar estado local
           setUserPermissions(prev => prev.filter(p => p.id !== permission.id));
-          
+
           // Notificar al componente padre del usuario actualizado
           onPermissionsUpdated(updatedUser);
         } catch (err: any) {
@@ -148,7 +148,7 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
     if (!user) return;
 
     const hasPermission = userPermissions.some(up => up.id === permission.id);
-    
+
     try {
       setIsUpdatingPermission(permission.id);
       setError(null);
@@ -161,7 +161,7 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
           user_id: user.id,
           permission_id: permission.id
         });
-        
+
         // Actualizar estado local
         setUserPermissions(prev => prev.filter(p => p.id !== permission.id));
       } else {
@@ -170,14 +170,14 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
           user_id: user.id,
           permission_id: permission.id
         });
-        
+
         // Actualizar estado local
         setUserPermissions(prev => [...prev, permission]);
       }
 
       // Notificar al componente padre del usuario actualizado
       onPermissionsUpdated(updatedUser);
-      
+
     } catch (err: any) {
       console.error('Error updating permission:', err);
       setError(err.message || 'Error al actualizar el permiso');
@@ -202,7 +202,7 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
   // Verificar si todos los permisos filtrados están seleccionados
   const allFilteredSelected = () => {
     const userPermissionIds = getUserPermissionIds();
-    return filteredPermissions.every(permission => 
+    return filteredPermissions.every(permission =>
       userPermissionIds.includes(permission.id)
     );
   };
@@ -210,7 +210,7 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
   // Verificar si ningún permiso filtrado está seleccionado
   const noneFilteredSelected = () => {
     const userPermissionIds = getUserPermissionIds();
-    return !filteredPermissions.some(permission => 
+    return !filteredPermissions.some(permission =>
       userPermissionIds.includes(permission.id)
     );
   };
@@ -218,7 +218,7 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
   if (!isOpen || !user) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 flex items-center justify-center z-50"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
     >
@@ -245,16 +245,17 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-hidden">
-          <div className="p-6">
+        {/* Content */}
+        <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+          <div className="flex-1 flex flex-col min-h-0 p-6">
             {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex-shrink-0">
                 <p className="text-sm text-red-800">{error}</p>
               </div>
             )}
 
             {/* Search and Select All */}
-            <div className="space-y-4">
+            <div className="space-y-4 flex-shrink-0">
               {/* Search */}
               <div>
                 <Label htmlFor="search" className="text-sm font-medium text-gray-700">
@@ -321,7 +322,7 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
             </div>
 
             {/* User Info */}
-            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+            <div className="mb-4 mt-4 p-4 bg-gray-50 rounded-lg flex-shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                   <UserIcon className="h-5 w-5 text-blue-600" />
@@ -336,28 +337,27 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
             </div>
 
             {/* Permissions List */}
-            <div className="space-y-2 max-h-96 overflow-y-auto mt-4">
-              <Label className="text-sm font-medium text-gray-700">
+            <div className="space-y-2 overflow-y-auto mt-2 flex-1 min-h-0 pr-1">
+              <Label className="text-sm font-medium text-gray-700 sticky top-0 bg-white pb-2 block z-10">
                 Permisos disponibles
               </Label>
-              
+
               {isLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader className="animate-spin h-6 w-6 text-gray-400" />
                   <span className="ml-2 text-gray-500">Cargando permisos...</span>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2 pb-2">
                   {filteredPermissions.map((permission) => {
                     const hasPermission = getUserPermissionIds().includes(permission.id);
                     const isUpdating = isUpdatingPermission === permission.id;
-                    
+
                     return (
                       <div
                         key={permission.id}
-                        className={`flex items-center space-x-3 p-3 border border-gray-200 rounded-lg transition-colors ${
-                          isUpdating ? 'bg-blue-50' : 'hover:bg-gray-50'
-                        } ${isSelectingAll ? 'opacity-60' : ''}`}
+                        className={`flex items-center space-x-3 p-3 border border-gray-200 rounded-lg transition-colors ${isUpdating ? 'bg-blue-50' : 'hover:bg-gray-50'
+                          } ${isSelectingAll ? 'opacity-60' : ''}`}
                       >
                         <Checkbox
                           id={`permission-${permission.id}`}
@@ -387,7 +387,7 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
                       </div>
                     );
                   })}
-                  
+
                   {filteredPermissions.length === 0 && (
                     <div className="text-center py-8 text-gray-500">
                       <Shield className="h-8 w-8 mx-auto mb-2 text-gray-400" />

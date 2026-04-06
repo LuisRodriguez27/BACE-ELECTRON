@@ -1,23 +1,27 @@
 class ProductTemplate {
-  constructor({ 
-    id, 
-    product_id, 
-    final_price, 
-    width, 
-    height, 
-    colors, 
-    position, 
-    texts, 
-    description, 
-    created_by, 
+  constructor({
+    id,
+    product_id,
+    final_price,
+    promo_price,
+    discount_price,
+    width,
+    height,
+    colors,
+    position,
+    texts,
+    description,
+    created_by,
     active = 1,
     product_name,
     serial_number,
-    created_by_username 
+    created_by_username
   }) {
     this.id = id;
     this.product_id = product_id;
     this.final_price = parseFloat(final_price) || 0;
+    this.promo_price = promo_price !== null && promo_price !== undefined ? parseFloat(promo_price) : null;
+    this.discount_price = discount_price !== null && discount_price !== undefined ? parseFloat(discount_price) : null;
     this.width = width ? parseFloat(width) : null;
     this.height = height ? parseFloat(height) : null;
     this.colors = colors || null;
@@ -26,7 +30,7 @@ class ProductTemplate {
     this.description = description || null;
     this.created_by = created_by || null;
     this.active = active;
-    
+
     // Información adicional del producto y usuario
     this.product_name = product_name || null;
     this.serial_number = serial_number || null;
@@ -101,10 +105,10 @@ class ProductTemplate {
   // Validación básica
   isValid() {
     return (
-      this.product_id && 
-      this.product_id > 0 && 
-      typeof this.final_price === 'number' && 
-      this.final_price >= 0 && 
+      this.product_id &&
+      this.product_id > 0 &&
+      typeof this.final_price === 'number' &&
+      this.final_price >= 0 &&
       !isNaN(this.final_price)
     );
   }
@@ -112,7 +116,7 @@ class ProductTemplate {
   // Para búsquedas y filtros
   matchesSearchTerm(searchTerm) {
     if (!searchTerm) return true;
-    
+
     const term = searchTerm.toLowerCase();
     return (
       (this.product_name && this.product_name.toLowerCase().includes(term)) ||
@@ -129,6 +133,8 @@ class ProductTemplate {
       id: this.id,
       product_id: this.product_id,
       final_price: this.final_price,
+      promo_price: this.promo_price,
+      discount_price: this.discount_price,
       width: this.width,
       height: this.height,
       colors: this.colors,

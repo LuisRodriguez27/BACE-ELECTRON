@@ -1,18 +1,20 @@
 {
   "name": "bace",
-  "version": "2.0.0",
+  "version": "4.0.0",
   "description": "Aplicación BACE Electron",
   "main": "electron/index.js",
   "author": "Luis Rodriguez",
   "license": "ISC",
   "scripts": {
-    "dev": "electron ./electron",
-    "devg": "concurrently -k --success first \"npm run dev\" \"cd renderer && npm run dev\"",
-    "build": "cd renderer && npm run build",
-    "dist": "npm run build && electron-builder",
-    "dist:win": "npm run build && electron-builder --win"
+    "postinstall": "",
+    "dev:electron": "electron ./electron --no-sandbox",
+    "dev": "concurrently -k --success first \"pnpm run dev:electron\" \"cd renderer && pnpm run dev\"",
+    "build": "cd renderer && pnpm run build",
+    "dist": "pnpm run build && electron-builder",
+    "dist:win": "pnpm run build && electron-builder --win"
   },
   "keywords": [],
+  "packageManager": "pnpm@10.29.1",
   "devDependencies": {
     "@electron/rebuild": "3.2.13",
     "concurrently": "^8.2.2",
@@ -21,7 +23,11 @@
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
-    "better-sqlite3": "^9.6.0"
+    "dotenv": "^16.4.5",
+    "fs-extra": "^11.1.1",
+    "mime-types": "^2.1.35",
+    "pg": "^8.11.5",
+    "uuid": "^9.0.1"
   },
   "build": {
     "appId": "com.bace.electron",
@@ -34,13 +40,16 @@
       "electron/**/*",
       "renderer/dist/**/*",
       "node_modules/**/*",
+      ".env",
       "package.json"
     ],
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "verifyUpdateCodeSignature": false,
@@ -51,9 +60,20 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "BACE",
-      "perMachine": false,
-      "allowElevation": true
+      "shortcutName": "BACE"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.productivity"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility"
     }
   }
 }

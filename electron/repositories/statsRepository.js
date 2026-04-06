@@ -1,137 +1,248 @@
 const db = require('../db');
 
 class StatsRepository {
-  getSalesByDate(startDate, endDate, productId = null) {
+  async getSalesByDate(startDate, endDate, productId = null, paymentMethod = null) {
+    let params = [];
+
+    let joinPayment = '';
+    let dateCol = 'o.date';
+    if (paymentMethod) {
+      joinPayment = `JOIN payments pay ON o.id = pay.order_id AND pay.descripcion = ?`;
+      params.push(paymentMethod);
+      dateCol = 'pay.date';
+    }
+
+    let whereClause = `WHERE o.active = 1 AND ${dateCol} >= ? AND ${dateCol} <= ?`;
+    params.push(startDate, endDate);
+
+    if (productId) {
+      whereClause += ` AND (op.product_id = ? OR pt.product_id = ?)`;
+      params.push(productId, productId);
+    }
+
     if (productId) {
       const stmt = db.prepare(`
-        SELECT substr(o.date, 1, 10) as sale_date, SUM(op.total_price) as total, SUM(op.quantity) as quantity
+        SELECT TO_CHAR(${dateCol}, 'YYYY-MM-DD') as sale_date, 
+               COALESCE(${paymentMethod ? 'SUM(op.total_price * (CAST(pay.amount AS FLOAT) / NULLIF(CAST(o.total AS FLOAT), 0)))' : 'SUM(op.total_price)'}, 0) as total, 
+               COALESCE(${paymentMethod ? 'SUM(op.quantity * (CAST(pay.amount AS FLOAT) / NULLIF(CAST(o.total AS FLOAT), 0)))' : 'SUM(op.quantity)'}, 0) as quantity
         FROM orders o
         JOIN order_products op ON o.id = op.order_id
         LEFT JOIN product_templates pt ON op.template_id = pt.id
-        WHERE LOWER(o.status) = 'completado' 
-          AND o.active = 1 
-          AND o.date >= ? 
-          AND o.date <= ?
-          AND (op.product_id = ? OR pt.product_id = ?)
+        ${joinPayment}
+        ${whereClause}
         GROUP BY sale_date
         ORDER BY sale_date ASC
       `);
-      return stmt.all(startDate, endDate, productId, productId);
+      return await stmt.all(...params);
     } else {
+      let soParams = [];
+      let soJoinPayment = '';
+      let soDateCol = 'so.date';
+      if (paymentMethod) {
+        soJoinPayment = `JOIN simple_order_payments spay ON so.id = spay.simple_order_id AND spay.descripcion = ?`;
+        soParams.push(paymentMethod);
+        soDateCol = 'spay.date';
+      }
+      let soWhereClause = `WHERE so.active = 1 AND (${soDateCol} AT TIME ZONE 'UTC') >= ? AND (${soDateCol} AT TIME ZONE 'UTC') <= ?`;
+      soParams.push(startDate, endDate);
+
       const stmt = db.prepare(`
-        SELECT substr(date, 1, 10) as sale_date, SUM(total) as total, COUNT(id) as quantity
-        FROM orders
-        WHERE LOWER(status) = 'completado' 
-          AND active = 1 
-          AND date >= ? 
-          AND date <= ?
+        SELECT sale_date, 
+               COALESCE(SUM(total), 0) as total, 
+               COUNT(*) as quantity
+        FROM (
+          SELECT TO_CHAR(${dateCol}, 'YYYY-MM-DD') as sale_date, 
+                 ${paymentMethod ? 'pay.amount' : 'o.total'} as total
+          FROM orders o
+          ${joinPayment}
+          ${whereClause}
+          
+          UNION ALL
+          
+          SELECT TO_CHAR(${soDateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
+                 ${paymentMethod ? 'spay.amount' : 'so.total'} as total
+          FROM simple_orders so
+          ${soJoinPayment}
+          ${soWhereClause}
+        ) combined
         GROUP BY sale_date
         ORDER BY sale_date ASC
       `);
-      return stmt.all(startDate, endDate);
+      return await stmt.all(...params, ...soParams);
     }
   }
 
-  getSalesByProduct(startDate, endDate) {
-    // Need to handle direct products and templates
-    // If template_id is used, we trace back to the product via product_templates
+  async getSalesByProduct(startDate, endDate, paymentMethod = null) {
+    let params = [];
+
+    let joinPayment = '';
+    let dateCol = 'o.date';
+    if (paymentMethod) {
+      joinPayment = `JOIN payments pay ON o.id = pay.order_id AND pay.descripcion = ?`;
+      params.push(paymentMethod);
+      dateCol = 'pay.date';
+    }
+
+    let whereClause = `WHERE o.active = 1 AND ${dateCol} >= ? AND ${dateCol} <= ?`;
+    params.push(startDate, endDate);
+
     const stmt = db.prepare(`
-      SELECT p.id, p.name, SUM(op.total_price) as total, SUM(op.quantity) as quantity
+      SELECT p.id, p.name, 
+             COALESCE(${paymentMethod ? 'SUM(op.total_price * (CAST(pay.amount AS FLOAT) / NULLIF(CAST(o.total AS FLOAT), 0)))' : 'SUM(op.total_price)'}, 0) as total, 
+             COALESCE(${paymentMethod ? 'SUM(op.quantity * (CAST(pay.amount AS FLOAT) / NULLIF(CAST(o.total AS FLOAT), 0)))' : 'SUM(op.quantity)'}, 0) as quantity
       FROM orders o
       JOIN order_products op ON o.id = op.order_id
       LEFT JOIN products p_direct ON op.product_id = p_direct.id
       LEFT JOIN product_templates pt ON op.template_id = pt.id
       LEFT JOIN products p_template ON pt.product_id = p_template.id
       JOIN products p ON (p_direct.id = p.id OR p_template.id = p.id)
-      WHERE LOWER(o.status) = 'completado' 
-        AND o.active = 1
-        AND o.date >= ? 
-        AND o.date <= ?
+      ${joinPayment}
+      ${whereClause}
       GROUP BY p.id
       ORDER BY total DESC
     `);
-    
-    return stmt.all(startDate, endDate);
+
+    return await stmt.all(...params);
   }
 
-  getSalesBySpecificDates(dates, productId = null) {
+  async getSalesBySpecificDates(dates, productId = null, paymentMethod = null) {
     if (!dates || dates.length === 0) return [];
-    
-    // Create placeholders for the IN clause
+
+    let params = [];
     const placeholders = dates.map(() => '?').join(',');
-    
+
+    let joinPayment = '';
+    let dateCol = 'o.date';
+    if (paymentMethod) {
+      joinPayment = `JOIN payments pay ON o.id = pay.order_id AND pay.descripcion = ?`;
+      params.push(paymentMethod);
+      dateCol = 'pay.date';
+    }
+
+    let whereClause = `WHERE o.active = 1 AND TO_CHAR(${dateCol}, 'YYYY-MM-DD') IN (${placeholders})`;
+    params.push(...dates);
+
+    if (productId) {
+      whereClause += ` AND (op.product_id = ? OR pt.product_id = ?)`;
+      params.push(productId, productId);
+    }
+
     if (productId) {
       const stmt = db.prepare(`
-        SELECT substr(o.date, 1, 10) as sale_date, SUM(op.total_price) as total, SUM(op.quantity) as quantity
+        SELECT TO_CHAR(${dateCol}, 'YYYY-MM-DD') as sale_date, 
+               COALESCE(${paymentMethod ? 'SUM(op.total_price * (CAST(pay.amount AS FLOAT) / NULLIF(CAST(o.total AS FLOAT), 0)))' : 'SUM(op.total_price)'}, 0) as total, 
+               COALESCE(${paymentMethod ? 'SUM(op.quantity * (CAST(pay.amount AS FLOAT) / NULLIF(CAST(o.total AS FLOAT), 0)))' : 'SUM(op.quantity)'}, 0) as quantity
         FROM orders o
         JOIN order_products op ON o.id = op.order_id
         LEFT JOIN product_templates pt ON op.template_id = pt.id
-        WHERE LOWER(o.status) = 'completado' 
-          AND o.active = 1 
-          AND substr(o.date, 1, 10) IN (${placeholders})
-          AND (op.product_id = ? OR pt.product_id = ?)
+        ${joinPayment}
+        ${whereClause}
         GROUP BY sale_date
         ORDER BY sale_date ASC
       `);
-      return stmt.all(...dates, productId, productId);
+      return await stmt.all(...params);
     } else {
+      let soParams = [];
+      let soJoinPayment = '';
+      let soDateCol = 'so.date';
+      if (paymentMethod) {
+        soJoinPayment = `JOIN simple_order_payments spay ON so.id = spay.simple_order_id AND spay.descripcion = ?`;
+        soParams.push(paymentMethod);
+        soDateCol = 'spay.date';
+      }
+      let soWhereClause = `WHERE so.active = 1 AND TO_CHAR(${soDateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${placeholders})`;
+      soParams.push(...dates);
+
       const stmt = db.prepare(`
-        SELECT substr(date, 1, 10) as sale_date, SUM(total) as total, COUNT(id) as quantity
-        FROM orders
-        WHERE LOWER(status) = 'completado' 
-          AND active = 1 
-          AND substr(date, 1, 10) IN (${placeholders})
+        SELECT sale_date, 
+              COALESCE(SUM(total), 0) as total, 
+              COUNT(*) as quantity
+        FROM (
+          SELECT TO_CHAR(${dateCol}, 'YYYY-MM-DD') as sale_date, 
+                ${paymentMethod ? 'pay.amount' : 'o.total'} as total
+          FROM orders o
+          ${joinPayment}
+          ${whereClause}
+
+          UNION ALL
+
+          SELECT TO_CHAR(${soDateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
+                ${paymentMethod ? 'spay.amount' : 'so.total'} as total
+          FROM simple_orders so
+          ${soJoinPayment}
+          ${soWhereClause}
+        ) combined
         GROUP BY sale_date
         ORDER BY sale_date ASC
       `);
-      return stmt.all(...dates);
+      return await stmt.all(...params, ...soParams);
     }
   }
 
-  getSalesByProductForDates(dates) {
+  async getSalesByProductForDates(dates, paymentMethod = null) {
     if (!dates || dates.length === 0) return [];
+
+    let params = [];
     const placeholders = dates.map(() => '?').join(',');
 
+    let joinPayment = '';
+    let dateCol = 'o.date';
+    if (paymentMethod) {
+      joinPayment = `JOIN payments pay ON o.id = pay.order_id AND pay.descripcion = ?`;
+      params.push(paymentMethod);
+      dateCol = 'pay.date';
+    }
+
+    let whereClause = `WHERE o.active = 1 AND TO_CHAR(${dateCol}, 'YYYY-MM-DD') IN (${placeholders})`;
+    params.push(...dates);
+
     const stmt = db.prepare(`
-      SELECT p.id, p.name, SUM(op.total_price) as total, SUM(op.quantity) as quantity
+      SELECT p.id, p.name, 
+             COALESCE(${paymentMethod ? 'SUM(op.total_price * (CAST(pay.amount AS FLOAT) / NULLIF(CAST(o.total AS FLOAT), 0)))' : 'SUM(op.total_price)'}, 0) as total, 
+             COALESCE(${paymentMethod ? 'SUM(op.quantity * (CAST(pay.amount AS FLOAT) / NULLIF(CAST(o.total AS FLOAT), 0)))' : 'SUM(op.quantity)'}, 0) as quantity
       FROM orders o
       JOIN order_products op ON o.id = op.order_id
       LEFT JOIN products p_direct ON op.product_id = p_direct.id
       LEFT JOIN product_templates pt ON op.template_id = pt.id
       LEFT JOIN products p_template ON pt.product_id = p_template.id
       JOIN products p ON (p_direct.id = p.id OR p_template.id = p.id)
-      WHERE LOWER(o.status) = 'completado' 
-        AND o.active = 1
-        AND substr(o.date, 1, 10) IN (${placeholders})
+      ${joinPayment}
+      ${whereClause}
       GROUP BY p.id
       ORDER BY total DESC
     `);
-    
-    return stmt.all(...dates);
+
+    return await stmt.all(...params);
   }
 
-  getAvailableYears() {
+  async getAvailableYears() {
     try {
       const stmt = db.prepare(`
-        SELECT DISTINCT substr(date, 1, 4) as year
-        FROM orders
-        WHERE LOWER(status) = 'completado' AND active = 1 AND date IS NOT NULL
+        SELECT DISTINCT year FROM (
+          SELECT TO_CHAR(date, 'YYYY') as year FROM orders WHERE active = 1 AND date IS NOT NULL
+          UNION
+          SELECT TO_CHAR(date, 'YYYY') as year FROM payments WHERE date IS NOT NULL
+          UNION
+          SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') as year FROM simple_orders WHERE active = 1 AND date IS NOT NULL
+          UNION
+          SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') as year FROM simple_order_payments WHERE date IS NOT NULL
+        ) all_years
         ORDER BY year DESC
       `);
-      
-      const rawResults = stmt.all();
+
+      const rawResults = await stmt.all();
 
       // Add current year if not present
       const years = rawResults.map(r => parseInt(r.year)).filter(y => !isNaN(y));
       const currentYear = new Date().getFullYear();
-      
+
       // Ensure we have unique values
       const uniqueYears = [...new Set(years)];
 
       if (!uniqueYears.includes(currentYear)) {
         uniqueYears.unshift(currentYear);
       }
-      
+
       return uniqueYears.sort((a, b) => b - a);
     } catch (err) {
       console.error('Error fetching available years:', err);
@@ -139,18 +250,23 @@ class StatsRepository {
     }
   }
 
-  getAvailableWeeks(year) {
+  async getAvailableWeeks(year) {
     // Return all sale dates for the year so we can calculate weeks accurately in the service using date-fns
+    const strYear = year.toString();
     const stmt = db.prepare(`
-      SELECT DISTINCT substr(date, 1, 10) as sale_date
-      FROM orders
-      WHERE LOWER(status) = 'completado' 
-        AND active = 1 
-        AND substr(date, 1, 4) = ?
+      SELECT DISTINCT sale_date FROM (
+        SELECT TO_CHAR(date, 'YYYY-MM-DD') as sale_date FROM orders WHERE active = 1 AND TO_CHAR(date, 'YYYY') = ?
+        UNION
+        SELECT TO_CHAR(date, 'YYYY-MM-DD') as sale_date FROM payments WHERE TO_CHAR(date, 'YYYY') = ?
+        UNION
+        SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date FROM simple_orders WHERE active = 1 AND TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') = ?
+        UNION
+        SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date FROM simple_order_payments WHERE TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') = ?
+      ) all_dates
       ORDER BY sale_date ASC
     `);
-    
-    return stmt.all(year.toString()).map(r => r.sale_date);
+
+    return (await stmt.all(strYear, strYear, strYear, strYear)).map(r => r.sale_date);
   }
 }
 

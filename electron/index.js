@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, protocol, net, shell } = require('electron');
 const path = require('path');
 
 // Deshabilitar aceleración de hardware para evitar problemas de renderizado
@@ -15,6 +15,8 @@ const paymentService = require('./services/paymentsService');
 const authService = require('./services/authService');
 const budgetService = require('./services/budgetService');
 const statsService = require('./services/statsService');
+const simpleOrderService = require('./services/simpleOrderService');
+const imageService = require('./services/imageService');
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -42,8 +44,16 @@ function createWindow() {
     // Producción: cargar desde los archivos empaquetados
     win.loadFile(path.join(__dirname, '../renderer/dist/index.html'));
   } else {
-    // Desarrollo: cargar desde el servidor de Vite
-    win.loadURL('http://localhost:5173');
+    // Desarrollo: esperar a que Vite inicie antes de mostrar
+    const loadDevServer = () => {
+      require('http').get('http://localhost:5173', () => {
+        win.loadURL('http://localhost:5173');
+      }).on('error', () => {
+        console.log('Esperando a que inicialice el servidor de Vite en el puerto 5173...');
+        setTimeout(loadDevServer, 1000);
+      });
+    };
+    loadDevServer();
   }
 }
 
@@ -94,6 +104,7 @@ ipcMain.handle('products:delete', async (event, id) => await productService.dele
 ipcMain.handle('products:getWithTemplates', async (event, productId) => await productService.getProductWithTemplates(productId));
 ipcMain.handle('products:getAllWithTemplates', async () => await productService.getAllProductsWithTemplates());
 ipcMain.handle('products:search', async (event, searchTerm) => await productService.searchProducts(searchTerm));
+ipcMain.handle('products:findSimilarNames', async () => await productService.getProductsWithSimilarNames());
 
 // Manejo de eventos IPC para plantillas de productos
 ipcMain.handle('templates:getAll', async () => await productTemplatesService.getAllTemplates());
@@ -149,7 +160,60 @@ ipcMain.handle('stats:getProducts', async () => await statsService.getProducts()
 ipcMain.handle('stats:getYears', async () => await statsService.getAvailableYears());
 ipcMain.handle('stats:getWeeks', async (event, year) => await statsService.getAvailableWeeks(year));
 
-app.whenReady().then(createWindow);
+// Manejo de eventos IPC para ordenes rapidas
+ipcMain.handle('simpleOrders:getAll', async () => await simpleOrderService.getAllSimpleOrders());
+ipcMain.handle('simpleOrders:getById', async (event, id) => await simpleOrderService.getSimpleOrderById(id));
+ipcMain.handle('simpleOrders:create', async (event, data) => await simpleOrderService.createSimpleOrder(data));
+ipcMain.handle('simpleOrders:update', async (event, id, data) => await simpleOrderService.updateSimpleOrder(id, data));
+ipcMain.handle('simpleOrders:delete', async (event, id) => await simpleOrderService.deleteSimpleOrder(id));
+ipcMain.handle('simpleOrders:addPayment', async (event, data) => await simpleOrderService.addPayment(data));
+ipcMain.handle('simpleOrders:getPayments', async (event, id) => await simpleOrderService.getPayments(id));
+ipcMain.handle('simpleOrders:updatePayment', async (event, id, data) => await simpleOrderService.updatePayment(id, data));
+ipcMain.handle('simpleOrders:deletePayment', async (event, id) => await simpleOrderService.deletePayment(id));
+
+// Manejo de eventos IPC para imágenes
+ipcMain.handle('upload-image', async (event, productId, buffer, originalName) => await imageService.uploadImage(productId, buffer, originalName));
+ipcMain.handle('delete-image', async (event, relativePath) => await imageService.deleteImage(relativePath));
+
+// Abrir URLs en el navegador predeterminado del sistema
+ipcMain.handle('shell:openExternal', async (_event, url) => {
+  await shell.openExternal(url);
+});
+
+require('dotenv').config();
+
+app.whenReady().then(() => {
+  const baseImagePath = imageService.getBasePath();
+  
+  if (protocol.handle) {
+    // Para Electron >= 25 (el usado es v37)
+    protocol.handle('imagenes', (request) => {
+      const urlPath = request.url.replace(/^imagenes:\/\//i, '');
+      const absolutePath = path.normalize(path.join(baseImagePath, decodeURIComponent(urlPath)));
+      
+      // Prevenir directory traversal
+      if (!absolutePath.startsWith(path.normalize(baseImagePath))) {
+        return new Response('Acceso denegado', { status: 403 });
+      }
+
+      return net.fetch('file://' + absolutePath);
+    });
+  } else {
+    // Compatibilidad para versiones legacy como solicitado
+    protocol.registerFileProtocol('imagenes', (request, callback) => {
+      const urlPath = request.url.replace(/^imagenes:\/\//i, '');
+      const absolutePath = path.normalize(path.join(baseImagePath, decodeURIComponent(urlPath)));
+      
+      if (!absolutePath.startsWith(path.normalize(baseImagePath))) {
+        callback({ error: -3 }); // Acceso denegado (ERR_ACCESS_DENIED)
+        return;
+      }
+      callback({ path: absolutePath });
+    });
+  }
+
+  createWindow();
+});
 
 // Limpiar sesión al cerrar la aplicación
 app.on('before-quit', () => {

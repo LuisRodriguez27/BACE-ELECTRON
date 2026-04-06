@@ -6,7 +6,7 @@ class PermissionService {
 
   async getAllPermissions() {
     try {
-      const permissions = permissionRepository.findAll();
+      const permissions = await permissionRepository.findAll();
       return permissions.map(permission => permission.toPlainObject());
     } catch (error) {
       console.error('Error al obtener permisos:', error);
@@ -20,7 +20,7 @@ class PermissionService {
         throw new Error('ID de permiso inválido');
       }
 
-      const permission = permissionRepository.findById(parseInt(id));
+      const permission = await permissionRepository.findById(parseInt(id));
       
       if (!permission) {
         throw new Error('Permiso no encontrado');
@@ -40,12 +40,12 @@ class PermissionService {
       }
 
       // Verificar que el usuario existe
-      const user = userRepository.findById(parseInt(userId));
+      const user = await userRepository.findById(parseInt(userId));
       if (!user) {
         throw new Error('El usuario especificado no existe');
       }
 
-      const permissions = permissionRepository.findByUserId(parseInt(userId));
+      const permissions = await permissionRepository.findByUserId(parseInt(userId));
       return permissions.map(permission => permission.toPlainObject());
     } catch (error) {
       console.error('Error al obtener permisos del usuario:', error);
@@ -67,7 +67,7 @@ class PermissionService {
       }
 
       // Crear permiso
-      const permission = permissionRepository.create({
+      const permission = await permissionRepository.create({
         name: trimmedName,
         description: description?.trim() || null
       });
@@ -93,7 +93,7 @@ class PermissionService {
       const permissionId = parseInt(id);
 
       // Verificar si el permiso existe
-      const existingPermission = permissionRepository.findById(permissionId);
+      const existingPermission = await permissionRepository.findById(permissionId);
       if (!existingPermission) {
         throw new Error('Permiso no encontrado');
       }
@@ -123,7 +123,7 @@ class PermissionService {
       }
 
       // Actualizar permiso
-      const updated = permissionRepository.update(permissionId, {
+      const updated = await permissionRepository.update(permissionId, {
         name: name?.trim() || existingPermission.name,
         description: description?.trim() || existingPermission.description,
         active: active !== undefined ? active : existingPermission.active
@@ -134,7 +134,7 @@ class PermissionService {
       }
 
       // Obtener permiso actualizado
-      const updatedPermission = permissionRepository.findById(permissionId);
+      const updatedPermission = await permissionRepository.findById(permissionId);
       
       if (!updatedPermission) {
         throw new Error('Error: no se pudo recuperar el permiso actualizado');
@@ -157,7 +157,7 @@ class PermissionService {
       const permissionId = parseInt(id);
 
       // Verificar si el permiso existe
-      const existingPermission = permissionRepository.findById(permissionId);
+      const existingPermission = await permissionRepository.findById(permissionId);
       if (!existingPermission) {
         throw new Error('Permiso no encontrado');
       }
@@ -176,7 +176,7 @@ class PermissionService {
         throw new Error('No se puede eliminar un permiso que tiene usuarios asignados. Primero retire todas las asignaciones');
       }
 
-      const deleted = permissionRepository.delete(permissionId);
+      const deleted = await permissionRepository.delete(permissionId);
 
       if (!deleted) {
         throw new Error('Error al eliminar permiso');
@@ -204,13 +204,13 @@ class PermissionService {
       const permissionIdInt = parseInt(permissionId);
 
       // Verificar que el usuario exists
-      const user = userRepository.findById(userIdInt);
+      const user = await userRepository.findById(userIdInt);
       if (!user) {
         throw new Error('El usuario especificado no existe');
       }
 
       // Verificar que el permiso exists
-      const permission = permissionRepository.findById(permissionIdInt);
+      const permission = await permissionRepository.findById(permissionIdInt);
       if (!permission) {
         throw new Error('El permiso especificado no existe');
       }
@@ -226,19 +226,19 @@ class PermissionService {
       }
 
       // Verificar si ya tiene el permiso
-      if (permissionRepository.userHasPermission(userIdInt, permissionIdInt)) {
+      if (await permissionRepository.userHasPermission(userIdInt, permissionIdInt)) {
         throw new Error('El usuario ya tiene asignado este permiso');
       }
 
       // Asignar permiso
-      const assigned = permissionRepository.assignToUser(userIdInt, permissionIdInt);
+      const assigned = await permissionRepository.assignToUser(userIdInt, permissionIdInt);
 
       if (!assigned) {
         throw new Error('Error al asignar permiso al usuario');
       }
 
       // Retornar el usuario actualizado
-      const updatedUser = userRepository.findById(userIdInt);
+      const updatedUser = await userRepository.findById(userIdInt);
       return updatedUser.toPlainObject();
 
     } catch (error) {
@@ -262,19 +262,19 @@ class PermissionService {
       const permissionIdInt = parseInt(permissionId);
 
       // Verificar que el usuario exists
-      const user = userRepository.findById(userIdInt);
+      const user = await userRepository.findById(userIdInt);
       if (!user) {
         throw new Error('El usuario especificado no existe');
       }
 
       // Verificar que el permiso exists
-      const permission = permissionRepository.findById(permissionIdInt);
+      const permission = await permissionRepository.findById(permissionIdInt);
       if (!permission) {
         throw new Error('El permiso especificado no existe');
       }
 
       // Verificar si el usuario tiene el permiso
-      if (!permissionRepository.userHasPermission(userIdInt, permissionIdInt)) {
+      if (!(await permissionRepository.userHasPermission(userIdInt, permissionIdInt))) {
         throw new Error('El usuario no tiene asignado este permiso');
       }
 
@@ -288,14 +288,14 @@ class PermissionService {
       }
 
       // Remover permiso
-      const removed = permissionRepository.removeFromUser(userIdInt, permissionIdInt);
+      const removed = await permissionRepository.removeFromUser(userIdInt, permissionIdInt);
 
       if (!removed) {
         throw new Error('Error al remover permiso del usuario');
       }
 
       // Retornar el usuario actualizado
-      const updatedUser = userRepository.findById(userIdInt);
+      const updatedUser = await userRepository.findById(userIdInt);
       return updatedUser.toPlainObject();
 
     } catch (error) {

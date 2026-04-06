@@ -71,7 +71,7 @@ const QuickCreateProductModal: React.FC<QuickCreateProductModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 flex items-center justify-center z-[60]"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
     >
@@ -156,6 +156,48 @@ const QuickCreateProductModal: React.FC<QuickCreateProductModalProps> = ({
               />
               {errors.price && (
                 <p className="mt-1 text-sm text-red-600">{errors.price.message}</p>
+              )}
+            </div>
+
+            {/* Precio Promoción */}
+            <div>
+              <Label htmlFor="promo_price" className="text-sm font-medium text-gray-700">
+                Precio Promoción
+              </Label>
+              <Input
+                id="promo_price"
+                type="number"
+                step="0.01"
+                min="0"
+                className="mt-1"
+                placeholder="0.00"
+                {...register('promo_price', {
+                  setValueAs: v => (v === '' || v === null || v === undefined || Number.isNaN(Number(v))) ? null : parseFloat(v as string)
+                })}
+              />
+              {errors.promo_price && (
+                <p className="mt-1 text-sm text-red-600">{errors.promo_price.message}</p>
+              )}
+            </div>
+
+            {/* Precio Descuento */}
+            <div>
+              <Label htmlFor="discount_price" className="text-sm font-medium text-gray-700">
+                Precio Descuento
+              </Label>
+              <Input
+                id="discount_price"
+                type="number"
+                step="0.01"
+                min="0"
+                className="mt-1"
+                placeholder="0.00"
+                {...register('discount_price', {
+                  setValueAs: v => (v === '' || v === null || v === undefined || Number.isNaN(Number(v))) ? null : parseFloat(v as string)
+                })}
+              />
+              {errors.discount_price && (
+                <p className="mt-1 text-sm text-red-600">{errors.discount_price.message}</p>
               )}
             </div>
 
