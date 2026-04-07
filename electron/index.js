@@ -18,6 +18,36 @@ const statsService = require('./services/statsService');
 const simpleOrderService = require('./services/simpleOrderService');
 const imageService = require('./services/imageService');
 
+let whatsappWindow = null;
+let isQuitting = false;
+
+function initWhatsApp() {
+  if (whatsappWindow) return;
+
+  whatsappWindow = new BrowserWindow({
+    width: 1000,
+    height: 800,
+    show: false, // Inicio oculto en segundo plano
+    title: 'WhatsApp Web',
+    autoHideMenuBar: true,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true
+    }
+  });
+
+  // Ocultar al intentar cerrar en lugar de destruir la ventana
+  whatsappWindow.on('close', (e) => {
+    if (!isQuitting) {
+      e.preventDefault();
+      whatsappWindow.hide();
+    }
+  });
+
+  // Pre-cargar WhatsApp
+  whatsappWindow.loadURL('https://web.whatsapp.com');
+}
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1366,
@@ -37,6 +67,11 @@ function createWindow() {
   win.once('ready-to-show', () => {
     win.show();
     win.maximize(); // Maximizar después de mostrar
+  });
+
+  // Cuando se cierre la principal, cerramos la aplicación entera
+  win.on('closed', () => {
+    app.quit();
   });
 
   // Cargar la aplicación según el entorno
@@ -175,9 +210,36 @@ ipcMain.handle('simpleOrders:deletePayment', async (event, id) => await simpleOr
 ipcMain.handle('upload-image', async (event, productId, buffer, originalName) => await imageService.uploadImage(productId, buffer, originalName));
 ipcMain.handle('delete-image', async (event, relativePath) => await imageService.deleteImage(relativePath));
 
-// Abrir URLs en el navegador predeterminado del sistema
+// Abrir URLs en el navegador predeterminado del sistema (Intercepción para WhatsApp)
 ipcMain.handle('shell:openExternal', async (_event, url) => {
-  await shell.openExternal(url);
+  if (url.includes('web.whatsapp.com')) {
+    if (!whatsappWindow) initWhatsApp();
+    whatsappWindow.show();
+    whatsappWindow.focus();
+
+    const currentURL = whatsappWindow.webContents.getURL();
+    // Si la página ya terminó de cargar, usamos un "hack" inyectando un enlace.
+    // Esto hace que el router interno (SPA) de WhatsApp intercepte el cambio de URL 
+    // y abra el chat al instante sin recargar (refresh) toda la página.
+    if (currentURL.includes('web.whatsapp.com') && !whatsappWindow.webContents.isLoading()) {
+      whatsappWindow.webContents.executeJavaScript(`
+        (() => {
+          const a = document.createElement('a');
+          a.href = "${url}";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        })();
+      `).catch(() => {
+        whatsappWindow.loadURL(url); // Fallback
+      });
+    } else {
+      // Si la app apenas arrancó o está cargando inicial, hacemos la navegación normal
+      whatsappWindow.loadURL(url);
+    }
+  } else {
+    await shell.openExternal(url);
+  }
 });
 
 require('dotenv').config();
@@ -213,10 +275,12 @@ app.whenReady().then(() => {
   }
 
   createWindow();
+  initWhatsApp(); // Arrancar WhatsApp Web en memoria al inicio
 });
 
 // Limpiar sesión al cerrar la aplicación
 app.on('before-quit', () => {
+  isQuitting = true;
   authService.logout();
 });
 
