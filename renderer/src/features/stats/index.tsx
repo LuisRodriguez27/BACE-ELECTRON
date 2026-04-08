@@ -16,6 +16,7 @@ const StatsPage: React.FC = () => {
   const [availableWeeks, setAvailableWeeks] = useState<number[]>([])
   const [productId, setProductId] = useState<string>('all')
   const [paymentMethod, setPaymentMethod] = useState<string>('all')
+  const [source, setSource] = useState<string>('all')
   const [products, setProducts] = useState<any[]>([])
   const [selectedDates, setSelectedDates] = useState<string[]>([format(new Date(), 'yyyy-MM-dd')])
   const [tempDate, setTempDate] = useState<string>('')
@@ -91,7 +92,7 @@ const StatsPage: React.FC = () => {
 
   useEffect(() => {
     loadStats()
-  }, [period, productId, paymentMethod, selectedMonth, selectedYear, selectedWeek, selectedDates])
+  }, [period, productId, paymentMethod, source, selectedMonth, selectedYear, selectedWeek, selectedDates])
 
   const loadYears = async () => {
     try {
@@ -133,6 +134,7 @@ const StatsPage: React.FC = () => {
         period,
         productId: productId === 'all' ? null : parseInt(productId),
         paymentMethod: paymentMethod === 'all' ? null : paymentMethod,
+        source,
         month: selectedMonth,
         year: selectedYear
       }
@@ -322,6 +324,17 @@ const StatsPage: React.FC = () => {
             <option value="month">Por Mes</option>
             <option value="year">Por Año</option>
             <option value="custom">Por Días</option>
+          </select>
+
+          <select
+            className="flex h-10 w-45 items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={source}
+            onChange={(e) => setSource(e.target.value)}
+          >
+            <option value="all">Todas las ventas</option>
+            <option value="orders">Órdenes</option>
+            <option value="simple">Órdenes Rápidas</option>
+            <option value="extra">Ingresos sin Orden</option>
           </select>
 
           {period === 'custom' && (

@@ -1,7 +1,9 @@
 const db = require('../db');
 
 class StatsRepository {
-  async getSalesByDate(startDate, endDate, productId = null, paymentMethod = null) {
+  async getSalesByDate(startDate, endDate, productId = null, paymentMethod = null, source = 'all') {
+    if (productId && source !== 'all' && source !== 'orders') return [];
+
     let params = [];
 
     let joinPayment = '';
@@ -35,44 +37,84 @@ class StatsRepository {
       `);
       return await stmt.all(...params);
     } else {
-      let soParams = [];
-      let soJoinPayment = '';
-      let soDateCol = 'so.date';
-      if (paymentMethod) {
-        soJoinPayment = `JOIN simple_order_payments spay ON so.id = spay.simple_order_id AND spay.descripcion = ?`;
-        soParams.push(paymentMethod);
-        soDateCol = 'spay.date';
+      let unions = [];
+      let finalParams = [];
+
+      let includeOrders = source === 'all' || source === 'orders';
+      let includeSimpleOrders = source === 'all' || source === 'simple';
+      let includeExtra = source === 'all' || source === 'extra';
+
+      if (includeOrders) {
+        unions.push(`
+          SELECT TO_CHAR(${dateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
+                 ${paymentMethod ? 'pay.amount' : 'o.total'} as total
+          FROM orders o
+          ${joinPayment}
+          ${whereClause}
+         `);
+        finalParams.push(...params);
       }
-      let soWhereClause = `WHERE so.active = 1 AND (${soDateCol} AT TIME ZONE 'UTC') >= ? AND (${soDateCol} AT TIME ZONE 'UTC') <= ?`;
-      soParams.push(startDate, endDate);
+
+      if (includeSimpleOrders) {
+        let soParams = [];
+        let soJoinPayment = '';
+        let soDateCol = 'so.date';
+        if (paymentMethod) {
+          soJoinPayment = `JOIN simple_order_payments spay ON so.id = spay.simple_order_id AND spay.descripcion = ?`;
+          soParams.push(paymentMethod);
+          soDateCol = 'spay.date';
+        }
+        let soWhereClause = `WHERE so.active = 1 AND (${soDateCol} AT TIME ZONE 'UTC') >= ? AND (${soDateCol} AT TIME ZONE 'UTC') <= ?`;
+        soParams.push(startDate, endDate);
+
+        unions.push(`
+          SELECT TO_CHAR(${soDateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
+                 ${paymentMethod ? 'spay.amount' : 'so.total'} as total
+          FROM simple_orders so
+          ${soJoinPayment}
+          ${soWhereClause}
+        `);
+        finalParams.push(...soParams);
+      }
+
+      if (includeExtra) {
+        let epParams = [];
+        let epWhere = `WHERE py.order_id IS NULL AND (py.date AT TIME ZONE 'UTC') >= ? AND (py.date AT TIME ZONE 'UTC') <= ?`;
+
+        if (paymentMethod) {
+          epWhere += ` AND py.descripcion = ?`;
+          epParams.push(startDate, endDate, paymentMethod);
+        } else {
+          epParams.push(startDate, endDate);
+        }
+
+        unions.push(`
+          SELECT TO_CHAR(py.date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
+                 py.amount as total
+          FROM payments py
+          ${epWhere}
+        `);
+        finalParams.push(...epParams);
+      }
+
+      if (unions.length === 0) return [];
 
       const stmt = db.prepare(`
         SELECT sale_date, 
                COALESCE(SUM(total), 0) as total, 
                COUNT(*) as quantity
         FROM (
-          SELECT TO_CHAR(${dateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
-                 ${paymentMethod ? 'pay.amount' : 'o.total'} as total
-          FROM orders o
-          ${joinPayment}
-          ${whereClause}
-          
-          UNION ALL
-          
-          SELECT TO_CHAR(${soDateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
-                 ${paymentMethod ? 'spay.amount' : 'so.total'} as total
-          FROM simple_orders so
-          ${soJoinPayment}
-          ${soWhereClause}
+          ${unions.join('\\n UNION ALL \\n')}
         ) combined
         GROUP BY sale_date
         ORDER BY sale_date ASC
       `);
-      return await stmt.all(...params, ...soParams);
+      return await stmt.all(...finalParams);
     }
   }
 
-  async getSalesByProduct(startDate, endDate, paymentMethod = null) {
+  async getSalesByProduct(startDate, endDate, paymentMethod = null, source = 'all') {
+    if (source !== 'all' && source !== 'orders') return [];
     let params = [];
 
     let joinPayment = '';
@@ -105,8 +147,9 @@ class StatsRepository {
     return await stmt.all(...params);
   }
 
-  async getSalesBySpecificDates(dates, productId = null, paymentMethod = null) {
+  async getSalesBySpecificDates(dates, productId = null, paymentMethod = null, source = 'all') {
     if (!dates || dates.length === 0) return [];
+    if (productId && source !== 'all' && source !== 'orders') return [];
 
     let params = [];
     const placeholders = dates.map(() => '?').join(',');
@@ -142,45 +185,84 @@ class StatsRepository {
       `);
       return await stmt.all(...params);
     } else {
-      let soParams = [];
-      let soJoinPayment = '';
-      let soDateCol = 'so.date';
-      if (paymentMethod) {
-        soJoinPayment = `JOIN simple_order_payments spay ON so.id = spay.simple_order_id AND spay.descripcion = ?`;
-        soParams.push(paymentMethod);
-        soDateCol = 'spay.date';
-      }
-      let soWhereClause = `WHERE so.active = 1 AND TO_CHAR(${soDateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${placeholders})`;
-      soParams.push(...dates);
+      let unions = [];
+      let finalParams = [];
 
-      const stmt = db.prepare(`
-        SELECT sale_date, 
-              COALESCE(SUM(total), 0) as total, 
-              COUNT(*) as quantity
-        FROM (
+      let includeOrders = source === 'all' || source === 'orders';
+      let includeSimpleOrders = source === 'all' || source === 'simple';
+      let includeExtra = source === 'all' || source === 'extra';
+
+      if (includeOrders) {
+        unions.push(`
           SELECT TO_CHAR(${dateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
-                ${paymentMethod ? 'pay.amount' : 'o.total'} as total
+                 ${paymentMethod ? 'pay.amount' : 'o.total'} as total
           FROM orders o
           ${joinPayment}
           ${whereClause}
+         `);
+        finalParams.push(...params);
+      }
 
-          UNION ALL
+      if (includeSimpleOrders) {
+        let soParams = [];
+        let soJoinPayment = '';
+        let soDateCol = 'so.date';
+        if (paymentMethod) {
+          soJoinPayment = `JOIN simple_order_payments spay ON so.id = spay.simple_order_id AND spay.descripcion = ?`;
+          soParams.push(paymentMethod);
+          soDateCol = 'spay.date';
+        }
+        let soWhereClause = `WHERE so.active = 1 AND TO_CHAR(${soDateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${placeholders})`;
+        soParams.push(...dates);
 
+        unions.push(`
           SELECT TO_CHAR(${soDateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
-                ${paymentMethod ? 'spay.amount' : 'so.total'} as total
+                 ${paymentMethod ? 'spay.amount' : 'so.total'} as total
           FROM simple_orders so
           ${soJoinPayment}
           ${soWhereClause}
+        `);
+        finalParams.push(...soParams);
+      }
+
+      if (includeExtra) {
+        let epParams = [];
+        let epWhere = `WHERE py.order_id IS NULL AND TO_CHAR(py.date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${placeholders})`;
+        if (paymentMethod) {
+          epWhere += ` AND py.descripcion = ?`;
+          epParams.push(paymentMethod, ...dates);
+        } else {
+          epParams.push(...dates);
+        }
+
+        unions.push(`
+          SELECT TO_CHAR(py.date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
+                 py.amount as total
+          FROM payments py
+          ${epWhere}
+        `);
+        finalParams.push(...epParams);
+      }
+
+      if (unions.length === 0) return [];
+
+      const stmt = db.prepare(`
+        SELECT sale_date, 
+               COALESCE(SUM(total), 0) as total, 
+               COUNT(*) as quantity
+        FROM (
+          ${unions.join('\\n UNION ALL \\n')}
         ) combined
         GROUP BY sale_date
         ORDER BY sale_date ASC
       `);
-      return await stmt.all(...params, ...soParams);
+      return await stmt.all(...finalParams);
     }
   }
 
-  async getSalesByProductForDates(dates, paymentMethod = null) {
+  async getSalesByProductForDates(dates, paymentMethod = null, source = 'all') {
     if (!dates || dates.length === 0) return [];
+    if (source !== 'all' && source !== 'orders') return [];
 
     let params = [];
     const placeholders = dates.map(() => '?').join(',');
