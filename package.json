@@ -19,7 +19,7 @@
     "@electron/rebuild": "3.2.13",
     "concurrently": "^8.2.2",
     "electron": "22.3.9",
-    "electron-builder": "22.13.1"
+    "electron-builder": "^26.0.12"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

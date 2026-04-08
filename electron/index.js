@@ -81,10 +81,10 @@ function createWindow() {
   } else {
     // Desarrollo: esperar a que Vite inicie antes de mostrar
     const loadDevServer = () => {
-      require('http').get('http://localhost:5173', () => {
-        win.loadURL('http://localhost:5173');
-      }).on('error', () => {
-        console.log('Esperando a que inicialice el servidor de Vite en el puerto 5173...');
+      require('http').get('http://127.0.0.1:5173', () => {
+        win.loadURL('http://127.0.0.1:5173');
+      }).on('error', (err) => {
+        console.log('Esperando a que inicialice el servidor de Vite en el puerto 5173... (' + err.message + ')');
         setTimeout(loadDevServer, 1000);
       });
     };
