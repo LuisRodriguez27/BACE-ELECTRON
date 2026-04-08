@@ -75,21 +75,21 @@ export const generatePaymentsReceivedLogbook = (
   const totalAmount = filtered.reduce((acc, p) => acc + p.amount, 0);
 
   const rows = filtered.length === 0
-    ? `<tr><td colspan="6" class="center">No hay pagos en el período seleccionado</td></tr>`
+    ? `<tr><td colspan="7" class="center">No hay pagos en el período seleccionado</td></tr>`
     : filtered.map(p => {
         const dateStr = p.date ? formatDateMX(p.date, 'DD/MM/YYYY HH:mm') : '—';
         const orderBadge = p.order_id
           ? `<span class="badge-orden">Orden #${p.order_id}</span>`
           : `<span class="badge-libre">Libre</span>`;
-        const concepto = p.info
-          ? p.info
-          : (p.order ? `Cliente: ${(p.order as any).client_name ?? '—'}` : '—');
+        const clienteStr = p.order ? (p.order.client_name ?? '—') : '—';
+        const descripcionStr = p.info ? p.info : '—';
         return `
           <tr>
             <td class="center"><strong>${p.id}</strong></td>
             <td class="center">${dateStr}</td>
             <td class="center">${orderBadge}</td>
-            <td>${concepto}</td>
+            <td>${clienteStr}</td>
+            <td>${descripcionStr}</td>
             <td class="center">${p.descripcion ?? '—'}</td>
             <td class="right"><strong>$${fmt(p.amount)}</strong></td>
           </tr>`;
@@ -112,7 +112,8 @@ export const generatePaymentsReceivedLogbook = (
         <th style="width:45px"># Pago</th>
         <th style="width:110px">Fecha</th>
         <th style="width:80px">Tipo</th>
-        <th>Concepto / Cliente</th>
+        <th style="width:130px">Cliente</th>
+        <th>Descripción</th>
         <th style="width:90px">Método</th>
         <th style="width:80px">Monto</th>
       </tr>
@@ -120,7 +121,7 @@ export const generatePaymentsReceivedLogbook = (
     <tbody>
       ${rows}
       <tr class="total-row">
-        <td colspan="5" class="right">TOTAL ${filtered.length} pago(s):</td>
+        <td colspan="6" class="right">TOTAL ${filtered.length} pago(s):</td>
         <td class="right">$${fmt(totalAmount)}</td>
       </tr>
     </tbody>

@@ -29,5 +29,6 @@ export interface Payment {
     client_id: number;
     status: string;
     total: number;
+    client_name?: string;
   } | null;
 }
