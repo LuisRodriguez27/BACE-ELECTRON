@@ -22,7 +22,7 @@ class StatsRepository {
 
     if (productId) {
       const stmt = db.prepare(`
-        SELECT TO_CHAR(${dateCol}, 'YYYY-MM-DD') as sale_date, 
+        SELECT TO_CHAR(${dateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
                COALESCE(${paymentMethod ? 'SUM(op.total_price * (CAST(pay.amount AS FLOAT) / NULLIF(CAST(o.total AS FLOAT), 0)))' : 'SUM(op.total_price)'}, 0) as total, 
                COALESCE(${paymentMethod ? 'SUM(op.quantity * (CAST(pay.amount AS FLOAT) / NULLIF(CAST(o.total AS FLOAT), 0)))' : 'SUM(op.quantity)'}, 0) as quantity
         FROM orders o
@@ -51,7 +51,7 @@ class StatsRepository {
                COALESCE(SUM(total), 0) as total, 
                COUNT(*) as quantity
         FROM (
-          SELECT TO_CHAR(${dateCol}, 'YYYY-MM-DD') as sale_date, 
+          SELECT TO_CHAR(${dateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
                  ${paymentMethod ? 'pay.amount' : 'o.total'} as total
           FROM orders o
           ${joinPayment}
@@ -119,7 +119,7 @@ class StatsRepository {
       dateCol = 'pay.date';
     }
 
-    let whereClause = `WHERE o.active = 1 AND TO_CHAR(${dateCol}, 'YYYY-MM-DD') IN (${placeholders})`;
+    let whereClause = `WHERE o.active = 1 AND TO_CHAR(${dateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${placeholders})`;
     params.push(...dates);
 
     if (productId) {
@@ -129,7 +129,7 @@ class StatsRepository {
 
     if (productId) {
       const stmt = db.prepare(`
-        SELECT TO_CHAR(${dateCol}, 'YYYY-MM-DD') as sale_date, 
+        SELECT TO_CHAR(${dateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
                COALESCE(${paymentMethod ? 'SUM(op.total_price * (CAST(pay.amount AS FLOAT) / NULLIF(CAST(o.total AS FLOAT), 0)))' : 'SUM(op.total_price)'}, 0) as total, 
                COALESCE(${paymentMethod ? 'SUM(op.quantity * (CAST(pay.amount AS FLOAT) / NULLIF(CAST(o.total AS FLOAT), 0)))' : 'SUM(op.quantity)'}, 0) as quantity
         FROM orders o
@@ -158,7 +158,7 @@ class StatsRepository {
               COALESCE(SUM(total), 0) as total, 
               COUNT(*) as quantity
         FROM (
-          SELECT TO_CHAR(${dateCol}, 'YYYY-MM-DD') as sale_date, 
+          SELECT TO_CHAR(${dateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
                 ${paymentMethod ? 'pay.amount' : 'o.total'} as total
           FROM orders o
           ${joinPayment}
@@ -193,7 +193,7 @@ class StatsRepository {
       dateCol = 'pay.date';
     }
 
-    let whereClause = `WHERE o.active = 1 AND TO_CHAR(${dateCol}, 'YYYY-MM-DD') IN (${placeholders})`;
+    let whereClause = `WHERE o.active = 1 AND TO_CHAR(${dateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${placeholders})`;
     params.push(...dates);
 
     const stmt = db.prepare(`
@@ -219,9 +219,9 @@ class StatsRepository {
     try {
       const stmt = db.prepare(`
         SELECT DISTINCT year FROM (
-          SELECT TO_CHAR(date, 'YYYY') as year FROM orders WHERE active = 1 AND date IS NOT NULL
+          SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') as year FROM orders WHERE active = 1 AND date IS NOT NULL
           UNION
-          SELECT TO_CHAR(date, 'YYYY') as year FROM payments WHERE date IS NOT NULL
+          SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') as year FROM payments WHERE date IS NOT NULL
           UNION
           SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') as year FROM simple_orders WHERE active = 1 AND date IS NOT NULL
           UNION
@@ -255,9 +255,9 @@ class StatsRepository {
     const strYear = year.toString();
     const stmt = db.prepare(`
       SELECT DISTINCT sale_date FROM (
-        SELECT TO_CHAR(date, 'YYYY-MM-DD') as sale_date FROM orders WHERE active = 1 AND TO_CHAR(date, 'YYYY') = ?
+        SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date FROM orders WHERE active = 1 AND TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') = ?
         UNION
-        SELECT TO_CHAR(date, 'YYYY-MM-DD') as sale_date FROM payments WHERE TO_CHAR(date, 'YYYY') = ?
+        SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date FROM payments WHERE TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') = ?
         UNION
         SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date FROM simple_orders WHERE active = 1 AND TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') = ?
         UNION
