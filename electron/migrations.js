@@ -105,6 +105,32 @@ async function runMigrations(db, client) {
     }
   }
 
+  const existingStatsFilterPerm = await db.prepare("SELECT id FROM permissions WHERE name = 'Estadisticas: Filtros'").get();
+  let statsFilterPermId = existingStatsFilterPerm ? existingStatsFilterPerm.id : null;
+  if (!statsFilterPermId) {
+    const res = await db.prepare("INSERT INTO permissions (name, description, active) VALUES ('Estadisticas: Filtros', 'Permite filtrar las estadisticas', 1)").run();
+    statsFilterPermId = res.lastInsertRowid;
+  }
+  if (statsFilterPermId) {
+    const existingUserPerm4 = await db.prepare("SELECT * FROM user_permissions WHERE user_id = 1 AND permission_id = ?").get(statsFilterPermId);
+    if (!existingUserPerm4) {
+      try { await db.prepare("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (1, ?, 1)").run(statsFilterPermId); } catch (e) { }
+    }
+  }
+
+  const existingStatsTodayPerm = await db.prepare("SELECT id FROM permissions WHERE name = 'Estadisticas: Hoy'").get();
+  let statsTodayPermId = existingStatsTodayPerm ? existingStatsTodayPerm.id : null;
+  if (!statsTodayPermId) {
+    const res = await db.prepare("INSERT INTO permissions (name, description, active) VALUES ('Estadisticas: Hoy', 'Permite ver solo las estadisticas de hoy', 1)").run();
+    statsTodayPermId = res.lastInsertRowid;
+  }
+  if (statsTodayPermId) {
+    const existingUserPerm5 = await db.prepare("SELECT * FROM user_permissions WHERE user_id = 1 AND permission_id = ?").get(statsTodayPermId);
+    if (!existingUserPerm5) {
+      try { await db.prepare("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (1, ?, 1)").run(statsTodayPermId); } catch (e) { }
+    }
+  }
+
   // ACTUALIZACION DE ESTADOS
   await db.prepare("UPDATE orders SET status = 'Revision' WHERE status = 'pendiente'").run();
   await db.prepare("UPDATE orders SET status = 'Produccion' WHERE status = 'en proceso'").run();

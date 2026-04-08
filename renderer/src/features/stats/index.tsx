@@ -6,9 +6,16 @@ import { StatsService } from './StatsService'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { format, startOfWeek, endOfWeek, setWeek, getWeek } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { usePermissions } from '@/hooks/use-permissions'
 
 const StatsPage: React.FC = () => {
-  const [period, setPeriod] = useState<'week' | 'month' | 'year' | 'custom'>('month')
+  const { canAccess } = usePermissions()
+  const canFilterStats = canAccess('Estadisticas: Filtros')
+  const canViewTodayOnly = canAccess('Estadisticas: Hoy')
+
+  const [period, setPeriod] = useState<'week' | 'month' | 'year' | 'custom'>(
+    !canFilterStats && canViewTodayOnly ? 'custom' : 'month'
+  )
   const [selectedWeek, setSelectedWeek] = useState<number>(getWeek(new Date()))
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1)
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
@@ -316,9 +323,10 @@ const StatsPage: React.FC = () => {
       <div className="flex justify-between items-left">
         <div className="flex gap-4">
           <select
-            className="flex h-10 w-45 items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex h-10 w-45 items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             value={period}
             onChange={(e) => setPeriod(e.target.value as any)}
+            disabled={!canFilterStats}
           >
             <option value="week">Por Semana</option>
             <option value="month">Por Mes</option>
@@ -327,9 +335,10 @@ const StatsPage: React.FC = () => {
           </select>
 
           <select
-            className="flex h-10 w-45 items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex h-10 w-45 items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             value={source}
             onChange={(e) => setSource(e.target.value)}
+            disabled={!canFilterStats}
           >
             <option value="all">Todas las ventas</option>
             <option value="orders">Órdenes</option>
@@ -341,16 +350,17 @@ const StatsPage: React.FC = () => {
             <div className="flex items-center gap-2">
               <input
                 type="date"
-                className="h-10 rounded-md border border-gray-300 px-3 py-2 text-sm"
+                className="h-10 rounded-md border border-gray-300 px-3 py-2 text-sm disabled:opacity-50"
                 max={format(new Date(), 'yyyy-MM-dd')}
                 value={tempDate}
                 onChange={(e) => setTempDate(e.target.value)}
+                disabled={!canFilterStats}
               />
               <Button
                 variant="outline"
                 size="icon"
-                className="bg-white"
-                disabled={!tempDate}
+                className="bg-white disabled:opacity-50"
+                disabled={!tempDate || !canFilterStats}
                 onClick={() => {
                   if (tempDate && !selectedDates.includes(tempDate)) {
                     setSelectedDates([...selectedDates, tempDate].sort())
@@ -365,9 +375,10 @@ const StatsPage: React.FC = () => {
 
           {(period === 'month' || period === 'week') && (
             <select
-              className="flex h-10 w-35 items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex h-10 w-35 items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+              disabled={!canFilterStats}
             >
               {[...Array(12)].map((_, i) => (
                 <option key={i + 1} value={i + 1}>
@@ -379,9 +390,10 @@ const StatsPage: React.FC = () => {
 
           {period === 'week' && (
             <select
-              className="flex h-10 w-60 items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex h-10 w-60 items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
               value={selectedWeek}
               onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
+              disabled={!canFilterStats}
             >
               {(() => {
                 const firstDay = new Date(selectedYear, selectedMonth - 1, 1);
@@ -438,9 +450,10 @@ const StatsPage: React.FC = () => {
 
           {(period === 'month' || period === 'year' || period === 'week') && (
             <select
-              className="flex h-10 w-25 items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex h-10 w-25 items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
               value={selectedYear}
               onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              disabled={!canFilterStats}
             >
               {availableYears.map((year) => (
                 <option key={year} value={year}>
@@ -451,9 +464,10 @@ const StatsPage: React.FC = () => {
           )}
 
           <select
-            className="flex h-10 w-45 items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex h-10 w-45 items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             value={productId}
             onChange={(e) => setProductId(e.target.value)}
+            disabled={!canFilterStats}
           >
             <option value="all">Todos los productos</option>
             {products.map((p) => (
@@ -464,9 +478,10 @@ const StatsPage: React.FC = () => {
           </select>
 
           <select
-            className="flex h-10 w-40 items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex h-10 w-40 items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             value={paymentMethod}
             onChange={(e) => setPaymentMethod(e.target.value)}
+            disabled={!canFilterStats}
           >
             <option value="all">Todos los pagos</option>
             <option value="Efectivo">Efectivo</option>
@@ -487,12 +502,14 @@ const StatsPage: React.FC = () => {
           {selectedDates.sort().map(date => (
             <div key={date} className="flex items-center gap-1 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-medium border border-blue-100">
               {format(new Date(date + 'T12:00:00'), "d 'de' MMMM", { locale: es })}
-              <button
-                onClick={() => setSelectedDates(selectedDates.filter(d => d !== date))}
-                className="hover:bg-blue-200 rounded-full p-0.5 transition-colors"
-              >
-                <X size={12} />
-              </button>
+              {canFilterStats && (
+                <button
+                  onClick={() => setSelectedDates(selectedDates.filter(d => d !== date))}
+                  className="hover:bg-blue-200 rounded-full p-0.5 transition-colors"
+                >
+                  <X size={12} />
+                </button>
+              )}
             </div>
           ))}
         </div>

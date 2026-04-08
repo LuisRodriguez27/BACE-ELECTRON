@@ -104,7 +104,7 @@ class StatsRepository {
                COALESCE(SUM(total), 0) as total, 
                COUNT(*) as quantity
         FROM (
-          ${unions.join('\\n UNION ALL \\n')}
+          ${unions.join('\n UNION ALL \n')}
         ) combined
         GROUP BY sale_date
         ORDER BY sale_date ASC
@@ -251,7 +251,7 @@ class StatsRepository {
                COALESCE(SUM(total), 0) as total, 
                COUNT(*) as quantity
         FROM (
-          ${unions.join('\\n UNION ALL \\n')}
+          ${unions.join('\n UNION ALL \n')}
         ) combined
         GROUP BY sale_date
         ORDER BY sale_date ASC
