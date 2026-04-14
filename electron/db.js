@@ -25,11 +25,11 @@ const isDev = !app.isPackaged;
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const pool = new Pool({
-  user: process.env.DB_USER || 'admin',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'db', // Ajusta el nombre de la BD para produccion si es diferente
-  password: process.env.DB_PASSWORD || '1234', // Pon la contraseña que use postgres en el NAS
-  port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 5432,
+  user: isDev ? process.env.DEV_DB_USER : process.env.PROD_DB_USER,
+  host: isDev ? process.env.DEV_DB_HOST : process.env.PROD_DB_HOST,
+  database: isDev ? process.env.DEV_DB_NAME : process.env.PROD_DB_NAME,
+  password: isDev ? process.env.DEV_DB_PASSWORD : process.env.PROD_DB_PASSWORD,
+  port: parseInt(isDev ? process.env.DEV_DB_PORT : process.env.PROD_DB_PORT, 10),
 });
 
 const asyncLocalStorage = new AsyncLocalStorage();
