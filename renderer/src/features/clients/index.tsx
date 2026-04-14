@@ -14,7 +14,7 @@ const ClientsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const { checkPermission } = usePermissions();
-  const { sendWhatsApp, WhatsAppClientDialog } = useWhatsAppClient();
+  const { sendWhatsApp, whatsappDialogElement } = useWhatsAppClient();
   
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -360,7 +360,7 @@ const ClientsPage: React.FC = () => {
         onClose={closeModals}
         client={selectedClient}
       />
-      <WhatsAppClientDialog />
+      {whatsappDialogElement}
     </div>
   );
 };

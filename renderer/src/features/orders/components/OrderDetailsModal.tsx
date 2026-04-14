@@ -66,7 +66,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   });
   const { user } = useAuth();
   const { checkPermission } = usePermissions();
-  const { isSendingWhatsApp, sendWhatsApp, WhatsAppDialog } = useWhatsAppOrder();
+  const { isSendingWhatsApp, sendWhatsApp, whatsappDialogElement } = useWhatsAppOrder();
 
   // Cargar datos de la orden al abrir el modal
   useEffect(() => {
@@ -806,7 +806,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         paymentsData={payments}
       />
 
-      {WhatsAppDialog && <WhatsAppDialog />}
+      {whatsappDialogElement}
     </div>
   );
 };
