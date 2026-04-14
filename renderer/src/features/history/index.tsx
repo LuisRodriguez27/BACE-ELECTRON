@@ -6,6 +6,7 @@ import type { Order } from '../orders/types';
 import { PaymentsApiService } from '../payments/PaymentsApiService';
 import type { Payment } from '../payments/types';
 import { SalesApiService } from './SalesApiService';
+import { formatDateMX, formatDateOnlyMX } from '@/utils/dateUtils';
 
 interface PaginationInfo {
   page: number;
@@ -140,12 +141,14 @@ const OrdersPage: React.FC = () => {
     };
   }, [searchTerm]);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+  // Para order.date (tiene hora significativa → convertir a MX)
+  const formatDateTime = (dateString: string) => {
+    return formatDateMX(dateString, 'D MMM YYYY, h:mm A');
+  };
+
+  // Para estimated_delivery_date (UTC midnight → no cambiar timezone)
+  const formatDateOnly = (dateString: string) => {
+    return formatDateOnlyMX(dateString, 'D MMM YYYY');
   };
 
   const getStatusColor = (status: string) => {
@@ -363,13 +366,13 @@ const OrdersPage: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-gray-600">
                           <div className="flex items-center gap-2">
                             <Calendar size={14} />
-                            <span>Fecha: {formatDate(order.date)}</span>
+                            <span>Fecha: {formatDateTime(order.date)}</span>
                           </div>
                           
                           {order.estimated_delivery_date && (
                             <div className="flex items-center gap-2">
                               <Calendar size={14} />
-                              <span>Entrega: {formatDate(order.estimated_delivery_date)}</span>
+                              <span>Entrega: {formatDateOnly(order.estimated_delivery_date)}</span>
                             </div>
                           )}
                           

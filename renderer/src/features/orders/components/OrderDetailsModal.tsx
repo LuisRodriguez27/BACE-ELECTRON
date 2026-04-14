@@ -32,7 +32,7 @@ import { PaymentsApiService } from '../../payments/PaymentsApiService';
 import { PaymentsList } from '../../payments/components';
 import type { Payment } from '../../payments/types';
 import { usePermissions } from '@/hooks/use-permissions';
-import { formatDateMX, isoToDateInputMX, startOfDayUTC } from '@/utils/dateUtils';
+import { formatDateMX, formatDateOnlyMX, isoToDateInputMX, startOfDayUTC } from '@/utils/dateUtils';
 import { useWhatsAppOrder } from '../hooks/useWhatsAppOrder';
 
 interface OrderDetailsModalProps {
@@ -193,7 +193,8 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   };
 
   const formatDateOnly = (dateString: string) => {
-    return formatDateMX(dateString, 'D MMM YYYY');
+    // Fecha de entrega guardada como UTC midnight → parsear como UTC para no cambiar el día
+    return formatDateOnlyMX(dateString, 'D MMM YYYY');
   };
 
 

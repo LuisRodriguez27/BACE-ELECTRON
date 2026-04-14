@@ -39,6 +39,16 @@ export const formatDateMX = (isoString: string | Date | null | undefined, format
 };
 
 /**
+ * Formats a date-only value (stored as UTC midnight, e.g. '2026-04-17 00:00:00.000' or '2026-04-17T00:00:00.000Z')
+ * without shifting the day due to timezone conversion.
+ * Parses the value strictly as UTC so that 00:00:00Z stays on the correct calendar day.
+ */
+export const formatDateOnlyMX = (isoString: string | Date | null | undefined, formatStr: string = 'DD/MM/YYYY'): string => {
+    if (!isoString) return '';
+    return dayjs.utc(isoString).format(formatStr);
+};
+
+/**
  * Converts an input date value (YYYY-MM-DD) to a strict UTC ISO 8601 string.
  * Example: '2025-10-15' -> '2025-10-15T00:00:00.000Z'
  */

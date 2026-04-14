@@ -1,10 +1,14 @@
 import { getOrderItemDisplayName, getOrderItemDescription, getOrderItemType } from '../types';
-import { formatDateMX } from '@/utils/dateUtils';
+import { formatDateMX, formatDateOnlyMX } from '@/utils/dateUtils';
 
 const getDay   = (d: string) => formatDateMX(d, 'DD');
 const getMonth = (d: string) => formatDateMX(d, 'MM');
 const getYear  = (d: string) => formatDateMX(d, 'YYYY');
 const getHours = (d: string) => formatDateMX(d, 'HH:mm');
+// Para estimated_delivery_date (UTC midnight) – no aplicar offset de timezone
+const getDayUTC   = (d: string) => formatDateOnlyMX(d, 'DD');
+const getMonthUTC = (d: string) => formatDateOnlyMX(d, 'MM');
+const getYearUTC  = (d: string) => formatDateOnlyMX(d, 'YYYY');
 
 // ── Convierte una URL de imagen local a base64 ─────────────────────────────
 export const imageToBase64 = (url: string): Promise<string> =>
@@ -78,9 +82,9 @@ export function buildPageHtml(params: {
                 ${orderData.estimated_delivery_date ? `
                 <div style="text-align: right; width: 100px;">
                     <div style="display: flex; gap: 1.25rem;">
-                        <span>${getDay(orderData.estimated_delivery_date)}</span>
-                        <span>${getMonth(orderData.estimated_delivery_date)}</span>
-                        <span>${getYear(orderData.estimated_delivery_date)}</span>
+                        <span>${getDayUTC(orderData.estimated_delivery_date)}</span>
+                        <span>${getMonthUTC(orderData.estimated_delivery_date)}</span>
+                        <span>${getYearUTC(orderData.estimated_delivery_date)}</span>
                     </div>
                 </div>
                 ` : ''}
