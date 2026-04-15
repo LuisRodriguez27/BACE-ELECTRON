@@ -21,6 +21,11 @@ const imageService = require('./services/imageService');
 let whatsappWindow = null;
 let isQuitting = false;
 
+// User Agent de Chrome real — necesario porque WhatsApp Web bloquea
+// deliberadamente cualquier request que contenga "Electron" en el UA.
+const WHATSAPP_USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
 function initWhatsApp() {
   if (whatsappWindow) return;
 
@@ -32,7 +37,9 @@ function initWhatsApp() {
     autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: false,
-      contextIsolation: true
+      contextIsolation: true,
+      // Sobrescribir el userAgent aquí también para peticiones internas
+      userAgent: WHATSAPP_USER_AGENT
     }
   });
 
@@ -44,8 +51,10 @@ function initWhatsApp() {
     }
   });
 
-  // Pre-cargar WhatsApp
-  whatsappWindow.loadURL('https://web.whatsapp.com');
+  // Pre-cargar WhatsApp con un userAgent limpio (sin "Electron")
+  whatsappWindow.loadURL('https://web.whatsapp.com', {
+    userAgent: WHATSAPP_USER_AGENT
+  });
 }
 
 function createWindow() {
@@ -242,7 +251,7 @@ ipcMain.handle('shell:openExternal', async (_event, url) => {
       });
     } else {
       // Si la app apenas arrancó o está cargando inicial, hacemos la navegación normal
-      whatsappWindow.loadURL(url);
+      whatsappWindow.loadURL(url, { userAgent: WHATSAPP_USER_AGENT });
     }
   } else {
     await shell.openExternal(url);
