@@ -210,12 +210,7 @@ export function useWhatsAppBudget() {
         toast.warning('El cliente no tiene número registrado. Selecciona el chat manualmente.');
       }
 
-      const api = (window as any).api;
-      if (api?.openExternal) {
-        await api.openExternal(whatsappUrl);
-      } else {
-        window.open(whatsappUrl, '_blank');
-      }
+      await window.api.openExternal(whatsappUrl);
 
     } catch (error) {
       console.error('Error al enviar por WhatsApp:', error);

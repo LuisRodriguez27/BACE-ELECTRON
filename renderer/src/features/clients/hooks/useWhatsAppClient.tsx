@@ -37,12 +37,7 @@ export function useWhatsAppClient() {
         toast.warning('El cliente no tiene número registrado. Selecciona el chat manualmente.');
       }
 
-      const api = (window as any).api;
-      if (api?.openExternal) {
-        await api.openExternal(whatsappUrl);
-      } else {
-        window.open(whatsappUrl, '_blank');
-      }
+      await window.api.openExternal(whatsappUrl);
 
       toast.success(`Mensaje de bienvenida enviado a ${pendingClient.name}`);
     } catch (error) {
