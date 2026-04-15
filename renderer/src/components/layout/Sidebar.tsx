@@ -11,7 +11,8 @@ import {
   Calculator,
   BarChart3,
   Zap,
-  DollarSign
+  DollarSign,
+  MessageCircle
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSidebarStore } from '@/store/sidebar'
@@ -160,6 +161,29 @@ const Sidebar: React.FC = () => {
           )
         })}
       </nav>
+
+      {/* WhatsApp al fondo */}
+      <div className="px-2 py-4 border-t border-gray-700">
+        <button
+          onClick={() => window.api.openWhatsApp()}
+          title="WhatsApp Web"
+          className={cn(
+            'w-full flex items-center px-3 py-2 rounded-lg transition-colors duration-200 group min-w-10',
+            'text-gray-300 hover:bg-green-700 hover:text-white',
+            !isExpanded && 'justify-center'
+          )}
+        >
+          <MessageCircle size={20} className="shrink-0 w-5 h-5 text-green-400 group-hover:text-white" />
+          <span className={cn(
+            'ml-3 transition-all duration-300 whitespace-nowrap',
+            isExpanded
+              ? 'opacity-100 translate-x-0'
+              : 'opacity-0 -translate-x-2 w-0 overflow-hidden'
+          )}>
+            WhatsApp
+          </span>
+        </button>
+      </div>
 
       {/* Configuraciones al final */}
       {/* <div className="px-2 py-4 border-t border-gray-700">

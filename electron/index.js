@@ -210,6 +210,13 @@ ipcMain.handle('simpleOrders:deletePayment', async (event, id) => await simpleOr
 ipcMain.handle('upload-image', async (event, productId, buffer, originalName) => await imageService.uploadImage(productId, buffer, originalName));
 ipcMain.handle('delete-image', async (event, relativePath) => await imageService.deleteImage(relativePath));
 
+// Abrir WhatsApp directamente desde el sidebar
+ipcMain.handle('whatsapp:open', () => {
+  if (!whatsappWindow) initWhatsApp();
+  whatsappWindow.show();
+  whatsappWindow.focus();
+});
+
 // Abrir URLs en el navegador predeterminado del sistema (Intercepción para WhatsApp)
 ipcMain.handle('shell:openExternal', async (_event, url) => {
   if (url.includes('web.whatsapp.com')) {

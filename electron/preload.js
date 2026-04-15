@@ -122,4 +122,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // Abrir URL en el navegador predeterminado del sistema
   openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),
+
+  // WhatsApp
+  openWhatsApp: () => ipcRenderer.invoke('whatsapp:open'),
 });

@@ -130,10 +130,15 @@ declare global {
       updateSimpleOrder: (id: number, data: Partial<CreateSimpleOrderForm>) => Promise<SimpleOrder>;
       deleteSimpleOrder: (id: number) => Promise<void>;
 
+      // Pagos de Órdenes Rápidas
       addSimpleOrderPayment: (data: CreateSimpleOrderPaymentForm) => Promise<SimpleOrderPayment>;
       getSimpleOrderPayments: (id: number) => Promise<SimpleOrderPayment[]>;
       updateSimpleOrderPayment: (id: number, data: UpdateSimpleOrderPaymentForm) => Promise<SimpleOrderPayment>;
       deleteSimpleOrderPayment: (id: number) => Promise<void>;
+
+      // Shell / Utilidades
+      openExternal: (url: string) => Promise<void>;
+      openWhatsApp: () => Promise<void>;
     };
   }
 }
