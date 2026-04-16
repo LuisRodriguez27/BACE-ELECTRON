@@ -139,6 +139,14 @@ declare global {
       // Shell / Utilidades
       openExternal: (url: string) => Promise<void>;
       openWhatsApp: () => Promise<void>;
+
+      // Actualizaciones automáticas
+      updater: {
+        onUpdateAvailable: (callback: (info: { version: string }) => void) => void;
+        onUpdateDownloaded: (callback: (info: { version: string }) => void) => void;
+        removeAllListeners: () => void;
+        install: () => Promise<void>;
+      };
     };
   }
 }

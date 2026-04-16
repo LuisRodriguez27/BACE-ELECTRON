@@ -80,3 +80,14 @@ body {
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
   background: #a0aec0;
 }
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.08); }
+}
+
+.animate-breathe {
+  animation: breathe 2.4s ease-in-out infinite;
+}
+
+

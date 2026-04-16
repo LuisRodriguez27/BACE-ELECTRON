@@ -2,6 +2,7 @@ import { createRouter, RouterProvider, createHashHistory } from '@tanstack/react
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { useAuth } from '@/hooks/use-auth'
+import UpdateBanner from '@/components/layout/UpdateBanner'
 
 // Import the generated route tree
 import { routeTree } from './routeTree.gen'
@@ -49,7 +50,11 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AppWrapper />
-      <ReactQueryDevtools initialIsOpen={false} />
+      <UpdateBanner />
+      <ReactQueryDevtools 
+        initialIsOpen={false} 
+        buttonPosition='bottom-left'
+      />
     </QueryClientProvider>
   )
 }

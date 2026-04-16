@@ -125,4 +125,22 @@ contextBridge.exposeInMainWorld('api', {
 
   // WhatsApp
   openWhatsApp: () => ipcRenderer.invoke('whatsapp:open'),
+
+  // Actualizaciones automáticas
+  updater: {
+    // Suscribirse a eventos del proceso principal
+    onUpdateAvailable: (callback) => {
+      ipcRenderer.on('updater:update-available', (_event, info) => callback(info));
+    },
+    onUpdateDownloaded: (callback) => {
+      ipcRenderer.on('updater:update-downloaded', (_event, info) => callback(info));
+    },
+    // Desuscribirse al desmontar el componente
+    removeAllListeners: () => {
+      ipcRenderer.removeAllListeners('updater:update-available');
+      ipcRenderer.removeAllListeners('updater:update-downloaded');
+    },
+    // Instalar la actualización descargada
+    install: () => ipcRenderer.invoke('updater:install'),
+  },
 });

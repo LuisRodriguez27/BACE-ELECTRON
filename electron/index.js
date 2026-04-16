@@ -1,5 +1,7 @@
 const { app, BrowserWindow, ipcMain, protocol, net, shell } = require('electron');
 const path = require('path');
+const { autoUpdater } = require('electron-updater');
+const log = require('electron-log');
 
 // Deshabilitar aceleración de hardware para evitar problemas de renderizado
 app.disableHardwareAcceleration();
@@ -17,6 +19,10 @@ const budgetService = require('./services/budgetService');
 const statsService = require('./services/statsService');
 const simpleOrderService = require('./services/simpleOrderService');
 const imageService = require('./services/imageService');
+
+// Configuración de logs para no ir a ciegas
+autoUpdater.logger = log;
+autoUpdater.logger.transports.file.level = 'info';
 
 let whatsappWindow = null;
 let isQuitting = false;
@@ -260,6 +266,11 @@ ipcMain.handle('shell:openExternal', async (_event, url) => {
 
 require('dotenv').config();
 
+// IPC para que el renderer pueda solicitar la instalación de la actualización
+ipcMain.handle('updater:install', () => {
+  autoUpdater.quitAndInstall(true, true);
+});
+
 app.whenReady().then(() => {
   const baseImagePath = imageService.getBasePath();
   
@@ -292,6 +303,35 @@ app.whenReady().then(() => {
 
   createWindow();
   initWhatsApp(); // Arrancar WhatsApp Web en memoria al inicio
+
+  // Revisar actualizaciones al arrancar (solo en producción)
+  if (app.isPackaged) {
+    // Descargar automáticamente sin preguntar
+    autoUpdater.autoDownload = true;
+    autoUpdater.autoInstallOnAppQuit = false; // El usuario decide cuándo instalar
+
+    autoUpdater.on('update-available', (info) => {
+      log.info('Actualización disponible:', info.version);
+      // Notificar al renderer para mostrar el banner
+      BrowserWindow.getAllWindows().forEach((win) => {
+        win.webContents.send('updater:update-available', { version: info.version });
+      });
+    });
+
+    autoUpdater.on('update-downloaded', (info) => {
+      log.info('Actualización descargada:', info.version);
+      // Notificar al renderer para cambiar el banner a "listo para instalar"
+      BrowserWindow.getAllWindows().forEach((win) => {
+        win.webContents.send('updater:update-downloaded', { version: info.version });
+      });
+    });
+
+    autoUpdater.on('error', (err) => {
+      log.error('Error en el updater:', err.message);
+    });
+
+    autoUpdater.checkForUpdates();
+  }
 });
 
 // Limpiar sesión al cerrar la aplicación
