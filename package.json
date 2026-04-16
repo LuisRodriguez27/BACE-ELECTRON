@@ -1,6 +1,6 @@
 {
   "name": "bace",
-  "version": "4.1.0",
+  "version": "4.1.1",
   "description": "Aplicación BACE Electron",
   "main": "electron/index.js",
   "author": "Luis Rodriguez",
@@ -57,8 +57,7 @@
           "target": "nsis",
           "arch": [
             "x64"
-          ],
-          "verifyUpdateCodeSignature": false
+          ]
         }
       ],
       "verifyUpdateCodeSignature": false
