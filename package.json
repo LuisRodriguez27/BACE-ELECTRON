@@ -16,11 +16,9 @@
   "keywords": [],
   "packageManager": "pnpm@10.29.1",
   "devDependencies": {
-    "@electron/rebuild": "4.0.1",
     "concurrently": "^9.2.0",
     "electron": "37.3.0",
-    "electron-builder": "^26.0.12",
-    "jscodeshift": "^17.3.0"
+    "electron-builder": "^26.0.12"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -34,12 +32,14 @@
   },
   "build": {
     "appId": "com.bace.electron",
-    "publish": {
-      "provider": "github",
-      "owner": "LuisRodriguez27",
-      "repo": "BACE-ELECTRON"
-    },
     "productName": "BACE",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "LuisRodriguez27",
+        "repo": "BACE-ELECTRON"
+      }
+    ],
     "directories": {
       "output": "dist",
       "buildResources": "build"
