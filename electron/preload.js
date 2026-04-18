@@ -133,7 +133,7 @@ contextBridge.exposeInMainWorld('api', {
       ipcRenderer.on('updater:update-available', (_event, info) => callback(info));
     },
     onUpdateDownloaded: (callback) => {
-      ipcRenderer.on('updater:update-downloaded', (_event, info) => callback(info));
+      ipcRenderer.on('updater:update-downloaded', (_event, data) => callback(data));
     },
     // Desuscribirse al desmontar el componente
     removeAllListeners: () => {

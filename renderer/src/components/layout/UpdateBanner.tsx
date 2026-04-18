@@ -15,6 +15,10 @@ const UpdateBanner: React.FC = () => {
 
     window.api.updater.onUpdateDownloaded((info) => {
       setVersion(info.version)
+      if (info.notes) {
+        localStorage.setItem('bace_latest_version', info.version)
+        localStorage.setItem('bace_release_notes', info.notes)
+      }
       setReady(true) // Mostrar botón flotante, NO el modal
     })
 
@@ -40,7 +44,7 @@ const UpdateBanner: React.FC = () => {
         <button
           id="dev-updater-toggle"
           onClick={() => { setVersion('4.2.0'); setReady(true) }}
-          className="fixed bottom-20 left-4 z-[99999] rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-xs text-gray-400 transition hover:bg-gray-700 hover:text-white"
+          className="fixed bottom-20 left-4 z-99999 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-xs text-gray-400 transition hover:bg-gray-700 hover:text-white"
         >
           DEV: simular update
         </button>
@@ -52,7 +56,7 @@ const UpdateBanner: React.FC = () => {
           id="update-fab"
           onClick={() => setModalOpen(true)}
           title={`BACE ${version} disponible`}
-          className="animate-breathe fixed bottom-6 right-6 z-[99999] flex items-center gap-2 rounded-full bg-gray-800 pl-3 pr-4 py-2.5 text-xs font-medium text-white shadow-xl border border-gray-700 hover:bg-gray-700 transition-colors"
+          className="animate-breathe fixed bottom-6 right-6 z-99999 flex items-center gap-2 rounded-full bg-gray-800 pl-3 pr-4 py-2.5 text-xs font-medium text-white shadow-xl border border-gray-700 hover:bg-gray-700 transition-colors"
         >
           {/* Punto verde con ping */}
           <span className="relative flex h-2.5 w-2.5">
@@ -66,7 +70,7 @@ const UpdateBanner: React.FC = () => {
       {/* ── Modal (solo se abre al hacer clic en el botón) ───────────────── */}
       {ready && modalOpen && (
         <div
-          className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/60"
+          className="fixed inset-0 z-999999 flex items-center justify-center bg-black/60"
           onClick={() => setModalOpen(false)} // cerrar al clickear el overlay
         >
           <div

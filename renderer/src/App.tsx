@@ -53,7 +53,7 @@ function App() {
       <UpdateBanner />
       <ReactQueryDevtools 
         initialIsOpen={false} 
-        buttonPosition='bottom-left'
+        buttonPosition='top-right'
       />
     </QueryClientProvider>
   )

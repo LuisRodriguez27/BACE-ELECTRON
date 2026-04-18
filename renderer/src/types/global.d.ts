@@ -143,7 +143,7 @@ declare global {
       // Actualizaciones automáticas
       updater: {
         onUpdateAvailable: (callback: (info: { version: string }) => void) => void;
-        onUpdateDownloaded: (callback: (info: { version: string }) => void) => void;
+        onUpdateDownloaded: (callback: (info: { version: string, notes: string }) => void) => void;
         removeAllListeners: () => void;
         install: () => Promise<void>;
       };

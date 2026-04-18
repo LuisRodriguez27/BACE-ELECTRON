@@ -318,11 +318,37 @@ app.whenReady().then(() => {
       });
     });
 
+    // Función para extraer las notas de la release desde Git
+    function parseReleaseNotes(notes) {
+      if (!notes) return "Mejoras de rendimiento y corrección de errores.";
+      
+      let rawNotes = notes;
+      // Por compatibilidad por si electron-updater devuelve un array o objeto
+      if (Array.isArray(notes)) {
+        rawNotes = notes[0]?.note || notes[0]?.notes || "";
+      }
+      
+      if (typeof rawNotes === 'string') {
+        // Convertimos el HTML/texto de GitHub a formato puramente textual manteniendo las listas y saltos
+        return rawNotes
+          .replace(/<\/h[1-6]>/gi, '\n\n') // Separar encabezados
+          .replace(/<\/p>/gi, '\n')       // Separar párrafos
+          .replace(/<br\s*\/?>/gi, '\n')  // Saltos de línea <br>
+          .replace(/<li>/gi, '• ')        // Agregar viñetas (bullets) en los items de lista
+          .replace(/<\/li>/gi, '\n')      // Salto de línea después de cada item
+          .replace(/<[^>]*>?/gm, '')      // Limpiar cualquier otra etiqueta HTML (<a>, <strong>, etc)
+          .trim();
+      }
+      
+      return "Actualización disponible.";
+    }
+
     autoUpdater.on('update-downloaded', (info) => {
       log.info('Actualización descargada:', info.version);
+      const notes = parseReleaseNotes(info.releaseNotes);
       // Notificar al renderer para cambiar el banner a "listo para instalar"
       BrowserWindow.getAllWindows().forEach((win) => {
-        win.webContents.send('updater:update-downloaded', { version: info.version });
+        win.webContents.send('updater:update-downloaded', { version: info.version, notes });
       });
     });
 
