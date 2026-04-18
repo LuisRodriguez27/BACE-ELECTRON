@@ -115,7 +115,7 @@ const PaymentsLogbookModal: React.FC<PaymentsLogbookModalProps> = ({
   const handlePrint = () => {
     const currentDate = formatDateMX(new Date().toISOString(), 'D [de] MMMM YYYY, HH:mm');
     const html = logbookType === 'received'
-      ? generatePaymentsReceivedLogbook(filteredPayments, filters, currentDate)
+      ? generatePaymentsReceivedLogbook(filteredPayments, filters, currentDate, orders)
       : generatePendingPaymentsLogbook(filteredPendingOrders, filters, currentDate);
 
     const printWindow = window.open('', '_blank');

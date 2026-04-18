@@ -64,7 +64,8 @@ const printScript = `
 export const generatePaymentsReceivedLogbook = (
   payments: Payment[],
   filters: PaymentLogbookFilters,
-  currentDate: string
+  currentDate: string,
+  orders: Order[] = []
 ): string => {
   const filtered = filterByDate(payments, filters);
 
@@ -82,7 +83,18 @@ export const generatePaymentsReceivedLogbook = (
           ? `<span class="badge-orden">Orden #${p.order_id}</span>`
           : `<span class="badge-libre">Libre</span>`;
         const clienteStr = p.order ? (p.order.client_name ?? '—') : '—';
-        const descripcionStr = p.info ? p.info : '—';
+        
+        let descripcionStr = p.info ? p.info : '—';
+        if (p.order_id && orders && orders.length > 0) {
+          const relatedOrder = orders.find(o => o.id === p.order_id);
+          if (relatedOrder) {
+            const orderDesc = relatedOrder.description || relatedOrder.notes;
+            if (orderDesc) {
+              descripcionStr = p.info ? `${orderDesc} (Pago: ${p.info})` : orderDesc;
+            }
+          }
+        }
+        
         return `
           <tr>
             <td class="center"><strong>${p.id}</strong></td>
