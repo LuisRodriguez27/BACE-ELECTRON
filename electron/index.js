@@ -322,7 +322,8 @@ app.whenReady().then(() => {
 
     // Función para extraer las notas de la release desde Git
     function parseReleaseNotes(notes) {
-      if (!notes) return "Mejoras de rendimiento y corrección de errores.";
+      const fallback = "Mejoras de rendimiento y correcciones de errores.";
+      if (!notes) return fallback;
       
       let rawNotes = notes;
       // Por compatibilidad por si electron-updater devuelve un array o objeto
@@ -332,7 +333,7 @@ app.whenReady().then(() => {
       
       if (typeof rawNotes === 'string') {
         // Convertimos el HTML/texto de GitHub a formato puramente textual manteniendo las listas y saltos
-        return rawNotes
+        const parsed = rawNotes
           .replace(/<\/h[1-6]>/gi, '\n\n') // Separar encabezados
           .replace(/<\/p>/gi, '\n')       // Separar párrafos
           .replace(/<br\s*\/?>/gi, '\n')  // Saltos de línea <br>
@@ -340,9 +341,11 @@ app.whenReady().then(() => {
           .replace(/<\/li>/gi, '\n')      // Salto de línea después de cada item
           .replace(/<[^>]*>?/gm, '')      // Limpiar cualquier otra etiqueta HTML (<a>, <strong>, etc)
           .trim();
+          
+        return parsed || fallback;
       }
       
-      return "Actualización disponible.";
+      return fallback;
     }
 
     autoUpdater.on('update-downloaded', (info) => {

@@ -15,10 +15,9 @@ const UpdateBanner: React.FC = () => {
 
     window.api.updater.onUpdateDownloaded((info) => {
       setVersion(info.version)
-      if (info.notes) {
-        localStorage.setItem('bace_latest_version', info.version)
-        localStorage.setItem('bace_release_notes', info.notes)
-      }
+      const releaseNotes = info.notes || "Mejoras de rendimiento y correcciones de errores.";
+      localStorage.setItem('bace_latest_version', info.version)
+      localStorage.setItem('bace_release_notes', releaseNotes)
       setReady(true) // Mostrar botón flotante, NO el modal
     })
 
@@ -43,7 +42,10 @@ const UpdateBanner: React.FC = () => {
       {isDev && !ready && (
         <button
           id="dev-updater-toggle"
-          onClick={() => { setVersion('4.2.0'); setReady(true) }}
+          onClick={() => { 
+            setVersion('4.2.0'); 
+            setReady(true); 
+          }}
           className="fixed bottom-20 left-4 z-99999 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-xs text-gray-400 transition hover:bg-gray-700 hover:text-white"
         >
           DEV: simular update
