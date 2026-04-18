@@ -268,7 +268,9 @@ require('dotenv').config();
 
 // IPC para que el renderer pueda solicitar la instalación de la actualización
 ipcMain.handle('updater:install', () => {
-  autoUpdater.quitAndInstall(true, true);
+  // Cambiar a isSilent: false para que muestre la interfaz del instalador.
+  // Si está en true y requiere permisos de administrador (UAC), fallará silenciosamente sin instalar.
+  autoUpdater.quitAndInstall(false, true);
 });
 
 app.whenReady().then(() => {
