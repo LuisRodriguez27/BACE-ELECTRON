@@ -1,6 +1,6 @@
 {
   "name": "bace",
-  "version": "4.1.1",
+  "version": "5.0.0",
   "description": "Aplicación BACE Electron",
   "main": "electron/index.js",
   "author": "Luis Rodriguez",
