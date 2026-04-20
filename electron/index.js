@@ -50,6 +50,82 @@ function initWhatsApp() {
     }
   });
 
+  // Agregar menú de contexto (clic derecho) para soportar guardar/copiar imágenes, pegar texto, etc.
+  whatsappWindow.webContents.on('context-menu', (event, params) => {
+    const { Menu, clipboard } = require('electron');
+    const template = [];
+
+    if (params.mediaType === 'image') {
+      template.push(
+        {
+          label: 'Guardar imagen como...',
+          click: () => {
+            whatsappWindow.webContents.downloadURL(params.srcURL);
+          }
+        },
+        {
+          label: 'Copiar imagen',
+          click: () => {
+            whatsappWindow.webContents.copyImageAt(params.x, params.y);
+          }
+        },
+        { type: 'separator' }
+      );
+    }
+
+    if (params.linkURL) {
+      template.push(
+        {
+          label: 'Copiar enlace',
+          click: () => {
+            clipboard.writeText(params.linkURL);
+          }
+        },
+        { type: 'separator' }
+      );
+    }
+
+    if (params.selectionText) {
+      template.push(
+        { label: 'Copiar', role: 'copy' },
+        { type: 'separator' }
+      );
+    }
+
+    if (params.isEditable) {
+      template.push(
+        { label: 'Deshacer', role: 'undo' },
+        { label: 'Rehacer', role: 'redo' },
+        { type: 'separator' },
+        { label: 'Cortar', role: 'cut' },
+        { label: 'Copiar', role: 'copy' },
+        { label: 'Pegar', role: 'paste' },
+        { label: 'Pegar y coincidir el estilo', role: 'pasteAndMatchStyle' },
+        { label: 'Seleccionar todo', role: 'selectAll' },
+        { type: 'separator' }
+      );
+    }
+
+    if (template.length > 0) {
+      // Eliminar el separador si es el último elemento
+      if (template[template.length - 1].type === 'separator') {
+        template.pop();
+      }
+      
+      const menu = Menu.buildFromTemplate(template);
+      menu.popup({ window: whatsappWindow });
+    }
+  });
+
+  // Manejar descargas para que salga el diálogo nativo de "Guardar como..."
+  whatsappWindow.webContents.session.on('will-download', (event, item, webContents) => {
+    item.setSaveDialogOptions({
+      title: 'Guardar archivo...',
+      defaultPath: item.getFilename(),
+      buttonLabel: 'Guardar'
+    });
+  });
+
   // Ocultar al intentar cerrar en lugar de destruir la ventana
   whatsappWindow.on('close', (e) => {
     if (!isQuitting) {
