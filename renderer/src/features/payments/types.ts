@@ -30,5 +30,7 @@ export interface Payment {
     status: string;
     total: number;
     client_name?: string;
+    description?: string | null;
+    notes?: string | null;
   } | null;
 }

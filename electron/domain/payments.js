@@ -76,7 +76,9 @@ class Payment {
       client_id: this.order.client_id,
       status: this.order.status,
       total: this.order.total,
-      client_name: this.order.client_name
+      client_name: this.order.client_name,
+      description: this.order.description,
+      notes: this.order.notes
     };
   }
 

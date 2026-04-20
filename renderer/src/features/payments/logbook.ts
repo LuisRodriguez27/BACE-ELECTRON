@@ -85,13 +85,16 @@ export const generatePaymentsReceivedLogbook = (
         const clienteStr = p.order ? (p.order.client_name ?? '—') : '—';
         
         let descripcionStr = p.info ? p.info : '—';
-        if (p.order_id && orders && orders.length > 0) {
-          const relatedOrder = orders.find(o => o.id === p.order_id);
-          if (relatedOrder) {
-            const orderDesc = relatedOrder.description || relatedOrder.notes;
-            if (orderDesc) {
-              descripcionStr = p.info ? `${orderDesc} (Pago: ${p.info})` : orderDesc;
+        if (p.order_id) {
+          let orderDesc = p.order?.description || p.order?.notes;
+          if (orders && orders.length > 0) {
+            const relatedOrder = orders.find(o => o.id === p.order_id);
+            if (relatedOrder) {
+              orderDesc = relatedOrder.description || relatedOrder.notes || orderDesc;
             }
+          }
+          if (orderDesc) {
+            descripcionStr = p.info ? `${orderDesc} (Pago: ${p.info})` : orderDesc;
           }
         }
         

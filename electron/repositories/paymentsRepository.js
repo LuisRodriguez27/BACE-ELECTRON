@@ -10,7 +10,9 @@ class PaymentsRepository {
         o.client_id as o_client_id, 
         o.status as o_status, 
         o.total as o_total,
-        c.name as o_client_name
+        c.name as o_client_name,
+        o.description as o_description,
+        o.notes as o_notes
       FROM payments p
       LEFT JOIN orders o ON p.order_id = o.id
       LEFT JOIN clients c ON o.client_id = c.id
@@ -32,7 +34,9 @@ class PaymentsRepository {
             client_id: row.o_client_id,
             status: row.o_status,
             total: row.o_total,
-            client_name: row.o_client_name
+            client_name: row.o_client_name,
+            description: row.o_description,
+            notes: row.o_notes
           }
         : null
     }));
@@ -46,7 +50,9 @@ class PaymentsRepository {
         o.client_id as o_client_id, 
         o.status as o_status, 
         o.total as o_total,
-        c.name as o_client_name
+        c.name as o_client_name,
+        o.description as o_description,
+        o.notes as o_notes
       FROM payments p
       LEFT JOIN orders o ON p.order_id = o.id
       LEFT JOIN clients c ON o.client_id = c.id
@@ -69,7 +75,9 @@ class PaymentsRepository {
             client_id: row.o_client_id,
             status: row.o_status,
             total: row.o_total,
-            client_name: row.o_client_name
+            client_name: row.o_client_name,
+            description: row.o_description,
+            notes: row.o_notes
           }
         : null
     }));
@@ -83,7 +91,9 @@ class PaymentsRepository {
         o.client_id as o_client_id, 
         o.status as o_status, 
         o.total as o_total,
-        c.name as o_client_name
+        c.name as o_client_name,
+        o.description as o_description,
+        o.notes as o_notes
       FROM payments p
       LEFT JOIN orders o ON p.order_id = o.id
       LEFT JOIN clients c ON o.client_id = c.id
@@ -107,7 +117,9 @@ class PaymentsRepository {
             client_id: row.o_client_id,
             status: row.o_status,
             total: row.o_total,
-            client_name: row.o_client_name
+            client_name: row.o_client_name,
+            description: row.o_description,
+            notes: row.o_notes
           }
         : null
     });
@@ -146,7 +158,9 @@ class PaymentsRepository {
         o.client_id as o_client_id, 
         o.status as o_status, 
         o.total as o_total,
-        c.name as o_client_name
+        c.name as o_client_name,
+        o.description as o_description,
+        o.notes as o_notes
       FROM payments p
       LEFT JOIN orders o ON p.order_id = o.id
       LEFT JOIN clients c ON o.client_id = c.id
@@ -169,7 +183,9 @@ class PaymentsRepository {
             client_id: row.o_client_id,
             status: row.o_status,
             total: row.o_total,
-            client_name: row.o_client_name
+            client_name: row.o_client_name,
+            description: row.o_description,
+            notes: row.o_notes
           }
         : null
     }));
