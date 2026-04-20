@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, protocol, net, shell } = require('electron');
 const path = require('path');
+const { spawn } = require('child_process');
 const { autoUpdater } = require('electron-updater');
 const log = require('electron-log');
 
@@ -266,11 +267,38 @@ ipcMain.handle('shell:openExternal', async (_event, url) => {
 
 require('dotenv').config();
 
+let downloadedUpdatePath = null;
+
 // IPC para que el renderer pueda solicitar la instalación de la actualización
-ipcMain.handle('updater:install', () => {
+ipcMain.handle('updater:install', async () => {
   // Cambiar a isSilent: false para que muestre la interfaz del instalador.
-  // Si está en true y requiere permisos de administrador (UAC), fallará silenciosamente sin instalar.
-  autoUpdater.quitAndInstall(false, true);
+  // Si está en true y requiere permisos de administrador (UAC), fallará silenciosamente.
+  if (downloadedUpdatePath) {
+    log.info('Lanzando actualización usando spawn seguro (con flags de updater):', downloadedUpdatePath);
+    // Este WORKAROUND imita exhaustivamente a autoUpdater.quitAndInstall(false, true) 
+    // inyectando '--updated' y '--force-run'. La pieza clave es la capa { shell: true } en NodeJS. 
+    // Esto resuelve el error "Windows cannot find file" mitigando un bug interno de UAC en Node/libuv al haber espacios en la cuenta de usuario.
+    const args = ['--updated', '--force-run'];
+    const spawnOptions = {
+      detached: true,
+      stdio: 'ignore',
+      shell: true // Es crucial para resolver espacios en rutas bajo UAC
+    };
+    
+    try {
+      // Rodeamos la ruta entre comillas dobles explícitamente para el CMD de Windows
+      const child = spawn(`"${downloadedUpdatePath}"`, args, spawnOptions);
+      child.unref();
+      // Aplicamos un pequeño delay de gracia antes de salir para que spawn termine de levantar el thread
+      setTimeout(() => app.quit(), 200);
+    } catch (err) {
+      log.error('Error lanzando updater de NSIS:', err);
+      autoUpdater.quitAndInstall(false, true);
+    }
+  } else {
+    log.info('Fall back a autoUpdater.quitAndInstall (sin ruta descargada)');
+    autoUpdater.quitAndInstall(false, true);
+  }
 });
 
 app.whenReady().then(() => {
@@ -350,6 +378,8 @@ app.whenReady().then(() => {
 
     autoUpdater.on('update-downloaded', (info) => {
       log.info('Actualización descargada:', info.version);
+      log.info('Ruta del instalador:', info.downloadedFile);
+      downloadedUpdatePath = info.downloadedFile; // Guardar ruta para el workaround
       const notes = parseReleaseNotes(info.releaseNotes);
       // Notificar al renderer para cambiar el banner a "listo para instalar"
       BrowserWindow.getAllWindows().forEach((win) => {
