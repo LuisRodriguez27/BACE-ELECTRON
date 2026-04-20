@@ -75,6 +75,17 @@ export const isoToDateInputMX = (isoString: string | Date | null | undefined): s
 };
 
 /**
+ * Converts a UTC-midnight ISO string (e.g. estimated_delivery_date) to a YYYY-MM-DD input value
+ * WITHOUT applying any timezone offset, so the calendar day is preserved exactly.
+ * Use this for date-only fields that are stored as UTC midnight.
+ * Example: '2026-04-22T00:00:00.000Z' → '2026-04-22' (not '2026-04-21' with UTC-6).
+ */
+export const isoToDateInputUTC = (isoString: string | Date | null | undefined): string => {
+    if (!isoString) return '';
+    return dayjs.utc(isoString).format('YYYY-MM-DD');
+};
+
+/**
  * To ensure absolute UTC Z format strictly.
  */
 export const toUTCISO = (dateString: string): string => {
