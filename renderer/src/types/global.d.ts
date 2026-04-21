@@ -13,7 +13,7 @@ import {
   SimpleOrderPayment,
   CreateSimpleOrderPaymentForm,
   UpdateSimpleOrderPaymentForm
-} from "../features/simple-orders/types";
+} from "../features/simpleOrders/types";
 
 declare global {
   interface Window {
