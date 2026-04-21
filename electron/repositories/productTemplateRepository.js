@@ -13,7 +13,7 @@ class ProductTemplateRepository {
       FROM product_templates pt
       JOIN products p ON pt.product_id = p.id
       LEFT JOIN users u ON pt.created_by = u.id
-      WHERE pt.active = 1
+      WHERE pt.active = true
       ORDER BY pt.id DESC
     `);
 
@@ -31,7 +31,7 @@ class ProductTemplateRepository {
       FROM product_templates pt
       JOIN products p ON pt.product_id = p.id
       LEFT JOIN users u ON pt.created_by = u.id
-      WHERE pt.id = ? AND pt.active = 1
+      WHERE pt.id = ? AND pt.active = true
     `);
 
     const template = await stmt.get(id);
@@ -50,7 +50,7 @@ class ProductTemplateRepository {
       FROM product_templates pt
       JOIN products p ON pt.product_id = p.id
       LEFT JOIN users u ON pt.created_by = u.id
-      WHERE pt.product_id = ? AND pt.active = 1
+      WHERE pt.product_id = ? AND pt.active = true
       ORDER BY pt.id DESC
     `);
 
@@ -109,7 +109,7 @@ class ProductTemplateRepository {
   }
 
   async delete(id) {
-    const stmt = db.prepare('UPDATE product_templates SET active = 0 WHERE id = ?');
+    const stmt = db.prepare('UPDATE product_templates SET active = false WHERE id = ?');
     const result = await stmt.run(id);
 
     return result.changes > 0;
@@ -126,7 +126,7 @@ class ProductTemplateRepository {
       FROM product_templates pt
       JOIN products p ON pt.product_id = p.id
       LEFT JOIN users u ON pt.created_by = u.id
-      WHERE pt.active = 1 AND (
+      WHERE pt.active = true AND (
         pt.description ILIKE ? OR 
         p.name ILIKE ? OR 
         p.serial_number ILIKE ? OR

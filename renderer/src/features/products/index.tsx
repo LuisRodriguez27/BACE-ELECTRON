@@ -551,11 +551,11 @@ const ProductsPage: React.FC = () => {
                     </div>
 
                     <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-                      <span className={`px-2 py-1 text-xs rounded-full ${product.active === 1
+                      <span className={`px-2 py-1 text-xs rounded-full ${product.active === true
                           ? 'bg-green-100 text-green-800'
                           : 'bg-red-100 text-red-800'
                         }`}>
-                        {product.active === 1 ? 'Activo' : 'Inactivo'}
+                        {product.active === true ? 'Activo' : 'Inactivo'}
                       </span>
                       <Button
                         variant="outline"

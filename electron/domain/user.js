@@ -1,5 +1,5 @@
 class User {
-  constructor({ id, username, active = 1, userPermissions = [] }) {
+  constructor({ id, username, active = true, userPermissions = [] }) {
     this.id = id;
     this.username = username;
     this.active = active;

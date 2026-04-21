@@ -1,6 +1,8 @@
 const { Pool, types } = require('pg');
 
-// Forzar que los campos DECIMAL (OID 1700), float4 (700) y float8 (701) devuelvan Number en vez de String
+// Forzar que los campos DECIMAL (OID 1700), float4 (700) y float8 (701) devuelvan Number
+// ADVERTENCIA: Usar parseFloat con DECIMAL puede causar pérdida de precisión en centavos. 
+// Para solucionarlo de raíz sin tirar prod, tendrías que cambiar tu frontend para que no use .toFixed() en numbers, sino manejar strings. Lo dejamos así para que no truene tu frontend actual.
 types.setTypeParser(1700, val => parseFloat(val));
 types.setTypeParser(700, val => parseFloat(val));
 types.setTypeParser(701, val => parseFloat(val));
@@ -36,8 +38,17 @@ const asyncLocalStorage = new AsyncLocalStorage();
 
 async function queryWithContext(sql, args, method) {
   let i = 1;
-  // Convertimos '?' a '$1', '$2', etc.
-  let pgSql = sql.replace(/\?/g, () => `$${i++}`);
+  // Convertimos '?' a '$1', '$2', etc. de forma segura (ignorando los '?' dentro de strings)
+  let pgSql = '';
+  let inString = false;
+  for (let char of sql) {
+    if (char === "'") inString = !inString;
+    if (char === '?' && !inString) {
+      pgSql += `$${i++}`;
+    } else {
+      pgSql += char;
+    }
+  }
 
   // Agregar RETURNING * si es insert para postgres y no lo tiene
   if (method === 'run' && pgSql.trim().toUpperCase().startsWith('INSERT') && !pgSql.toUpperCase().includes('RETURNING')) {
@@ -61,12 +72,7 @@ async function queryWithContext(sql, args, method) {
       };
     }
   } catch (e) {
-    if (e.code === '42P01') {
-      // Table does not exist (posiblemente inicio sin esquema creado). Ignoralos por el script
-      if (method === 'get') return null;
-      if (method === 'all') return [];
-      return { changes: 0, lastInsertRowid: null };
-    }
+    console.error("Database Error:", e.message, "\\nQuery:", pgSql, "\\nArgs:", args);
     throw e;
   }
 }
@@ -109,20 +115,20 @@ const pgSchema = `
     id SERIAL PRIMARY KEY,
     username VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    active INTEGER NOT NULL DEFAULT 1
+    active BOOLEAN NOT NULL DEFAULT TRUE
   );
 
   CREATE TABLE IF NOT EXISTS permissions (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL UNIQUE,
     description TEXT,
-    active INTEGER NOT NULL DEFAULT 1
+    active BOOLEAN NOT NULL DEFAULT TRUE
   );
 
   CREATE TABLE IF NOT EXISTS user_permissions (
     user_id INTEGER NOT NULL REFERENCES users(id),
     permission_id INTEGER NOT NULL REFERENCES permissions(id),
-    active INTEGER NOT NULL DEFAULT 1,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
     PRIMARY KEY (user_id, permission_id)
   );
 
@@ -133,7 +139,7 @@ const pgSchema = `
     address TEXT,
     description TEXT,
     color VARCHAR(50),
-    active INTEGER NOT NULL DEFAULT 1
+    active BOOLEAN NOT NULL DEFAULT TRUE
   );
 
   CREATE TABLE IF NOT EXISTS products (
@@ -144,7 +150,7 @@ const pgSchema = `
     promo_price DECIMAL(10,2),
     discount_price DECIMAL(10,2),
     description TEXT,
-    active INTEGER NOT NULL DEFAULT 1
+    active BOOLEAN NOT NULL DEFAULT TRUE
   );
 
   ALTER TABLE products ADD COLUMN IF NOT EXISTS promo_price DECIMAL(10,2);
@@ -164,7 +170,7 @@ const pgSchema = `
     texts TEXT,
     description TEXT,
     created_by INTEGER REFERENCES users(id),
-    active INTEGER NOT NULL DEFAULT 1
+    active BOOLEAN NOT NULL DEFAULT TRUE
   );
 
   ALTER TABLE product_templates ADD COLUMN IF NOT EXISTS promo_price DECIMAL(10,2);
@@ -179,7 +185,7 @@ const pgSchema = `
     total DECIMAL(10,2) DEFAULT 0,
     converted_to_order INTEGER NOT NULL DEFAULT 0,
     converted_to_order_id INTEGER,
-    active INTEGER NOT NULL DEFAULT 1
+    active BOOLEAN NOT NULL DEFAULT TRUE
   );
 
   CREATE TABLE IF NOT EXISTS orders (
@@ -195,7 +201,7 @@ const pgSchema = `
     description TEXT,
     responsable VARCHAR(255),
     created_from_budget_id INTEGER REFERENCES budgets(id),
-    active INTEGER NOT NULL DEFAULT 1
+    active BOOLEAN NOT NULL DEFAULT TRUE
   );
 
   ALTER TABLE budgets DROP CONSTRAINT IF EXISTS fk_converted_to_order_id;
@@ -239,7 +245,7 @@ const pgSchema = `
     concept TEXT NOT NULL,
     client_name VARCHAR(255),
     total DECIMAL(10,2) DEFAULT 0,
-    active INTEGER NOT NULL DEFAULT 1
+    active BOOLEAN NOT NULL DEFAULT TRUE
   );
 
   CREATE TABLE IF NOT EXISTS simple_order_payments (

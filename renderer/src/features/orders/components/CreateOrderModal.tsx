@@ -323,7 +323,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     try {
       setLoadingProducts(true);
       const response = await window.api.getAllProducts();
-      setProducts(response.filter(p => p.active === 1));
+      setProducts(response.filter(p => p.active === true));
     } catch (err) {
       console.error('Error loading products:', err);
       setError('Error al cargar los productos');
@@ -336,7 +336,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     try {
       setLoadingTemplates(true);
       const response = await ProductTemplatesApiService.findAll();
-      setTemplates(response.filter((t: ProductTemplate) => t.active === 1));
+      setTemplates(response.filter((t: ProductTemplate) => t.active === true));
     } catch (err) {
       console.error('Error loading templates:', err);
       setError('Error al cargar las plantillas');

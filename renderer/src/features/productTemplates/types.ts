@@ -44,7 +44,7 @@ export interface ProductTemplate {
   texts?: string;
   description?: string;
   created_by?: number;
-  active: number;
+  active: boolean;
 
   product_name?: string;
   serial_number?: string;

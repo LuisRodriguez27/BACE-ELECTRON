@@ -133,11 +133,11 @@ const PermissionsPage: React.FC = () => {
                       <div>
                         <h3 className="font-semibold text-gray-900">{permission.name}</h3>
                         <span className={`text-xs px-2 py-1 rounded-full ${
-                          permission.active === 1 
+                          permission.active === true 
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-red-100 text-red-800'
                         }`}>
-                          {permission.active === 1 ? 'Activo' : 'Inactivo'}
+                          {permission.active === true ? 'Activo' : 'Inactivo'}
                         </span>
                       </div>
                     </div>
@@ -194,7 +194,7 @@ const PermissionsPage: React.FC = () => {
               <h3 className="font-semibold text-gray-900">Permisos Activos</h3>
             </div>
             <p className="text-2xl font-bold text-green-600">
-              {permissions.filter(p => p.active === 1).length}
+              {permissions.filter(p => p.active === true).length}
             </p>
           </div>
           
@@ -204,7 +204,7 @@ const PermissionsPage: React.FC = () => {
               <h3 className="font-semibold text-gray-900">Permisos Inactivos</h3>
             </div>
             <p className="text-2xl font-bold text-red-600">
-              {permissions.filter(p => p.active === 0).length}
+              {permissions.filter(p => p.active === false).length}
             </p>
           </div>
         </div>

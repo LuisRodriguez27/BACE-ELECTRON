@@ -16,7 +16,7 @@ class SimpleOrderRepository {
       SELECT o.*, u.username as user_username
       FROM simple_orders o
       LEFT JOIN users u ON o.user_id = u.id
-      WHERE o.active = 1
+      WHERE o.active = true
       ORDER BY o.date DESC
     `).all();
 
@@ -45,7 +45,7 @@ class SimpleOrderRepository {
   }
 
   async create(orderData) {
-    const { user_id, date, concept, total, active = 1, client_name } = orderData;
+    const { user_id, date, concept, total, active = true, client_name } = orderData;
     const result = await db.prepare(`
       INSERT INTO simple_orders (user_id, date, concept, total, active, client_name)
       VALUES ($1, $2, $3, $4, $5, $6)
@@ -55,7 +55,7 @@ class SimpleOrderRepository {
   }
 
   async update(id, orderData) {
-    const { user_id, date, concept, total, active = 1, client_name } = orderData;
+    const { user_id, date, concept, total, active = true, client_name } = orderData;
     const result = await db.prepare(`
       UPDATE simple_orders 
       SET user_id = $1, date = $2, concept = $3, total = $4, active = $5, client_name = $6
@@ -68,7 +68,7 @@ class SimpleOrderRepository {
   async delete(id) {
     // Soft delete
     const result = await db.prepare(`
-      UPDATE simple_orders SET active = 0 WHERE id = $1
+      UPDATE simple_orders SET active = false WHERE id = $1
     `).run(id);
     return result.changes > 0;
   }

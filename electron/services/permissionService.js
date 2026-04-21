@@ -99,7 +99,7 @@ class PermissionService {
       }
 
       // Validar que se puede editar
-      if (!existingPermission.canEdit() && active !== 0) {
+      if (!existingPermission.canEdit() && active !== false) {
         throw new Error('No se puede editar este permiso');
       }
 
@@ -113,12 +113,12 @@ class PermissionService {
       }
 
       // Validar active si se proporciona
-      if (active !== undefined && active !== 0 && active !== 1) {
+      if (active !== undefined && active !== false && active !== true) {
         throw new Error('El estado activo debe ser 0 o 1');
       }
 
       // Verificar permisos críticos antes de desactivar
-      if (active === 0 && existingPermission.isCriticalPermission()) {
+      if (active === false && existingPermission.isCriticalPermission()) {
         throw new Error('No se puede desactivar un permiso crítico del sistema');
       }
 

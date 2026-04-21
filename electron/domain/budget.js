@@ -7,7 +7,7 @@ class Budget {
     date,
     total,
     converted_to_order,
-    active = 1,
+    active = true,
     client_name,
     client_phone,
     client_color,

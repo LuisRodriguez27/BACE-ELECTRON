@@ -85,7 +85,7 @@ export interface Order {
   total: number;
   notes?: string;
   description?: string;
-  active: number;
+  active: boolean;
 
   // Para joins
   client_name?: string; // Agregado para soportar el campo directo del repositorio

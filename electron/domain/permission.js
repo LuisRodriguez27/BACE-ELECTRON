@@ -3,7 +3,7 @@ class Permission {
     id, 
     name, 
     description, 
-    active = 1,
+    active = true,
     users = []
   }) {
     this.id = id;

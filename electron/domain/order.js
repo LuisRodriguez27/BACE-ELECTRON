@@ -11,7 +11,7 @@ class Order {
     total, 
     notes, 
     description,
-    active = 1,
+    active = true,
     client_name,
     client_phone,
     client_color,

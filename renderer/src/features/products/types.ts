@@ -25,7 +25,7 @@ export interface Product {
 	discount_price?: number | null;
 	description?: string;
 	images?: string[] | null;
-	active: number; 
+	active: boolean; 
 
 	templates?: ProductTemplate[];
 }

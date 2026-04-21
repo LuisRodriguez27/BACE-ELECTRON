@@ -20,7 +20,7 @@ export interface Client {
   address?: string;
   description?: string;
   color?: 'green' | 'yellow' | 'red' | null;
-  active: number; // 1 for active, 0 for inactive
+  active: boolean; // 1 for active, 0 for inactive
 }
 
 export type ClientColor = 'green' | 'yellow' | 'red';

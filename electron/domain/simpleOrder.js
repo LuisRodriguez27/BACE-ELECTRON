@@ -7,7 +7,7 @@ class SimpleOrder {
     date,
     concept,
     total,
-    active = 1,
+    active = true,
     user_username,
     client_name,
     payments = []

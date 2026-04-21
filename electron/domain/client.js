@@ -1,5 +1,5 @@
 class Client {
-  constructor({ id, name, phone, address, description, color, active = 1 }) {
+  constructor({ id, name, phone, address, description, color, active = true }) {
     this.id = id;
     this.name = name;
     this.phone = phone;

@@ -13,7 +13,7 @@ class BudgetRepository {
       JOIN clients c ON b.client_id = c.id
       JOIN users u ON b.user_id = u.id
       LEFT JOIN users ue ON b.edited_by = ue.id
-      WHERE b.active = 1 AND b.converted_to_order = 0
+      WHERE b.active = true AND b.converted_to_order = 0
       ORDER BY b.id DESC 
     `);
 
@@ -35,7 +35,7 @@ class BudgetRepository {
       JOIN clients c ON b.client_id = c.id
       JOIN users u ON b.user_id = u.id
       LEFT JOIN users ue ON b.edited_by = ue.id
-      WHERE b.id = ? AND b.active = 1
+      WHERE b.id = ? AND b.active = true
     `).get(id);
 
     if (!budgetData) return null;
@@ -55,7 +55,7 @@ class BudgetRepository {
       JOIN clients c ON b.client_id = c.id
       JOIN users u ON b.user_id = u.id
       LEFT JOIN users ue ON b.edited_by = ue.id
-      WHERE b.client_id = ? AND b.active = 1
+      WHERE b.client_id = ? AND b.active = true
       ORDER BY b.id DESC
     `);
 
@@ -103,7 +103,7 @@ class BudgetRepository {
       SELECT COUNT(*) as total
       FROM budgets b
       JOIN clients c ON b.client_id = c.id
-      WHERE b.active = 1 AND b.converted_to_order = 0 ${searchCondition}
+      WHERE b.active = true AND b.converted_to_order = 0 ${searchCondition}
     `;
     const countStmt = db.prepare(countQuery);
     const { total } = await countStmt.get(...searchParams);
@@ -119,7 +119,7 @@ class BudgetRepository {
       JOIN clients c ON b.client_id = c.id
       JOIN users u ON b.user_id = u.id
       LEFT JOIN users ue ON b.edited_by = ue.id
-      WHERE b.active = 1 AND b.converted_to_order = 0 ${searchCondition}
+      WHERE b.active = true AND b.converted_to_order = 0 ${searchCondition}
       ORDER BY b.id DESC
       LIMIT ? OFFSET ?
     `;
@@ -200,7 +200,7 @@ class BudgetRepository {
       const stmt = db.prepare(`
         UPDATE budgets
         SET ${setClause}
-        WHERE id = ? AND active = 1
+        WHERE id = ? AND active = true
       `);
       
       await stmt.run(...values, id);
@@ -259,7 +259,7 @@ class BudgetRepository {
 
   async delete(budgetId) {
     const stmt = db.prepare(`
-      UPDATE budgets SET active = 0 WHERE id = ?
+      UPDATE budgets SET active = false WHERE id = ?
     `);
     const result = await stmt.run(budgetId);
     return result.changes > 0;

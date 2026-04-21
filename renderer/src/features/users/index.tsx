@@ -218,11 +218,11 @@ const UsersPage: React.FC = () => {
                         <h3 className="font-semibold text-gray-900">{user.username}</h3>
                         <div className="flex items-center gap-2 mt-1">
                           <span className={`px-2 py-1 text-xs rounded-full ${
-                            user.active === 1 
+                            user.active === true 
                               ? 'bg-green-100 text-green-800' 
                               : 'bg-red-100 text-red-800'
                           }`}>
-                            {user.active === 1 ? 'Activo' : 'Inactivo'}
+                            {user.active === true ? 'Activo' : 'Inactivo'}
                           </span>
                         </div>
                       </div>

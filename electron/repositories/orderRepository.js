@@ -14,7 +14,7 @@ class OrderRepository {
       JOIN clients c ON o.client_id = c.id
       JOIN users u ON o.user_id = u.id
       LEFT JOIN users ue ON o.edited_by = ue.id
-      WHERE o.active = 1 AND o.status NOT IN ('Completado', 'Cancelado')
+      WHERE o.active = true AND o.status NOT IN ('Completado', 'Cancelado')
       ORDER BY o.id DESC
     `);
     
@@ -37,7 +37,7 @@ class OrderRepository {
       JOIN clients c ON o.client_id = c.id
       JOIN users u ON o.user_id = u.id
       LEFT JOIN users ue ON o.edited_by = ue.id
-      WHERE o.id = ? AND o.active = 1
+      WHERE o.id = ? AND o.active = true
     `).get(id);
 
     if (!orderData) return null;
@@ -58,7 +58,7 @@ class OrderRepository {
       JOIN clients c ON o.client_id = c.id
       JOIN users u ON o.user_id = u.id
       LEFT JOIN users ue ON o.edited_by = ue.id
-      WHERE o.client_id = ? AND o.active = 1
+      WHERE o.client_id = ? AND o.active = true
       ORDER BY o.id DESC
     `);
 
@@ -81,7 +81,7 @@ class OrderRepository {
       JOIN clients c ON o.client_id = c.id
       JOIN users u ON o.user_id = u.id
       LEFT JOIN users ue ON o.edited_by = ue.id
-      WHERE o.active = 1 AND o.status NOT IN ('Completado', 'Cancelado')
+      WHERE o.active = true AND o.status NOT IN ('Completado', 'Cancelado')
       ORDER BY o.id ASC
     `);
     
@@ -104,7 +104,7 @@ class OrderRepository {
       JOIN clients c ON o.client_id = c.id
       JOIN users u ON o.user_id = u.id
       LEFT JOIN users ue ON o.edited_by = ue.id
-      WHERE o.active = 1 AND o.status = 'Completado'
+      WHERE o.active = true AND o.status = 'Completado'
       ORDER BY o.id DESC
     `);
     
@@ -155,7 +155,7 @@ class OrderRepository {
       SELECT COUNT(*) as total
       FROM orders o
       JOIN clients c ON o.client_id = c.id
-      WHERE o.active = 1 AND o.status = 'Completado' ${searchCondition}
+      WHERE o.active = true AND o.status = 'Completado' ${searchCondition}
     `;
     const countStmt = db.prepare(countQuery);
     const { total } = await countStmt.get(...searchParams);
@@ -171,7 +171,7 @@ class OrderRepository {
       JOIN clients c ON o.client_id = c.id
       JOIN users u ON o.user_id = u.id
       LEFT JOIN users ue ON o.edited_by = ue.id
-      WHERE o.active = 1 AND o.status = 'Completado' ${searchCondition}
+      WHERE o.active = true AND o.status = 'Completado' ${searchCondition}
       ORDER BY o.id DESC
       LIMIT ? OFFSET ?
     `;
@@ -326,7 +326,7 @@ class OrderRepository {
       const stmt = db.prepare(`
         UPDATE orders
         SET ${setClause}
-        WHERE id = ? AND active = 1
+        WHERE id = ? AND active = true
       `);
       
       await stmt.run(...values, id);
@@ -343,7 +343,7 @@ class OrderRepository {
   }
 
   async delete(id) {
-    const stmt = db.prepare('UPDATE orders SET active = 0 WHERE id = ?');
+    const stmt = db.prepare('UPDATE orders SET active = false WHERE id = ?');
     const result = await stmt.run(id);
     
     return result.changes > 0;

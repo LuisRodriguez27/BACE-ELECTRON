@@ -7,7 +7,7 @@ class PermissionRepository {
     const stmt = db.prepare(`
       SELECT *
       FROM permissions
-      WHERE active = 1
+      WHERE active = true
       ORDER BY name ASC
     `);
     
@@ -22,7 +22,7 @@ class PermissionRepository {
     const permissionData = await db.prepare(`
       SELECT id, name, description, active
       FROM permissions
-      WHERE id = ? AND active = 1
+      WHERE id = ? AND active = true
     `).get(id);
 
     if (!permissionData) return null;
@@ -37,7 +37,7 @@ class PermissionRepository {
       SELECT p.id, p.name, p.description, p.active
       FROM permissions p 
       JOIN user_permissions up ON p.id = up.permission_id 
-      WHERE up.user_id = ? AND p.active = 1 AND up.active = 1
+      WHERE up.user_id = ? AND p.active = true AND up.active = true
       ORDER BY p.name ASC
     `);
 
@@ -55,7 +55,7 @@ class PermissionRepository {
         SELECT u.id, u.username
         FROM users u
         JOIN user_permissions up ON u.id = up.user_id
-        WHERE up.permission_id = ? AND up.active = 1 AND u.active = 1
+        WHERE up.permission_id = ? AND up.active = true AND u.active = true
         ORDER BY u.username ASC
       `);
       
@@ -72,7 +72,7 @@ class PermissionRepository {
       const stmt = db.prepare(`
         SELECT COUNT(*) as count
         FROM user_permissions 
-        WHERE user_id = ? AND permission_id = ? AND active = 1
+        WHERE user_id = ? AND permission_id = ? AND active = true
       `);
       
       const result = await stmt.get(userId, permissionId);
@@ -102,7 +102,7 @@ class PermissionRepository {
     const stmt = db.prepare(`
       UPDATE permissions
       SET name = ?, description = ?, active = ?
-      WHERE id = ? AND active = 1
+      WHERE id = ? AND active = true
     `);
     
     const result = await stmt.run(
@@ -116,7 +116,7 @@ class PermissionRepository {
   }
 
   async delete(id) {
-    const stmt = db.prepare('UPDATE permissions SET active = 0 WHERE id = ?');
+    const stmt = db.prepare('UPDATE permissions SET active = false WHERE id = ?');
     const result = await stmt.run(id);
     
     return result.changes > 0;
@@ -133,10 +133,10 @@ class PermissionRepository {
 
       if (existingAssignment) {
         // Si existe pero está inactiva, reactivarla
-        if (existingAssignment.active === 0) {
+        if (existingAssignment.active === false) {
           const updateStmt = db.prepare(`
             UPDATE user_permissions 
-            SET active = 1 
+            SET active = true 
             WHERE user_id = ? AND permission_id = ?
           `);
           const result = await updateStmt.run(userId, permissionId);

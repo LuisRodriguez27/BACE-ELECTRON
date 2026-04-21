@@ -4,14 +4,14 @@ const Client = require('../domain/client');
 class ClientRepository {
 
   async findAll() {
-    const stmt = db.prepare('SELECT * FROM clients WHERE active = 1');
+    const stmt = db.prepare('SELECT * FROM clients WHERE active = true');
     const clients = await stmt.all();
     
     return clients.map(client => new Client(client));
   }
 
   async findById(id) {
-    const stmt = db.prepare('SELECT * FROM clients WHERE id = ? AND active = 1');
+    const stmt = db.prepare('SELECT * FROM clients WHERE id = ? AND active = true');
     const client = await stmt.get(id);
     
     if (!client) return null;
@@ -20,7 +20,7 @@ class ClientRepository {
   }
 
   async findByPhone(phone) {
-    const stmt = db.prepare('SELECT * FROM clients WHERE phone = ? AND active = 1');
+    const stmt = db.prepare('SELECT * FROM clients WHERE phone = ? AND active = true');
     const client = await stmt.get(phone);
     
     if (!client) return null;
@@ -48,7 +48,7 @@ class ClientRepository {
       address: clientData.address,
       description: clientData.description,
       color: clientData.color,
-      active: 1
+      active: true
     });
   }
 
@@ -71,14 +71,14 @@ class ClientRepository {
   }
 
   async delete(id) {
-    const stmt = db.prepare('UPDATE clients SET active = 0 WHERE id = ?');
+    const stmt = db.prepare('UPDATE clients SET active = false WHERE id = ?');
     const result = await stmt.run(id);
     
     return result.changes > 0;
   }
 
   async existsByPhone(phone, excludeClientId = null) {
-    let query = 'SELECT id FROM clients WHERE phone = ? AND active = 1';
+    let query = 'SELECT id FROM clients WHERE phone = ? AND active = true';
     let params = [phone];
     
     if (excludeClientId) {
@@ -96,7 +96,7 @@ class ClientRepository {
   async searchByTerm(searchTerm) {
     const stmt = db.prepare(`
       SELECT * FROM clients 
-      WHERE active = 1 AND (
+      WHERE active = true AND (
         CAST(id AS TEXT) ILIKE ? OR
         name ILIKE ? OR 
         phone ILIKE ? OR 

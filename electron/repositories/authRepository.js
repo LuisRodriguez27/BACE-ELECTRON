@@ -8,7 +8,7 @@ class AuthRepository {
   }
 
   async findUserByUsername(username) {
-    const stmt = db.prepare('SELECT * FROM users WHERE username = ? AND active = 1');
+    const stmt = db.prepare('SELECT * FROM users WHERE username = ? AND active = true');
     return await stmt.get(username);
   }
 
@@ -21,7 +21,7 @@ class AuthRepository {
       SELECT p.name, p.description 
       FROM permissions p 
       JOIN user_permissions up ON p.id = up.permission_id 
-      WHERE up.user_id = ? AND p.active = 1
+      WHERE up.user_id = ? AND p.active = true
     `);
     return await stmt.all(userId);
   }

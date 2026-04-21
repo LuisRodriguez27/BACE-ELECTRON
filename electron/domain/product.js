@@ -1,5 +1,5 @@
 class Product {
-  constructor({ id, name, serial_number, price, promo_price, discount_price, description, images, active = 1 }) {
+  constructor({ id, name, serial_number, price, promo_price, discount_price, description, images, active = true }) {
     this.id = id;
     this.name = name;
     this.serial_number = serial_number || null;

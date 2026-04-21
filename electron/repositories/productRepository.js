@@ -4,14 +4,14 @@ const Product = require('../domain/product');
 class ProductRepository {
 
   async findAll() {
-    const stmt = db.prepare('SELECT * FROM products WHERE active = 1 ORDER BY id DESC');
+    const stmt = db.prepare('SELECT * FROM products WHERE active = true ORDER BY id DESC');
     const products = await stmt.all();
     
     return products.map(product => new Product(product));
   }
 
   async findById(id) {
-    const stmt = db.prepare('SELECT * FROM products WHERE id = ? AND active = 1');
+    const stmt = db.prepare('SELECT * FROM products WHERE id = ? AND active = true');
     const product = await stmt.get(id);
     
     if (!product) return null;
@@ -20,7 +20,7 @@ class ProductRepository {
   }
 
   async findBySerialNumber(serialNumber) {
-    const stmt = db.prepare('SELECT * FROM products WHERE serial_number = ? AND active = 1');
+    const stmt = db.prepare('SELECT * FROM products WHERE serial_number = ? AND active = true');
     const product = await stmt.get(serialNumber);
     
     if (!product) return null;
@@ -52,7 +52,7 @@ class ProductRepository {
       discount_price: productData.discount_price,
       description: productData.description,
       images: productData.images || [],
-      active: 1
+      active: true
     });
   }
 
@@ -77,7 +77,7 @@ class ProductRepository {
   }
 
   async delete(id) {
-    const stmt = db.prepare('UPDATE products SET active = 0 WHERE id = ?');
+    const stmt = db.prepare('UPDATE products SET active = false WHERE id = ?');
     const result = await stmt.run(id);
     
     return result.changes > 0;
@@ -88,7 +88,7 @@ class ProductRepository {
       return false; // Serial number vacío es válido (no único)
     }
 
-    let query = 'SELECT id FROM products WHERE serial_number = ? AND active = 1';
+    let query = 'SELECT id FROM products WHERE serial_number = ? AND active = true';
     let params = [serialNumber];
     
     if (excludeProductId) {
@@ -103,7 +103,7 @@ class ProductRepository {
   }
 
   async countActiveProducts() {
-    const stmt = db.prepare('SELECT COUNT(*) as count FROM products WHERE active = 1');
+    const stmt = db.prepare('SELECT COUNT(*) as count FROM products WHERE active = true');
     const result = await stmt.get();
     return result.count;
   }
@@ -112,7 +112,7 @@ class ProductRepository {
   async searchByTerm(searchTerm) {
     const stmt = db.prepare(`
       SELECT * FROM products 
-      WHERE active = 1 AND (
+      WHERE active = true AND (
         name ILIKE ? OR 
         serial_number ILIKE ? OR 
         description ILIKE ?
@@ -134,7 +134,7 @@ class ProductRepository {
       SELECT pt.*, u.username as created_by_username
       FROM product_templates pt
       LEFT JOIN users u ON pt.created_by = u.id
-      WHERE pt.product_id = ? AND pt.active = 1
+      WHERE pt.product_id = ? AND pt.active = true
     `).all(productId);
 
     return {
@@ -147,7 +147,7 @@ class ProductRepository {
   async findByPriceRange(minPrice, maxPrice) {
     const stmt = db.prepare(`
       SELECT * FROM products 
-      WHERE active = 1 AND price BETWEEN ? AND ?
+      WHERE active = true AND price BETWEEN ? AND ?
       ORDER BY price, name
     `);
     const products = await stmt.all(minPrice, maxPrice);
@@ -160,8 +160,8 @@ class ProductRepository {
     const stmt = db.prepare(`
       SELECT p.*, COUNT(pt.id) as template_count
       FROM products p
-      LEFT JOIN product_templates pt ON p.id = pt.product_id AND pt.active = 1
-      WHERE p.active = 1
+      LEFT JOIN product_templates pt ON p.id = pt.product_id AND pt.active = true
+      WHERE p.active = true
       GROUP BY p.id
       ORDER BY template_count DESC, p.name
       LIMIT ?
@@ -178,7 +178,7 @@ class ProductRepository {
       SELECT pt.*, u.username as created_by_username
       FROM product_templates pt
       LEFT JOIN users u ON pt.created_by = u.id
-      WHERE pt.product_id = ? AND pt.active = 1
+      WHERE pt.product_id = ? AND pt.active = true
     `);
 
     return await Promise.all(products.map(async product => {

@@ -7,7 +7,7 @@ const saltRounds = 10;
 class UserRepository {
   
   async findAll() {
-    const stmt = db.prepare('SELECT id, username, active FROM users WHERE active = 1');
+    const stmt = db.prepare('SELECT id, username, active FROM users WHERE active = true');
     const users = await stmt.all();
     
     return await Promise.all(users.map(async user => {
@@ -15,7 +15,7 @@ class UserRepository {
         SELECT p.id as permission_id, p.name as permission_name, up.active
         FROM user_permissions up
         JOIN permissions p ON up.permission_id = p.id
-        WHERE up.user_id = ? AND p.active = 1
+        WHERE up.user_id = ? AND p.active = true
       `);
       const userPermissions = await permissionsStmt.all(user.id);
       
@@ -27,7 +27,7 @@ class UserRepository {
   }
 
   async findById(id) {
-    const stmt = db.prepare('SELECT id, username, active FROM users WHERE id = ? AND active = 1');
+    const stmt = db.prepare('SELECT id, username, active FROM users WHERE id = ? AND active = true');
     const user = await stmt.get(id);
     
     if (!user) return null;
@@ -36,7 +36,7 @@ class UserRepository {
       SELECT p.id as permission_id, p.name as permission_name, up.active
       FROM user_permissions up
       JOIN permissions p ON up.permission_id = p.id
-      WHERE up.user_id = ? AND p.active = 1
+      WHERE up.user_id = ? AND p.active = true
     `);
     const userPermissions = await permissionsStmt.all(id);
     
@@ -47,7 +47,7 @@ class UserRepository {
   }
 
   async findByUsername(username) {
-    const stmt = db.prepare('SELECT id, username, password, active FROM users WHERE username = ? AND active = 1');
+    const stmt = db.prepare('SELECT id, username, password, active FROM users WHERE username = ? AND active = true');
     const user = await stmt.get(username);
     
     if (!user) return null;
@@ -56,7 +56,7 @@ class UserRepository {
       SELECT p.id as permission_id, p.name as permission_name, up.active
       FROM user_permissions up
       JOIN permissions p ON up.permission_id = p.id
-      WHERE up.user_id = ? AND p.active = 1
+      WHERE up.user_id = ? AND p.active = true
     `);
     const userPermissions = await permissionsStmt.all(user.id);
     
@@ -73,7 +73,7 @@ class UserRepository {
     return new User({
       id: result.lastInsertRowid,
       username: userData.username,
-      active: 1,
+      active: true,
       userPermissions: []
     });
   }
@@ -96,7 +96,7 @@ class UserRepository {
   }
 
   async delete(id) {
-    const stmt = db.prepare('UPDATE users SET active = 0 WHERE id = ?');
+    const stmt = db.prepare('UPDATE users SET active = false WHERE id = ?');
     const result = await stmt.run(id);
     
     return result.changes > 0;
@@ -119,7 +119,7 @@ class UserRepository {
 
   // Método auxiliar para verificación de password
   async getPasswordHash(username) {
-    const stmt = db.prepare('SELECT password FROM users WHERE username = ? AND active = 1');
+    const stmt = db.prepare('SELECT password FROM users WHERE username = ? AND active = true');
     const result = await stmt.get(username);
     return result ? result.password : null;
   }
