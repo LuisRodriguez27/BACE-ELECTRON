@@ -14,7 +14,7 @@ class OrderRepository {
       JOIN clients c ON o.client_id = c.id
       JOIN users u ON o.user_id = u.id
       LEFT JOIN users ue ON o.edited_by = ue.id
-      WHERE o.active = true AND o.status NOT IN ('Completado', 'Cancelado')
+      WHERE o.active = true AND o.status NOT IN ('Completado')
       ORDER BY o.id DESC
     `);
     
