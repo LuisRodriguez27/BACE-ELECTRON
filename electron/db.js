@@ -250,10 +250,56 @@ const pgSchema = `
     descripcion TEXT
   );
 
-  CREATE INDEX IF NOT EXISTS idx_products_active ON products(active);
-  CREATE INDEX IF NOT EXISTS idx_orders_client_id ON orders(client_id);
-  CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
-  CREATE INDEX IF NOT EXISTS idx_budgets_active ON budgets(active);
+  -- ============================================================
+  -- ÍNDICES DE RENDIMIENTO (Llaves foráneas + columnas frecuentes)
+  -- PostgreSQL NO crea índices automáticos para FKs, hay que hacerlo
+  -- manualmente para evitar Full Table Scans en tablas grandes.
+  -- ============================================================
+
+  -- user_permissions
+  CREATE INDEX IF NOT EXISTS idx_user_permissions_user_id       ON user_permissions(user_id);
+  CREATE INDEX IF NOT EXISTS idx_user_permissions_permission_id ON user_permissions(permission_id);
+
+  -- product_templates
+  CREATE INDEX IF NOT EXISTS idx_product_templates_product_id   ON product_templates(product_id);
+  CREATE INDEX IF NOT EXISTS idx_product_templates_created_by   ON product_templates(created_by);
+
+  -- budgets
+  CREATE INDEX IF NOT EXISTS idx_budgets_client_id              ON budgets(client_id);
+  CREATE INDEX IF NOT EXISTS idx_budgets_user_id                ON budgets(user_id);
+  CREATE INDEX IF NOT EXISTS idx_budgets_edited_by              ON budgets(edited_by);
+  CREATE INDEX IF NOT EXISTS idx_budgets_converted_to_order_id  ON budgets(converted_to_order_id);
+  CREATE INDEX IF NOT EXISTS idx_budgets_active                 ON budgets(active);
+
+  -- orders
+  CREATE INDEX IF NOT EXISTS idx_orders_client_id               ON orders(client_id);
+  CREATE INDEX IF NOT EXISTS idx_orders_user_id                 ON orders(user_id);
+  CREATE INDEX IF NOT EXISTS idx_orders_edited_by               ON orders(edited_by);
+  CREATE INDEX IF NOT EXISTS idx_orders_created_from_budget_id  ON orders(created_from_budget_id);
+  CREATE INDEX IF NOT EXISTS idx_orders_status                  ON orders(status);
+
+  -- order_products
+  CREATE INDEX IF NOT EXISTS idx_order_products_order_id        ON order_products(order_id);
+  CREATE INDEX IF NOT EXISTS idx_order_products_product_id      ON order_products(product_id);
+  CREATE INDEX IF NOT EXISTS idx_order_products_template_id     ON order_products(template_id);
+
+  -- budget_products
+  CREATE INDEX IF NOT EXISTS idx_budget_products_budget_id      ON budget_products(budget_id);
+  CREATE INDEX IF NOT EXISTS idx_budget_products_product_id     ON budget_products(product_id);
+  CREATE INDEX IF NOT EXISTS idx_budget_products_template_id    ON budget_products(template_id);
+
+  -- payments
+  CREATE INDEX IF NOT EXISTS idx_payments_order_id              ON payments(order_id);
+
+  -- products
+  CREATE INDEX IF NOT EXISTS idx_products_active                ON products(active);
+
+  -- simple_orders
+  CREATE INDEX IF NOT EXISTS idx_simple_orders_user_id          ON simple_orders(user_id);
+
+  -- simple_order_payments
+  CREATE INDEX IF NOT EXISTS idx_simple_order_payments_simple_order_id ON simple_order_payments(simple_order_id);
+  CREATE INDEX IF NOT EXISTS idx_simple_order_payments_user_id         ON simple_order_payments(user_id);
 `;
 
 async function initDb() {
