@@ -146,9 +146,6 @@ const pgSchema = `
     active BOOLEAN NOT NULL DEFAULT TRUE
   );
 
-  ALTER TABLE products ADD COLUMN IF NOT EXISTS promo_price DECIMAL(10,2);
-  ALTER TABLE products ADD COLUMN IF NOT EXISTS discount_price DECIMAL(10,2);
-  ALTER TABLE products ADD COLUMN IF NOT EXISTS images TEXT;
 
   CREATE TABLE IF NOT EXISTS product_templates (
     id SERIAL PRIMARY KEY,
@@ -166,8 +163,6 @@ const pgSchema = `
     active BOOLEAN NOT NULL DEFAULT TRUE
   );
 
-  ALTER TABLE product_templates ADD COLUMN IF NOT EXISTS promo_price DECIMAL(10,2);
-  ALTER TABLE product_templates ADD COLUMN IF NOT EXISTS discount_price DECIMAL(10,2);
 
   CREATE TABLE IF NOT EXISTS budgets (
     id SERIAL PRIMARY KEY,
@@ -197,8 +192,6 @@ const pgSchema = `
     active BOOLEAN NOT NULL DEFAULT TRUE
   );
 
-  ALTER TABLE budgets DROP CONSTRAINT IF EXISTS fk_converted_to_order_id;
-  ALTER TABLE budgets ADD CONSTRAINT fk_converted_to_order_id FOREIGN KEY (converted_to_order_id) REFERENCES orders(id);
 
   CREATE TABLE IF NOT EXISTS order_products (
     id SERIAL PRIMARY KEY,
