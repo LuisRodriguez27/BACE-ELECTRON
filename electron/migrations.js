@@ -198,6 +198,46 @@ async function runMigrations(db, client) {
   }
 
   // ============================================================
+  // MIGRACIÓN: TIMESTAMP → TIMESTAMPTZ
+  // Los datos existentes se almacenaron como TIMESTAMP (sin zona)
+  // pero en realidad estaban en UTC (el driver Node.js les añadía 'Z').
+  // Con TIMESTAMPTZ Postgres gestiona la zona horaria nativamente,
+  // lo que simplifica las queries y elimina el hack del type parser.
+  // USING date AT TIME ZONE 'UTC' le indica a Postgres que interprete
+  // los valores existentes como UTC al hacer la conversión, preservando
+  // exactamente las mismas fechas sin desplazamiento horario.
+  // ============================================================
+  const timestamptzColumns = [
+    { table: 'budgets',               column: 'date',                    nullable: false },
+    { table: 'orders',                column: 'date',                    nullable: false },
+    { table: 'orders',                column: 'estimated_delivery_date',  nullable: true  },
+    { table: 'payments',              column: 'date',                    nullable: true  },
+    { table: 'simple_orders',         column: 'date',                    nullable: false },
+    { table: 'simple_order_payments', column: 'date',                    nullable: false },
+  ];
+
+  for (const { table, column, nullable } of timestamptzColumns) {
+    try {
+      const colInfo = await client.query(
+        `SELECT data_type FROM information_schema.columns
+         WHERE table_name = $1 AND column_name = $2`,
+        [table, column]
+      );
+
+      if (colInfo.rows.length > 0 && colInfo.rows[0].data_type === 'timestamp without time zone') {
+        // Convertir TIMESTAMP → TIMESTAMPTZ indicando que los datos son UTC
+        await client.query(
+          `ALTER TABLE ${table} ALTER COLUMN ${column} TYPE TIMESTAMPTZ
+           USING ${column} AT TIME ZONE 'UTC'`
+        );
+        console.log(`  ✔ ${table}.${column}: TIMESTAMP → TIMESTAMPTZ`);
+      }
+    } catch (e) {
+      console.log(`Aviso: No se pudo migrar ${table}.${column} a TIMESTAMPTZ: ${e.message}`);
+    }
+  }
+
+  // ============================================================
   // MIGRACIÓN: ÍNDICES PARA LLAVES FORÁNEAS
   // PostgreSQL NO crea índices automáticos para FKs.
   // Sin estos índices, cualquier JOIN o lookup por FK hace
@@ -248,7 +288,6 @@ async function runMigrations(db, client) {
       console.log(`Aviso: No se pudo crear índice FK: ${e.message}`);
     }
   }
-  console.log("✅ Migración índices FK: completada.");
 }
 
 module.exports = { runMigrations };

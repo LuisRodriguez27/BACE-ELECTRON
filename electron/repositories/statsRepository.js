@@ -40,7 +40,7 @@ class StatsRepository {
 
     if (productId) {
       return await db.getAll(`
-        SELECT TO_CHAR(${dateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
+        SELECT TO_CHAR(${dateCol} AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
                COALESCE(${paymentMethod ? 'SUM(op.total_price * (CAST(pay.amount AS FLOAT) / NULLIF(CAST(o.total AS FLOAT), 0)))' : 'SUM(op.total_price)'}, 0) as total, 
                COALESCE(${paymentMethod ? 'SUM(op.quantity * (CAST(pay.amount AS FLOAT) / NULLIF(CAST(o.total AS FLOAT), 0)))' : 'SUM(op.quantity)'}, 0) as quantity
         FROM orders o
@@ -78,7 +78,7 @@ class StatsRepository {
         oParamIndex += 2;
 
         unions.push(`
-          SELECT TO_CHAR(${oDateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
+          SELECT TO_CHAR(${oDateCol} AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
                  ${paymentMethod ? 'pay.amount' : 'o.total'} as total
           FROM orders o
           ${oJoinPayment}
@@ -98,12 +98,12 @@ class StatsRepository {
           finalParamIndex++;
           soDateCol = 'spay.date';
         }
-        let soWhereClause = `WHERE so.active = true AND (${soDateCol} AT TIME ZONE 'UTC') >= $${finalParamIndex} AND (${soDateCol} AT TIME ZONE 'UTC') <= $${finalParamIndex + 1}`;
+        let soWhereClause = `WHERE so.active = true AND ${soDateCol} >= $${finalParamIndex} AND ${soDateCol} <= $${finalParamIndex + 1}`;
         soParams.push(startDate, endDate);
         finalParamIndex += 2;
 
         unions.push(`
-          SELECT TO_CHAR(${soDateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
+          SELECT TO_CHAR(${soDateCol} AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
                  ${paymentMethod ? 'spay.amount' : 'so.total'} as total
           FROM simple_orders so
           ${soJoinPayment}
@@ -114,7 +114,7 @@ class StatsRepository {
 
       if (includeExtra) {
         let epParams = [];
-        let epWhere = `WHERE py.order_id IS NULL AND (py.date AT TIME ZONE 'UTC') >= $${finalParamIndex} AND (py.date AT TIME ZONE 'UTC') <= $${finalParamIndex + 1}`;
+        let epWhere = `WHERE py.order_id IS NULL AND py.date >= $${finalParamIndex} AND py.date <= $${finalParamIndex + 1}`;
 
         if (paymentMethod) {
           finalParamIndex += 2;
@@ -127,7 +127,7 @@ class StatsRepository {
         }
 
         unions.push(`
-          SELECT TO_CHAR(py.date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
+          SELECT TO_CHAR(py.date AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
                  py.amount as total
           FROM payments py
           ${epWhere}
@@ -214,7 +214,7 @@ class StatsRepository {
 
     if (productId) {
       return await db.getAll(`
-        SELECT TO_CHAR(${dateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
+        SELECT TO_CHAR(${dateCol} AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
                COALESCE(${paymentMethod ? 'SUM(op.total_price * (CAST(pay.amount AS FLOAT) / NULLIF(CAST(o.total AS FLOAT), 0)))' : 'SUM(op.total_price)'}, 0) as total, 
                COALESCE(${paymentMethod ? 'SUM(op.quantity * (CAST(pay.amount AS FLOAT) / NULLIF(CAST(o.total AS FLOAT), 0)))' : 'SUM(op.quantity)'}, 0) as quantity
         FROM orders o
@@ -248,12 +248,12 @@ class StatsRepository {
         }
 
         const { placeholders: oDatePlaceholders, nextIndex: oNextIdx } = this._buildPlaceholders(dates.length, oParamIndex);
-        let oWhereClause = `WHERE o.active = true AND TO_CHAR(${oDateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${oDatePlaceholders})`;
+        let oWhereClause = `WHERE o.active = true AND TO_CHAR(${oDateCol} AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${oDatePlaceholders})`;
         oParams.push(...dates);
         oParamIndex = oNextIdx;
 
         unions.push(`
-          SELECT TO_CHAR(${oDateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
+          SELECT TO_CHAR(${oDateCol} AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
                  ${paymentMethod ? 'pay.amount' : 'o.total'} as total
           FROM orders o
           ${oJoinPayment}
@@ -274,12 +274,12 @@ class StatsRepository {
           soDateCol = 'spay.date';
         }
         const { placeholders: soDatePlaceholders, nextIndex: soNextIdx } = this._buildPlaceholders(dates.length, finalParamIndex);
-        let soWhereClause = `WHERE so.active = true AND TO_CHAR(${soDateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${soDatePlaceholders})`;
+        let soWhereClause = `WHERE so.active = true AND TO_CHAR(${soDateCol} AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${soDatePlaceholders})`;
         soParams.push(...dates);
         finalParamIndex = soNextIdx;
 
         unions.push(`
-          SELECT TO_CHAR(${soDateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
+          SELECT TO_CHAR(${soDateCol} AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
                  ${paymentMethod ? 'spay.amount' : 'so.total'} as total
           FROM simple_orders so
           ${soJoinPayment}
@@ -294,17 +294,17 @@ class StatsRepository {
 
         let epWhere;
         if (paymentMethod) {
-          epWhere = `WHERE py.order_id IS NULL AND py.descripcion = $${epNextIdx} AND TO_CHAR(py.date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${epDatePlaceholders})`;
+          epWhere = `WHERE py.order_id IS NULL AND py.descripcion = $${epNextIdx} AND TO_CHAR(py.date AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${epDatePlaceholders})`;
           epParams.push(...dates, paymentMethod);
           finalParamIndex = epNextIdx + 1;
         } else {
-          epWhere = `WHERE py.order_id IS NULL AND TO_CHAR(py.date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${epDatePlaceholders})`;
+          epWhere = `WHERE py.order_id IS NULL AND TO_CHAR(py.date AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${epDatePlaceholders})`;
           epParams.push(...dates);
           finalParamIndex = epNextIdx;
         }
 
         unions.push(`
-          SELECT TO_CHAR(py.date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
+          SELECT TO_CHAR(py.date AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
                  py.amount as total
           FROM payments py
           ${epWhere}
@@ -344,7 +344,7 @@ class StatsRepository {
     }
 
     const { placeholders: datePlaceholders, nextIndex } = this._buildPlaceholders(dates.length, paramIndex);
-    let whereClause = `WHERE o.active = true AND TO_CHAR(${dateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${datePlaceholders})`;
+    let whereClause = `WHERE o.active = true AND TO_CHAR(${dateCol} AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${datePlaceholders})`;
     params.push(...dates);
     paramIndex = nextIndex;
 
@@ -369,13 +369,13 @@ class StatsRepository {
     try {
       const rawResults = await db.getAll(`
         SELECT DISTINCT year FROM (
-          SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') as year FROM orders WHERE active = true AND date IS NOT NULL
+          SELECT TO_CHAR(date AT TIME ZONE 'America/Mexico_City', 'YYYY') as year FROM orders WHERE active = true AND date IS NOT NULL
           UNION
-          SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') as year FROM payments WHERE date IS NOT NULL
+          SELECT TO_CHAR(date AT TIME ZONE 'America/Mexico_City', 'YYYY') as year FROM payments WHERE date IS NOT NULL
           UNION
-          SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') as year FROM simple_orders WHERE active = true AND date IS NOT NULL
+          SELECT TO_CHAR(date AT TIME ZONE 'America/Mexico_City', 'YYYY') as year FROM simple_orders WHERE active = true AND date IS NOT NULL
           UNION
-          SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') as year FROM simple_order_payments WHERE date IS NOT NULL
+          SELECT TO_CHAR(date AT TIME ZONE 'America/Mexico_City', 'YYYY') as year FROM simple_order_payments WHERE date IS NOT NULL
         ) all_years
         ORDER BY year DESC
       `);
@@ -403,13 +403,13 @@ class StatsRepository {
     const strYear = year.toString();
     const results = await db.getAll(`
       SELECT DISTINCT sale_date FROM (
-        SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date FROM orders WHERE active = true AND TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') = $1
+        SELECT TO_CHAR(date AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date FROM orders WHERE active = true AND TO_CHAR(date AT TIME ZONE 'America/Mexico_City', 'YYYY') = $1
         UNION
-        SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date FROM payments WHERE TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') = $1
+        SELECT TO_CHAR(date AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date FROM payments WHERE TO_CHAR(date AT TIME ZONE 'America/Mexico_City', 'YYYY') = $1
         UNION
-        SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date FROM simple_orders WHERE active = true AND TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') = $1
+        SELECT TO_CHAR(date AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date FROM simple_orders WHERE active = true AND TO_CHAR(date AT TIME ZONE 'America/Mexico_City', 'YYYY') = $1
         UNION
-        SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date FROM simple_order_payments WHERE TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') = $1
+        SELECT TO_CHAR(date AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date FROM simple_order_payments WHERE TO_CHAR(date AT TIME ZONE 'America/Mexico_City', 'YYYY') = $1
       ) all_dates
       ORDER BY sale_date ASC
     `, [strYear]);

@@ -7,8 +7,8 @@ types.setTypeParser(1700, val => parseFloat(val));
 types.setTypeParser(700, val => parseFloat(val));
 types.setTypeParser(701, val => parseFloat(val));
 
-// Forzar que los campos TIMESTAMP sin zona horaria (1114) se interpreten como UTC para mantener la compatibilidad y no aplicar el timezone por defecto del driver
-types.setTypeParser(1114, val => new Date(val + 'Z'));
+// Las columnas de fecha usan TIMESTAMPTZ — el driver pg las retorna como Date de JS automáticamente.
+// NO se necesita el hack manual de añadir 'Z' porque Postgres ya gestiona la zona horaria.
 
 const { AsyncLocalStorage } = require('async_hooks');
 const path = require('path');
@@ -174,7 +174,7 @@ const pgSchema = `
     client_id INTEGER NOT NULL REFERENCES clients(id),
     user_id INTEGER NOT NULL REFERENCES users(id),
     edited_by INTEGER REFERENCES users(id),
-    date TIMESTAMP NOT NULL,
+    date TIMESTAMPTZ NOT NULL,
     total DECIMAL(10,2) DEFAULT 0,
     converted_to_order INTEGER NOT NULL DEFAULT 0,
     converted_to_order_id INTEGER,
@@ -186,8 +186,8 @@ const pgSchema = `
     client_id INTEGER NOT NULL REFERENCES clients(id),
     user_id INTEGER NOT NULL REFERENCES users(id),
     edited_by INTEGER REFERENCES users(id),
-    date TIMESTAMP NOT NULL,
-    estimated_delivery_date TIMESTAMP,
+    date TIMESTAMPTZ NOT NULL,
+    estimated_delivery_date TIMESTAMPTZ,
     status VARCHAR(50) NOT NULL DEFAULT 'Revision', 
     total DECIMAL(10,2) DEFAULT 0,
     notes TEXT,
@@ -226,7 +226,7 @@ const pgSchema = `
     id SERIAL PRIMARY KEY,
     order_id INTEGER REFERENCES orders(id),
     amount DECIMAL(10,2) NOT NULL,
-    date TIMESTAMP,
+    date TIMESTAMPTZ,
     descripcion TEXT,
     info TEXT
   );
@@ -234,7 +234,7 @@ const pgSchema = `
   CREATE TABLE IF NOT EXISTS simple_orders (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
-    date TIMESTAMP NOT NULL,
+    date TIMESTAMPTZ NOT NULL,
     concept TEXT NOT NULL,
     client_name VARCHAR(255),
     total DECIMAL(10,2) DEFAULT 0,
@@ -246,7 +246,7 @@ const pgSchema = `
     simple_order_id INTEGER NOT NULL REFERENCES simple_orders(id),
     user_id INTEGER NOT NULL REFERENCES users(id),
     amount DECIMAL(10,2) NOT NULL,
-    date TIMESTAMP NOT NULL,
+    date TIMESTAMPTZ NOT NULL,
     descripcion TEXT
   );
 
