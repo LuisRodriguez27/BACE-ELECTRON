@@ -136,6 +136,29 @@ const pgSchema = `
     descripcion     TEXT
   );
 
+  CREATE TABLE IF NOT EXISTS cash_sessions (
+    id               SERIAL        PRIMARY KEY,
+    opening_date     TIMESTAMPTZ   NOT NULL,
+    closing_date     TIMESTAMPTZ,
+    opening_balance  DECIMAL(10,2) NOT NULL DEFAULT 0,
+    expected_balance DECIMAL(10,2) NOT NULL DEFAULT 0,
+    closing_balance  DECIMAL(10,2) NOT NULL DEFAULT 0,
+    status           VARCHAR(50)   NOT NULL DEFAULT 'open',
+    notes            TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS expenses (
+    id                SERIAL        PRIMARY KEY,
+    cash_session_id   INTEGER       NOT NULL REFERENCES cash_sessions(id),
+    user_id           INTEGER       NOT NULL REFERENCES users(id),
+    edited_by         INTEGER       REFERENCES users(id),
+    amount            DECIMAL(10,2) NOT NULL,
+    description       TEXT          NOT NULL,
+    date              TIMESTAMPTZ   NOT NULL,
+    active            BOOLEAN       NOT NULL DEFAULT TRUE
+  );
+
+
   -- ============================================================
   -- ÍNDICES DE RENDIMIENTO (Llaves foráneas + columnas frecuentes)
   -- Las BDs existentes los reciben a través de la migración v10.
@@ -185,6 +208,16 @@ const pgSchema = `
   -- simple_order_payments
   CREATE INDEX IF NOT EXISTS idx_simple_order_payments_simple_order_id   ON simple_order_payments(simple_order_id);
   CREATE INDEX IF NOT EXISTS idx_simple_order_payments_user_id           ON simple_order_payments(user_id);
+
+  -- cash_sessions
+  CREATE INDEX IF NOT EXISTS idx_cash_sessions_active_status             ON cash_sessions(status) WHERE status = 'open';
+  CREATE INDEX IF NOT EXISTS idx_cash_sessions_date_range                ON cash_sessions(opening_date, closing_date);
+
+  -- expenses
+  CREATE INDEX IF NOT EXISTS idx_expenses_session_active                 ON expenses(cash_session_id) WHERE active = TRUE;
+  CREATE INDEX IF NOT EXISTS idx_expenses_user_date_active               ON expenses(user_id, date) WHERE active = TRUE;
+  CREATE INDEX IF NOT EXISTS idx_expenses_active_true                    ON expenses(date)   WHERE active = TRUE;
+
 `;
 
 module.exports = pgSchema;

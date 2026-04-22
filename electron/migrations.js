@@ -267,7 +267,57 @@ const MIGRATIONS = [
     }
   },
 
-  // AGREGA NUEVAS MIGRACIONES AQUÍ (v11, v12, ...)
+  // v11: Crear tablas para egreso y caja
+  {
+    version: 11,
+    name: 'create_cash/expenses_tables',
+    isApplied: async (client) => {
+    const { rows } = await client.query(
+      `SELECT COUNT(*) FROM information_schema.tables 
+      WHERE table_name IN ('cash_sessions', 'expenses')`
+    );
+    // Si el conteo es 2, la migración ya está completa
+    return parseInt(rows[0].count) === 2;
+  },
+    up: async (client) => {
+      const schema = `
+        CREATE TABLE IF NOT EXISTS cash_sessions (
+          id               SERIAL        PRIMARY KEY,
+          opening_date     TIMESTAMPTZ   NOT NULL,
+          closing_date     TIMESTAMPTZ,
+          opening_balance  DECIMAL(10,2) NOT NULL DEFAULT 0,
+          expected_balance DECIMAL(10,2) NOT NULL DEFAULT 0,
+          closing_balance  DECIMAL(10,2) NOT NULL DEFAULT 0,
+          status           VARCHAR(50)   NOT NULL DEFAULT 'open',
+          notes            TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS expenses (
+          id                SERIAL        PRIMARY KEY,
+          cash_session_id   INTEGER       NOT NULL REFERENCES cash_sessions(id),
+          user_id           INTEGER       NOT NULL REFERENCES users(id),
+          edited_by         INTEGER       REFERENCES users(id),
+          amount            DECIMAL(10,2) NOT NULL,
+          description       TEXT          NOT NULL,
+          date              TIMESTAMPTZ   NOT NULL,
+          active            BOOLEAN       NOT NULL DEFAULT TRUE
+        );
+
+        -- Índices
+        -- cash_sessions
+        CREATE INDEX IF NOT EXISTS idx_cash_sessions_active_status             ON cash_sessions(status) WHERE status = 'open';
+        CREATE INDEX IF NOT EXISTS idx_cash_sessions_date_range                ON cash_sessions(opening_date, closing_date);
+
+        -- expenses
+        CREATE INDEX IF NOT EXISTS idx_expenses_session_active                 ON expenses(cash_session_id) WHERE active = TRUE;
+        CREATE INDEX IF NOT EXISTS idx_expenses_user_date_active               ON expenses(user_id, date) WHERE active = TRUE;
+        CREATE INDEX IF NOT EXISTS idx_expenses_active_true                    ON expenses(date)   WHERE active = TRUE;
+        `;
+      await client.query(schema);
+    }
+  },
+
+  // AGREGA NUEVAS MIGRACIONES AQUÍ
 ];
 
 // RUNNER PRINCIPAL
@@ -307,9 +357,9 @@ async function runMigrations(db, client) {
             [m.version, m.name]
           );
           appliedVersions.add(m.version);
-          console.log(`  ✔ v${m.version} (${m.name}): ya aplicada.`);
+          console.log(`v${m.version} (${m.name}): ya aplicada.`);
         } else {
-          console.log(`  ⚠ v${m.version} (${m.name}): pendiente, se aplicará ahora.`);
+          console.log(`v${m.version} (${m.name}): pendiente, se aplicará ahora.`);
         }
       }
       console.log('Bootstrap completado.');
@@ -321,7 +371,7 @@ async function runMigrations(db, client) {
   for (const migration of MIGRATIONS) {
     if (appliedVersions.has(migration.version)) continue;
 
-    console.log(`⏳ Migración v${migration.version} (${migration.name})...`);
+    console.log(`Migración v${migration.version} (${migration.name})...`);
     try {
       await client.query('BEGIN');
       await migration.up(client);
@@ -330,19 +380,19 @@ async function runMigrations(db, client) {
         [migration.version, migration.name]
       );
       await client.query('COMMIT');
-      console.log(`  ✔ v${migration.version} aplicada.`);
+      console.log(`v${migration.version} aplicada.`);
       ran++;
     } catch (e) {
       await client.query('ROLLBACK');
-      console.error(`❌ Error en migración v${migration.version}: ${e.message}`);
+      console.error(`Error en migración v${migration.version}: ${e.message}`);
       throw new Error(`Fallo en migración v${migration.version} — se hizo rollback: ${e.message}`);
     }
   }
 
   if (ran === 0) {
-    console.log('✅ No hay migraciones pendientes.');
+    console.log('No hay migraciones pendientes.');
   } else {
-    console.log(`✅ ${ran} migración(es) aplicada(s) exitosamente.`);
+    console.log(`${ran} migración(es) aplicada(s) exitosamente.`);
   }
 }
 
