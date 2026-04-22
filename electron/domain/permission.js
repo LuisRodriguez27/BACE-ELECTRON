@@ -15,7 +15,7 @@ class Permission {
 
   // Métodos de utilidad para el dominio
   isActive() {
-    return this.active === 1;
+    return this.active === true;
   }
 
   hasDescription() {
@@ -35,8 +35,7 @@ class Permission {
   isValid() {
     return (
       this.isValidName() && 
-      typeof this.active === 'number' && 
-      (this.active === 0 || this.active === 1)
+      typeof this.active === 'boolean'
     );
   }
 
@@ -103,7 +102,7 @@ class Permission {
 
   // Obtener usuarios asignados
   getAssignedUsers() {
-    return this.users.filter(user => user.active === 1);
+    return this.users.filter(user => user.active === true);
   }
 
   getActiveUserCount() {

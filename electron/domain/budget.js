@@ -35,7 +35,7 @@ class Budget {
 
   // Métodos de utilidad para el dominio
   isActive() {
-    return this.active === 1;
+    return this.active === true;
   }
 
   hasProducts() {

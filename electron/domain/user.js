@@ -8,17 +8,17 @@ class User {
 
   // Métodos de utilidad para el dominio
   isActive() {
-    return this.active === 1;
+    return this.active === true;
   }
 
   hasPermission(permissionName) {
     return this.userPermissions.some(
-      permission => permission.permission_name === permissionName && permission.active === 1
+      permission => permission.permission_name === permissionName && permission.active === true
     );
   }
 
   getActivePermissions() {
-    return this.userPermissions.filter(permission => permission.active === 1);
+    return this.userPermissions.filter(permission => permission.active === true);
   }
 
   toPlainObject() {

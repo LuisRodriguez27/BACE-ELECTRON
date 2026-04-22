@@ -24,7 +24,7 @@ class SimpleOrder {
   }
 
   isActive() {
-    return this.active === 1;
+    return this.active === true;
   }
 
   getUser() {
