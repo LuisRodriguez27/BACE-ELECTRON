@@ -36,54 +36,47 @@ const pool = new Pool({
 
 const asyncLocalStorage = new AsyncLocalStorage();
 
-async function queryWithContext(sql, args, method) {
-  let i = 1;
-  // Convertimos '?' a '$1', '$2', etc. de forma segura (ignorando los '?' dentro de strings)
-  let pgSql = '';
-  let inString = false;
-  for (let char of sql) {
-    if (char === "'") inString = !inString;
-    if (char === '?' && !inString) {
-      pgSql += `$${i++}`;
-    } else {
-      pgSql += char;
-    }
-  }
-
-  // Agregar RETURNING * si es insert para postgres y no lo tiene
-  if (method === 'run' && pgSql.trim().toUpperCase().startsWith('INSERT') && !pgSql.toUpperCase().includes('RETURNING')) {
-    pgSql += ' RETURNING *';
-  }
-
-  const client = asyncLocalStorage.getStore() || pool;
-
-  try {
-    const result = await client.query(pgSql, args);
-    if (method === 'get') {
+const db = {
+  async getOne(sql, params = []) {
+    const client = asyncLocalStorage.getStore() || pool;
+    try {
+      const result = await client.query(sql, params);
       return result.rows[0] || null;
+    } catch (e) {
+      console.error("Database Error:", e.message, "\nQuery:", sql, "\nParams:", params);
+      throw e;
     }
-    if (method === 'all') {
+  },
+
+  async getAll(sql, params = []) {
+    const client = asyncLocalStorage.getStore() || pool;
+    try {
+      const result = await client.query(sql, params);
       return result.rows;
+    } catch (e) {
+      console.error("Database Error:", e.message, "\nQuery:", sql, "\nParams:", params);
+      throw e;
     }
-    if (method === 'run') {
+  },
+
+  async execute(sql, params = []) {
+    let pgSql = sql;
+
+    if (pgSql.trim().toUpperCase().startsWith('INSERT') && !pgSql.toUpperCase().includes('RETURNING')) {
+      pgSql += ' RETURNING *';
+    }
+
+    const client = asyncLocalStorage.getStore() || pool;
+    try {
+      const result = await client.query(pgSql, params);
       return {
         changes: result.rowCount,
         lastInsertRowid: result.rows.length > 0 && result.rows[0].id ? result.rows[0].id : null
       };
+    } catch (e) {
+      console.error("Database Error:", e.message, "\nQuery:", pgSql, "\nParams:", params);
+      throw e;
     }
-  } catch (e) {
-    console.error("Database Error:", e.message, "\\nQuery:", pgSql, "\\nArgs:", args);
-    throw e;
-  }
-}
-
-const db = {
-  prepare: (sql) => {
-    return {
-      get: async (...args) => await queryWithContext(sql, args, 'get'),
-      all: async (...args) => await queryWithContext(sql, args, 'all'),
-      run: async (...args) => await queryWithContext(sql, args, 'run'),
-    };
   },
 
   transaction: (fn) => {
@@ -104,7 +97,7 @@ const db = {
     };
   },
 
-  exec: async (sql) => {
+  async exec(sql) {
     const client = asyncLocalStorage.getStore() || pool;
     return await client.query(sql);
   }

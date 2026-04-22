@@ -4,7 +4,7 @@ const Order = require('../domain/order');
 class OrderRepository {
 
   async findAll() {
-    const stmt = db.prepare(`
+    const orders = await db.getAll(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
             o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.responsable, o.active,
             c.name as client_name, c.phone as client_phone, c.color as client_color,
@@ -18,7 +18,6 @@ class OrderRepository {
       ORDER BY o.id DESC
     `);
     
-    const orders = await stmt.all();
     return await Promise.all(orders.map(async order => {
       // Cargar productos para cada orden
       const orderProducts = await this.getOrderProducts(order.id);
@@ -27,7 +26,7 @@ class OrderRepository {
   }
 
   async findById(id) {
-    const orderData = await db.prepare(`
+    const orderData = await db.getOne(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
             o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.responsable, o.active,
             c.name as client_name, c.phone as client_phone, c.color as client_color,
@@ -37,8 +36,8 @@ class OrderRepository {
       JOIN clients c ON o.client_id = c.id
       JOIN users u ON o.user_id = u.id
       LEFT JOIN users ue ON o.edited_by = ue.id
-      WHERE o.id = ? AND o.active = true
-    `).get(id);
+      WHERE o.id = $1 AND o.active = true
+    `, [id]);
 
     if (!orderData) return null;
 
@@ -48,7 +47,7 @@ class OrderRepository {
   }
 
   async findByClientId(clientId) {
-    const stmt = db.prepare(`
+    const orders = await db.getAll(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
             o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.active,
             c.name as client_name, c.phone as client_phone, c.color as client_color,
@@ -58,11 +57,10 @@ class OrderRepository {
       JOIN clients c ON o.client_id = c.id
       JOIN users u ON o.user_id = u.id
       LEFT JOIN users ue ON o.edited_by = ue.id
-      WHERE o.client_id = ? AND o.active = true
+      WHERE o.client_id = $1 AND o.active = true
       ORDER BY o.id DESC
-    `);
+    `, [clientId]);
 
-    const orders = await stmt.all(clientId);
     return await Promise.all(orders.map(async order => {
       // Cargar productos para cada orden
       const orderProducts = await this.getOrderProducts(order.id);
@@ -71,7 +69,7 @@ class OrderRepository {
   }
 
   async findPendingForLogbook() {
-    const stmt = db.prepare(`
+    const orders = await db.getAll(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
             o.estimated_delivery_date, o.status, o.responsable, o.total, o.notes, o.description, o.active,
             c.name as client_name, c.phone as client_phone, c.color as client_color,
@@ -85,7 +83,6 @@ class OrderRepository {
       ORDER BY o.id ASC
     `);
     
-    const orders = await stmt.all();
     return await Promise.all(orders.map(async order => {
       // Cargar productos para cada orden
       const orderProducts = await this.getOrderProducts(order.id);
@@ -94,7 +91,7 @@ class OrderRepository {
   }
 
   async findCompleted() {
-    const stmt = db.prepare(`
+    const orders = await db.getAll(`
       SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date, 
             o.estimated_delivery_date, o.status, o.total, o.notes, o.description, o.active,
             c.name as client_name, c.phone as client_phone, c.color as client_color,
@@ -108,7 +105,6 @@ class OrderRepository {
       ORDER BY o.id DESC
     `);
     
-    const orders = await stmt.all();
     return await Promise.all(orders.map(async order => {
       // Cargar productos para cada orden
       const orderProducts = await this.getOrderProducts(order.id);
@@ -122,16 +118,17 @@ class OrderRepository {
     // Construir la condición de búsqueda
     let searchCondition = '';
     let searchParams = [];
+    let paramIndex = 1;
     
     if (searchTerm && searchTerm.trim()) {
       const term = `%${searchTerm.trim()}%`;
       searchCondition = `
         AND (
-          CAST(o.id AS TEXT) ILIKE ?
-          OR o.notes ILIKE ?
-          OR o.description ILIKE ?
-          OR c.name ILIKE ?
-          OR c.phone ILIKE ?
+          CAST(o.id AS TEXT) ILIKE $${paramIndex}
+          OR o.notes ILIKE $${paramIndex}
+          OR o.description ILIKE $${paramIndex}
+          OR c.name ILIKE $${paramIndex}
+          OR c.phone ILIKE $${paramIndex}
           OR EXISTS (
             SELECT 1 FROM order_products op
             LEFT JOIN products p ON op.product_id = p.id
@@ -139,15 +136,16 @@ class OrderRepository {
             LEFT JOIN products pt_p ON pt.product_id = pt_p.id
             WHERE op.order_id = o.id
             AND (
-              p.name ILIKE ? 
-              OR p.description ILIKE ?
-              OR pt.description ILIKE ?
-              OR pt_p.name ILIKE ?
+              p.name ILIKE $${paramIndex} 
+              OR p.description ILIKE $${paramIndex}
+              OR pt.description ILIKE $${paramIndex}
+              OR pt_p.name ILIKE $${paramIndex}
             )
           )
         )
       `;
-      searchParams = [term, term, term, term, term, term, term, term, term];
+      searchParams = [term];
+      paramIndex = 2;
     }
     
     // Obtener total de registros con búsqueda
@@ -157,8 +155,8 @@ class OrderRepository {
       JOIN clients c ON o.client_id = c.id
       WHERE o.active = true AND o.status = 'Completado' ${searchCondition}
     `;
-    const countStmt = db.prepare(countQuery);
-    const { total } = await countStmt.get(...searchParams);
+    const countResult = await db.getOne(countQuery, searchParams);
+    const total = countResult.total;
     
     // Obtener registros paginados con búsqueda
     const dataQuery = `
@@ -173,10 +171,9 @@ class OrderRepository {
       LEFT JOIN users ue ON o.edited_by = ue.id
       WHERE o.active = true AND o.status = 'Completado' ${searchCondition}
       ORDER BY o.id DESC
-      LIMIT ? OFFSET ?
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
-    const stmt = db.prepare(dataQuery);
-    const orders = await stmt.all(...searchParams, limit, offset);
+    const orders = await db.getAll(dataQuery, [...searchParams, limit, offset]);
     
     const ordersWithProducts = await Promise.all(orders.map(async order => {
       const orderProducts = await this.getOrderProducts(order.id);
@@ -214,12 +211,10 @@ class OrderRepository {
     // Iniciar transacción para garantizar consistencia
     const transaction = db.transaction(async () => {
       // Crear la orden
-      const orderStmt = db.prepare(`
+      const orderResult = await db.execute(`
         INSERT INTO orders (client_id, user_id, date, estimated_delivery_date, status, responsable, total, notes, description)
-        VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)
-      `);
-      
-      const orderResult = await orderStmt.run(
+        VALUES ($1, $2, $3, $4, $5, $6, 0, $7, $8)
+      `, [
         orderData.client_id,
         orderData.user_id,
         orderData.date,
@@ -228,7 +223,7 @@ class OrderRepository {
         orderData.responsable || "Mostrador",
         orderData.notes || null,
         orderData.description || null
-      );
+      ]);
 
       const orderId = orderResult.lastInsertRowid;
 
@@ -278,11 +273,6 @@ class OrderRepository {
    * Solo se usa durante la creación inicial
    */
   async addItemsToOrder(orderId, items) {
-    const stmt = db.prepare(`
-      INSERT INTO order_products (order_id, product_id, template_id, quantity, unit_price, total_price)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
-
     for (const item of items) {
       const productId = item.product_id || null;
       const templateId = item.template_id || null;
@@ -290,7 +280,10 @@ class OrderRepository {
       const unitPrice = parseFloat(item.unit_price);
       const totalPrice = quantity * unitPrice;
 
-      await stmt.run(orderId, productId, templateId, quantity, unitPrice, totalPrice);
+      await db.execute(`
+        INSERT INTO order_products (order_id, product_id, template_id, quantity, unit_price, total_price)
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, [orderId, productId, templateId, quantity, unitPrice, totalPrice]);
     }
   }
 
@@ -320,21 +313,20 @@ class OrderRepository {
     const fieldEntries = Object.entries(fieldsToUpdate);
 
     if (fieldEntries.length > 0) {
-      const setClause = fieldEntries.map(([key]) => `${key} = ?`).join(', ');
       const values = fieldEntries.map(([, value]) => value);
+      const setClause = fieldEntries.map(([key], idx) => `${key} = $${idx + 1}`).join(', ');
       
-      const stmt = db.prepare(`
+      values.push(id);
+      await db.execute(`
         UPDATE orders
         SET ${setClause}
-        WHERE id = ? AND active = true
-      `);
-      
-      await stmt.run(...values, id);
+        WHERE id = $${values.length} AND active = true
+      `, values);
     }
 
     if (orderData.items && Array.isArray(orderData.items)) {
       await this.validateOrderItems(orderData.items);
-      await db.prepare('DELETE FROM order_products WHERE order_id = ?').run(id);
+      await db.execute('DELETE FROM order_products WHERE order_id = $1', [id]);
       await this.addItemsToOrder(id, orderData.items);
       await this.recalculateTotal(id);
     }
@@ -343,14 +335,13 @@ class OrderRepository {
   }
 
   async delete(id) {
-    const stmt = db.prepare('UPDATE orders SET active = false WHERE id = ?');
-    const result = await stmt.run(id);
+    const result = await db.execute('UPDATE orders SET active = false WHERE id = $1', [id]);
     
     return result.changes > 0;
   }
 
   async getOrderProducts(orderId) {
-    const stmt = db.prepare(`
+    return await db.getAll(`
       SELECT 
         op.*,
         -- Para productos directos
@@ -374,30 +365,28 @@ class OrderRepository {
       LEFT JOIN product_templates pt ON op.template_id = pt.id
       LEFT JOIN products p_template ON pt.product_id = p_template.id
       LEFT JOIN users u ON pt.created_by = u.id
-      WHERE op.order_id = ?
+      WHERE op.order_id = $1
       ORDER BY op.id
-    `);
-
-    return await stmt.all(orderId);
+    `, [orderId]);
   }
 
   /**
    * Recalcular el total de una orden basándose en sus productos
    */
   async recalculateTotal(orderId) {
-    const totalQuery = await db.prepare(`
+    const totalQuery = await db.getOne(`
       SELECT SUM(total_price) as total
       FROM order_products
-      WHERE order_id = ?
-    `).get(orderId);
+      WHERE order_id = $1
+    `, [orderId]);
 
     const newTotal = totalQuery.total || 0;
 
-    await db.prepare(`
+    await db.execute(`
       UPDATE orders
-      SET total = ?
-      WHERE id = ?
-    `).run(newTotal, orderId);
+      SET total = $1
+      WHERE id = $2
+    `, [newTotal, orderId]);
 
     return newTotal;
   }

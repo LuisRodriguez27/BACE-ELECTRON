@@ -7,17 +7,15 @@ const saltRounds = 10;
 class UserRepository {
   
   async findAll() {
-    const stmt = db.prepare('SELECT id, username, active FROM users WHERE active = true');
-    const users = await stmt.all();
+    const users = await db.getAll('SELECT id, username, active FROM users WHERE active = true');
     
     return await Promise.all(users.map(async user => {
-      const permissionsStmt = db.prepare(`
+      const userPermissions = await db.getAll(`
         SELECT p.id as permission_id, p.name as permission_name, up.active
         FROM user_permissions up
         JOIN permissions p ON up.permission_id = p.id
-        WHERE up.user_id = ? AND p.active = true
-      `);
-      const userPermissions = await permissionsStmt.all(user.id);
+        WHERE up.user_id = $1 AND p.active = true
+      `, [user.id]);
       
       return new User({
         ...user,
@@ -27,18 +25,16 @@ class UserRepository {
   }
 
   async findById(id) {
-    const stmt = db.prepare('SELECT id, username, active FROM users WHERE id = ? AND active = true');
-    const user = await stmt.get(id);
+    const user = await db.getOne('SELECT id, username, active FROM users WHERE id = $1 AND active = true', [id]);
     
     if (!user) return null;
     
-    const permissionsStmt = db.prepare(`
+    const userPermissions = await db.getAll(`
       SELECT p.id as permission_id, p.name as permission_name, up.active
       FROM user_permissions up
       JOIN permissions p ON up.permission_id = p.id
-      WHERE up.user_id = ? AND p.active = true
-    `);
-    const userPermissions = await permissionsStmt.all(id);
+      WHERE up.user_id = $1 AND p.active = true
+    `, [id]);
     
     return new User({
       ...user,
@@ -47,18 +43,16 @@ class UserRepository {
   }
 
   async findByUsername(username) {
-    const stmt = db.prepare('SELECT id, username, password, active FROM users WHERE username = ? AND active = true');
-    const user = await stmt.get(username);
+    const user = await db.getOne('SELECT id, username, password, active FROM users WHERE username = $1 AND active = true', [username]);
     
     if (!user) return null;
     
-    const permissionsStmt = db.prepare(`
+    const userPermissions = await db.getAll(`
       SELECT p.id as permission_id, p.name as permission_name, up.active
       FROM user_permissions up
       JOIN permissions p ON up.permission_id = p.id
-      WHERE up.user_id = ? AND p.active = true
-    `);
-    const userPermissions = await permissionsStmt.all(user.id);
+      WHERE up.user_id = $1 AND p.active = true
+    `, [user.id]);
     
     return {
       ...user, // Incluye password para verificación
@@ -67,8 +61,7 @@ class UserRepository {
   }
 
   async create(userData) {
-    const stmt = db.prepare('INSERT INTO users (username, password) VALUES (?, ?)');
-    const result = await stmt.run(userData.username, userData.hashedPassword);
+    const result = await db.execute('INSERT INTO users (username, password) VALUES ($1, $2)', [userData.username, userData.hashedPassword]);
 
     return new User({
       id: result.lastInsertRowid,
@@ -79,48 +72,46 @@ class UserRepository {
   }
 
   async update(id, userData) {
-    let fields = ['username = ?'];
+    let fields = ['username = $1'];
     let values = [userData.username];
+    let paramIndex = 2;
 
     if (userData.hashedPassword) {
-      fields.push('password = ?');
+      fields.push(`password = $${paramIndex}`);
       values.push(userData.hashedPassword);
+      paramIndex++;
     }
 
     values.push(id);
 
-    const stmt = db.prepare(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`);
-    const result = await stmt.run(...values);
+    const result = await db.execute(`UPDATE users SET ${fields.join(', ')} WHERE id = $${paramIndex}`, values);
 
     return result.changes > 0;
   }
 
   async delete(id) {
-    const stmt = db.prepare('UPDATE users SET active = false WHERE id = ?');
-    const result = await stmt.run(id);
+    const result = await db.execute('UPDATE users SET active = false WHERE id = $1', [id]);
     
     return result.changes > 0;
   }
 
   async existsByUsername(username, excludeUserId = null) {
-    let query = 'SELECT id FROM users WHERE username = ?';
+    let query = 'SELECT id FROM users WHERE username = $1';
     let params = [username];
     
     if (excludeUserId) {
-      query += ' AND id != ?';
+      query += ' AND id != $2';
       params.push(excludeUserId);
     }
     
-    const stmt = db.prepare(query);
-    const result = await stmt.get(...params);
+    const result = await db.getOne(query, params);
     
     return !!result;
   }
 
   // Método auxiliar para verificación de password
   async getPasswordHash(username) {
-    const stmt = db.prepare('SELECT password FROM users WHERE username = ? AND active = true');
-    const result = await stmt.get(username);
+    const result = await db.getOne('SELECT password FROM users WHERE username = $1 AND active = true', [username]);
     return result ? result.password : null;
   }
 

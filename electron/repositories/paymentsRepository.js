@@ -3,7 +3,7 @@ const Payment = require('../domain/payments');
 
 class PaymentsRepository {
   async findAll() {
-    const stmt = db.prepare(`
+    const rows = await db.getAll(`
       SELECT 
         p.*,
         o.id as o_id, 
@@ -18,8 +18,6 @@ class PaymentsRepository {
       LEFT JOIN clients c ON o.client_id = c.id
       ORDER BY p.date DESC
     `);
-
-    const rows = await stmt.all();
 
     return rows.map(row => new Payment({
       id: row.id,
@@ -43,7 +41,7 @@ class PaymentsRepository {
   }
 
   async findByOrderId(orderId) {
-    const stmt = db.prepare(`
+    const rows = await db.getAll(`
       SELECT 
         p.*,
         o.id as o_id, 
@@ -56,11 +54,9 @@ class PaymentsRepository {
       FROM payments p
       LEFT JOIN orders o ON p.order_id = o.id
       LEFT JOIN clients c ON o.client_id = c.id
-      WHERE p.order_id = ?
+      WHERE p.order_id = $1
       ORDER BY p.date DESC
-    `);
-
-    const rows = await stmt.all(orderId);
+    `, [orderId]);
 
     return rows.map(row => new Payment({
       id: row.id,
@@ -84,7 +80,7 @@ class PaymentsRepository {
   }
 
   async findById(id) {
-    const stmt = db.prepare(`
+    const row = await db.getOne(`
       SELECT 
         p.*,
         o.id as o_id, 
@@ -97,10 +93,8 @@ class PaymentsRepository {
       FROM payments p
       LEFT JOIN orders o ON p.order_id = o.id
       LEFT JOIN clients c ON o.client_id = c.id
-      WHERE p.id = ?
-    `);
-
-    const row = await stmt.get(id);
+      WHERE p.id = $1
+    `, [id]);
 
     if (!row) return null;
 
@@ -126,32 +120,31 @@ class PaymentsRepository {
   }
 
   async create({ order_id, amount, date, descripcion, info }) {
-    const stmt = db.prepare(
-      'INSERT INTO payments (order_id, amount, date, descripcion, info) VALUES (?, ?, ?, ?, ?)'
+    const result = await db.execute(
+      'INSERT INTO payments (order_id, amount, date, descripcion, info) VALUES ($1, $2, $3, $4, $5)',
+      [order_id || null, amount, date, descripcion, info || null]
     );
-    const result = await stmt.run(order_id || null, amount, date, descripcion, info || null);
 
     return await this.findById(result.lastInsertRowid);
   }
 
   async update(id, { amount, descripcion }) {
-    const stmt = db.prepare(
-      'UPDATE payments SET amount = ?, descripcion = ? WHERE id = ?'
+    const result = await db.execute(
+      'UPDATE payments SET amount = $1, descripcion = $2 WHERE id = $3',
+      [amount, descripcion, id]
     );
-    const result = await stmt.run(amount, descripcion, id);
 
     return result.changes > 0;
   }
 
   async delete(id) {
-    const stmt = db.prepare('DELETE FROM payments WHERE id = ?');
-    const result = await stmt.run(id);
+    const result = await db.execute('DELETE FROM payments WHERE id = $1', [id]);
 
     return result.changes > 0;
   }
 
   async findByClientId(clientId) {
-    const stmt = db.prepare(`
+    const rows = await db.getAll(`
       SELECT 
         p.*,
         o.id as o_id, 
@@ -164,11 +157,9 @@ class PaymentsRepository {
       FROM payments p
       LEFT JOIN orders o ON p.order_id = o.id
       LEFT JOIN clients c ON o.client_id = c.id
-      WHERE o.client_id = ?
+      WHERE o.client_id = $1
       ORDER BY p.date DESC
-    `);
-
-    const rows = await stmt.all(clientId);
+    `, [clientId]);
 
     return rows.map(row => new Payment({
       id: row.id,
@@ -192,13 +183,12 @@ class PaymentsRepository {
   }
 
   async getTotalPaymentsByOrderId(orderId) {
-    const stmt = db.prepare(`
+    const result = await db.getOne(`
       SELECT COALESCE(SUM(amount), 0) as total
       FROM payments 
-      WHERE order_id = ?
-    `);
+      WHERE order_id = $1
+    `, [orderId]);
 
-    const result = await stmt.get(orderId);
     return result ? parseFloat(result.total) || 0 : 0;
   }
 }

@@ -3,7 +3,7 @@ const Budget = require('../domain/budget');
 
 class BudgetRepository {
   async findAll() {
-    const stmt = db.prepare(`
+    const budgets = await db.getAll(`
       SELECT b.id, b.client_id, b.user_id, b.edited_by, b.date, 
             b.total, b.converted_to_order, b.active,
             c.name AS client_name, c.phone AS client_phone, c.color AS client_color,
@@ -17,7 +17,6 @@ class BudgetRepository {
       ORDER BY b.id DESC 
     `);
 
-    const budgets = await stmt.all();
     return await Promise.all(budgets.map(async budget => {
       const budgetProducts = await this.getBudgetProducts(budget.id);
       return new Budget({ ...budget, budgetProducts });
@@ -25,7 +24,7 @@ class BudgetRepository {
   }
 
   async findById(id) {
-    const budgetData = await db.prepare(`
+    const budgetData = await db.getOne(`
       SELECT b.id, b.client_id, b.user_id, b.edited_by, b.date, 
             b.total, b.converted_to_order, b.active,
             c.name AS client_name, c.phone AS client_phone, c.color AS client_color,
@@ -35,8 +34,8 @@ class BudgetRepository {
       JOIN clients c ON b.client_id = c.id
       JOIN users u ON b.user_id = u.id
       LEFT JOIN users ue ON b.edited_by = ue.id
-      WHERE b.id = ? AND b.active = true
-    `).get(id);
+      WHERE b.id = $1 AND b.active = true
+    `, [id]);
 
     if (!budgetData) return null;
 
@@ -45,7 +44,7 @@ class BudgetRepository {
   }
 
   async findByClientId(clientId) {
-    const stmt = db.prepare(`
+    const budgets = await db.getAll(`
       SELECT b.id, b.client_id, b.user_id, b.edited_by, b.date, 
             b.total, b.converted_to_order, b.active,
             c.name AS client_name, c.phone AS client_phone, c.color AS client_color,
@@ -55,11 +54,10 @@ class BudgetRepository {
       JOIN clients c ON b.client_id = c.id
       JOIN users u ON b.user_id = u.id
       LEFT JOIN users ue ON b.edited_by = ue.id
-      WHERE b.client_id = ? AND b.active = true
+      WHERE b.client_id = $1 AND b.active = true
       ORDER BY b.id DESC
-    `);
+    `, [clientId]);
 
-    const budgets = await stmt.all(clientId);
     return await Promise.all(budgets.map(async budget => {
       const budgetProducts = await this.getBudgetProducts(budget.id);
       return new Budget({ ...budget, budgetProducts });
@@ -72,14 +70,15 @@ class BudgetRepository {
     // Construir la condición de búsqueda
     let searchCondition = '';
     let searchParams = [];
+    let paramIndex = 1;
     
     if (searchTerm && searchTerm.trim()) {
       const term = `%${searchTerm.trim()}%`;
       searchCondition = `
         AND (
-          CAST(b.id AS TEXT) ILIKE ?
-          OR c.name ILIKE ?
-          OR c.phone ILIKE ?
+          CAST(b.id AS TEXT) ILIKE $${paramIndex}
+          OR c.name ILIKE $${paramIndex}
+          OR c.phone ILIKE $${paramIndex}
           OR EXISTS (
             SELECT 1 FROM budget_products bp
             LEFT JOIN products p ON bp.product_id = p.id
@@ -87,15 +86,16 @@ class BudgetRepository {
             LEFT JOIN products pt_p ON pt.product_id = pt_p.id
             WHERE bp.budget_id = b.id
             AND (
-              p.name ILIKE ? 
-              OR p.description ILIKE ?
-              OR pt.description ILIKE ?
-              OR pt_p.name ILIKE ?
+              p.name ILIKE $${paramIndex} 
+              OR p.description ILIKE $${paramIndex}
+              OR pt.description ILIKE $${paramIndex}
+              OR pt_p.name ILIKE $${paramIndex}
             )
           )
         )
       `;
-      searchParams = [term, term, term, term, term, term, term];
+      searchParams = [term];
+      paramIndex = 2;
     }
     
     // Obtener total de registros con búsqueda
@@ -105,8 +105,8 @@ class BudgetRepository {
       JOIN clients c ON b.client_id = c.id
       WHERE b.active = true AND b.converted_to_order = 0 ${searchCondition}
     `;
-    const countStmt = db.prepare(countQuery);
-    const { total } = await countStmt.get(...searchParams);
+    const countResult = await db.getOne(countQuery, searchParams);
+    const total = countResult.total;
     
     // Obtener registros paginados con búsqueda
     const dataQuery = `
@@ -121,10 +121,9 @@ class BudgetRepository {
       LEFT JOIN users ue ON b.edited_by = ue.id
       WHERE b.active = true AND b.converted_to_order = 0 ${searchCondition}
       ORDER BY b.id DESC
-      LIMIT ? OFFSET ?
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
-    const stmt = db.prepare(dataQuery);
-    const budgets = await stmt.all(...searchParams, limit, offset);
+    const budgets = await db.getAll(dataQuery, [...searchParams, limit, offset]);
     
     const budgetsWithProducts = await Promise.all(budgets.map(async budget => {
       const budgetProducts = await this.getBudgetProducts(budget.id);
@@ -153,16 +152,15 @@ class BudgetRepository {
     await this.validateBudgetItems(budgetData.items);
 
     const transaction = db.transaction(async () => {
-      const orderStmt = db.prepare(`
+      const result = await db.execute(`
         INSERT INTO budgets (client_id, user_id, date, total, converted_to_order)
-        VALUES (?, ?, ?, ?, 0)
-      `);
-      const result = await orderStmt.run(
+        VALUES ($1, $2, $3, $4, 0)
+      `, [
         budgetData.client_id,
         budgetData.user_id,
         budgetData.date,
         budgetData.total || 0
-      );
+      ]);
       const budgetId = result.lastInsertRowid;
 
       await this.addItemsToBudget(budgetId, budgetData.items);
@@ -194,21 +192,20 @@ class BudgetRepository {
     const fieldEntries = Object.entries(fieldsToUpdate);
 
     if (fieldEntries.length > 0) {
-      const setClause = fieldEntries.map(([key]) => `${key} = ?`).join(', ');
       const values = fieldEntries.map(([, value]) => value);
+      const setClause = fieldEntries.map(([key], idx) => `${key} = $${idx + 1}`).join(', ');
       
-      const stmt = db.prepare(`
+      values.push(id);
+      await db.execute(`
         UPDATE budgets
         SET ${setClause}
-        WHERE id = ? AND active = true
-      `);
-      
-      await stmt.run(...values, id);
+        WHERE id = $${values.length} AND active = true
+      `, values);
     }
 
     if (budgetData.items && Array.isArray(budgetData.items)) {
       await this.validateBudgetItems(budgetData.items);
-      await db.prepare('DELETE FROM budget_products WHERE budget_id = ?').run(id);
+      await db.execute('DELETE FROM budget_products WHERE budget_id = $1', [id]);
       await this.addItemsToBudget(id, budgetData.items);
       await this.recalculateTotal(id);
     }
@@ -241,11 +238,6 @@ class BudgetRepository {
   }
 
   async addItemsToBudget(budgetId, items) {
-    const stmt = db.prepare(`
-      INSERT INTO budget_products (budget_id, product_id, template_id, quantity, unit_price, total_price)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
-
     for (const item of items) {
       const productId = item.product_id || null;
       const templateId = item.template_id || null;
@@ -253,15 +245,17 @@ class BudgetRepository {
       const unitPrice = parseFloat(item.unit_price);
       const totalPrice = quantity * unitPrice;
 
-      await stmt.run(budgetId, productId, templateId, quantity, unitPrice, totalPrice);
+      await db.execute(`
+        INSERT INTO budget_products (budget_id, product_id, template_id, quantity, unit_price, total_price)
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, [budgetId, productId, templateId, quantity, unitPrice, totalPrice]);
     }
   }
 
   async delete(budgetId) {
-    const stmt = db.prepare(`
-      UPDATE budgets SET active = false WHERE id = ?
-    `);
-    const result = await stmt.run(budgetId);
+    const result = await db.execute(`
+      UPDATE budgets SET active = false WHERE id = $1
+    `, [budgetId]);
     return result.changes > 0;
   }
 
@@ -285,46 +279,41 @@ class BudgetRepository {
 
     const transaction = db.transaction(async () => {
       // Crear la orden con los mismos datos del presupuesto
-      const orderStmt = db.prepare(`
+      const orderResult = await db.execute(`
         INSERT INTO orders (client_id, user_id, date, status, total, notes, created_from_budget_id)
-        VALUES (?, ?, ?, 'Revision', ?, ?, ?)
-      `);
-      
-      const orderResult = await orderStmt.run(
+        VALUES ($1, $2, $3, 'Revision', $4, $5, $6)
+      `, [
         budget.client_id,
         userId,
         new Date().toISOString(),
         budget.total,
         `Convertido desde presupuesto #${budgetId}`,
         budgetId
-      );
+      ]);
 
       const orderId = orderResult.lastInsertRowid;
 
       // Copiar los productos del presupuesto a la orden
-      const orderProductStmt = db.prepare(`
-        INSERT INTO order_products (order_id, product_id, template_id, quantity, unit_price, total_price)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `);
-
       for (const item of budgetProducts) {
-        await orderProductStmt.run(
+        await db.execute(`
+          INSERT INTO order_products (order_id, product_id, template_id, quantity, unit_price, total_price)
+          VALUES ($1, $2, $3, $4, $5, $6)
+        `, [
           orderId,
           item.product_id || null,
           item.template_id || null,
           item.quantity,
           item.unit_price,
           item.total_price
-        );
+        ]);
       }
 
       // Marcar el presupuesto como convertido
-      const updateBudgetStmt = db.prepare(`
+      await db.execute(`
         UPDATE budgets
-        SET converted_to_order = 1, converted_to_order_id = ?
-        WHERE id = ?
-      `);
-      await updateBudgetStmt.run(orderId, budgetId);
+        SET converted_to_order = 1, converted_to_order_id = $1
+        WHERE id = $2
+      `, [orderId, budgetId]);
 
       return orderId;
     });
@@ -336,7 +325,7 @@ class BudgetRepository {
   }
 
   async getBudgetProducts(budgetId) {
-    const stmt = db.prepare(`
+    return await db.getAll(`
       SELECT 
         bp.*,
         p.name as product_name, 
@@ -355,35 +344,33 @@ class BudgetRepository {
       LEFT JOIN products p ON bp.product_id = p.id
       LEFT JOIN product_templates pt ON bp.template_id = pt.id
       LEFT JOIN users u ON pt.created_by = u.id
-      WHERE bp.budget_id = ?
+      WHERE bp.budget_id = $1
       ORDER BY bp.id
-    `);
-
-    return await stmt.all(budgetId);
+    `, [budgetId]);
   }
 
   async recalculateTotal(budgetId) {
-    const totalQuery = await db.prepare(`
+    const totalQuery = await db.getOne(`
       SELECT SUM(total_price) as total
       FROM budget_products
-      WHERE budget_id = ?
-    `).get(budgetId);
+      WHERE budget_id = $1
+    `, [budgetId]);
 
     const newTotal = totalQuery.total || 0;
 
-    await db.prepare(`
+    await db.execute(`
       UPDATE budgets
-      SET total = ?
-      WHERE id = ?
-    `).run(newTotal, budgetId);
+      SET total = $1
+      WHERE id = $2
+    `, [newTotal, budgetId]);
 
     return newTotal;
   }
 
   async getNextId() {
-    const result = await db.prepare(`
+    const result = await db.getOne(`
       SELECT COALESCE(MAX(id), 0) + 1 as next_id FROM budgets
-    `).get();
+    `);
     
     return result.next_id;
   }

@@ -1,29 +1,45 @@
 const db = require('../db');
 
 class StatsRepository {
+  /**
+   * Helper para construir placeholders numerados ($1, $2, ...) para arrays de parámetros.
+   * Retorna el placeholder string y el nuevo paramIndex.
+   */
+  _buildPlaceholders(count, startIndex) {
+    const placeholders = [];
+    for (let i = 0; i < count; i++) {
+      placeholders.push(`$${startIndex + i}`);
+    }
+    return { placeholders: placeholders.join(','), nextIndex: startIndex + count };
+  }
+
   async getSalesByDate(startDate, endDate, productId = null, paymentMethod = null, source = 'all') {
     if (productId && source !== 'all' && source !== 'orders') return [];
 
     let params = [];
+    let paramIndex = 1;
 
     let joinPayment = '';
     let dateCol = 'o.date';
     if (paymentMethod) {
-      joinPayment = `JOIN payments pay ON o.id = pay.order_id AND pay.descripcion = ?`;
+      joinPayment = `JOIN payments pay ON o.id = pay.order_id AND pay.descripcion = $${paramIndex}`;
       params.push(paymentMethod);
+      paramIndex++;
       dateCol = 'pay.date';
     }
 
-    let whereClause = `WHERE o.active = true AND ${dateCol} >= ? AND ${dateCol} <= ?`;
+    let whereClause = `WHERE o.active = true AND ${dateCol} >= $${paramIndex} AND ${dateCol} <= $${paramIndex + 1}`;
     params.push(startDate, endDate);
+    paramIndex += 2;
 
     if (productId) {
-      whereClause += ` AND (op.product_id = ? OR pt.product_id = ?)`;
+      whereClause += ` AND (op.product_id = $${paramIndex} OR pt.product_id = $${paramIndex + 1})`;
       params.push(productId, productId);
+      paramIndex += 2;
     }
 
     if (productId) {
-      const stmt = db.prepare(`
+      return await db.getAll(`
         SELECT TO_CHAR(${dateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
                COALESCE(${paymentMethod ? 'SUM(op.total_price * (CAST(pay.amount AS FLOAT) / NULLIF(CAST(o.total AS FLOAT), 0)))' : 'SUM(op.total_price)'}, 0) as total, 
                COALESCE(${paymentMethod ? 'SUM(op.quantity * (CAST(pay.amount AS FLOAT) / NULLIF(CAST(o.total AS FLOAT), 0)))' : 'SUM(op.quantity)'}, 0) as quantity
@@ -34,25 +50,42 @@ class StatsRepository {
         ${whereClause}
         GROUP BY sale_date
         ORDER BY sale_date ASC
-      `);
-      return await stmt.all(...params);
+      `, params);
     } else {
       let unions = [];
       let finalParams = [];
+      let finalParamIndex = 1;
 
       let includeOrders = source === 'all' || source === 'orders';
       let includeSimpleOrders = source === 'all' || source === 'simple';
       let includeExtra = source === 'all' || source === 'extra';
 
       if (includeOrders) {
+        let oParams = [];
+        let oParamIndex = finalParamIndex;
+
+        let oJoinPayment = '';
+        let oDateCol = 'o.date';
+        if (paymentMethod) {
+          oJoinPayment = `JOIN payments pay ON o.id = pay.order_id AND pay.descripcion = $${oParamIndex}`;
+          oParams.push(paymentMethod);
+          oParamIndex++;
+          oDateCol = 'pay.date';
+        }
+
+        let oWhereClause = `WHERE o.active = true AND ${oDateCol} >= $${oParamIndex} AND ${oDateCol} <= $${oParamIndex + 1}`;
+        oParams.push(startDate, endDate);
+        oParamIndex += 2;
+
         unions.push(`
-          SELECT TO_CHAR(${dateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
+          SELECT TO_CHAR(${oDateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
                  ${paymentMethod ? 'pay.amount' : 'o.total'} as total
           FROM orders o
-          ${joinPayment}
-          ${whereClause}
+          ${oJoinPayment}
+          ${oWhereClause}
          `);
-        finalParams.push(...params);
+        finalParams.push(...oParams);
+        finalParamIndex = oParamIndex;
       }
 
       if (includeSimpleOrders) {
@@ -60,12 +93,14 @@ class StatsRepository {
         let soJoinPayment = '';
         let soDateCol = 'so.date';
         if (paymentMethod) {
-          soJoinPayment = `JOIN simple_order_payments spay ON so.id = spay.simple_order_id AND spay.descripcion = ?`;
+          soJoinPayment = `JOIN simple_order_payments spay ON so.id = spay.simple_order_id AND spay.descripcion = $${finalParamIndex}`;
           soParams.push(paymentMethod);
+          finalParamIndex++;
           soDateCol = 'spay.date';
         }
-        let soWhereClause = `WHERE so.active = true AND (${soDateCol} AT TIME ZONE 'UTC') >= ? AND (${soDateCol} AT TIME ZONE 'UTC') <= ?`;
+        let soWhereClause = `WHERE so.active = true AND (${soDateCol} AT TIME ZONE 'UTC') >= $${finalParamIndex} AND (${soDateCol} AT TIME ZONE 'UTC') <= $${finalParamIndex + 1}`;
         soParams.push(startDate, endDate);
+        finalParamIndex += 2;
 
         unions.push(`
           SELECT TO_CHAR(${soDateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
@@ -79,13 +114,16 @@ class StatsRepository {
 
       if (includeExtra) {
         let epParams = [];
-        let epWhere = `WHERE py.order_id IS NULL AND (py.date AT TIME ZONE 'UTC') >= ? AND (py.date AT TIME ZONE 'UTC') <= ?`;
+        let epWhere = `WHERE py.order_id IS NULL AND (py.date AT TIME ZONE 'UTC') >= $${finalParamIndex} AND (py.date AT TIME ZONE 'UTC') <= $${finalParamIndex + 1}`;
 
         if (paymentMethod) {
-          epWhere += ` AND py.descripcion = ?`;
+          finalParamIndex += 2;
+          epWhere += ` AND py.descripcion = $${finalParamIndex}`;
           epParams.push(startDate, endDate, paymentMethod);
+          finalParamIndex++;
         } else {
           epParams.push(startDate, endDate);
+          finalParamIndex += 2;
         }
 
         unions.push(`
@@ -99,7 +137,7 @@ class StatsRepository {
 
       if (unions.length === 0) return [];
 
-      const stmt = db.prepare(`
+      return await db.getAll(`
         SELECT sale_date, 
                COALESCE(SUM(total), 0) as total, 
                COUNT(*) as quantity
@@ -108,27 +146,29 @@ class StatsRepository {
         ) combined
         GROUP BY sale_date
         ORDER BY sale_date ASC
-      `);
-      return await stmt.all(...finalParams);
+      `, finalParams);
     }
   }
 
   async getSalesByProduct(startDate, endDate, paymentMethod = null, source = 'all') {
     if (source !== 'all' && source !== 'orders') return [];
     let params = [];
+    let paramIndex = 1;
 
     let joinPayment = '';
     let dateCol = 'o.date';
     if (paymentMethod) {
-      joinPayment = `JOIN payments pay ON o.id = pay.order_id AND pay.descripcion = ?`;
+      joinPayment = `JOIN payments pay ON o.id = pay.order_id AND pay.descripcion = $${paramIndex}`;
       params.push(paymentMethod);
+      paramIndex++;
       dateCol = 'pay.date';
     }
 
-    let whereClause = `WHERE o.active = true AND ${dateCol} >= ? AND ${dateCol} <= ?`;
+    let whereClause = `WHERE o.active = true AND ${dateCol} >= $${paramIndex} AND ${dateCol} <= $${paramIndex + 1}`;
     params.push(startDate, endDate);
+    paramIndex += 2;
 
-    const stmt = db.prepare(`
+    return await db.getAll(`
       SELECT p.id, p.name, 
              COALESCE(${paymentMethod ? 'SUM(op.total_price * (CAST(pay.amount AS FLOAT) / NULLIF(CAST(o.total AS FLOAT), 0)))' : 'SUM(op.total_price)'}, 0) as total, 
              COALESCE(${paymentMethod ? 'SUM(op.quantity * (CAST(pay.amount AS FLOAT) / NULLIF(CAST(o.total AS FLOAT), 0)))' : 'SUM(op.quantity)'}, 0) as quantity
@@ -142,9 +182,7 @@ class StatsRepository {
       ${whereClause}
       GROUP BY p.id
       ORDER BY total DESC
-    `);
-
-    return await stmt.all(...params);
+    `, params);
   }
 
   async getSalesBySpecificDates(dates, productId = null, paymentMethod = null, source = 'all') {
@@ -152,26 +190,30 @@ class StatsRepository {
     if (productId && source !== 'all' && source !== 'orders') return [];
 
     let params = [];
-    const placeholders = dates.map(() => '?').join(',');
+    let paramIndex = 1;
 
     let joinPayment = '';
     let dateCol = 'o.date';
     if (paymentMethod) {
-      joinPayment = `JOIN payments pay ON o.id = pay.order_id AND pay.descripcion = ?`;
+      joinPayment = `JOIN payments pay ON o.id = pay.order_id AND pay.descripcion = $${paramIndex}`;
       params.push(paymentMethod);
+      paramIndex++;
       dateCol = 'pay.date';
     }
 
-    let whereClause = `WHERE o.active = true AND TO_CHAR(${dateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${placeholders})`;
+    const { placeholders: datePlaceholders, nextIndex: nextIdx } = this._buildPlaceholders(dates.length, paramIndex);
+    let whereClause = `WHERE o.active = true AND TO_CHAR(${dateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${datePlaceholders})`;
     params.push(...dates);
+    paramIndex = nextIdx;
 
     if (productId) {
-      whereClause += ` AND (op.product_id = ? OR pt.product_id = ?)`;
+      whereClause += ` AND (op.product_id = $${paramIndex} OR pt.product_id = $${paramIndex + 1})`;
       params.push(productId, productId);
+      paramIndex += 2;
     }
 
     if (productId) {
-      const stmt = db.prepare(`
+      return await db.getAll(`
         SELECT TO_CHAR(${dateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
                COALESCE(${paymentMethod ? 'SUM(op.total_price * (CAST(pay.amount AS FLOAT) / NULLIF(CAST(o.total AS FLOAT), 0)))' : 'SUM(op.total_price)'}, 0) as total, 
                COALESCE(${paymentMethod ? 'SUM(op.quantity * (CAST(pay.amount AS FLOAT) / NULLIF(CAST(o.total AS FLOAT), 0)))' : 'SUM(op.quantity)'}, 0) as quantity
@@ -182,25 +224,43 @@ class StatsRepository {
         ${whereClause}
         GROUP BY sale_date
         ORDER BY sale_date ASC
-      `);
-      return await stmt.all(...params);
+      `, params);
     } else {
       let unions = [];
       let finalParams = [];
+      let finalParamIndex = 1;
 
       let includeOrders = source === 'all' || source === 'orders';
       let includeSimpleOrders = source === 'all' || source === 'simple';
       let includeExtra = source === 'all' || source === 'extra';
 
       if (includeOrders) {
+        let oParams = [];
+        let oParamIndex = finalParamIndex;
+
+        let oJoinPayment = '';
+        let oDateCol = 'o.date';
+        if (paymentMethod) {
+          oJoinPayment = `JOIN payments pay ON o.id = pay.order_id AND pay.descripcion = $${oParamIndex}`;
+          oParams.push(paymentMethod);
+          oParamIndex++;
+          oDateCol = 'pay.date';
+        }
+
+        const { placeholders: oDatePlaceholders, nextIndex: oNextIdx } = this._buildPlaceholders(dates.length, oParamIndex);
+        let oWhereClause = `WHERE o.active = true AND TO_CHAR(${oDateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${oDatePlaceholders})`;
+        oParams.push(...dates);
+        oParamIndex = oNextIdx;
+
         unions.push(`
-          SELECT TO_CHAR(${dateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
+          SELECT TO_CHAR(${oDateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
                  ${paymentMethod ? 'pay.amount' : 'o.total'} as total
           FROM orders o
-          ${joinPayment}
-          ${whereClause}
+          ${oJoinPayment}
+          ${oWhereClause}
          `);
-        finalParams.push(...params);
+        finalParams.push(...oParams);
+        finalParamIndex = oParamIndex;
       }
 
       if (includeSimpleOrders) {
@@ -208,12 +268,15 @@ class StatsRepository {
         let soJoinPayment = '';
         let soDateCol = 'so.date';
         if (paymentMethod) {
-          soJoinPayment = `JOIN simple_order_payments spay ON so.id = spay.simple_order_id AND spay.descripcion = ?`;
+          soJoinPayment = `JOIN simple_order_payments spay ON so.id = spay.simple_order_id AND spay.descripcion = $${finalParamIndex}`;
           soParams.push(paymentMethod);
+          finalParamIndex++;
           soDateCol = 'spay.date';
         }
-        let soWhereClause = `WHERE so.active = true AND TO_CHAR(${soDateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${placeholders})`;
+        const { placeholders: soDatePlaceholders, nextIndex: soNextIdx } = this._buildPlaceholders(dates.length, finalParamIndex);
+        let soWhereClause = `WHERE so.active = true AND TO_CHAR(${soDateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${soDatePlaceholders})`;
         soParams.push(...dates);
+        finalParamIndex = soNextIdx;
 
         unions.push(`
           SELECT TO_CHAR(${soDateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, 
@@ -227,12 +290,17 @@ class StatsRepository {
 
       if (includeExtra) {
         let epParams = [];
-        let epWhere = `WHERE py.order_id IS NULL AND TO_CHAR(py.date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${placeholders})`;
+        const { placeholders: epDatePlaceholders, nextIndex: epNextIdx } = this._buildPlaceholders(dates.length, finalParamIndex);
+
+        let epWhere;
         if (paymentMethod) {
-          epWhere += ` AND py.descripcion = ?`;
-          epParams.push(paymentMethod, ...dates);
+          epWhere = `WHERE py.order_id IS NULL AND py.descripcion = $${epNextIdx} AND TO_CHAR(py.date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${epDatePlaceholders})`;
+          epParams.push(...dates, paymentMethod);
+          finalParamIndex = epNextIdx + 1;
         } else {
+          epWhere = `WHERE py.order_id IS NULL AND TO_CHAR(py.date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${epDatePlaceholders})`;
           epParams.push(...dates);
+          finalParamIndex = epNextIdx;
         }
 
         unions.push(`
@@ -246,7 +314,7 @@ class StatsRepository {
 
       if (unions.length === 0) return [];
 
-      const stmt = db.prepare(`
+      return await db.getAll(`
         SELECT sale_date, 
                COALESCE(SUM(total), 0) as total, 
                COUNT(*) as quantity
@@ -255,8 +323,7 @@ class StatsRepository {
         ) combined
         GROUP BY sale_date
         ORDER BY sale_date ASC
-      `);
-      return await stmt.all(...finalParams);
+      `, finalParams);
     }
   }
 
@@ -265,20 +332,23 @@ class StatsRepository {
     if (source !== 'all' && source !== 'orders') return [];
 
     let params = [];
-    const placeholders = dates.map(() => '?').join(',');
+    let paramIndex = 1;
 
     let joinPayment = '';
     let dateCol = 'o.date';
     if (paymentMethod) {
-      joinPayment = `JOIN payments pay ON o.id = pay.order_id AND pay.descripcion = ?`;
+      joinPayment = `JOIN payments pay ON o.id = pay.order_id AND pay.descripcion = $${paramIndex}`;
       params.push(paymentMethod);
+      paramIndex++;
       dateCol = 'pay.date';
     }
 
-    let whereClause = `WHERE o.active = true AND TO_CHAR(${dateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${placeholders})`;
+    const { placeholders: datePlaceholders, nextIndex } = this._buildPlaceholders(dates.length, paramIndex);
+    let whereClause = `WHERE o.active = true AND TO_CHAR(${dateCol} AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${datePlaceholders})`;
     params.push(...dates);
+    paramIndex = nextIndex;
 
-    const stmt = db.prepare(`
+    return await db.getAll(`
       SELECT p.id, p.name, 
              COALESCE(${paymentMethod ? 'SUM(op.total_price * (CAST(pay.amount AS FLOAT) / NULLIF(CAST(o.total AS FLOAT), 0)))' : 'SUM(op.total_price)'}, 0) as total, 
              COALESCE(${paymentMethod ? 'SUM(op.quantity * (CAST(pay.amount AS FLOAT) / NULLIF(CAST(o.total AS FLOAT), 0)))' : 'SUM(op.quantity)'}, 0) as quantity
@@ -292,14 +362,12 @@ class StatsRepository {
       ${whereClause}
       GROUP BY p.id
       ORDER BY total DESC
-    `);
-
-    return await stmt.all(...params);
+    `, params);
   }
 
   async getAvailableYears() {
     try {
-      const stmt = db.prepare(`
+      const rawResults = await db.getAll(`
         SELECT DISTINCT year FROM (
           SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') as year FROM orders WHERE active = true AND date IS NOT NULL
           UNION
@@ -311,8 +379,6 @@ class StatsRepository {
         ) all_years
         ORDER BY year DESC
       `);
-
-      const rawResults = await stmt.all();
 
       // Add current year if not present
       const years = rawResults.map(r => parseInt(r.year)).filter(y => !isNaN(y));
@@ -335,20 +401,20 @@ class StatsRepository {
   async getAvailableWeeks(year) {
     // Return all sale dates for the year so we can calculate weeks accurately in the service using date-fns
     const strYear = year.toString();
-    const stmt = db.prepare(`
+    const results = await db.getAll(`
       SELECT DISTINCT sale_date FROM (
-        SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date FROM orders WHERE active = true AND TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') = ?
+        SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date FROM orders WHERE active = true AND TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') = $1
         UNION
-        SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date FROM payments WHERE TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') = ?
+        SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date FROM payments WHERE TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') = $1
         UNION
-        SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date FROM simple_orders WHERE active = true AND TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') = ?
+        SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date FROM simple_orders WHERE active = true AND TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') = $1
         UNION
-        SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date FROM simple_order_payments WHERE TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') = ?
+        SELECT TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date FROM simple_order_payments WHERE TO_CHAR(date AT TIME ZONE 'UTC' AT TIME ZONE 'America/Mexico_City', 'YYYY') = $1
       ) all_dates
       ORDER BY sale_date ASC
-    `);
+    `, [strYear]);
 
-    return (await stmt.all(strYear, strYear, strYear, strYear)).map(r => r.sale_date);
+    return results.map(r => r.sale_date);
   }
 }
 

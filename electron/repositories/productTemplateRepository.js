@@ -4,7 +4,7 @@ const ProductTemplate = require('../domain/productTemplate');
 class ProductTemplateRepository {
 
   async findAll() {
-    const stmt = db.prepare(`
+    const templates = await db.getAll(`
       SELECT 
         pt.*,
         p.name as product_name, 
@@ -17,12 +17,11 @@ class ProductTemplateRepository {
       ORDER BY pt.id DESC
     `);
 
-    const templates = await stmt.all();
     return templates.map(template => new ProductTemplate(template));
   }
 
   async findById(id) {
-    const stmt = db.prepare(`
+    const template = await db.getOne(`
       SELECT 
         pt.*,
         p.name as product_name, 
@@ -31,17 +30,16 @@ class ProductTemplateRepository {
       FROM product_templates pt
       JOIN products p ON pt.product_id = p.id
       LEFT JOIN users u ON pt.created_by = u.id
-      WHERE pt.id = ? AND pt.active = true
-    `);
+      WHERE pt.id = $1 AND pt.active = true
+    `, [id]);
 
-    const template = await stmt.get(id);
     if (!template) return null;
 
     return new ProductTemplate(template);
   }
 
   async findByProductId(productId) {
-    const stmt = db.prepare(`
+    const templates = await db.getAll(`
       SELECT 
         pt.*,
         p.name as product_name, 
@@ -50,23 +48,20 @@ class ProductTemplateRepository {
       FROM product_templates pt
       JOIN products p ON pt.product_id = p.id
       LEFT JOIN users u ON pt.created_by = u.id
-      WHERE pt.product_id = ? AND pt.active = true
+      WHERE pt.product_id = $1 AND pt.active = true
       ORDER BY pt.id DESC
-    `);
+    `, [productId]);
 
-    const templates = await stmt.all(productId);
     return templates.map(template => new ProductTemplate(template));
   }
 
   async create(templateData) {
-    const stmt = db.prepare(`
+    const result = await db.execute(`
       INSERT INTO product_templates (
         product_id, final_price, promo_price, discount_price, width, height, colors, position, 
         texts, description, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    const result = await stmt.run(
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    `, [
       templateData.product_id,
       templateData.final_price,
       templateData.promo_price !== undefined ? templateData.promo_price : null,
@@ -78,20 +73,18 @@ class ProductTemplateRepository {
       templateData.texts || null,
       templateData.description || null,
       templateData.created_by || null
-    );
+    ]);
 
     return await this.findById(result.lastInsertRowid);
   }
 
   async update(id, templateData) {
-    const stmt = db.prepare(`
+    const result = await db.execute(`
       UPDATE product_templates 
-      SET product_id = ?, final_price = ?, promo_price = ?, discount_price = ?, width = ?, height = ?, colors = ?, 
-          position = ?, texts = ?, description = ?
-      WHERE id = ?
-    `);
-
-    const result = await stmt.run(
+      SET product_id = $1, final_price = $2, promo_price = $3, discount_price = $4, width = $5, height = $6, colors = $7, 
+          position = $8, texts = $9, description = $10
+      WHERE id = $11
+    `, [
       templateData.product_id,
       templateData.final_price,
       templateData.promo_price !== undefined ? templateData.promo_price : null,
@@ -103,21 +96,21 @@ class ProductTemplateRepository {
       templateData.texts || null,
       templateData.description || null,
       id
-    );
+    ]);
 
     return result.changes > 0;
   }
 
   async delete(id) {
-    const stmt = db.prepare('UPDATE product_templates SET active = false WHERE id = ?');
-    const result = await stmt.run(id);
+    const result = await db.execute('UPDATE product_templates SET active = false WHERE id = $1', [id]);
 
     return result.changes > 0;
   }
 
   // Búsqueda avanzada
   async searchByTerm(searchTerm) {
-    const stmt = db.prepare(`
+    const term = `%${searchTerm}%`;
+    const templates = await db.getAll(`
       SELECT 
         pt.*,
         p.name as product_name, 
@@ -127,18 +120,16 @@ class ProductTemplateRepository {
       JOIN products p ON pt.product_id = p.id
       LEFT JOIN users u ON pt.created_by = u.id
       WHERE pt.active = true AND (
-        pt.description ILIKE ? OR 
-        p.name ILIKE ? OR 
-        p.serial_number ILIKE ? OR
-        pt.position ILIKE ? OR
-        pt.texts ILIKE ? OR
-        u.username ILIKE ?
+        pt.description ILIKE $1 OR 
+        p.name ILIKE $1 OR 
+        p.serial_number ILIKE $1 OR
+        pt.position ILIKE $1 OR
+        pt.texts ILIKE $1 OR
+        u.username ILIKE $1
       )
       ORDER BY pt.id DESC
-    `);
+    `, [term]);
 
-    const term = `%${searchTerm}%`;
-    const templates = await stmt.all(term, term, term, term, term, term);
     return templates.map(template => new ProductTemplate(template));
   }
 }

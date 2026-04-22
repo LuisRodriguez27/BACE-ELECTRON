@@ -11,14 +11,15 @@ class SimpleOrderRepository {
       return new Date().toISOString().replace('Z', '').replace('T', ' ');
     }
   }
+
   async getAll() {
-    const rows = await db.prepare(`
+    const rows = await db.getAll(`
       SELECT o.*, u.username as user_username
       FROM simple_orders o
       LEFT JOIN users u ON o.user_id = u.id
       WHERE o.active = true
       ORDER BY o.date DESC
-    `).all();
+    `);
 
     const ordersWithPayments = [];
     for (const row of rows) {
@@ -30,12 +31,12 @@ class SimpleOrderRepository {
   }
 
   async getById(id) {
-    const row = await db.prepare(`
+    const row = await db.getOne(`
       SELECT o.*, u.username as user_username
       FROM simple_orders o
       LEFT JOIN users u ON o.user_id = u.id
       WHERE o.id = $1
-    `).get(id);
+    `, [id]);
 
     if (!row) return null;
 
@@ -46,78 +47,78 @@ class SimpleOrderRepository {
 
   async create(orderData) {
     const { user_id, date, concept, total, active = true, client_name } = orderData;
-    const result = await db.prepare(`
+    const result = await db.execute(`
       INSERT INTO simple_orders (user_id, date, concept, total, active, client_name)
       VALUES ($1, $2, $3, $4, $5, $6)
-    `).run(user_id, this._normalizeDate(date), concept, total, active, client_name);
+    `, [user_id, this._normalizeDate(date), concept, total, active, client_name]);
 
     return result.lastInsertRowid;
   }
 
   async update(id, orderData) {
     const { user_id, date, concept, total, active = true, client_name } = orderData;
-    const result = await db.prepare(`
+    const result = await db.execute(`
       UPDATE simple_orders 
       SET user_id = $1, date = $2, concept = $3, total = $4, active = $5, client_name = $6
       WHERE id = $7
-    `).run(user_id, this._normalizeDate(date), concept, total, active, client_name, id);
+    `, [user_id, this._normalizeDate(date), concept, total, active, client_name, id]);
 
     return result.changes > 0;
   }
 
   async delete(id) {
     // Soft delete
-    const result = await db.prepare(`
+    const result = await db.execute(`
       UPDATE simple_orders SET active = false WHERE id = $1
-    `).run(id);
+    `, [id]);
     return result.changes > 0;
   }
 
   // Payments logic
 
   async getPayments(orderId) {
-    return await db.prepare(`
+    return await db.getAll(`
       SELECT p.*, u.username as user_username
       FROM simple_order_payments p
       LEFT JOIN users u ON p.user_id = u.id
       WHERE p.simple_order_id = $1
       ORDER BY p.date ASC
-    `).all(orderId);
+    `, [orderId]);
   }
 
   async getPaymentById(id) {
-    return await db.prepare(`
+    return await db.getOne(`
       SELECT p.*, u.username as user_username
       FROM simple_order_payments p
       LEFT JOIN users u ON p.user_id = u.id
       WHERE p.id = $1
-    `).get(id);
+    `, [id]);
   }
 
   async addPayment(paymentData) {
     const { simple_order_id, user_id, amount, date, descripcion } = paymentData;
-    const result = await db.prepare(`
+    const result = await db.execute(`
       INSERT INTO simple_order_payments (simple_order_id, user_id, amount, date, descripcion)
       VALUES ($1, $2, $3, $4, $5)
-    `).run(simple_order_id, user_id, amount, this._normalizeDate(date), descripcion || null);
+    `, [simple_order_id, user_id, amount, this._normalizeDate(date), descripcion || null]);
 
     return result.lastInsertRowid;
   }
 
   async updatePayment(id, paymentData) {
     const { amount, date, descripcion } = paymentData;
-    const result = await db.prepare(`
+    const result = await db.execute(`
       UPDATE simple_order_payments
       SET amount = $1, date = $2, descripcion = $3
       WHERE id = $4
-    `).run(amount, this._normalizeDate(date), descripcion || null, id);
+    `, [amount, this._normalizeDate(date), descripcion || null, id]);
     return result.changes > 0;
   }
 
   async deletePayment(id) {
-    const result = await db.prepare(`
+    const result = await db.execute(`
       DELETE FROM simple_order_payments WHERE id = $1
-    `).run(id);
+    `, [id]);
     return result.changes > 0;
   }
 }

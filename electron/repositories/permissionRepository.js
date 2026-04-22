@@ -4,14 +4,13 @@ const Permission = require('../domain/permission');
 class PermissionRepository {
 
   async findAll() {
-    const stmt = db.prepare(`
+    const permissions = await db.getAll(`
       SELECT *
       FROM permissions
       WHERE active = true
       ORDER BY name ASC
     `);
     
-    const permissions = await stmt.all();
     return permissions.map(permission => {
       // No cargar usuarios por defecto para mejorar performance
       return new Permission({ ...permission, users: [] });
@@ -19,11 +18,11 @@ class PermissionRepository {
   }
 
   async findById(id) {
-    const permissionData = await db.prepare(`
+    const permissionData = await db.getOne(`
       SELECT id, name, description, active
       FROM permissions
-      WHERE id = ? AND active = true
-    `).get(id);
+      WHERE id = $1 AND active = true
+    `, [id]);
 
     if (!permissionData) return null;
 
@@ -33,15 +32,14 @@ class PermissionRepository {
   }
 
   async findByUserId(userId) {
-    const stmt = db.prepare(`
+    const permissions = await db.getAll(`
       SELECT p.id, p.name, p.description, p.active
       FROM permissions p 
       JOIN user_permissions up ON p.id = up.permission_id 
-      WHERE up.user_id = ? AND p.active = true AND up.active = true
+      WHERE up.user_id = $1 AND p.active = true AND up.active = true
       ORDER BY p.name ASC
-    `);
+    `, [userId]);
 
-    const permissions = await stmt.all(userId);
     return permissions.map(permission => {
       // No necesitamos la lista de usuarios para los permisos del usuario
       return new Permission({ ...permission, users: [] });
@@ -51,15 +49,15 @@ class PermissionRepository {
   // Método que faltaba
   async getUsersByPermissionId(permissionId) {
     try {
-      const stmt = db.prepare(`
+      const users = await db.getAll(`
         SELECT u.id, u.username
         FROM users u
         JOIN user_permissions up ON u.id = up.user_id
-        WHERE up.permission_id = ? AND up.active = true AND u.active = true
+        WHERE up.permission_id = $1 AND up.active = true AND u.active = true
         ORDER BY u.username ASC
-      `);
+      `, [permissionId]);
       
-      return (await stmt.all(permissionId)) || [];
+      return users || [];
     } catch (error) {
       console.error('Error getting users by permission id:', error);
       return [];
@@ -69,13 +67,12 @@ class PermissionRepository {
   // Método para verificar si un usuario tiene un permiso específico
   async userHasPermission(userId, permissionId) {
     try {
-      const stmt = db.prepare(`
+      const result = await db.getOne(`
         SELECT COUNT(*) as count
         FROM user_permissions 
-        WHERE user_id = ? AND permission_id = ? AND active = true
-      `);
+        WHERE user_id = $1 AND permission_id = $2 AND active = true
+      `, [userId, permissionId]);
       
-      const result = await stmt.get(userId, permissionId);
       return result.count > 0;
     } catch (error) {
       console.error('Error checking user permission:', error);
@@ -84,40 +81,35 @@ class PermissionRepository {
   }
 
   async create(permissionData) {
-    const stmt = db.prepare(`
+    const result = await db.execute(`
       INSERT INTO permissions (name, description)
-      VALUES (?, ?)
-    `);
-    
-    const result = await stmt.run(
+      VALUES ($1, $2)
+    `, [
       permissionData.name,
       permissionData.description || null
-    );
+    ]);
 
     const permissionId = result.lastInsertRowid;
     return await this.findById(permissionId);
   }
 
   async update(id, permissionData) {
-    const stmt = db.prepare(`
+    const result = await db.execute(`
       UPDATE permissions
-      SET name = ?, description = ?, active = ?
-      WHERE id = ? AND active = true
-    `);
-    
-    const result = await stmt.run(
+      SET name = $1, description = $2, active = $3
+      WHERE id = $4 AND active = true
+    `, [
       permissionData.name || null,
       permissionData.description || null,
-      permissionData.active !== undefined ? permissionData.active : 1,
+      permissionData.active !== undefined ? permissionData.active : true,
       id
-    );
+    ]);
 
     return result.changes > 0;
   }
 
   async delete(id) {
-    const stmt = db.prepare('UPDATE permissions SET active = false WHERE id = ?');
-    const result = await stmt.run(id);
+    const result = await db.execute('UPDATE permissions SET active = false WHERE id = $1', [id]);
     
     return result.changes > 0;
   }
@@ -126,20 +118,19 @@ class PermissionRepository {
   async assignToUser(userId, permissionId) {
     try {
       // Verificar si ya existe la asignación
-      const existingAssignment = await db.prepare(`
+      const existingAssignment = await db.getOne(`
         SELECT * FROM user_permissions 
-        WHERE user_id = ? AND permission_id = ?
-      `).get(userId, permissionId);
+        WHERE user_id = $1 AND permission_id = $2
+      `, [userId, permissionId]);
 
       if (existingAssignment) {
         // Si existe pero está inactiva, reactivarla
         if (existingAssignment.active === false) {
-          const updateStmt = db.prepare(`
+          const result = await db.execute(`
             UPDATE user_permissions 
             SET active = true 
-            WHERE user_id = ? AND permission_id = ?
-          `);
-          const result = await updateStmt.run(userId, permissionId);
+            WHERE user_id = $1 AND permission_id = $2
+          `, [userId, permissionId]);
           return result.changes > 0;
         } else {
           // Ya existe y está activa
@@ -147,11 +138,10 @@ class PermissionRepository {
         }
       } else {
         // Crear nueva asignación
-        const stmt = db.prepare(`
+        const result = await db.execute(`
           INSERT INTO user_permissions (user_id, permission_id) 
-          VALUES (?, ?)
-        `);
-        const result = await stmt.run(userId, permissionId);
+          VALUES ($1, $2)
+        `, [userId, permissionId]);
         return result.changes > 0;
       }
     } catch (error) {
@@ -162,11 +152,10 @@ class PermissionRepository {
 
   async removeFromUser(userId, permissionId) {
     try {
-      const stmt = db.prepare(`
+      const result = await db.execute(`
         DELETE FROM user_permissions 
-        WHERE user_id = ? AND permission_id = ?
-      `);
-      const result = await stmt.run(userId, permissionId);
+        WHERE user_id = $1 AND permission_id = $2
+      `, [userId, permissionId]);
       return result.changes > 0;
     } catch (error) {
       console.error('Error al remover permiso de usuario:', error);

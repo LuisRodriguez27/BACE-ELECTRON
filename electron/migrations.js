@@ -1,10 +1,10 @@
 async function runMigrations(db, client) {
   // MIGRACION INICIAL (SI LA BD ESTÁ VACÍA)
-  const userCount = await db.prepare("SELECT COUNT(*) as count FROM users").get();
+  const userCount = await db.getOne("SELECT COUNT(*) as count FROM users");
   if (userCount && parseInt(userCount.count) === 0) {
     const bcrypt = require("bcryptjs");
     const passwordHash = bcrypt.hashSync("admin123", 10);
-    const adminRes = await db.prepare("INSERT INTO users (username, password, active) VALUES (?, ?, ?)").run("admin", passwordHash, true);
+    const adminRes = await db.execute("INSERT INTO users (username, password, active) VALUES ($1, $2, $3)", ["admin", passwordHash, true]);
     const adminId = adminRes.lastInsertRowid;
 
     const permissions = [
@@ -48,16 +48,16 @@ async function runMigrations(db, client) {
 
     for (const perm of permissions) {
       try {
-        await db.prepare("INSERT INTO permissions (name, description, active) VALUES (?, ?, ?)").run(...perm);
+        await db.execute("INSERT INTO permissions (name, description, active) VALUES ($1, $2, $3)", perm);
       } catch (e) {
         if (e.code !== '23505') throw e; // Solo ignorar si es violación de unicidad
       }
     }
 
-    const allPermissions = await db.prepare(`SELECT id FROM permissions`).all();
+    const allPermissions = await db.getAll(`SELECT id FROM permissions`);
     for (const perm of allPermissions) {
       try {
-        await db.prepare("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (?, ?, ?)").run(adminId, perm.id, true);
+        await db.execute("INSERT INTO user_permissions (user_id, permission_id, active) VALUES ($1, $2, $3)", [adminId, perm.id, true]);
       } catch (e) {
         if (e.code !== '23505') throw e; // Solo ignorar si es llave duplicada
       }
@@ -66,76 +66,76 @@ async function runMigrations(db, client) {
   }
 
   // MIGRACION ESTADISTICAS Y PRESUPUESTOS
-  const existingStatPerm = await db.prepare("SELECT id FROM permissions WHERE name = 'Estadisticas'").get();
+  const existingStatPerm = await db.getOne("SELECT id FROM permissions WHERE name = 'Estadisticas'");
   let statPermId = existingStatPerm ? existingStatPerm.id : null;
   if (!statPermId) {
-    const res = await db.prepare("INSERT INTO permissions (name, description, active) VALUES ('Estadisticas', 'Permite visualizar las estadisticas de ventas', true)").run();
+    const res = await db.execute("INSERT INTO permissions (name, description, active) VALUES ('Estadisticas', 'Permite visualizar las estadisticas de ventas', true)");
     statPermId = res.lastInsertRowid;
   }
   if (statPermId) {
-    const existingUserPerm = await db.prepare("SELECT * FROM user_permissions WHERE user_id = 1 AND permission_id = ?").get(statPermId);
+    const existingUserPerm = await db.getOne("SELECT * FROM user_permissions WHERE user_id = 1 AND permission_id = $1", [statPermId]);
     if (!existingUserPerm) {
-      try { await db.prepare("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (1, ?, true)").run(statPermId); } catch (e) { if (e.code !== '23505') throw e; }
+      try { await db.execute("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (1, $1, true)", [statPermId]); } catch (e) { if (e.code !== '23505') throw e; }
     }
   }
 
-  const existingEditPerm = await db.prepare("SELECT id FROM permissions WHERE name = 'Editar Presupuestos'").get();
+  const existingEditPerm = await db.getOne("SELECT id FROM permissions WHERE name = 'Editar Presupuestos'");
   let editPermId = existingEditPerm ? existingEditPerm.id : null;
   if (!editPermId) {
-    const res = await db.prepare("INSERT INTO permissions (name, description, active) VALUES ('Editar Presupuestos', 'Permite editar los presupuestos registrados', true)").run();
+    const res = await db.execute("INSERT INTO permissions (name, description, active) VALUES ('Editar Presupuestos', 'Permite editar los presupuestos registrados', true)");
     editPermId = res.lastInsertRowid;
   }
   if (editPermId) {
-    const existingUserPerm2 = await db.prepare("SELECT * FROM user_permissions WHERE user_id = 1 AND permission_id = ?").get(editPermId);
+    const existingUserPerm2 = await db.getOne("SELECT * FROM user_permissions WHERE user_id = 1 AND permission_id = $1", [editPermId]);
     if (!existingUserPerm2) {
-      try { await db.prepare("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (1, ?, true)").run(editPermId); } catch (e) { if (e.code !== '23505') throw e; }
+      try { await db.execute("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (1, $1, true)", [editPermId]); } catch (e) { if (e.code !== '23505') throw e; }
     }
   }
 
-  const existingSeePay = await db.prepare("SELECT id FROM permissions WHERE name = 'Ver Pagos'").get();
+  const existingSeePay = await db.getOne("SELECT id FROM permissions WHERE name = 'Ver Pagos'");
   let payPermId = existingSeePay ? existingSeePay.id : null;
   if (!payPermId) {
-    const res = await db.prepare("INSERT INTO permissions (name, description, active) VALUES ('Ver Pagos', 'Permite ver los pagos registrados', true)").run();
+    const res = await db.execute("INSERT INTO permissions (name, description, active) VALUES ('Ver Pagos', 'Permite ver los pagos registrados', true)");
     payPermId = res.lastInsertRowid;
   }
   if (payPermId) {
-    const existingUserPerm3 = await db.prepare("SELECT * FROM user_permissions WHERE user_id = 1 AND permission_id = ?").get(payPermId);
+    const existingUserPerm3 = await db.getOne("SELECT * FROM user_permissions WHERE user_id = 1 AND permission_id = $1", [payPermId]);
     if (!existingUserPerm3) {
-      try { await db.prepare("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (1, ?, true)").run(payPermId); } catch (e) { if (e.code !== '23505') throw e; }
+      try { await db.execute("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (1, $1, true)", [payPermId]); } catch (e) { if (e.code !== '23505') throw e; }
     }
   }
 
-  const existingStatsFilterPerm = await db.prepare("SELECT id FROM permissions WHERE name = 'Estadisticas: Filtros'").get();
+  const existingStatsFilterPerm = await db.getOne("SELECT id FROM permissions WHERE name = 'Estadisticas: Filtros'");
   let statsFilterPermId = existingStatsFilterPerm ? existingStatsFilterPerm.id : null;
   if (!statsFilterPermId) {
-    const res = await db.prepare("INSERT INTO permissions (name, description, active) VALUES ('Estadisticas: Filtros', 'Permite filtrar las estadisticas', true)").run();
+    const res = await db.execute("INSERT INTO permissions (name, description, active) VALUES ('Estadisticas: Filtros', 'Permite filtrar las estadisticas', true)");
     statsFilterPermId = res.lastInsertRowid;
   }
   if (statsFilterPermId) {
-    const existingUserPerm4 = await db.prepare("SELECT * FROM user_permissions WHERE user_id = 1 AND permission_id = ?").get(statsFilterPermId);
+    const existingUserPerm4 = await db.getOne("SELECT * FROM user_permissions WHERE user_id = 1 AND permission_id = $1", [statsFilterPermId]);
     if (!existingUserPerm4) {
-      try { await db.prepare("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (1, ?, true)").run(statsFilterPermId); } catch (e) { if (e.code !== '23505') throw e; }
+      try { await db.execute("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (1, $1, true)", [statsFilterPermId]); } catch (e) { if (e.code !== '23505') throw e; }
     }
   }
 
-  const existingStatsTodayPerm = await db.prepare("SELECT id FROM permissions WHERE name = 'Estadisticas: Hoy'").get();
+  const existingStatsTodayPerm = await db.getOne("SELECT id FROM permissions WHERE name = 'Estadisticas: Hoy'");
   let statsTodayPermId = existingStatsTodayPerm ? existingStatsTodayPerm.id : null;
   if (!statsTodayPermId) {
-    const res = await db.prepare("INSERT INTO permissions (name, description, active) VALUES ('Estadisticas: Hoy', 'Permite ver solo las estadisticas de hoy', true)").run();
+    const res = await db.execute("INSERT INTO permissions (name, description, active) VALUES ('Estadisticas: Hoy', 'Permite ver solo las estadisticas de hoy', true)");
     statsTodayPermId = res.lastInsertRowid;
   }
   if (statsTodayPermId) {
-    const existingUserPerm5 = await db.prepare("SELECT * FROM user_permissions WHERE user_id = 1 AND permission_id = ?").get(statsTodayPermId);
+    const existingUserPerm5 = await db.getOne("SELECT * FROM user_permissions WHERE user_id = 1 AND permission_id = $1", [statsTodayPermId]);
     if (!existingUserPerm5) {
-      try { await db.prepare("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (1, ?, true)").run(statsTodayPermId); } catch (e) { if (e.code !== '23505') throw e; }
+      try { await db.execute("INSERT INTO user_permissions (user_id, permission_id, active) VALUES (1, $1, true)", [statsTodayPermId]); } catch (e) { if (e.code !== '23505') throw e; }
     }
   }
 
   // ACTUALIZACION DE ESTADOS
-  await db.prepare("UPDATE orders SET status = 'Revision' WHERE status = 'pendiente'").run();
-  await db.prepare("UPDATE orders SET status = 'Produccion' WHERE status = 'en proceso'").run();
-  await db.prepare("UPDATE orders SET status = 'Completado' WHERE status = 'completado'").run();
-  await db.prepare("UPDATE orders SET status = 'Cancelado' WHERE status = 'cancelado'").run();
+  await db.execute("UPDATE orders SET status = 'Revision' WHERE status = 'pendiente'");
+  await db.execute("UPDATE orders SET status = 'Produccion' WHERE status = 'en proceso'");
+  await db.execute("UPDATE orders SET status = 'Completado' WHERE status = 'completado'");
+  await db.execute("UPDATE orders SET status = 'Cancelado' WHERE status = 'cancelado'");
 
   // MIGRACION NUEVAS COLUMNAS PRODUCTOS
   try {
@@ -168,23 +168,32 @@ async function runMigrations(db, client) {
   }
 
   // Auto incremento check
-  const checkOrderCount = await db.prepare('SELECT COUNT(*) as count, MAX(id) as maxId FROM orders').get();
+  const checkOrderCount = await db.getOne('SELECT COUNT(*) as count, MAX(id) as maxId FROM orders');
   if (checkOrderCount && (checkOrderCount.count === '0' || (checkOrderCount.maxid && parseInt(checkOrderCount.maxid) < 14549))) {
     await client.query("SELECT setval('orders_id_seq', 14549, false)");
   }
 
   // MIGRACION ACTIVE A BOOLEAN (para tablas existentes)
+  // Verifica el tipo de columna antes de intentar convertir para evitar errores.
   const tablesWithActive = ['users', 'permissions', 'user_permissions', 'clients', 'products', 'product_templates', 'budgets', 'orders', 'simple_orders'];
   for (const table of tablesWithActive) {
     try {
-      // Postgres requires USING clause to cast integer to boolean
-      await client.query(`ALTER TABLE ${table} ALTER COLUMN active DROP DEFAULT`);
-      await client.query(`ALTER TABLE ${table} ALTER COLUMN active TYPE BOOLEAN USING (active = 1)`);
+      // Verificar si la columna aún es INTEGER (no BOOLEAN)
+      const colInfo = await client.query(
+        `SELECT data_type FROM information_schema.columns WHERE table_name = $1 AND column_name = 'active'`,
+        [table]
+      );
+
+      if (colInfo.rows.length > 0 && colInfo.rows[0].data_type !== 'boolean') {
+        // Solo convertir si no es boolean todavía
+        await client.query(`ALTER TABLE ${table} ALTER COLUMN active DROP DEFAULT`);
+        await client.query(`ALTER TABLE ${table} ALTER COLUMN active TYPE BOOLEAN USING (active = 1)`);
+      }
+
+      // Siempre asegurar que el DEFAULT TRUE esté presente
       await client.query(`ALTER TABLE ${table} ALTER COLUMN active SET DEFAULT TRUE`);
     } catch(e) {
-      if (e.code !== '42804' && e.code !== '42704') { // 42804 means already casted or incompatible, 42704 undefined object
-         // ignore silently as they might already be boolean
-      }
+      console.log(`Aviso: Error en migración active de ${table}:`, e.message);
     }
   }
 }

@@ -8,8 +8,7 @@ class AuthRepository {
   }
 
   async findUserByUsername(username) {
-    const stmt = db.prepare('SELECT * FROM users WHERE username = ? AND active = true');
-    return await stmt.get(username);
+    return await db.getOne('SELECT * FROM users WHERE username = $1 AND active = true', [username]);
   }
 
   async validatePassword(plainPassword, hashedPassword) {
@@ -17,13 +16,12 @@ class AuthRepository {
   }
 
   async getUserPermissions(userId) {
-    const stmt = db.prepare(`
+    return await db.getAll(`
       SELECT p.name, p.description 
       FROM permissions p 
       JOIN user_permissions up ON p.id = up.permission_id 
-      WHERE up.user_id = ? AND p.active = true
-    `);
-    return await stmt.all(userId);
+      WHERE up.user_id = $1 AND p.active = true
+    `, [userId]);
   }
 
   async createSession(user) {
