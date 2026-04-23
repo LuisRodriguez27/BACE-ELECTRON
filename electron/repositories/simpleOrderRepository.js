@@ -3,14 +3,6 @@ const SimpleOrder = require('../domain/simpleOrder');
 
 class SimpleOrderRepository {
 
-  _normalizeDate(dateInput) {
-    if (!dateInput) return new Date().toISOString().replace('Z', '').replace('T', ' ');
-    try {
-      return new Date(dateInput).toISOString().replace('Z', '').replace('T', ' ');
-    } catch (e) {
-      return new Date().toISOString().replace('Z', '').replace('T', ' ');
-    }
-  }
 
   async getAll() {
     const rows = await db.getAll(`
@@ -50,7 +42,7 @@ class SimpleOrderRepository {
     const result = await db.execute(`
       INSERT INTO simple_orders (user_id, date, concept, total, active, client_name)
       VALUES ($1, $2, $3, $4, $5, $6)
-    `, [user_id, this._normalizeDate(date), concept, total, active, client_name]);
+    `, [user_id, date, concept, total, active, client_name]);
 
     return result.lastInsertRowid;
   }
@@ -61,7 +53,7 @@ class SimpleOrderRepository {
       UPDATE simple_orders 
       SET user_id = $1, date = $2, concept = $3, total = $4, active = $5, client_name = $6
       WHERE id = $7
-    `, [user_id, this._normalizeDate(date), concept, total, active, client_name, id]);
+    `, [user_id, date, concept, total, active, client_name, id]);
 
     return result.changes > 0;
   }
@@ -100,7 +92,7 @@ class SimpleOrderRepository {
     const result = await db.execute(`
       INSERT INTO simple_order_payments (simple_order_id, user_id, amount, date, descripcion)
       VALUES ($1, $2, $3, $4, $5)
-    `, [simple_order_id, user_id, amount, this._normalizeDate(date), descripcion || null]);
+    `, [simple_order_id, user_id, amount, date, descripcion || null]);
 
     return result.lastInsertRowid;
   }
@@ -111,7 +103,7 @@ class SimpleOrderRepository {
       UPDATE simple_order_payments
       SET amount = $1, date = $2, descripcion = $3
       WHERE id = $4
-    `, [amount, this._normalizeDate(date), descripcion || null, id]);
+    `, [amount, date, descripcion || null, id]);
     return result.changes > 0;
   }
 
