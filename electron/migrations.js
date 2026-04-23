@@ -363,16 +363,16 @@ const MIGRATIONS = [
     },
     up: async (client) => {
       await client.query(`
-        INSERT INTO permissions (name, description)
+        INSERT INTO permissions (name, description, active)
         VALUES
-          ('Abrir Caja', 'Abre una caja'),
-          ('Cerrar Caja', 'Cierra una caja'),
-          ('Ver Caja', 'Puede ver los movimientos de la caja'),
-          ('Registrar Egreso', 'Puede registrar egresos');
+          ('Abrir Caja', 'Abre una caja', true),
+          ('Cerrar Caja', 'Cierra una caja', true),
+          ('Ver Caja', 'Puede ver los movimientos de la caja', true),
+          ('Registrar Egreso', 'Puede registrar egresos', true);
       `);
       await client.query(`
-        INSERT INTO user_permissions (user_id, permission_id)
-        SELECT u.id, p.id
+        INSERT INTO user_permissions (user_id, permission_id, active)
+        SELECT u.id, p.id, true
         FROM users u
         CROSS JOIN permissions p
         WHERE u.id = 1
