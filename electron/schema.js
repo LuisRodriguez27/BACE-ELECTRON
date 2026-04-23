@@ -109,12 +109,13 @@ const pgSchema = `
   );
 
   CREATE TABLE IF NOT EXISTS payments (
-    id        SERIAL        PRIMARY KEY,
-    order_id  INTEGER       REFERENCES orders(id),
-    amount    DECIMAL(10,2) NOT NULL,
-    date      TIMESTAMPTZ,
-    descripcion TEXT,
-    info      TEXT
+    id               SERIAL        PRIMARY KEY,
+    order_id         INTEGER       REFERENCES orders(id),
+    cash_session_id  INTEGER       REFERENCES cash_sessions(id),
+    amount           DECIMAL(10,2) NOT NULL,
+    date             TIMESTAMPTZ,
+    descripcion      TEXT,
+    info             TEXT
   );
 
   CREATE TABLE IF NOT EXISTS simple_orders (
@@ -128,12 +129,13 @@ const pgSchema = `
   );
 
   CREATE TABLE IF NOT EXISTS simple_order_payments (
-    id              SERIAL        PRIMARY KEY,
-    simple_order_id INTEGER       NOT NULL REFERENCES simple_orders(id),
-    user_id         INTEGER       NOT NULL REFERENCES users(id),
-    amount          DECIMAL(10,2) NOT NULL,
-    date            TIMESTAMPTZ   NOT NULL,
-    descripcion     TEXT
+    id               SERIAL        PRIMARY KEY,
+    simple_order_id  INTEGER       NOT NULL REFERENCES simple_orders(id),
+    user_id          INTEGER       NOT NULL REFERENCES users(id),
+    cash_session_id  INTEGER       REFERENCES cash_sessions(id),
+    amount           DECIMAL(10,2) NOT NULL,
+    date             TIMESTAMPTZ   NOT NULL,
+    descripcion      TEXT
   );
 
   CREATE TABLE IF NOT EXISTS cash_sessions (
@@ -198,6 +200,10 @@ const pgSchema = `
 
   -- payments
   CREATE INDEX IF NOT EXISTS idx_payments_order_id                       ON payments(order_id);
+  CREATE INDEX IF NOT EXISTS idx_payments_cash_session_id                ON payments(cash_session_id);
+
+  -- simple_order_payments
+  CREATE INDEX IF NOT EXISTS idx_simple_order_payments_cash_session_id   ON simple_order_payments(cash_session_id);
 
   -- products
   CREATE INDEX IF NOT EXISTS idx_products_active                         ON products(active);

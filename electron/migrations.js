@@ -317,6 +317,40 @@ const MIGRATIONS = [
     }
   },
 
+
+  // v12: Agregar cash_session_id a payments y simple_order_payments
+  {
+    version: 12,
+    name: 'add_cash_session_id_to_payments',
+    isApplied: async (client) => {
+      const { rows } = await client.query(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name IN ('payments', 'simple_order_payments')
+          AND column_name = 'cash_session_id'
+      `);
+      // Si ambas tablas ya tienen la columna, el conteo es 2
+      return parseInt(rows[0].count) === 2;
+    },
+    up: async (client) => {
+      await client.query(`
+        ALTER TABLE payments
+          ADD COLUMN IF NOT EXISTS cash_session_id INTEGER REFERENCES cash_sessions(id)
+      `);
+      await client.query(`
+        ALTER TABLE simple_order_payments
+          ADD COLUMN IF NOT EXISTS cash_session_id INTEGER REFERENCES cash_sessions(id)
+      `);
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS idx_payments_cash_session_id
+          ON payments(cash_session_id)
+      `);
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS idx_simple_order_payments_cash_session_id
+          ON simple_order_payments(cash_session_id)
+      `);
+    }
+  },
+
   // AGREGA NUEVAS MIGRACIONES AQUÍ
 ];
 

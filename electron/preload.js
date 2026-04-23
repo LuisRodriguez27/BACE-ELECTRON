@@ -116,6 +116,17 @@ contextBridge.exposeInMainWorld('api', {
   updateSimpleOrderPayment: (id, data) => ipcRenderer.invoke('simpleOrders:updatePayment', id, data),
   deleteSimpleOrderPayment: (id) => ipcRenderer.invoke('simpleOrders:deletePayment', id),
 
+  // Sesiones de caja
+  getCashSessions: (page, limit) => ipcRenderer.invoke('cashSessions:getAll', page, limit),
+  getClosedCashSessions: (page, limit) => ipcRenderer.invoke('cashSessions:getClosed', page, limit),
+  getActiveCashSession: () => ipcRenderer.invoke('cashSessions:getActive'),
+  getCashSessionById: (id) => ipcRenderer.invoke('cashSessions:getById', id),
+  getCashSessionsByDateRange: (from, to) => ipcRenderer.invoke('cashSessions:getByDateRange', from, to),
+  getCashSessionSummary: (id) => ipcRenderer.invoke('cashSessions:getSummary', id),
+  openCashSession: (data) => ipcRenderer.invoke('cashSessions:open', data),
+  closeCashSession: (id, data) => ipcRenderer.invoke('cashSessions:close', id, data),
+  updateCashSession: (id, data) => ipcRenderer.invoke('cashSessions:update', id, data),
+
   // Imágenes en NAS
   uploadImage: (productId, buffer, originalName) => ipcRenderer.invoke('upload-image', productId, buffer, originalName),
   deleteImage: (relativePath) => ipcRenderer.invoke('delete-image', relativePath),

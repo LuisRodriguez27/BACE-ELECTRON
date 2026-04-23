@@ -19,6 +19,7 @@ const authService = require('./services/authService');
 const budgetService = require('./services/budgetService');
 const statsService = require('./services/statsService');
 const simpleOrderService = require('./services/simpleOrderService');
+const cashSessionService = require('./services/cashSessionService');
 const imageService = require('./services/imageService');
 
 // Configuración de logs para no ir a ciegas
@@ -297,6 +298,17 @@ ipcMain.handle('simpleOrders:addPayment', async (event, data) => await simpleOrd
 ipcMain.handle('simpleOrders:getPayments', async (event, id) => await simpleOrderService.getPayments(id));
 ipcMain.handle('simpleOrders:updatePayment', async (event, id, data) => await simpleOrderService.updatePayment(id, data));
 ipcMain.handle('simpleOrders:deletePayment', async (event, id) => await simpleOrderService.deletePayment(id));
+
+// Manejo de eventos IPC para sesiones de caja
+ipcMain.handle('cashSessions:getAll', async (event, page, limit) => await cashSessionService.getAll(page, limit));
+ipcMain.handle('cashSessions:getClosed', async (event, page, limit) => await cashSessionService.getClosed(page, limit));
+ipcMain.handle('cashSessions:getActive', async () => await cashSessionService.getActive());
+ipcMain.handle('cashSessions:getById', async (event, id) => await cashSessionService.getById(id));
+ipcMain.handle('cashSessions:getByDateRange', async (event, from, to) => await cashSessionService.getByDateRange(from, to));
+ipcMain.handle('cashSessions:getSummary', async (event, id) => await cashSessionService.getSummary(id));
+ipcMain.handle('cashSessions:open', async (event, data) => await cashSessionService.open(data));
+ipcMain.handle('cashSessions:close', async (event, id, data) => await cashSessionService.close(id, data));
+ipcMain.handle('cashSessions:update', async (event, id, data) => await cashSessionService.update(id, data));
 
 // Manejo de eventos IPC para imágenes
 ipcMain.handle('upload-image', async (event, productId, buffer, originalName) => await imageService.uploadImage(productId, buffer, originalName));
