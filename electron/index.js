@@ -20,6 +20,7 @@ const budgetService = require('./services/budgetService');
 const statsService = require('./services/statsService');
 const simpleOrderService = require('./services/simpleOrderService');
 const cashSessionService = require('./services/cashSessionService');
+const expensesService = require('./services/expensesService').default;
 const imageService = require('./services/imageService');
 
 // Configuración de logs para no ir a ciegas
@@ -112,7 +113,7 @@ function initWhatsApp() {
       if (template[template.length - 1].type === 'separator') {
         template.pop();
       }
-      
+
       const menu = Menu.buildFromTemplate(template);
       menu.popup({ window: whatsappWindow });
     }
@@ -310,6 +311,14 @@ ipcMain.handle('cashSessions:open', async (event, data) => await cashSessionServ
 ipcMain.handle('cashSessions:close', async (event, id, data) => await cashSessionService.close(id, data));
 ipcMain.handle('cashSessions:update', async (event, id, data) => await cashSessionService.update(id, data));
 
+// Manejo de eventos IPC para gastos
+ipcMain.handle('expenses:getAll', async (event, page, limit) => await expensesService.getAll(page, limit));
+ipcMain.handle('expenses:getByCashSession', async (event, cashSessionId) => await expensesService.getByCashSession(cashSessionId));
+ipcMain.handle('expenses:getById', async (event, id) => await expensesService.getById(id));
+ipcMain.handle('expenses:create', async (event, data) => await expensesService.create(data));
+ipcMain.handle('expenses:update', async (event, id, data) => await expensesService.update(id, data));
+ipcMain.handle('expenses:delete', async (event, id) => await expensesService.delete(id));
+
 // Manejo de eventos IPC para imágenes
 ipcMain.handle('upload-image', async (event, productId, buffer, originalName) => await imageService.uploadImage(productId, buffer, originalName));
 ipcMain.handle('delete-image', async (event, relativePath) => await imageService.deleteImage(relativePath));
@@ -372,7 +381,7 @@ ipcMain.handle('updater:install', async () => {
       stdio: 'ignore',
       shell: true // Es crucial para resolver espacios en rutas bajo UAC
     };
-    
+
     try {
       // Rodeamos la ruta entre comillas dobles explícitamente para el CMD de Windows
       const child = spawn(`"${downloadedUpdatePath}"`, args, spawnOptions);
@@ -391,13 +400,13 @@ ipcMain.handle('updater:install', async () => {
 
 app.whenReady().then(() => {
   const baseImagePath = imageService.getBasePath();
-  
+
   if (protocol.handle) {
     // Para Electron >= 25 (el usado es v37)
     protocol.handle('imagenes', (request) => {
       const urlPath = request.url.replace(/^imagenes:\/\//i, '');
       const absolutePath = path.normalize(path.join(baseImagePath, decodeURIComponent(urlPath)));
-      
+
       // Prevenir directory traversal
       if (!absolutePath.startsWith(path.normalize(baseImagePath))) {
         return new Response('Acceso denegado', { status: 403 });
@@ -410,7 +419,7 @@ app.whenReady().then(() => {
     protocol.registerFileProtocol('imagenes', (request, callback) => {
       const urlPath = request.url.replace(/^imagenes:\/\//i, '');
       const absolutePath = path.normalize(path.join(baseImagePath, decodeURIComponent(urlPath)));
-      
+
       if (!absolutePath.startsWith(path.normalize(baseImagePath))) {
         callback({ error: -3 }); // Acceso denegado (ERR_ACCESS_DENIED)
         return;
@@ -440,13 +449,13 @@ app.whenReady().then(() => {
     function parseReleaseNotes(notes) {
       const fallback = "Mejoras de rendimiento y correcciones de errores.";
       if (!notes) return fallback;
-      
+
       let rawNotes = notes;
       // Por compatibilidad por si electron-updater devuelve un array o objeto
       if (Array.isArray(notes)) {
         rawNotes = notes[0]?.note || notes[0]?.notes || "";
       }
-      
+
       if (typeof rawNotes === 'string') {
         // Convertimos el HTML/texto de GitHub a formato puramente textual manteniendo las listas y saltos
         const parsed = rawNotes
@@ -457,10 +466,10 @@ app.whenReady().then(() => {
           .replace(/<\/li>/gi, '\n')      // Salto de línea después de cada item
           .replace(/<[^>]*>?/gm, '')      // Limpiar cualquier otra etiqueta HTML (<a>, <strong>, etc)
           .trim();
-          
+
         return parsed || fallback;
       }
-      
+
       return fallback;
     }
 

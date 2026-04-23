@@ -127,6 +127,14 @@ contextBridge.exposeInMainWorld('api', {
   closeCashSession: (id, data) => ipcRenderer.invoke('cashSessions:close', id, data),
   updateCashSession: (id, data) => ipcRenderer.invoke('cashSessions:update', id, data),
 
+  // Gastos
+  getExpenses: (page, limit) => ipcRenderer.invoke('expenses:getAll', page, limit),
+  getExpensesByCashSession: (cashSessionId) => ipcRenderer.invoke('expenses:getByCashSession', cashSessionId),
+  getExpenseById: (id) => ipcRenderer.invoke('expenses:getById', id),
+  createExpense: (data) => ipcRenderer.invoke('expenses:create', data),
+  updateExpense: (id, data) => ipcRenderer.invoke('expenses:update', id, data),
+  deleteExpense: (id) => ipcRenderer.invoke('expenses:delete', id),
+
   // Imágenes en NAS
   uploadImage: (productId, buffer, originalName) => ipcRenderer.invoke('upload-image', productId, buffer, originalName),
   deleteImage: (relativePath) => ipcRenderer.invoke('delete-image', relativePath),
