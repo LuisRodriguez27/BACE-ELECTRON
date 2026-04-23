@@ -13,7 +13,8 @@ import {
   Zap,
   DollarSign,
   MessageCircle,
-  Info
+  Info,
+  HandCoins
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSidebarStore } from '@/store/sidebar'
@@ -70,6 +71,12 @@ const menuItems: MenuItem[] = [
     label: 'Pagos',
     icon: DollarSign,
     path: '/dashboard/payments'
+  },
+  {
+    id: 'cash-session',
+    label: 'Sesión de Caja',
+    icon: HandCoins,
+    path: '/dashboard/cash-session'
   },
   {
     id: 'stats',
@@ -134,6 +141,10 @@ const Sidebar: React.FC = () => {
           } 
 
           if (item.id === 'payments' && !canAccess('Ver Pagos')) {
+            return null
+          }
+
+          if (item.id === 'cash-session' && !canAccess('Ver Caja')) {
             return null
           }
 

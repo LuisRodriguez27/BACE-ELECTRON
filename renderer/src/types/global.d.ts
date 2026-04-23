@@ -14,6 +14,17 @@ import {
   CreateSimpleOrderPaymentForm,
   UpdateSimpleOrderPaymentForm
 } from "../features/simpleOrders/types";
+import type {
+  CashSession,
+  CashSessionSummary,
+  Expense,
+  CreateExpenseForm,
+  UpdateExpenseForm,
+  OpenCashSessionForm,
+  CloseCashSessionForm,
+  UpdateCashSessionForm,
+  PaginatedResult,
+} from "../features/cashSession/types";
 
 declare global {
   interface Window {
@@ -135,6 +146,25 @@ declare global {
       getSimpleOrderPayments: (id: number) => Promise<SimpleOrderPayment[]>;
       updateSimpleOrderPayment: (id: number, data: UpdateSimpleOrderPaymentForm) => Promise<SimpleOrderPayment>;
       deleteSimpleOrderPayment: (id: number) => Promise<void>;
+
+      // Sesiones de caja
+      getCashSessions: (page: number, limit: number) => Promise<PaginatedResult<CashSession>>;
+      getClosedCashSessions: (page: number, limit: number) => Promise<PaginatedResult<CashSession>>;
+      getActiveCashSession: () => Promise<CashSession | null>;
+      getCashSessionById: (id: number) => Promise<CashSession>;
+      getCashSessionsByDateRange: (from: string, to: string) => Promise<CashSession[]>;
+      getCashSessionSummary: (id: number) => Promise<CashSessionSummary>;
+      openCashSession: (data: OpenCashSessionForm) => Promise<CashSession>;
+      closeCashSession: (id: number, data: CloseCashSessionForm) => Promise<CashSession>;
+      updateCashSession: (id: number, data: UpdateCashSessionForm) => Promise<CashSession>;
+
+      // Gastos
+      getExpenses: (page: number, limit: number) => Promise<PaginatedResult<Expense>>;
+      getExpensesByCashSession: (cashSessionId: number) => Promise<Expense[]>;
+      getExpenseById: (id: number) => Promise<Expense>;
+      createExpense: (data: CreateExpenseForm) => Promise<Expense>;
+      updateExpense: (id: number, data: UpdateExpenseForm) => Promise<Expense>;
+      deleteExpense: (id: number) => Promise<void>;
 
       // Shell / Utilidades
       openExternal: (url: string) => Promise<void>;

@@ -86,6 +86,24 @@ export const isoToDateInputUTC = (isoString: string | Date | null | undefined): 
 };
 
 /**
+ * Converts a UTC ISO string to a "YYYY-MM-DDTHH:mm" local string
+ * suitable for <input type="datetime-local"> in MX timezone.
+ * Example: '2026-04-23T20:10:00Z' → '2026-04-23T14:10' (UTC-6)
+ */
+export const isoToDatetimeLocalMX = (isoString: string | Date | null | undefined): string => {
+  if (!isoString) return '';
+  return dayjs(isoString).tz(MX_TZ).format('YYYY-MM-DDTHH:mm');
+};
+
+/**
+ * Returns the current local time as "YYYY-MM-DDTHH:mm" in MX timezone.
+ * Use this as the default value for <input type="datetime-local">.
+ */
+export const nowDatetimeLocalMX = (): string => {
+  return dayjs().tz(MX_TZ).format('YYYY-MM-DDTHH:mm');
+};
+
+/**
  * To ensure absolute UTC Z format strictly.
  */
 export const toUTCISO = (dateString: string): string => {
