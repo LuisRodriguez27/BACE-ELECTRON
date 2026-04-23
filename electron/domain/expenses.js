@@ -48,4 +48,4 @@ class Expenses {
 	}
 }
 
-export default Expenses;
+module.exports = Expenses;

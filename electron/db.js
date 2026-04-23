@@ -12,7 +12,8 @@ const path = require('path');
 const { app, dialog } = require('electron');
 const fs = require('fs');
 const { runMigrations } = require('./migrations');
-const pgSchema = require('./schema');
+const schemaTables  = require('./schemaTables');
+const schemaIndexes = require('./schemaIndexes');
 
 const isDev = !app.isPackaged;
 
@@ -95,15 +96,14 @@ const db = {
   }
 };
 
-
-
 async function initDb() {
   let client;
   try {
     client = await pool.connect();
-    await client.query(pgSchema);
 
+    await client.query(schemaTables);
     await runMigrations(db, client);
+    await client.query(schemaIndexes);
 
     console.log("✅ Base de datos PG Inicializada");
   } catch (e) {

@@ -1,6 +1,6 @@
-import SimpleOrderPayment from './simpleOrderPayment';
-import Payment from './payments';
-import Expenses from './expenses';
+const SimpleOrderPayment = require('./simpleOrderPayment');
+const Payment = require('./payments');
+const Expenses = require('./expenses');
 
 class CashSession {
   constructor({
@@ -83,4 +83,4 @@ class CashSession {
   }
 }
 
-export default CashSession;
+module.exports = CashSession;

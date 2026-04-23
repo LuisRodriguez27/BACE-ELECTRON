@@ -1,5 +1,5 @@
-import db from '../db';
-import CashSession from '../domain/cashSession';
+const db = require('../db');
+const CashSession = require('../domain/cashSession');
 
 class CashSessionRepository {
   async _hydrate(sessionRows) {
@@ -262,4 +262,4 @@ class CashSessionRepository {
   }
 }
 
-export default new CashSessionRepository();
+module.exports = new CashSessionRepository();

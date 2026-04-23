@@ -1,4 +1,4 @@
-import cashSessionRepository from '../repositories/cashSessionRepository';
+const cashSessionRepository = require('../repositories/cashSessionRepository');
 
 class CashSessionService {
 	async getAll(page = 1, limit = 20) {
@@ -167,4 +167,5 @@ class CashSessionService {
   }
 }
 
-export default new CashSessionService();
+module.exports = new CashSessionService();
+
