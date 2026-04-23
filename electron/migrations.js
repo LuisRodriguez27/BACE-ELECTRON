@@ -317,7 +317,6 @@ const MIGRATIONS = [
     }
   },
 
-
   // v12: Agregar cash_session_id a payments y simple_order_payments
   {
     version: 12,
@@ -348,6 +347,37 @@ const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_simple_order_payments_cash_session_id
           ON simple_order_payments(cash_session_id)
       `);
+    }
+  },
+
+  {
+    version: 13,
+    name: 'add_cash_permissions',
+    isApplied: async (client) => {
+      const { rows } = await client.query(`
+        SELECT id FROM permissions 
+      WHERE name = 'Abrir caja' 
+      LIMIT 1;
+      `);
+      return rows.length > 0;
+    },
+    up: async (client) => {
+      await client.query(`
+        INSERT INTO permissions (name, description)
+        VALUES
+          ('Abrir Caja', 'Abre una caja'),
+          ('Cerrar Caja', 'Cierra una caja'),
+          ('Ver Caja', 'Puede ver los movimientos de la caja'),
+          ('Registrar Egreso', 'Puede registrar egresos');
+      `);
+      await client.query(`
+        INSERT INTO user_permissions (user_id, permission_id)
+        SELECT u.id, p.id
+        FROM users u
+        CROSS JOIN permissions p
+        WHERE u.id = 1
+        AND p.name IN ('Abrir Caja', 'Cerrar Caja', 'Ver Caja', 'Registrar Egreso');
+      `)
     }
   },
 
