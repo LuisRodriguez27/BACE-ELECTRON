@@ -1,5 +1,6 @@
 const db = require('../db');
 const SimpleOrder = require('../domain/simpleOrder');
+const cashSessionRepository = require('./cashSessionRepository');
 
 class SimpleOrderRepository {
 
@@ -89,10 +90,14 @@ class SimpleOrderRepository {
 
   async addPayment(paymentData) {
     const { simple_order_id, user_id, amount, date, descripcion } = paymentData;
+
+    const activeSession = await cashSessionRepository.getActive();
+    const cash_session_id = activeSession?.id ?? null;
+
     const result = await db.execute(`
-      INSERT INTO simple_order_payments (simple_order_id, user_id, amount, date, descripcion)
-      VALUES ($1, $2, $3, $4, $5)
-    `, [simple_order_id, user_id, amount, date, descripcion || null]);
+      INSERT INTO simple_order_payments (simple_order_id, user_id, cash_session_id, amount, date, descripcion)
+      VALUES ($1, $2, $3, $4, $5, $6)
+    `, [simple_order_id, user_id, cash_session_id, amount, date, descripcion || null]);
 
     return result.lastInsertRowid;
   }

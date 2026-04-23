@@ -1,5 +1,6 @@
-const simpleOrderRepository = require('../repositories/simpleOrderRepository');
-const SimpleOrder = require('../domain/simpleOrder');
+const simpleOrderRepository  = require('../repositories/simpleOrderRepository');
+const cashSessionRepository  = require('../repositories/cashSessionRepository');
+const SimpleOrder            = require('../domain/simpleOrder');
 
 class SimpleOrderService {
   async getAllSimpleOrders() {
@@ -80,6 +81,12 @@ class SimpleOrderService {
     try {
       const { simple_order_id, user_id, amount, date, descripcion } = paymentData;
 
+      // ── Verificar sesión de caja activa ─────────────────────────────
+      const activeSession = await cashSessionRepository.getActive();
+      if (!activeSession) {
+        throw new Error('No hay una sesión de caja abierta. Abre la caja antes de registrar pagos.');
+      }
+
       if (!simple_order_id || !user_id || typeof amount !== 'number' || amount <= 0) {
         throw new Error('Datos de pago inválidos. Se requiere el ID de la orden, el empleado y un monto mayor a 0.');
       }
@@ -96,7 +103,7 @@ class SimpleOrderService {
       return newPayment;
     } catch (error) {
       console.error('Error in addPayment:', error);
-      throw new Error('Hubo un error al registrar el pago.');
+      throw error;
     }
   }
 

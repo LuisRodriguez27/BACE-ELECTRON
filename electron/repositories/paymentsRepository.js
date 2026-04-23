@@ -1,5 +1,6 @@
 const db = require('../db');
 const Payment = require('../domain/payments');
+const cashSessionRepository = require('./cashSessionRepository');
 
 class PaymentsRepository {
   async findAll() {
@@ -120,9 +121,12 @@ class PaymentsRepository {
   }
 
   async create({ order_id, amount, date, descripcion, info }) {
+    const activeSession = await cashSessionRepository.getActive();
+    const cash_session_id = activeSession?.id ?? null;
+
     const result = await db.execute(
-      'INSERT INTO payments (order_id, amount, date, descripcion, info) VALUES ($1, $2, $3, $4, $5)',
-      [order_id || null, amount, date, descripcion, info || null]
+      'INSERT INTO payments (order_id, cash_session_id, amount, date, descripcion, info) VALUES ($1, $2, $3, $4, $5, $6)',
+      [order_id || null, cash_session_id, amount, date, descripcion, info || null]
     );
 
     return await this.findById(result.lastInsertRowid);

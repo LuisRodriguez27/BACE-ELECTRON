@@ -20,7 +20,7 @@ const budgetService = require('./services/budgetService');
 const statsService = require('./services/statsService');
 const simpleOrderService = require('./services/simpleOrderService');
 const cashSessionService = require('./services/cashSessionService');
-const expensesService = require('./services/expensesService').default;
+const expensesService = require('./services/expensesService');
 const imageService = require('./services/imageService');
 
 // Configuración de logs para no ir a ciegas
