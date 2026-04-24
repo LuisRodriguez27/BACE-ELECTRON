@@ -32,6 +32,7 @@ import type {
 import OpenSessionModal from './components/OpenSessionModal';
 import CloseSessionModal from './components/CloseSessionModal';
 import ExpenseFormModal from './components/ExpenseFormModal';
+import { usePermissions } from '@/hooks/use-permissions';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -77,6 +78,7 @@ const CashSessionPage: React.FC = () => {
   const [summary, setSummary] = useState<CashSessionSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { checkPermission } = usePermissions();
 
   // expenses local (subset del session)
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -120,7 +122,33 @@ const CashSessionPage: React.FC = () => {
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
+  const handleOpenClick = () => {
+    if (!checkPermission("Abrir Caja")) {
+      return;
+    }
+    setShowOpen(true);
+  };
+
+  const handleCloseClick = () => {
+    if (!checkPermission("Cerrar Caja")) {
+      return;
+    }
+    setShowClose(true);
+  };
+
+  const handleAddExpenseClick = () => {
+    if (!checkPermission("Registrar Egreso")) {
+      return;
+    }
+    setEditingExp(null);
+    setShowExpForm(true);
+  };
+
   const handleOpen = async (data: OpenCashSessionForm) => {
+    if (!checkPermission("Abrir Caja")) {
+      return;
+    }
+    
     try {
       await CashSessionApiService.open(data);
       toast.success('Sesión de caja abierta correctamente');
@@ -134,6 +162,10 @@ const CashSessionPage: React.FC = () => {
   const handleClose = async (data: CloseCashSessionForm) => {
     if (!session) return;
     try {
+      if (!checkPermission("Cerrar Caja")) {
+        return;
+      }
+
       await CashSessionApiService.close(session.id, data);
       toast.success('Sesión de caja cerrada correctamente');
       setShowClose(false);
@@ -145,6 +177,10 @@ const CashSessionPage: React.FC = () => {
 
   const handleCreateExpense = async (data: CreateExpenseForm) => {
     try {
+      if (!checkPermission("Registrar Egreso")) {
+        return;
+      }
+
       const created = await ExpensesApiService.create(data);
       setExpenses(prev => [...prev, created]);
       toast.success('Gasto registrado');
@@ -244,12 +280,12 @@ const CashSessionPage: React.FC = () => {
             <RefreshCw size={14} className="mr-1" /> Actualizar
           </Button>
           {!session && (
-            <Button onClick={() => setShowOpen(true)}>
+            <Button onClick={handleOpenClick}>
               <LockOpen size={16} className="mr-2" /> Abrir Caja
             </Button>
           )}
           {isOpen && (
-            <Button variant="destructive" onClick={() => setShowClose(true)}>
+            <Button variant="destructive" onClick={handleCloseClick}>
               <Lock size={16} className="mr-2" /> Cerrar Caja
             </Button>
           )}
@@ -262,7 +298,7 @@ const CashSessionPage: React.FC = () => {
           <Wallet size={40} className="mx-auto text-amber-400 mb-3" />
           <p className="text-amber-800 font-medium">No hay una sesión de caja abierta.</p>
           <p className="text-amber-600 text-sm mt-1">Abre una sesión para comenzar a registrar movimientos del día.</p>
-          <Button className="mt-4" onClick={() => setShowOpen(true)}>
+          <Button className="mt-4" onClick={handleOpenClick}>
             <LockOpen size={16} className="mr-2" /> Abrir Caja
           </Button>
         </div>
@@ -412,7 +448,7 @@ const CashSessionPage: React.FC = () => {
                 {showExpenses ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
               </button>
               {isOpen && (
-                <Button size="sm" className="ml-3" onClick={() => { setEditingExp(null); setShowExpForm(true); }}>
+                <Button size="sm" className="ml-3" onClick={handleAddExpenseClick}>
                   <Plus size={14} className="mr-1" /> Agregar
                 </Button>
               )}
