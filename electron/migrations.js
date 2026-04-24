@@ -160,10 +160,10 @@ const MIGRATIONS = [
     // Verificar si users.active ya es BOOLEAN (proxy de todas las tablas)
     isApplied: async (client) => {
       const { rows } = await client.query(
-        `SELECT data_type FROM information_schema.columns
+        `SELECT data_type, column_default FROM information_schema.columns
          WHERE table_name = 'users' AND column_name = 'active'`
       );
-      return rows.length > 0 && rows[0].data_type === 'boolean';
+      return rows.length > 0 && rows[0].data_type === 'boolean' && rows[0].column_default !== null;
     },
     up: async (client) => {
       const tables = [
