@@ -13,6 +13,10 @@ import {
   LockOpen,
   AlertCircle,
   RefreshCw,
+  History,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -32,7 +36,9 @@ import type {
 import OpenSessionModal from './components/OpenSessionModal';
 import CloseSessionModal from './components/CloseSessionModal';
 import ExpenseFormModal from './components/ExpenseFormModal';
+import SessionDetailModal from './components/SessionDetailModal';
 import { usePermissions } from '@/hooks/use-permissions';
+import type { Pagination } from './types';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -94,6 +100,17 @@ const CashSessionPage: React.FC = () => {
   const [showOrderPay, setShowOrderPay] = useState(false);
   const [showExpenses, setShowExpenses] = useState(true);
 
+  // tab
+  const [tab, setTab] = useState<'active' | 'history'>('active');
+
+  // history
+  const [history, setHistory] = useState<CashSession[]>([]);
+  const [historyPagination, setHistoryPagination] = useState<Pagination | null>(null);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [detailId, setDetailId] = useState<number | null>(null);
+  const HISTORY_LIMIT = 15;
+
   // ── Fetch ──────────────────────────────────────────────────────────────────
 
   const fetchSession = useCallback(async () => {
@@ -119,6 +136,23 @@ const CashSessionPage: React.FC = () => {
   }, []);
 
   useEffect(() => { fetchSession(); }, [fetchSession]);
+
+  const fetchHistory = useCallback(async (page: number) => {
+    try {
+      setHistoryLoading(true);
+      const res = await CashSessionApiService.getClosed(page, HISTORY_LIMIT);
+      setHistory(res.data);
+      setHistoryPagination(res.pagination);
+    } catch {
+      toast.error('Error al cargar el historial');
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [HISTORY_LIMIT]);
+
+  useEffect(() => {
+    if (tab === 'history') fetchHistory(historyPage);
+  }, [tab, historyPage, fetchHistory]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
@@ -292,6 +326,29 @@ const CashSessionPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Tab switcher */}
+      <div className="flex gap-1 bg-gray-100 p-1 rounded-lg mb-6 w-fit">
+        <button
+          onClick={() => setTab('active')}
+          className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+            tab === 'active' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <Wallet size={14} /> Sesión Activa
+        </button>
+        <button
+          onClick={() => setTab('history')}
+          className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+            tab === 'history' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <History size={14} /> Historial
+        </button>
+      </div>
+
+      {/* ── ACTIVE TAB ─────────────────────────────────────────── */}
+      {tab === 'active' && (
+        <>
       {/* No session banner */}
       {!session && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 text-center">
@@ -514,6 +571,104 @@ const CashSessionPage: React.FC = () => {
           </div>
         </>
       )}
+        </>
+      )}
+
+      {/* ── HISTORY TAB ─────────────────────────────────────────────────── */}
+      {tab === 'history' && (
+        <div>
+          <div className="bg-white rounded-lg shadow border border-gray-100 overflow-hidden">
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-gray-500 text-xs uppercase border-b border-gray-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left">ID</th>
+                    <th className="px-4 py-3 text-left">Apertura</th>
+                    <th className="px-4 py-3 text-left">Cierre</th>
+                    <th className="px-4 py-3 text-right">Bal. Apertura</th>
+                    <th className="px-4 py-3 text-right">Ingresos</th>
+                    <th className="px-4 py-3 text-right">Gastos</th>
+                    <th className="px-4 py-3 text-right">Bal. Real</th>
+                    <th className="px-4 py-3 text-center">Detalle</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {historyLoading ? (
+                    [...Array(5)].map((_, i) => (
+                      <tr key={i} className="animate-pulse">
+                        {[...Array(8)].map((__, j) => (
+                          <td key={j} className="px-4 py-3">
+                            <div className="h-4 bg-gray-200 rounded" />
+                          </td>
+                        ))}
+                      </tr>
+                    ))
+                  ) : history.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-4 py-10 text-center text-gray-400">
+                        No hay sesiones cerradas registradas.
+                      </td>
+                    </tr>
+                  ) : history.map(s => {
+                    const income   = s.payments.reduce((acc, p) => acc + p.amount, 0)
+                                   + s.order_payments.reduce((acc, p) => acc + p.amount, 0);
+                    const expenses = s.expenses.reduce((acc, e) => acc + e.amount, 0);
+                    return (
+                      <tr key={s.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-3 text-gray-500 font-mono">#{s.id}</td>
+                        <td className="px-4 py-3 text-gray-600 text-xs">{fmtDate(s.opening_date)}</td>
+                        <td className="px-4 py-3 text-gray-600 text-xs">{fmtDate(s.closing_date)}</td>
+                        <td className="px-4 py-3 text-right text-gray-700">{fmt(s.opening_balance)}</td>
+                        <td className="px-4 py-3 text-right font-medium text-green-700">{fmt(income)}</td>
+                        <td className="px-4 py-3 text-right font-medium text-red-700">{fmt(expenses)}</td>
+                        <td className="px-4 py-3 text-right font-bold text-blue-700">{fmt(s.closing_balance)}</td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => setDetailId(s.id)}
+                            className="p-1.5 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+                            title="Ver detalle"
+                          >
+                            <Eye size={15} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {historyPagination && historyPagination.totalPages > 1 && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50">
+                <p className="text-xs text-gray-500">
+                  Página {historyPagination.page} de {historyPagination.totalPages} —{' '}
+                  {historyPagination.total} sesiones
+                </p>
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!historyPagination.hasPrev}
+                    onClick={() => setHistoryPage(p => p - 1)}
+                  >
+                    <ChevronLeft size={14} />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!historyPagination.hasNext}
+                    onClick={() => setHistoryPage(p => p + 1)}
+                  >
+                    <ChevronRight size={14} />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       {showOpen && (
@@ -539,6 +694,13 @@ const CashSessionPage: React.FC = () => {
           onClose={closeExpModal}
           onCreate={handleCreateExpense}
           onUpdate={handleUpdateExpense}
+        />
+      )}
+
+      {detailId && (
+        <SessionDetailModal
+          sessionId={detailId}
+          onClose={() => setDetailId(null)}
         />
       )}
     </div>
