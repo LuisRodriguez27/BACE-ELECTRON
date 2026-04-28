@@ -9,6 +9,7 @@ import { generateSimpleOrdersLogbookHtml } from './logbook';
 import type { SimpleOrder, SimpleOrderPayment } from './types';
 import CreatePaymentModal from '../payments/components/CreatePaymentModal';
 import CreateSimpleOrderModal from './components/CreateSimpleOrderModal';
+import EditSimpleOrderModal from './components/EditSimpleOrderModal';
 import EditPaymentModal from '../payments/components/EditPaymentModal';
 import SimpleOrderPrintPreviewModal from './components/SimpleOrderPrintPreviewModal';
 import { Eye, Pencil } from 'lucide-react';
@@ -22,6 +23,7 @@ const SimpleOrdersPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showPaymentsListModal, setShowPaymentsListModal] = useState(false);
   const [showEditPaymentModal, setShowEditPaymentModal] = useState(false);
@@ -63,6 +65,7 @@ const SimpleOrdersPage: React.FC = () => {
 
   const closeModals = () => {
     setShowCreateModal(false);
+    setShowEditModal(false);
     setShowPaymentModal(false);
     setShowPaymentsListModal(false);
     setShowEditPaymentModal(false);
@@ -293,6 +296,16 @@ const SimpleOrdersPage: React.FC = () => {
                     <button 
                       onClick={() => {
                         setSelectedOrderId(order.id);
+                        setShowEditModal(true);
+                      }}
+                      className="p-1.5 rounded text-gray-400 hover:text-blue-600 bg-gray-50 hover:bg-blue-50"
+                      title="Editar Orden"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setSelectedOrderId(order.id);
                         setShowPrintModal(true);
                       }}
                       className="p-1.5 rounded text-gray-400 hover:text-purple-600 bg-gray-50 hover:bg-purple-50"
@@ -334,7 +347,16 @@ const SimpleOrdersPage: React.FC = () => {
         />
       )}
 
-      {selectedOrderId && (
+      {selectedOrderId && showEditModal && (
+        <EditSimpleOrderModal
+          isOpen={showEditModal}
+          onClose={closeModals}
+          onOrderUpdated={handleOrderCreated}
+          order={orders.find(o => o.id === selectedOrderId) || null}
+        />
+      )}
+
+      {selectedOrderId && showPaymentModal && (
         <CreatePaymentModal
           isOpen={showPaymentModal}
           onClose={closeModals}
