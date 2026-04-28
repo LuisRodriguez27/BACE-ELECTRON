@@ -80,6 +80,9 @@ const SessionDetailModal: React.FC<Props> = ({ sessionId, onClose }) => {
     load();
   }, [sessionId]);
 
+  const orderPaymentsWithOrder = session?.order_payments?.filter(p => p.order_id != null) || [];
+  const orderPaymentsWithoutOrder = session?.order_payments?.filter(p => p.order_id == null) || [];
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
@@ -185,9 +188,9 @@ const SessionDetailModal: React.FC<Props> = ({ sessionId, onClose }) => {
             {/* Pagos órdenes crédito */}
             <Section
               title={<><DollarSign size={15} className="text-blue-500" /> Pagos — Órdenes</>}
-              count={session.order_payments.length}
+              count={orderPaymentsWithOrder.length}
             >
-              {session.order_payments.length === 0 ? (
+              {orderPaymentsWithOrder.length === 0 ? (
                 <p className="text-gray-400 text-sm text-center py-5">Sin pagos.</p>
               ) : (
                 <table className="w-full text-xs">
@@ -200,7 +203,7 @@ const SessionDetailModal: React.FC<Props> = ({ sessionId, onClose }) => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
-                    {session.order_payments.map(p => (
+                    {orderPaymentsWithOrder.map(p => (
                       <tr key={p.id} className="hover:bg-gray-50">
                         <td className="px-3 py-2 text-gray-600">{p.order_id ? `#${p.order_id}` : '—'}</td>
                         <td className="px-3 py-2 text-gray-500">{fmtDate(p.date)}</td>
@@ -213,7 +216,46 @@ const SessionDetailModal: React.FC<Props> = ({ sessionId, onClose }) => {
                     <tr>
                       <td colSpan={3} className="px-3 py-2 font-semibold text-gray-600">Total</td>
                       <td className="px-3 py-2 text-right font-bold text-blue-700">
-                        {fmt(session.order_payments.reduce((s, p) => s + p.amount, 0))}
+                        {fmt(orderPaymentsWithOrder.reduce((s, p) => s + p.amount, 0))}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              )}
+            </Section>
+
+            {/* Otros Pagos */}
+            <Section
+              title={<><DollarSign size={15} className="text-indigo-500" /> Otros Pagos</>}
+              count={orderPaymentsWithoutOrder.length}
+            >
+              {orderPaymentsWithoutOrder.length === 0 ? (
+                <p className="text-gray-400 text-sm text-center py-5">Sin otros pagos.</p>
+              ) : (
+                <table className="w-full text-xs">
+                  <thead className="bg-gray-50 text-gray-500 uppercase">
+                    <tr>
+                      <th className="px-3 py-2 text-left">ID</th>
+                      <th className="px-3 py-2 text-left">Fecha</th>
+                      <th className="px-3 py-2 text-left">Descripción</th>
+                      <th className="px-3 py-2 text-right">Monto</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {orderPaymentsWithoutOrder.map(p => (
+                      <tr key={p.id} className="hover:bg-gray-50">
+                        <td className="px-3 py-2 text-gray-500">#{p.id}</td>
+                        <td className="px-3 py-2 text-gray-500">{fmtDate(p.date)}</td>
+                        <td className="px-3 py-2 text-gray-500">{p.descripcion || '—'}</td>
+                        <td className="px-3 py-2 text-right font-medium text-indigo-700">{fmt(p.amount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot className="border-t border-gray-200 bg-gray-50">
+                    <tr>
+                      <td colSpan={3} className="px-3 py-2 font-semibold text-gray-600">Total</td>
+                      <td className="px-3 py-2 text-right font-bold text-indigo-700">
+                        {fmt(orderPaymentsWithoutOrder.reduce((s, p) => s + p.amount, 0))}
                       </td>
                     </tr>
                   </tfoot>
