@@ -98,10 +98,14 @@ const CashSessionPage: React.FC = () => {
   // accordion
   const [showPayments, setShowPayments] = useState(false);
   const [showOrderPay, setShowOrderPay] = useState(false);
+  const [showOtherPay, setShowOtherPay] = useState(false);
   const [showExpenses, setShowExpenses] = useState(true);
 
   // tab
   const [tab, setTab] = useState<'active' | 'history'>('active');
+
+  const orderPaymentsWithOrder = session?.order_payments?.filter(p => p.order_id != null) || [];
+  const orderPaymentsWithoutOrder = session?.order_payments?.filter(p => p.order_id == null) || [];
 
   // history
   const [history, setHistory] = useState<CashSession[]>([]);
@@ -443,14 +447,14 @@ const CashSessionPage: React.FC = () => {
                 <DollarSign size={18} className="text-blue-500" />
                 Pagos — Órdenes
                 <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                  {session.order_payments.length}
+                  {orderPaymentsWithOrder.length}
                 </span>
               </span>
               {showOrderPay ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
             </button>
             {showOrderPay && (
               <div className="border-t border-gray-100 overflow-x-auto">
-                {session.order_payments.length === 0 ? (
+                {orderPaymentsWithOrder.length === 0 ? (
                   <p className="text-gray-400 text-sm text-center py-6">Sin pagos de órdenes de crédito en esta sesión.</p>
                 ) : (
                   <table className="w-full text-sm">
@@ -464,7 +468,7 @@ const CashSessionPage: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                      {session.order_payments.map(p => (
+                      {orderPaymentsWithOrder.map(p => (
                         <tr key={p.id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 text-gray-500">#{p.id}</td>
                           <td className="px-4 py-3 text-gray-700">{p.order_id ? `Orden #${p.order_id}` : '—'}</td>
@@ -478,7 +482,60 @@ const CashSessionPage: React.FC = () => {
                       <tr>
                         <td colSpan={4} className="px-4 py-3 text-sm font-semibold text-gray-600">Total</td>
                         <td className="px-4 py-3 text-right font-bold text-blue-700">
-                          {fmt(session.order_payments.reduce((s, p) => s + p.amount, 0))}
+                          {fmt(orderPaymentsWithOrder.reduce((s, p) => s + p.amount, 0))}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ── Other Payments accordion ─────────────────────────────────────── */}
+          <div className="bg-white rounded-lg shadow border border-gray-100 mb-4">
+            <button
+              className="w-full flex justify-between items-center px-5 py-4 text-left"
+              onClick={() => setShowOtherPay(v => !v)}
+            >
+              <span className="font-semibold text-gray-800 flex items-center gap-2">
+                <DollarSign size={18} className="text-indigo-500" />
+                Otros Pagos
+                <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                  {orderPaymentsWithoutOrder.length}
+                </span>
+              </span>
+              {showOtherPay ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </button>
+            {showOtherPay && (
+              <div className="border-t border-gray-100 overflow-x-auto">
+                {orderPaymentsWithoutOrder.length === 0 ? (
+                  <p className="text-gray-400 text-sm text-center py-6">Sin otros pagos registrados en esta sesión.</p>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+                      <tr>
+                        <th className="px-4 py-3 text-left">ID</th>
+                        <th className="px-4 py-3 text-left">Fecha</th>
+                        <th className="px-4 py-3 text-left">Descripción</th>
+                        <th className="px-4 py-3 text-right">Monto</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {orderPaymentsWithoutOrder.map(p => (
+                        <tr key={p.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 text-gray-500">#{p.id}</td>
+                          <td className="px-4 py-3 text-gray-500">{fmtDate(p.date)}</td>
+                          <td className="px-4 py-3 text-gray-500">{p.descripcion || '—'}</td>
+                          <td className="px-4 py-3 text-right font-medium text-indigo-700">{fmt(p.amount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="border-t border-gray-200 bg-gray-50">
+                      <tr>
+                        <td colSpan={3} className="px-4 py-3 text-sm font-semibold text-gray-600">Total</td>
+                        <td className="px-4 py-3 text-right font-bold text-indigo-700">
+                          {fmt(orderPaymentsWithoutOrder.reduce((s, p) => s + p.amount, 0))}
                         </td>
                       </tr>
                     </tfoot>
