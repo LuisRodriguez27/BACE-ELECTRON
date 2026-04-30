@@ -17,6 +17,7 @@ import {
   Eye,
   ChevronLeft,
   ChevronRight,
+  Printer,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -37,6 +38,7 @@ import OpenSessionModal from './components/OpenSessionModal';
 import CloseSessionModal from './components/CloseSessionModal';
 import ExpenseFormModal from './components/ExpenseFormModal';
 import SessionDetailModal from './components/SessionDetailModal';
+import CashSessionPrintModal from './components/CashSessionPrintModal';
 import { usePermissions } from '@/hooks/use-permissions';
 import type { Pagination } from './types';
 
@@ -94,6 +96,7 @@ const CashSessionPage: React.FC = () => {
   const [showClose, setShowClose] = useState(false);
   const [showExpForm, setShowExpForm] = useState(false);
   const [editingExp, setEditingExp] = useState<Expense | null>(null);
+  const [showPrint, setShowPrint] = useState(false);
 
   // accordion
   const [showPayments, setShowPayments] = useState(false);
@@ -317,6 +320,11 @@ const CashSessionPage: React.FC = () => {
           <Button variant="outline" size="sm" onClick={fetchSession}>
             <RefreshCw size={14} className="mr-1" /> Actualizar
           </Button>
+          {isOpen && tab === 'active' && (
+            <Button variant="outline" size="sm" onClick={() => setShowPrint(true)}>
+              <Printer size={14} className="mr-1" /> Imprimir
+            </Button>
+          )}
           {!session && (
             <Button onClick={handleOpenClick}>
               <LockOpen size={16} className="mr-2" /> Abrir Caja
@@ -758,6 +766,14 @@ const CashSessionPage: React.FC = () => {
         <SessionDetailModal
           sessionId={detailId}
           onClose={() => setDetailId(null)}
+        />
+      )}
+
+      {showPrint && session && (
+        <CashSessionPrintModal
+          session={session}
+          summary={summary}
+          onClose={() => setShowPrint(false)}
         />
       )}
     </div>

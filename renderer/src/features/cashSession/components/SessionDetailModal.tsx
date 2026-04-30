@@ -7,10 +7,12 @@ import {
   Wallet,
   ChevronDown,
   ChevronUp,
+  Printer,
 } from 'lucide-react';
 import { formatDateMX } from '@/utils/dateUtils';
 import { CashSessionApiService } from '../CashSessionApiService';
 import type { CashSession, CashSessionSummary } from '../types';
+import CashSessionPrintModal from './CashSessionPrintModal';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -61,6 +63,7 @@ const SessionDetailModal: React.FC<Props> = ({ sessionId, onClose }) => {
   const [session, setSession] = useState<CashSession | null>(null);
   const [summary, setSummary] = useState<CashSessionSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showPrint, setShowPrint] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -84,6 +87,7 @@ const SessionDetailModal: React.FC<Props> = ({ sessionId, onClose }) => {
   const orderPaymentsWithoutOrder = session?.order_payments?.filter(p => p.order_id == null) || [];
 
   return (
+    <>
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
       style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
@@ -96,9 +100,19 @@ const SessionDetailModal: React.FC<Props> = ({ sessionId, onClose }) => {
             <Wallet size={20} className="text-gray-500" />
             Detalle de Sesión #{sessionId}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X size={20} />
-          </button>
+          <div className="flex items-center gap-2">
+            {!loading && session && (
+              <button
+                onClick={() => setShowPrint(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                <Printer size={14} /> Imprimir
+              </button>
+            )}
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -306,6 +320,15 @@ const SessionDetailModal: React.FC<Props> = ({ sessionId, onClose }) => {
         )}
       </div>
     </div>
+
+    {showPrint && session && (
+      <CashSessionPrintModal
+        session={session}
+        summary={summary}
+        onClose={() => setShowPrint(false)}
+      />
+    )}
+    </>
   );
 };
 
