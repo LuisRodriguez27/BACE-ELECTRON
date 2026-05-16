@@ -3,7 +3,7 @@ import { create } from "zustand";
 interface User {
   id: number;
   username: string;
-  active: number;
+  active: boolean;
 }
 
 interface Business {

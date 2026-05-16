@@ -51,7 +51,7 @@ const BudgetsPage: React.FC = () => {
   const [selectedBudgetForPrint, setSelectedBudgetForPrint] = useState<Budget | null>(null);
 
   const { user } = useAuthStore();
-  const { isSendingWhatsApp, sendWhatsApp, WhatsAppDialog } = useWhatsAppBudget();
+  const { isSendingWhatsApp, sendWhatsApp, whatsappDialogElement } = useWhatsAppBudget();
 
   const observerRef = useRef<IntersectionObserver | null>(null);
   const lastBudgetElementRef = useCallback((node: HTMLDivElement) => {
@@ -532,7 +532,7 @@ const BudgetsPage: React.FC = () => {
         />
       )}
 
-      {WhatsAppDialog && <WhatsAppDialog />}
+      {whatsappDialogElement}
     </div>
   );
 };

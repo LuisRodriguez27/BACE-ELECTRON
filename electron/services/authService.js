@@ -32,7 +32,7 @@ class AuthService {
       }
 
       // Verificar que el usuario esté activo
-      if (user.active !== 1) {
+      if (user.active !== true) {
         throw new Error('Usuario inactivo');
       }
 

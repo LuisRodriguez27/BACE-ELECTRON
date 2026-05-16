@@ -5,13 +5,17 @@ import { Button } from '@/components/ui/button';
 import notaImage from '@/assets/NOTA.jpg';
 import paidStampImage from '@/assets/SELLO-PAGADO.png';
 import { getOrderItemDisplayName, getOrderItemDescription, getOrderItemType } from '../types';
-import { formatDateMX } from '@/utils/dateUtils';
+import { formatDateMX, formatDateOnlyMX } from '@/utils/dateUtils';
 
 // ─── Helpers de fecha ────────────────────────────────────────────────────────
-const getDay = (d: string) => formatDateMX(d, 'DD');
-const getMonth = (d: string) => formatDateMX(d, 'MM');
-const getYear = (d: string) => formatDateMX(d, 'YYYY');
-const getHours = (d: string) => formatDateMX(d, 'HH:mm');
+const getDay    = (d: string) => formatDateMX(d, 'DD');
+const getMonth  = (d: string) => formatDateMX(d, 'MM');
+const getYear   = (d: string) => formatDateMX(d, 'YYYY');
+const getHours  = (d: string) => formatDateMX(d, 'HH:mm');
+// Para estimated_delivery_date (UTC midnight) – no aplicar offset de timezone
+const getDayUTC   = (d: string) => formatDateOnlyMX(d, 'DD');
+const getMonthUTC = (d: string) => formatDateOnlyMX(d, 'MM');
+const getYearUTC  = (d: string) => formatDateOnlyMX(d, 'YYYY');
 
 // ─── Conversión de imágenes a base64 ─────────────────────────────────────────
 const imageToBase64 = (url: string): Promise<string> =>
@@ -116,9 +120,9 @@ export function useWhatsAppOrder() {
             ${orderData.estimated_delivery_date ? `
             <div style="text-align:right;width:100px;">
               <div style="display:flex;gap:20px;">
-                <span>${getDay(orderData.estimated_delivery_date)}</span>
-                <span>${getMonth(orderData.estimated_delivery_date)}</span>
-                <span>${getYear(orderData.estimated_delivery_date)}</span>
+                <span>${getDayUTC(orderData.estimated_delivery_date)}</span>
+                <span>${getMonthUTC(orderData.estimated_delivery_date)}</span>
+                <span>${getYearUTC(orderData.estimated_delivery_date)}</span>
               </div>
             </div>` : ''}
           </div>
@@ -259,12 +263,7 @@ export function useWhatsAppOrder() {
         toast.warning('El cliente no tiene número registrado. Selecciona el chat manualmente.');
       }
 
-      const api = (window as any).api;
-      if (api?.openExternal) {
-        await api.openExternal(whatsappUrl);
-      } else {
-        window.open(whatsappUrl, '_blank');
-      }
+      await window.api.openExternal(whatsappUrl);
 
     } catch (error) {
       console.error('Error al enviar por WhatsApp:', error);
@@ -278,9 +277,7 @@ export function useWhatsAppOrder() {
     }
   };
 
-  const WhatsAppDialog = () => {
-    if (!isDialogOpen) return null;
-    return (
+  const whatsappDialogElement = isDialogOpen ? (
       <div className="fixed inset-0 flex items-center justify-center z-9999" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
         <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg mx-4">
           <h2 className="text-xl font-bold mb-4 text-gray-900">Mensaje de WhatsApp</h2>
@@ -296,8 +293,7 @@ export function useWhatsAppOrder() {
           </div>
         </div>
       </div>
-    );
-  };
+  ) : null;
 
-  return { isSendingWhatsApp, sendWhatsApp: startWhatsAppFlow, WhatsAppDialog };
+  return { isSendingWhatsApp, sendWhatsApp: startWhatsAppFlow, whatsappDialogElement };
 }

@@ -14,10 +14,10 @@ export interface User {
 	id: number;
 	username: string;
 	password?: string; 
-	active: number;
+	active: boolean;
 	userPermissions?: {
 		permission_id: number;
 		permission_name: string;
-		active: number;
+		active: boolean;
 	}[];
 }

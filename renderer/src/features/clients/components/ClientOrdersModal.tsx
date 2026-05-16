@@ -5,6 +5,7 @@ import { OrdersApiService } from '@/features/orders/OrdersApiService';
 import { toast } from 'sonner';
 import type { Order } from '@/features/orders/types';
 import type { Client } from '../types';
+import { formatDateMX, formatDateOnlyMX } from '@/utils/dateUtils';
 
 interface ClientOrdersModalProps {
   isOpen: boolean;
@@ -64,12 +65,14 @@ const ClientOrdersModal: React.FC<ClientOrdersModalProps> = ({
     return statusTexts[status as keyof typeof statusTexts] || status;
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+  // Para la fecha de creación de la orden (tiene hora significativa)
+  const formatDateTime = (dateString: string) => {
+    return formatDateMX(dateString, 'D MMM YYYY, h:mm A');
+  };
+
+  // Para fechas de entrega (guardadas como UTC midnight, no convertir timezone)
+  const formatDateOnly = (dateString: string) => {
+    return formatDateOnlyMX(dateString, 'D MMM YYYY');
   };
 
   const formatCurrency = (amount: number) => {
@@ -169,7 +172,7 @@ const ClientOrdersModal: React.FC<ClientOrdersModalProps> = ({
                             Orden #{order.id}
                           </h4>
                           <p className="text-sm text-gray-500">
-                            Creada el {formatDate(order.date)}
+                            Creada el {formatDateTime(order.date)}
                           </p>
                         </div>
                       </div>
@@ -202,7 +205,7 @@ const ClientOrdersModal: React.FC<ClientOrdersModalProps> = ({
                         <div className="flex items-center gap-2">
                           <Calendar size={14} className="text-gray-400" />
                           <span className="text-gray-600">
-                            Entrega: {formatDate(order.estimated_delivery_date)}
+                            Entrega: {formatDateOnly(order.estimated_delivery_date)}
                           </span>
                         </div>
                       )}

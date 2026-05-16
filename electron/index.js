@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, protocol, net, shell } = require('electron');
 const path = require('path');
+const { spawn } = require('child_process');
 
 // Deshabilitar aceleración de hardware para evitar problemas de renderizado
 app.disableHardwareAcceleration();
@@ -16,10 +17,18 @@ const authService = require('./services/authService');
 const budgetService = require('./services/budgetService');
 const statsService = require('./services/statsService');
 const simpleOrderService = require('./services/simpleOrderService');
+const cashSessionService = require('./services/cashSessionService');
+const expensesService = require('./services/expensesService');
 const imageService = require('./services/imageService');
+
 
 let whatsappWindow = null;
 let isQuitting = false;
+
+// User Agent de Chrome real — necesario porque WhatsApp Web bloquea
+// deliberadamente cualquier request que contenga "Electron" en el UA.
+const WHATSAPP_USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
 function initWhatsApp() {
   if (whatsappWindow) return;
@@ -32,8 +41,86 @@ function initWhatsApp() {
     autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: false,
-      contextIsolation: true
+      contextIsolation: true,
+      // Sobrescribir el userAgent aquí también para peticiones internas
+      userAgent: WHATSAPP_USER_AGENT
     }
+  });
+
+  // Agregar menú de contexto (clic derecho) para soportar guardar/copiar imágenes, pegar texto, etc.
+  whatsappWindow.webContents.on('context-menu', (event, params) => {
+    const { Menu, clipboard } = require('electron');
+    const template = [];
+
+    if (params.mediaType === 'image') {
+      template.push(
+        {
+          label: 'Guardar imagen como...',
+          click: () => {
+            whatsappWindow.webContents.downloadURL(params.srcURL);
+          }
+        },
+        {
+          label: 'Copiar imagen',
+          click: () => {
+            whatsappWindow.webContents.copyImageAt(params.x, params.y);
+          }
+        },
+        { type: 'separator' }
+      );
+    }
+
+    if (params.linkURL) {
+      template.push(
+        {
+          label: 'Copiar enlace',
+          click: () => {
+            clipboard.writeText(params.linkURL);
+          }
+        },
+        { type: 'separator' }
+      );
+    }
+
+    if (params.selectionText) {
+      template.push(
+        { label: 'Copiar', role: 'copy' },
+        { type: 'separator' }
+      );
+    }
+
+    if (params.isEditable) {
+      template.push(
+        { label: 'Deshacer', role: 'undo' },
+        { label: 'Rehacer', role: 'redo' },
+        { type: 'separator' },
+        { label: 'Cortar', role: 'cut' },
+        { label: 'Copiar', role: 'copy' },
+        { label: 'Pegar', role: 'paste' },
+        { label: 'Pegar y coincidir el estilo', role: 'pasteAndMatchStyle' },
+        { label: 'Seleccionar todo', role: 'selectAll' },
+        { type: 'separator' }
+      );
+    }
+
+    if (template.length > 0) {
+      // Eliminar el separador si es el último elemento
+      if (template[template.length - 1].type === 'separator') {
+        template.pop();
+      }
+
+      const menu = Menu.buildFromTemplate(template);
+      menu.popup({ window: whatsappWindow });
+    }
+  });
+
+  // Manejar descargas para que salga el diálogo nativo de "Guardar como..."
+  whatsappWindow.webContents.session.on('will-download', (event, item, webContents) => {
+    item.setSaveDialogOptions({
+      title: 'Guardar archivo...',
+      defaultPath: item.getFilename(),
+      buttonLabel: 'Guardar'
+    });
   });
 
   // Ocultar al intentar cerrar en lugar de destruir la ventana
@@ -44,8 +131,10 @@ function initWhatsApp() {
     }
   });
 
-  // Pre-cargar WhatsApp
-  whatsappWindow.loadURL('https://web.whatsapp.com');
+  // Pre-cargar WhatsApp con un userAgent limpio (sin "Electron")
+  whatsappWindow.loadURL('https://web.whatsapp.com', {
+    userAgent: WHATSAPP_USER_AGENT
+  });
 }
 
 function createWindow() {
@@ -206,9 +295,35 @@ ipcMain.handle('simpleOrders:getPayments', async (event, id) => await simpleOrde
 ipcMain.handle('simpleOrders:updatePayment', async (event, id, data) => await simpleOrderService.updatePayment(id, data));
 ipcMain.handle('simpleOrders:deletePayment', async (event, id) => await simpleOrderService.deletePayment(id));
 
+// Manejo de eventos IPC para sesiones de caja
+ipcMain.handle('cashSessions:getAll', async (event, page, limit) => await cashSessionService.getAll(page, limit));
+ipcMain.handle('cashSessions:getClosed', async (event, page, limit) => await cashSessionService.getClosed(page, limit));
+ipcMain.handle('cashSessions:getActive', async () => await cashSessionService.getActive());
+ipcMain.handle('cashSessions:getById', async (event, id) => await cashSessionService.getById(id));
+ipcMain.handle('cashSessions:getByDateRange', async (event, from, to) => await cashSessionService.getByDateRange(from, to));
+ipcMain.handle('cashSessions:getSummary', async (event, id) => await cashSessionService.getSummary(id));
+ipcMain.handle('cashSessions:open', async (event, data) => await cashSessionService.open(data));
+ipcMain.handle('cashSessions:close', async (event, id, data) => await cashSessionService.close(id, data));
+ipcMain.handle('cashSessions:update', async (event, id, data) => await cashSessionService.update(id, data));
+
+// Manejo de eventos IPC para gastos
+ipcMain.handle('expenses:getAll', async (event, page, limit) => await expensesService.getAll(page, limit));
+ipcMain.handle('expenses:getByCashSession', async (event, cashSessionId) => await expensesService.getByCashSession(cashSessionId));
+ipcMain.handle('expenses:getById', async (event, id) => await expensesService.getById(id));
+ipcMain.handle('expenses:create', async (event, data) => await expensesService.create(data));
+ipcMain.handle('expenses:update', async (event, id, data) => await expensesService.update(id, data));
+ipcMain.handle('expenses:delete', async (event, id) => await expensesService.delete(id));
+
 // Manejo de eventos IPC para imágenes
 ipcMain.handle('upload-image', async (event, productId, buffer, originalName) => await imageService.uploadImage(productId, buffer, originalName));
 ipcMain.handle('delete-image', async (event, relativePath) => await imageService.deleteImage(relativePath));
+
+// Abrir WhatsApp directamente desde el sidebar
+ipcMain.handle('whatsapp:open', () => {
+  if (!whatsappWindow) initWhatsApp();
+  whatsappWindow.show();
+  whatsappWindow.focus();
+});
 
 // Abrir URLs en el navegador predeterminado del sistema (Intercepción para WhatsApp)
 ipcMain.handle('shell:openExternal', async (_event, url) => {
@@ -235,7 +350,7 @@ ipcMain.handle('shell:openExternal', async (_event, url) => {
       });
     } else {
       // Si la app apenas arrancó o está cargando inicial, hacemos la navegación normal
-      whatsappWindow.loadURL(url);
+      whatsappWindow.loadURL(url, { userAgent: WHATSAPP_USER_AGENT });
     }
   } else {
     await shell.openExternal(url);
@@ -246,13 +361,13 @@ require('dotenv').config();
 
 app.whenReady().then(() => {
   const baseImagePath = imageService.getBasePath();
-  
+
   if (protocol.handle) {
     // Para Electron >= 25 (el usado es v37)
     protocol.handle('imagenes', (request) => {
       const urlPath = request.url.replace(/^imagenes:\/\//i, '');
       const absolutePath = path.normalize(path.join(baseImagePath, decodeURIComponent(urlPath)));
-      
+
       // Prevenir directory traversal
       if (!absolutePath.startsWith(path.normalize(baseImagePath))) {
         return new Response('Acceso denegado', { status: 403 });
@@ -265,7 +380,7 @@ app.whenReady().then(() => {
     protocol.registerFileProtocol('imagenes', (request, callback) => {
       const urlPath = request.url.replace(/^imagenes:\/\//i, '');
       const absolutePath = path.normalize(path.join(baseImagePath, decodeURIComponent(urlPath)));
-      
+
       if (!absolutePath.startsWith(path.normalize(baseImagePath))) {
         callback({ error: -3 }); // Acceso denegado (ERR_ACCESS_DENIED)
         return;

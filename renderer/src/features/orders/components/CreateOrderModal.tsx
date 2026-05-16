@@ -15,7 +15,7 @@ import { useForm } from 'react-hook-form';
 import { OrdersApiService } from '../OrdersApiService';
 import { calculateOrderTotal, type CreateOrderForm, createOrderItemFromFormItem, createOrderSchema, type Order, type OrderFormItem, getOrderItemType } from "../types";
 import { toast } from 'sonner';
-import { todayDateInputMX, isoToDateInputMX, startOfDayUTC, preserveTimeOrStartOfDay } from '@/utils/dateUtils';
+import { todayDateInputMX, isoToDateInputMX, isoToDateInputUTC, startOfDayUTC, preserveTimeOrStartOfDay } from '@/utils/dateUtils';
 
 interface CreateOrderModalProps {
   isOpen: boolean;
@@ -155,8 +155,9 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       setValue('date', formattedDate);
       
       // Convertir fecha estimada si existe
+      // Usar isoToDateInputUTC para evitar que el offset UTC-6 mueva la fecha al día anterior.
       if (orderData.estimated_delivery_date) {
-        const formattedEstimatedDate = isoToDateInputMX(orderData.estimated_delivery_date);
+        const formattedEstimatedDate = isoToDateInputUTC(orderData.estimated_delivery_date);
         setValue('estimated_delivery_date', formattedEstimatedDate);
       } else {
         setValue('estimated_delivery_date', '');
@@ -322,7 +323,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     try {
       setLoadingProducts(true);
       const response = await window.api.getAllProducts();
-      setProducts(response.filter(p => p.active === 1));
+      setProducts(response.filter(p => p.active === true));
     } catch (err) {
       console.error('Error loading products:', err);
       setError('Error al cargar los productos');
@@ -335,7 +336,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     try {
       setLoadingTemplates(true);
       const response = await ProductTemplatesApiService.findAll();
-      setTemplates(response.filter((t: ProductTemplate) => t.active === 1));
+      setTemplates(response.filter((t: ProductTemplate) => t.active === true));
     } catch (err) {
       console.error('Error loading templates:', err);
       setError('Error al cargar las plantillas');

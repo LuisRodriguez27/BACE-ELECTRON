@@ -1,12 +1,13 @@
 import { useAuthStore } from '@/store/auth'
 import { authService } from '@/features/auth/AuthService'
 import logo from '@/assets/LOGO.jpg'
+import pkg from '../../../../package.json'
 
 export function Dashboard() {
   const { user } = useAuthStore()
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative min-h-[calc(100vh-8rem)]">
       {/* Header de usuario - Solo en dashboard */}
       <div className="bg-white rounded-lg shadow p-4">
         <div className="flex justify-between items-center">
@@ -30,11 +31,12 @@ export function Dashboard() {
         <img 
           src={logo} 
           alt="LOGO" 
-          
         />        
       </div>
 
-      
+      <div className="fixed bottom-1 right-4 text-sm text-gray-500 font-medium opacity-75">
+        v{pkg.version}
+      </div>
     </div>
   )
 }

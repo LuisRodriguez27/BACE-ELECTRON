@@ -12,7 +12,7 @@ class ProductTemplate {
     texts,
     description,
     created_by,
-    active = 1,
+    active = true,
     product_name,
     serial_number,
     created_by_username
@@ -39,7 +39,7 @@ class ProductTemplate {
 
   // Métodos de utilidad para el dominio
   isActive() {
-    return this.active === 1;
+    return this.active === true;
   }
 
   hasCustomDimensions() {

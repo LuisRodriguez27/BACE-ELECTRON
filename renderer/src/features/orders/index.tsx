@@ -15,7 +15,7 @@ import { generateLogbookHtml } from './logbook';
 import { usePermissions } from '@/hooks/use-permissions';
 import ClientColorIndicator from '../clients/components/ClientColorIndicator';
 import type { ClientColor } from '../clients/types';
-import { formatDateMX, nowISO } from '@/utils/dateUtils';
+import { formatDateMX, formatDateOnlyMX, nowISO } from '@/utils/dateUtils';
 
 const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -136,7 +136,9 @@ const OrdersPage: React.FC = () => {
   }
 
   const formatDate = (dateString: string) => {
-    return formatDateMX(dateString, 'D MMM YYYY');
+    // estimated_delivery_date se guarda como UTC midnight; usar formatDateOnlyMX
+    // para evitar que el offset -6h mueva la fecha al día anterior.
+    return formatDateOnlyMX(dateString, 'D MMM YYYY');
   };
 
   const formatDateTime = (dateString: string) => {

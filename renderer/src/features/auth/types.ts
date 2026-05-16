@@ -21,12 +21,12 @@ export type ChangePasswordForm = z.infer<typeof changePasswordSchema>;
 export interface User {
   id: number;
   username: string;
-  active: number;
+  active: boolean;
 }
 
 // Función helper para convertir active number a boolean
 export function isUserActive(user: User): boolean {
-  return user.active === 1;
+  return user.active === true;
 }
 
 export interface Business {

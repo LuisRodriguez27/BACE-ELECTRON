@@ -55,7 +55,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-[9999] flex items-center justify-center"
+      className="fixed inset-0 z-9999 flex items-center justify-center"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
       onClick={onClose}
     >
@@ -65,7 +65,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       >
         {/* Header */}
         <div className="flex items-start gap-4 p-6 pb-4">
-          <div className="flex-shrink-0 mt-0.5">
+          <div className="shrink-0 mt-0.5">
             {getIcon()}
           </div>
           <div className="flex-1">
@@ -78,7 +78,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="flex-shrink-0 text-gray-400 hover:text-gray-500 transition-colors"
+            className="shrink-0 text-gray-400 hover:text-gray-500 transition-colors"
             disabled={isLoading}
           >
             <X size={20} />

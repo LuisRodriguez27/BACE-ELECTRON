@@ -4,7 +4,7 @@ import { Button, Input, Label } from '@/components/ui';
 import { X, DollarSign, Loader, Calendar, FileText, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { PaymentsApiService } from '../PaymentsApiService';
-import { SimpleOrdersApiService } from '../../simple-orders/SimpleOrdersApiService';
+import { SimpleOrdersApiService } from '../../simpleOrders/SimpleOrdersApiService';
 import { createPaymentSchema, type CreatePaymentForm, type Payment } from '../types';
 import { extractErrorMessage } from '@/utils/errorHandling';
 import { isoToDateInputMX, todayDateInputMX, preserveTimeOrStartOfDay } from '@/utils/dateUtils';
@@ -89,7 +89,7 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
       } else {
         newPayment = await PaymentsApiService.create(validatedData);
       }
-      
+
       toast.success('Pago registrado exitosamente');
       onPaymentCreated(newPayment);
       handleClose();
@@ -123,7 +123,7 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 flex items-center justify-center z-50"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
     >
@@ -243,9 +243,9 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
                 min="1"
                 max={isFreePayment ? undefined : pendingAmount}
                 value={formData.amount || ''}
-                onChange={(e) => setFormData(prev => ({ 
-                  ...prev, 
-                  amount: parseFloat(e.target.value) || 0 
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  amount: parseFloat(e.target.value) || 0
                 }))}
                 className="pl-10"
                 placeholder="10.00"

@@ -116,10 +116,32 @@ contextBridge.exposeInMainWorld('api', {
   updateSimpleOrderPayment: (id, data) => ipcRenderer.invoke('simpleOrders:updatePayment', id, data),
   deleteSimpleOrderPayment: (id) => ipcRenderer.invoke('simpleOrders:deletePayment', id),
 
+  // Sesiones de caja
+  getCashSessions: (page, limit) => ipcRenderer.invoke('cashSessions:getAll', page, limit),
+  getClosedCashSessions: (page, limit) => ipcRenderer.invoke('cashSessions:getClosed', page, limit),
+  getActiveCashSession: () => ipcRenderer.invoke('cashSessions:getActive'),
+  getCashSessionById: (id) => ipcRenderer.invoke('cashSessions:getById', id),
+  getCashSessionsByDateRange: (from, to) => ipcRenderer.invoke('cashSessions:getByDateRange', from, to),
+  getCashSessionSummary: (id) => ipcRenderer.invoke('cashSessions:getSummary', id),
+  openCashSession: (data) => ipcRenderer.invoke('cashSessions:open', data),
+  closeCashSession: (id, data) => ipcRenderer.invoke('cashSessions:close', id, data),
+  updateCashSession: (id, data) => ipcRenderer.invoke('cashSessions:update', id, data),
+
+  // Gastos
+  getExpenses: (page, limit) => ipcRenderer.invoke('expenses:getAll', page, limit),
+  getExpensesByCashSession: (cashSessionId) => ipcRenderer.invoke('expenses:getByCashSession', cashSessionId),
+  getExpenseById: (id) => ipcRenderer.invoke('expenses:getById', id),
+  createExpense: (data) => ipcRenderer.invoke('expenses:create', data),
+  updateExpense: (id, data) => ipcRenderer.invoke('expenses:update', id, data),
+  deleteExpense: (id) => ipcRenderer.invoke('expenses:delete', id),
+
   // Imágenes en NAS
   uploadImage: (productId, buffer, originalName) => ipcRenderer.invoke('upload-image', productId, buffer, originalName),
   deleteImage: (relativePath) => ipcRenderer.invoke('delete-image', relativePath),
 
   // Abrir URL en el navegador predeterminado del sistema
   openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),
+
+  // WhatsApp
+  openWhatsApp: () => ipcRenderer.invoke('whatsapp:open'),
 });

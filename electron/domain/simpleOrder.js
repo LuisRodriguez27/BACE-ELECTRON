@@ -7,7 +7,7 @@ class SimpleOrder {
     date,
     concept,
     total,
-    active = 1,
+    active = true,
     user_username,
     client_name,
     payments = []
@@ -24,7 +24,7 @@ class SimpleOrder {
   }
 
   isActive() {
-    return this.active === 1;
+    return this.active === true;
   }
 
   getUser() {

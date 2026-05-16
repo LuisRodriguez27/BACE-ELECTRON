@@ -52,7 +52,7 @@ class UserService {
       }
 
       // Crear usuario
-      const hashedPassword = userRepository.constructor.hashPassword(password);
+      const hashedPassword = await userRepository.constructor.hashPassword(password);
       const user = await userRepository.create({
         username: username.trim(),
         hashedPassword
@@ -100,7 +100,7 @@ class UserService {
         if (password.length < 6) {
           throw new Error('La contraseña debe tener al menos 6 caracteres');
         }
-        hashedPassword = userRepository.constructor.hashPassword(password);
+        hashedPassword = await userRepository.constructor.hashPassword(password);
       }
 
       // Actualizar usuario
@@ -169,7 +169,7 @@ class UserService {
         return false;
       }
 
-      return userRepository.constructor.verifyPassword(password, hashedPassword);
+      return await userRepository.constructor.verifyPassword(password, hashedPassword);
     } catch (error) {
       console.error('Error al verificar contraseña:', error);
       return false;

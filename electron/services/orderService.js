@@ -160,8 +160,9 @@ class OrderService {
         const comparisonOrderDate = new Date(orderDate);
         comparisonOrderDate.setHours(0, 0, 0, 0);
         
-        const comparisonDeliveryDate = new Date(deliveryDate);
-        comparisonDeliveryDate.setHours(0, 0, 0, 0);
+        // Extraemos la fecha asumiendo que la entrega viene como UTC (T00:00:00.000Z) 
+        // para evitar que se atrase un día al convertir a la zona horaria local.
+        const comparisonDeliveryDate = new Date(deliveryDate.getUTCFullYear(), deliveryDate.getUTCMonth(), deliveryDate.getUTCDate());
 
         if (comparisonDeliveryDate < comparisonOrderDate) {
           throw new Error('La fecha de entrega no puede ser anterior a la fecha de la orden');
@@ -293,8 +294,9 @@ class OrderService {
         const comparisonOrderDate = new Date(orderDate);
         comparisonOrderDate.setHours(0, 0, 0, 0);
         
-        const comparisonDeliveryDate = new Date(deliveryDate);
-        comparisonDeliveryDate.setHours(0, 0, 0, 0);
+        // Extraemos la fecha asumiendo que la entrega viene como UTC (T00:00:00.000Z) 
+        // para evitar que se atrase un día al convertir a la zona horaria local.
+        const comparisonDeliveryDate = new Date(deliveryDate.getUTCFullYear(), deliveryDate.getUTCMonth(), deliveryDate.getUTCDate());
 
         if (comparisonDeliveryDate < comparisonOrderDate) {
           throw new Error('La fecha de entrega no puede ser anterior a la fecha de la orden');

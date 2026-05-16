@@ -1,6 +1,6 @@
 {
   "name": "bace",
-  "version": "4.0.0",
+  "version": "5.4.0",
   "description": "Aplicación BACE Electron",
   "main": "electron/index.js",
   "author": "Luis Rodriguez",
@@ -11,7 +11,8 @@
     "dev": "concurrently -k --success first \"pnpm run dev:electron\" \"cd renderer && pnpm run dev\"",
     "build": "cd renderer && pnpm run build",
     "dist": "pnpm run build && electron-builder",
-    "dist:win": "pnpm run build && electron-builder --win"
+    "dist:win": "pnpm run build && electron-builder --win",
+    "dist:git": "pnpm run build && electron-builder --win -p always"
   },
   "keywords": [],
   "packageManager": "pnpm@10.29.1",
@@ -32,6 +33,13 @@
   "build": {
     "appId": "com.bace.electron",
     "productName": "BACE",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "LuisRodriguez27",
+        "repo": "BACE-ELECTRON"
+      }
+    ],
     "directories": {
       "output": "dist",
       "buildResources": "build"

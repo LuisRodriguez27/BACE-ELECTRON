@@ -49,7 +49,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AppWrapper />
-      <ReactQueryDevtools initialIsOpen={false} />
+      <ReactQueryDevtools 
+        initialIsOpen={false} 
+        buttonPosition='top-right'
+      />
     </QueryClientProvider>
   )
 }

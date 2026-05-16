@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import notaImage from '@/assets/NOTA.jpg';
 import paidStampImage from '@/assets/SELLO-PAGADO.png';
 import { getOrderItemDisplayName, getOrderItemDescription, getOrderItemType } from '../types';
-import { formatDateMX } from '@/utils/dateUtils';
+import { formatDateMX, formatDateOnlyMX } from '@/utils/dateUtils';
 import ClientColorIndicator from '../../clients/components/ClientColorIndicator';
 import type { ClientColor } from '../../clients/types';
 import { prepareOrderHtml, buildPrintHtml } from '../utils/buildOrderPageHtml';
@@ -37,10 +37,14 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
   }
   if (productChunks.length === 0) productChunks.push([]);
 
-  const getDay = (dateString: string) => formatDateMX(dateString, 'DD');
-  const getMonth = (dateString: string) => formatDateMX(dateString, 'MM');
-  const getYear = (dateString: string) => formatDateMX(dateString, 'YYYY');
-  const getHours = (dateString: string) => formatDateMX(dateString, 'HH:mm');
+  const getDay    = (dateString: string) => formatDateMX(dateString, 'DD');
+  const getMonth  = (dateString: string) => formatDateMX(dateString, 'MM');
+  const getYear   = (dateString: string) => formatDateMX(dateString, 'YYYY');
+  const getHours  = (dateString: string) => formatDateMX(dateString, 'HH:mm');
+  // Para estimated_delivery_date (UTC midnight) – no aplicar offset de timezone
+  const getDayUTC   = (dateString: string) => formatDateOnlyMX(dateString, 'DD');
+  const getMonthUTC = (dateString: string) => formatDateOnlyMX(dateString, 'MM');
+  const getYearUTC  = (dateString: string) => formatDateOnlyMX(dateString, 'YYYY');
 
   const hasPreferentialPrice = productsData.some(product => {
     const type = getOrderItemType(product);
@@ -171,9 +175,9 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                         {orderData.estimated_delivery_date && (
                           <div className="text-right" style={{ width: '100px' }}>
                             <div className="flex gap-5">
-                              <span>{getDay(orderData.estimated_delivery_date)}</span>
-                              <span>{getMonth(orderData.estimated_delivery_date)}</span>
-                              <span>{getYear(orderData.estimated_delivery_date)}</span>
+                              <span>{getDayUTC(orderData.estimated_delivery_date)}</span>
+                              <span>{getMonthUTC(orderData.estimated_delivery_date)}</span>
+                              <span>{getYearUTC(orderData.estimated_delivery_date)}</span>
                             </div>
                           </div>
                         )}

@@ -1,6 +1,7 @@
-const paymentsRepository = require('../repositories/paymentsRepository');
-const orderRepository = require('../repositories/orderRepository');
-const Payment = require('../domain/payments');
+const paymentsRepository    = require('../repositories/paymentsRepository');
+const orderRepository       = require('../repositories/orderRepository');
+const cashSessionRepository = require('../repositories/cashSessionRepository');
+const Payment               = require('../domain/payments');
 
 class PaymentsService {
 
@@ -55,6 +56,11 @@ class PaymentsService {
 
   async createPayment({ orderId, amount, date, descripcion, info }) {
     try {
+      // ── Verificar sesión de caja activa ───────────────────────────────
+      const activeSession = await cashSessionRepository.getActive();
+      if (!activeSession) {
+        throw new Error('No hay una sesión de caja abierta. Abre la caja antes de registrar pagos.');
+      }
       if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
         throw new Error('Monto inválido. Debe ser un número mayor a 0');
       }

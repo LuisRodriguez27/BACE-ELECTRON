@@ -104,7 +104,7 @@ export interface Budget {
   date: string; // ISO date string
   total: number;
   converted_to_order?: boolean;
-  active?: number;
+  active?: boolean;
 
   // Para joins
   client?: {

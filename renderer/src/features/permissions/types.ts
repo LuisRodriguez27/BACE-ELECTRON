@@ -14,13 +14,13 @@ export interface Permission {
   id: number;
   name: string;
   description?: string;
-  active: number;
+  active: boolean;
 }
 
 export interface UserPermission {
   user_id: number;
   permission_id: number;
-  active: number;
+  active: boolean;
   // Relacionadas para joins
   user?: {
     id: number;

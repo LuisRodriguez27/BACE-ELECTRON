@@ -28,98 +28,92 @@ async function seed() {
   // 2. Insertar usuario admin
   // -------------------------
   const passwordHash = bcrypt.hashSync("admin123", saltRounds);
-  const insertUser = db.prepare(`
+  const adminInfo = await db.execute(`
     INSERT INTO users (username, password, active)
-    VALUES (?, ?, ?)
-  `);
-  const adminInfo = await insertUser.run("admin", passwordHash, 1);
+    VALUES ($1, $2, $3)
+  `, ["admin", passwordHash, true]);
   const adminId = adminInfo.lastInsertRowid;
 
   const passwordHash2 = bcrypt.hashSync("user123", saltRounds);
-  const insertUser2 = db.prepare(`
+  const userInfo = await db.execute(`
     INSERT INTO users (username, password, active)
-    VALUES (?, ?, ?)
-  `);
-  const userInfo = await insertUser2.run("user", passwordHash2, 1);
+    VALUES ($1, $2, $3)
+  `, ["user", passwordHash2, true]);
   const userId = userInfo.lastInsertRowid;
 
   // -------------------------
   // 3. Insertar permisos
   // -------------------------
-  const insertPermission = db.prepare(`
-    INSERT INTO permissions (name, description, active)
-    VALUES (?, ?, ?)
-  `);
-
   const permissions = [
     // Usuarios y permisos
-  ["Gestionar Usuario", "Permite crear, editar o desactivar usuarios", 1],
-  ["Gestionar Permisos", "Permite asignar o revocar permisos a los usuarios", 1],
+  ["Gestionar Usuario", "Permite crear, editar o desactivar usuarios", true],
+  ["Gestionar Permisos", "Permite asignar o revocar permisos a los usuarios", true],
 
   // Clientes
-  ["Crear Cliente", "Permite registrar nuevos clientes", 1],
-  ["Editar Cliente", "Permite modificar datos de clientes", 1],
-  ["Eliminar Cliente", "Permite eliminar o desactivar clientes", 1],
+  ["Crear Cliente", "Permite registrar nuevos clientes", true],
+  ["Editar Cliente", "Permite modificar datos de clientes", true],
+  ["Eliminar Cliente", "Permite eliminar o desactivar clientes", true],
 
   // Productos
-  ["Crear Producto", "Permite registrar nuevos productos", 1],
-  ["Editar Producto", "Permite modificar información de productos", 1],
-  ["Eliminar Producto", "Permite eliminar o desactivar productos", 1],
+  ["Crear Producto", "Permite registrar nuevos productos", true],
+  ["Editar Producto", "Permite modificar información de productos", true],
+  ["Eliminar Producto", "Permite eliminar o desactivar productos", true],
 
   // Plantillas de productos
-  ["Crear Plantilla", "Permite crear plantillas de productos", 1],
-  ["Editar Plantilla", "Permite modificar plantillas de productos", 1],
-  ["Eliminar Plantilla", "Permite eliminar plantillas de productos", 1],
+  ["Crear Plantilla", "Permite crear plantillas de productos", true],
+  ["Editar Plantilla", "Permite modificar plantillas de productos", true],
+  ["Eliminar Plantilla", "Permite eliminar plantillas de productos", true],
 
   // Órdenes
-  ["Crear Órdenes", "Permite registrar nuevas órdenes", 1],
-  ["Editar Órdenes", "Permite modificar órdenes", 1],
-  ["Cancelar Órdenes", "Permite cancelar órdenes", 1],
+  ["Crear Órdenes", "Permite registrar nuevas órdenes", true],
+  ["Editar Órdenes", "Permite modificar órdenes", true],
+  ["Cancelar Órdenes", "Permite cancelar órdenes", true],
 
   // Presupuestos
-  ["Crear Presupuestos", "Permite registrar nuevos presupuestos", 1],
-  ["Eliminar Presupuestos", "Permite eliminar presupuestos", 1],
-  ["Editar Presupuestos", "Permite editar los presupuestos registrados", 1],
+  ["Crear Presupuestos", "Permite registrar nuevos presupuestos", true],
+  ["Eliminar Presupuestos", "Permite eliminar presupuestos", true],
+  ["Editar Presupuestos", "Permite editar los presupuestos registrados", true],
 
   // Pagos
-  ["Ver pagos", "Permite ver los pagos registrados", 1],
-  ["Registrar Pagos", "Permite registrar pagos en órdenes", 1],
-  ["Eliminar Pagos", "Permite eliminar o anular pagos", 1],
+  ["Ver pagos", "Permite ver los pagos registrados", true],
+  ["Registrar Pagos", "Permite registrar pagos en órdenes", true],
+  ["Eliminar Pagos", "Permite eliminar o anular pagos", true],
 
   // Estadisticas
-  ["Estadisticas", "Permite visualizar las estadisticas de ventas", 1],
+  ["Estadisticas", "Permite visualizar las estadisticas de ventas", true],
   ];
   for (const perm of permissions) {
-    await insertPermission.run(...perm);
+    await db.execute(`
+      INSERT INTO permissions (name, description, active)
+      VALUES ($1, $2, $3)
+    `, perm);
   }
 
   // -------------------------
   // 4. Asignar permisos al admin
   // -------------------------
-  const allPermissions = await db.prepare(`SELECT id FROM permissions`).all();
-  const insertUserPermission = db.prepare(`
-    INSERT INTO user_permissions (user_id, permission_id, active)
-    VALUES (?, ?, ?)
-  `);
+  const allPermissions = await db.getAll(`SELECT id FROM permissions`);
   for (const perm of allPermissions) {
-    await insertUserPermission.run(adminId, perm.id, 1);
+    await db.execute(`
+      INSERT INTO user_permissions (user_id, permission_id, active)
+      VALUES ($1, $2, $3)
+    `, [adminId, perm.id, true]);
   }
 
   // Asignar algunos permisos al usuario normal
-  const userPermissions = await db.prepare(`
-    SELECT id FROM permissions WHERE name IN (?)
-  `).all("Crear Cliente");
+  const userPermissions = await db.getAll(`
+    SELECT id FROM permissions WHERE name IN ($1)
+  `, ["Crear Cliente"]);
   for (const perm of userPermissions) {
-    await insertUserPermission.run(userId, perm.id, 1);
+    await db.execute(`
+      INSERT INTO user_permissions (user_id, permission_id, active)
+      VALUES ($1, $2, $3)
+    `, [userId, perm.id, true]);
   }
 
   // -------------------------
   // 5. Insertar clientes
   // -------------------------
-  const insertClient = db.prepare(`
-    INSERT INTO clients (name, phone, address, description)
-    VALUES (?, ?, ?, ?)
-  `);
   const clients = [
     ["Panadería San José", "951-123-4567", "Av. Hidalgo 123, Centro", "Cliente frecuente - Rótulos y banners"],
     ["Restaurant El Buen Sabor", "951-987-6543", "Calle Morelos 456, Col. Centro", "Cartas menú y lonas publicitarias"],
@@ -128,77 +122,71 @@ async function seed() {
     ["Eventos Sociales Oaxaca", "951-333-2211", "Calle García Vigil 567", "Banners y lonas para eventos"]
   ];
   for (const c of clients) {
-    await insertClient.run(...c);
+    await db.execute(`
+      INSERT INTO clients (name, phone, address, description)
+      VALUES ($1, $2, $3, $4)
+    `, c);
   }
 
   // -------------------------
   // 6. Insertar productos (simplificado al esquema actual)
   // -------------------------
-  const insertProduct = db.prepare(`
-    INSERT INTO products (name, serial_number, price, description, active)
-    VALUES (?, ?, ?, ?, ?)
-  `);
-
   const products = [
-    ["Taza personalizada", "TZ-001", 45.0, "Taza cerámica sublimable 11oz", 1],
-    ["Llavero acrílico", "LL-001", 18.0, "Llavero acrílico transparente", 1],
-    ["Pluma promocional", "PL-001", 12.0, "Pluma con logo empresarial", 1],
-    ["Gorra bordada", "GP-001", 85.0, "Gorra con bordado personalizado", 1],
-    ["Playera estampada", "PY-001", 95.0, "Playera cotton con serigrafía", 1],
-    ["Lona publicitaria", "LP-001", 130.0, "Lona vinílica resistente para exteriores", 1],
-    ["Banner promocional", "BP-001", 75.0, "Banner en lona para eventos", 1],
-    ["Cartel rígido", "CR-001", 180.0, "Cartel PVC espumado para stand", 1],
-    ["Rótulo luminoso", "RL-001", 450.0, "Rótulo LED para fachada", 1],
-    ["Volante promocional", "VP-001", 0.8, "Volante couche 150gr full color", 1],
-    ["Tarjeta de presentación", "TP-001", 2.5, "Tarjeta couche 300gr", 1],
-    ["Sticker vinílico", "ST-001", 25.0, "Sticker vinilo transparente", 1],
-    ["Espectacular", "ES-001", 1200.0, "Espectacular para carretera", 1],
-    ["Manta vinílica", "MV-001", 200.0, "Manta vinílica para fachada", 1],
-    ["Letrero acrílico", "LA-001", 320.0, "Letrero acrílico iluminado", 1],
+    ["Taza personalizada", "TZ-001", 45.0, "Taza cerámica sublimable 11oz", true],
+    ["Llavero acrílico", "LL-001", 18.0, "Llavero acrílico transparente", true],
+    ["Pluma promocional", "PL-001", 12.0, "Pluma con logo empresarial", true],
+    ["Gorra bordada", "GP-001", 85.0, "Gorra con bordado personalizado", true],
+    ["Playera estampada", "PY-001", 95.0, "Playera cotton con serigrafía", true],
+    ["Lona publicitaria", "LP-001", 130.0, "Lona vinílica resistente para exteriores", true],
+    ["Banner promocional", "BP-001", 75.0, "Banner en lona para eventos", true],
+    ["Cartel rígido", "CR-001", 180.0, "Cartel PVC espumado para stand", true],
+    ["Rótulo luminoso", "RL-001", 450.0, "Rótulo LED para fachada", true],
+    ["Volante promocional", "VP-001", 0.8, "Volante couche 150gr full color", true],
+    ["Tarjeta de presentación", "TP-001", 2.5, "Tarjeta couche 300gr", true],
+    ["Sticker vinílico", "ST-001", 25.0, "Sticker vinilo transparente", true],
+    ["Espectacular", "ES-001", 1200.0, "Espectacular para carretera", true],
+    ["Manta vinílica", "MV-001", 200.0, "Manta vinílica para fachada", true],
+    ["Letrero acrílico", "LA-001", 320.0, "Letrero acrílico iluminado", true],
   ];
 
   const productIds = {};
   for (const p of products) {
-    const result = await insertProduct.run(...p);
+    const result = await db.execute(`
+      INSERT INTO products (name, serial_number, price, description, active)
+      VALUES ($1, $2, $3, $4, $5)
+    `, p);
     productIds[p[1]] = result.lastInsertRowid;
   }
 
   // -------------------------
   // 7. Insertar plantillas de productos
   // -------------------------
-  const insertTemplate = db.prepare(`
-    INSERT INTO product_templates 
-    (product_id, final_price, width, height, colors, position, texts, description, created_by, active)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
   const templates = [
-    [productIds["TZ-001"], 60.0, 9.5, 8.0, "blanco, rojo", "frente", "Feliz Cumpleaños", "Taza personalizada con frase", adminId, 1],
-    [productIds["GP-001"], 100.0, null, null, "azul, negro", "frente", "Logo empresa", "Gorra con logo bordado", adminId, 1],
-    [productIds["PY-001"], 120.0, null, null, "rojo, blanco", "frente", "Texto promocional", "Playera con texto publicitario", adminId, 1],
-    [productIds["LP-001"], 150.0, 200.0, 100.0, "full color", "horizontal", "Gran apertura", "Lona publicitaria con diseño", adminId, 1],
-    [productIds["VP-001"], 1.2, 10.0, 20.0, "full color", "frente", "Descuento especial", "Volante con promoción", adminId, 1],
+    [productIds["TZ-001"], 60.0, 9.5, 8.0, "blanco, rojo", "frente", "Feliz Cumpleaños", "Taza personalizada con frase", adminId, true],
+    [productIds["GP-001"], 100.0, null, null, "azul, negro", "frente", "Logo empresa", "Gorra con logo bordado", adminId, true],
+    [productIds["PY-001"], 120.0, null, null, "rojo, blanco", "frente", "Texto promocional", "Playera con texto publicitario", adminId, true],
+    [productIds["LP-001"], 150.0, 200.0, 100.0, "full color", "horizontal", "Gran apertura", "Lona publicitaria con diseño", adminId, true],
+    [productIds["VP-001"], 1.2, 10.0, 20.0, "full color", "frente", "Descuento especial", "Volante con promoción", adminId, true],
   ];
 
   const templateIds = {};
   for (let i = 0; i < templates.length; i++) {
-    const result = await insertTemplate.run(...templates[i]);
+    const result = await db.execute(`
+      INSERT INTO product_templates 
+      (product_id, final_price, width, height, colors, position, texts, description, created_by, active)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    `, templates[i]);
     templateIds[`TEMPLATE-${i + 1}`] = result.lastInsertRowid;
   }
 
   // -------------------------
   // 8. Insertar órdenes
   // -------------------------
-  const insertOrder = db.prepare(`
-    INSERT INTO orders (client_id, user_id, edited_by, date, estimated_delivery_date, status, total, notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  const panaderia = (await db.prepare("SELECT id FROM clients WHERE name = ?").get("Panadería San José")).id;
-  const restaurant = (await db.prepare("SELECT id FROM clients WHERE name = ?").get("Restaurant El Buen Sabor")).id;
-  const farmacia = (await db.prepare("SELECT id FROM clients WHERE name = ?").get("Farmacia Santa María")).id;
-  const taller = (await db.prepare("SELECT id FROM clients WHERE name = ?").get("Taller Mecánico López")).id;
-  const eventos = (await db.prepare("SELECT id FROM clients WHERE name = ?").get("Eventos Sociales Oaxaca")).id;
+  const panaderia = (await db.getOne("SELECT id FROM clients WHERE name = $1", ["Panadería San José"])).id;
+  const restaurant = (await db.getOne("SELECT id FROM clients WHERE name = $1", ["Restaurant El Buen Sabor"])).id;
+  const farmacia = (await db.getOne("SELECT id FROM clients WHERE name = $1", ["Farmacia Santa María"])).id;
+  const taller = (await db.getOne("SELECT id FROM clients WHERE name = $1", ["Taller Mecánico López"])).id;
+  const eventos = (await db.getOne("SELECT id FROM clients WHERE name = $1", ["Eventos Sociales Oaxaca"])).id;
 
   // Función para generar descripción aleatoria
   function generateRandomDescription() {
@@ -225,7 +213,10 @@ async function seed() {
     const notes = generateRandomDescription();
     const description = generateRandomDescription();
 
-    const orderResult = await insertOrder.run(
+    const orderResult = await db.execute(`
+      INSERT INTO orders (client_id, user_id, edited_by, date, estimated_delivery_date, status, total, notes)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `, [
       clientId,
       adminId,
       adminId,
@@ -234,7 +225,7 @@ async function seed() {
       "completado",
       total,
       notes
-    );
+    ]);
 
     orderIds.push(orderResult.lastInsertRowid);
   }
@@ -242,11 +233,6 @@ async function seed() {
   // -------------------------
   // 9. Insertar productos de órdenes
   // -------------------------
-  const insertOrderProduct = db.prepare(`
-    INSERT INTO order_products (order_id, product_id, template_id, quantity, unit_price, total_price)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `);
-
   // Productos disponibles para asignar a las órdenes
   const availableProducts = [
     { id: productIds["LP-001"], price: 130.0 },
@@ -268,18 +254,16 @@ async function seed() {
       const quantity = Math.floor(Math.random() * 50) + 1; // 1-50 cantidad
       const totalPrice = product.price * quantity;
       
-      await insertOrderProduct.run(orderId, product.id, null, quantity, product.price, totalPrice);
+      await db.execute(`
+        INSERT INTO order_products (order_id, product_id, template_id, quantity, unit_price, total_price)
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, [orderId, product.id, null, quantity, product.price, totalPrice]);
     }
   }
 
   // -------------------------
   // 10. Insertar pagos
   // -------------------------
-  const insertPayment = db.prepare(`
-    INSERT INTO payments (order_id, amount, date, descripcion)
-    VALUES (?, ?, ?, ?)
-  `);
-
   // Agregar pagos para algunas órdenes (aproximadamente 70% de las órdenes tendrán pagos)
   for (const orderId of orderIds) {
     if (Math.random() < 0.7) { // 70% de probabilidad de tener pago
@@ -288,36 +272,53 @@ async function seed() {
       const descriptions = ["Anticipo", "Pago completo", "Pago parcial", "Liquidación"];
       const description = descriptions[Math.floor(Math.random() * descriptions.length)];
       
-      await insertPayment.run(orderId, paymentAmount, paymentDate.toISOString(), description);
+      await db.execute(`
+        INSERT INTO payments (order_id, amount, date, descripcion)
+        VALUES ($1, $2, $3, $4)
+      `, [orderId, paymentAmount, paymentDate.toISOString(), description]);
     }
   }
 
   // -------------------------
   // 12. Insertar 3 presupuestos de ejemplo
   // -------------------------
-  const insertBudget = db.prepare(`
-    INSERT INTO budgets (client_id, user_id, date, total)
-    VALUES (?, ?, ?, ?)
-  `);
-
-  const insertBudgetProduct = db.prepare(`
-    INSERT INTO budget_products (budget_id, product_id, quantity, unit_price, total_price)
-    VALUES (?, ?, ?, ?, ?)
-  `);
-
   // Presupuesto 1 - Panadería
-  const budget1 = await insertBudget.run(panaderia, adminId, new Date().toISOString(), 195.0);
-  await insertBudgetProduct.run(budget1.lastInsertRowid, productIds["LP-001"], 1, 130.0, 130.0);
-  await insertBudgetProduct.run(budget1.lastInsertRowid, productIds["TP-001"], 26, 2.5, 65.0);
+  const budget1 = await db.execute(`
+    INSERT INTO budgets (client_id, user_id, date, total)
+    VALUES ($1, $2, $3, $4)
+  `, [panaderia, adminId, new Date().toISOString(), 195.0]);
+  await db.execute(`
+    INSERT INTO budget_products (budget_id, product_id, quantity, unit_price, total_price)
+    VALUES ($1, $2, $3, $4, $5)
+  `, [budget1.lastInsertRowid, productIds["LP-001"], 1, 130.0, 130.0]);
+  await db.execute(`
+    INSERT INTO budget_products (budget_id, product_id, quantity, unit_price, total_price)
+    VALUES ($1, $2, $3, $4, $5)
+  `, [budget1.lastInsertRowid, productIds["TP-001"], 26, 2.5, 65.0]);
 
   // Presupuesto 2 - Restaurant
-  const budget2 = await insertBudget.run(restaurant, adminId, new Date().toISOString(), 320.0);
-  await insertBudgetProduct.run(budget2.lastInsertRowid, productIds["MV-001"], 1, 200.0, 200.0);
-  await insertBudgetProduct.run(budget2.lastInsertRowid, productIds["VP-001"], 150, 0.8, 120.0);
+  const budget2 = await db.execute(`
+    INSERT INTO budgets (client_id, user_id, date, total)
+    VALUES ($1, $2, $3, $4)
+  `, [restaurant, adminId, new Date().toISOString(), 320.0]);
+  await db.execute(`
+    INSERT INTO budget_products (budget_id, product_id, quantity, unit_price, total_price)
+    VALUES ($1, $2, $3, $4, $5)
+  `, [budget2.lastInsertRowid, productIds["MV-001"], 1, 200.0, 200.0]);
+  await db.execute(`
+    INSERT INTO budget_products (budget_id, product_id, quantity, unit_price, total_price)
+    VALUES ($1, $2, $3, $4, $5)
+  `, [budget2.lastInsertRowid, productIds["VP-001"], 150, 0.8, 120.0]);
 
   // Presupuesto 3 - Farmacia
-  const budget3 = await insertBudget.run(farmacia, adminId, new Date().toISOString(), 240.0);
-  await insertBudgetProduct.run(budget3.lastInsertRowid, productIds["RL-001"], 1, 450.0, 450.0);
+  const budget3 = await db.execute(`
+    INSERT INTO budgets (client_id, user_id, date, total)
+    VALUES ($1, $2, $3, $4)
+  `, [farmacia, adminId, new Date().toISOString(), 240.0]);
+  await db.execute(`
+    INSERT INTO budget_products (budget_id, product_id, quantity, unit_price, total_price)
+    VALUES ($1, $2, $3, $4, $5)
+  `, [budget3.lastInsertRowid, productIds["RL-001"], 1, 450.0, 450.0]);
 
   console.log("Base de datos inicializada con datos de ejemplo");
   console.log("Usuario admin: admin / admin123");

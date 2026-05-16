@@ -1,5 +1,5 @@
 class Client {
-  constructor({ id, name, phone, address, description, color, active = 1 }) {
+  constructor({ id, name, phone, address, description, color, active = true }) {
     this.id = id;
     this.name = name;
     this.phone = phone;
@@ -11,7 +11,7 @@ class Client {
 
   // Métodos de utilidad para el dominio
   isActive() {
-    return this.active === 1;
+    return this.active === true;
   }
 
   hasAddress() {

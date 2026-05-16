@@ -1,4 +1,4 @@
-import { formatDateMX } from '@/utils/dateUtils';
+import { formatDateMX, formatDateOnlyMX } from '@/utils/dateUtils';
 import type { Order } from './types';
 
 export const generateLogbookHtml = (ordersToPrint: Order[], currentDate: string): string => {
@@ -63,7 +63,7 @@ export const generateLogbookHtml = (ordersToPrint: Order[], currentDate: string)
           ${ordersToPrint.length === 0 ? '<tr><td colspan="11" class="center">No hay órdenes pendientes</td></tr>' : ''}
           ${ordersToPrint.map(order => {
             const dateR = formatDateMX(order.date, 'DD/MM/YYYY');
-            const dateE = order.estimated_delivery_date ? formatDateMX(order.estimated_delivery_date, 'DD/MM/YYYY') : '-';
+            const dateE = order.estimated_delivery_date ? formatDateOnlyMX(order.estimated_delivery_date, 'DD/MM/YYYY') : '-';
             
             // Mapeo de estados a columnas
             // Diseño -> Columna Diseño

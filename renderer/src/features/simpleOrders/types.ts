@@ -15,7 +15,7 @@ export interface SimpleOrder {
   concept: string;
   client_name?: string;
   total: number;
-  active: number;
+  active: boolean;
   user?: {
     id: number;
     username: string;
@@ -31,7 +31,7 @@ export interface CreateSimpleOrderForm {
   client_name?: string;
   concept: string;
   total: number;
-  active?: number;
+  active?: boolean;
 }
 
 export interface CreateSimpleOrderPaymentForm {

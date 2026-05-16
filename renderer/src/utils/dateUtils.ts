@@ -39,6 +39,16 @@ export const formatDateMX = (isoString: string | Date | null | undefined, format
 };
 
 /**
+ * Formats a date-only value (stored as UTC midnight, e.g. '2026-04-17 00:00:00.000' or '2026-04-17T00:00:00.000Z')
+ * without shifting the day due to timezone conversion.
+ * Parses the value strictly as UTC so that 00:00:00Z stays on the correct calendar day.
+ */
+export const formatDateOnlyMX = (isoString: string | Date | null | undefined, formatStr: string = 'DD/MM/YYYY'): string => {
+    if (!isoString) return '';
+    return dayjs.utc(isoString).format(formatStr);
+};
+
+/**
  * Converts an input date value (YYYY-MM-DD) to a strict UTC ISO 8601 string.
  * Example: '2025-10-15' -> '2025-10-15T00:00:00.000Z'
  */
@@ -62,6 +72,35 @@ export const endOfDayUTC = (dateString: string): string => {
 export const isoToDateInputMX = (isoString: string | Date | null | undefined): string => {
     if (!isoString) return '';
     return dayjs(isoString).tz(MX_TZ).format('YYYY-MM-DD');
+};
+
+/**
+ * Converts a UTC-midnight ISO string (e.g. estimated_delivery_date) to a YYYY-MM-DD input value
+ * WITHOUT applying any timezone offset, so the calendar day is preserved exactly.
+ * Use this for date-only fields that are stored as UTC midnight.
+ * Example: '2026-04-22T00:00:00.000Z' → '2026-04-22' (not '2026-04-21' with UTC-6).
+ */
+export const isoToDateInputUTC = (isoString: string | Date | null | undefined): string => {
+    if (!isoString) return '';
+    return dayjs.utc(isoString).format('YYYY-MM-DD');
+};
+
+/**
+ * Converts a UTC ISO string to a "YYYY-MM-DDTHH:mm" local string
+ * suitable for <input type="datetime-local"> in MX timezone.
+ * Example: '2026-04-23T20:10:00Z' → '2026-04-23T14:10' (UTC-6)
+ */
+export const isoToDatetimeLocalMX = (isoString: string | Date | null | undefined): string => {
+  if (!isoString) return '';
+  return dayjs(isoString).tz(MX_TZ).format('YYYY-MM-DDTHH:mm');
+};
+
+/**
+ * Returns the current local time as "YYYY-MM-DDTHH:mm" in MX timezone.
+ * Use this as the default value for <input type="datetime-local">.
+ */
+export const nowDatetimeLocalMX = (): string => {
+  return dayjs().tz(MX_TZ).format('YYYY-MM-DDTHH:mm');
 };
 
 /**

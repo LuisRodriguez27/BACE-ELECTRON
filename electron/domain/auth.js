@@ -25,9 +25,9 @@ class Session {
   // Validar usuario
   isValidUser() {
     return this.user && 
-           this.user.id && 
-           this.user.username && 
-           this.user.active === 1;
+      this.user.id && 
+      this.user.username && 
+      this.user.active === true;
   }
 
   // Información del usuario

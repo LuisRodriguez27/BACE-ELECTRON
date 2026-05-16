@@ -4,7 +4,7 @@ import { DollarSign, FileText, Loader, Trash2, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { PaymentsApiService } from '../PaymentsApiService';
-import { SimpleOrdersApiService } from '../../simple-orders/SimpleOrdersApiService';
+import { SimpleOrdersApiService } from '../../simpleOrders/SimpleOrdersApiService';
 import { editPaymentSchema, type EditPaymentForm, type Payment } from '../types';
 
 interface EditPaymentModalProps {
@@ -54,7 +54,7 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!payment) return;
-    
+
     setError(null);
     setLoading(true);
 
@@ -82,7 +82,7 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
           ...validatedData
         });
       }
-      
+
       toast.success('Pago actualizado exitosamente');
       onPaymentUpdated(updatedPayment);
       handleClose();
@@ -98,7 +98,7 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
 
   const handleDelete = async () => {
     if (!payment) return;
-    
+
     setLoading(true);
     try {
       if (isSimpleOrder) {
@@ -143,7 +143,7 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
   if (!isOpen || !payment) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 flex items-center justify-center z-50"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
     >
@@ -196,7 +196,7 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
                 )}
               </div>
             </div>
-            
+
             <div className="flex justify-end gap-3">
               <Button
                 variant="outline"
@@ -254,9 +254,9 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
                   min="1"
                   max={pendingAmount + payment.amount}
                   value={formData.amount || ''}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    amount: parseFloat(e.target.value) || 0 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    amount: parseFloat(e.target.value) || 0
                   }))}
                   className="pl-10"
                   placeholder="10.00"
@@ -302,7 +302,7 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
                 <Trash2 size={16} />
                 Eliminar
               </Button>
-              
+
               <div className="flex gap-3">
                 <Button
                   type="button"

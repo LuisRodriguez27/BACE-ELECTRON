@@ -1,21 +1,24 @@
 const db = require('../db');
 const Payment = require('../domain/payments');
+const cashSessionRepository = require('./cashSessionRepository');
 
 class PaymentsRepository {
   async findAll() {
-    const stmt = db.prepare(`
+    const rows = await db.getAll(`
       SELECT 
         p.*,
         o.id as o_id, 
         o.client_id as o_client_id, 
         o.status as o_status, 
-        o.total as o_total
+        o.total as o_total,
+        c.name as o_client_name,
+        o.description as o_description,
+        o.notes as o_notes
       FROM payments p
       LEFT JOIN orders o ON p.order_id = o.id
+      LEFT JOIN clients c ON o.client_id = c.id
       ORDER BY p.date DESC
     `);
-
-    const rows = await stmt.all();
 
     return rows.map(row => new Payment({
       id: row.id,
@@ -29,27 +32,32 @@ class PaymentsRepository {
             id: row.o_id,
             client_id: row.o_client_id,
             status: row.o_status,
-            total: row.o_total
+            total: row.o_total,
+            client_name: row.o_client_name,
+            description: row.o_description,
+            notes: row.o_notes
           }
         : null
     }));
   }
 
   async findByOrderId(orderId) {
-    const stmt = db.prepare(`
+    const rows = await db.getAll(`
       SELECT 
         p.*,
         o.id as o_id, 
         o.client_id as o_client_id, 
         o.status as o_status, 
-        o.total as o_total
+        o.total as o_total,
+        c.name as o_client_name,
+        o.description as o_description,
+        o.notes as o_notes
       FROM payments p
       LEFT JOIN orders o ON p.order_id = o.id
-      WHERE p.order_id = ?
+      LEFT JOIN clients c ON o.client_id = c.id
+      WHERE p.order_id = $1
       ORDER BY p.date DESC
-    `);
-
-    const rows = await stmt.all(orderId);
+    `, [orderId]);
 
     return rows.map(row => new Payment({
       id: row.id,
@@ -63,26 +71,31 @@ class PaymentsRepository {
             id: row.o_id,
             client_id: row.o_client_id,
             status: row.o_status,
-            total: row.o_total
+            total: row.o_total,
+            client_name: row.o_client_name,
+            description: row.o_description,
+            notes: row.o_notes
           }
         : null
     }));
   }
 
   async findById(id) {
-    const stmt = db.prepare(`
+    const row = await db.getOne(`
       SELECT 
         p.*,
         o.id as o_id, 
         o.client_id as o_client_id, 
         o.status as o_status, 
-        o.total as o_total
+        o.total as o_total,
+        c.name as o_client_name,
+        o.description as o_description,
+        o.notes as o_notes
       FROM payments p
       LEFT JOIN orders o ON p.order_id = o.id
-      WHERE p.id = ?
-    `);
-
-    const row = await stmt.get(id);
+      LEFT JOIN clients c ON o.client_id = c.id
+      WHERE p.id = $1
+    `, [id]);
 
     if (!row) return null;
 
@@ -98,52 +111,59 @@ class PaymentsRepository {
             id: row.o_id,
             client_id: row.o_client_id,
             status: row.o_status,
-            total: row.o_total
+            total: row.o_total,
+            client_name: row.o_client_name,
+            description: row.o_description,
+            notes: row.o_notes
           }
         : null
     });
   }
 
   async create({ order_id, amount, date, descripcion, info }) {
-    const stmt = db.prepare(
-      'INSERT INTO payments (order_id, amount, date, descripcion, info) VALUES (?, ?, ?, ?, ?)'
+    const activeSession = await cashSessionRepository.getActive();
+    const cash_session_id = activeSession?.id ?? null;
+
+    const result = await db.execute(
+      'INSERT INTO payments (order_id, cash_session_id, amount, date, descripcion, info) VALUES ($1, $2, $3, $4, $5, $6)',
+      [order_id || null, cash_session_id, amount, date, descripcion, info || null]
     );
-    const result = await stmt.run(order_id || null, amount, date, descripcion, info || null);
 
     return await this.findById(result.lastInsertRowid);
   }
 
   async update(id, { amount, descripcion }) {
-    const stmt = db.prepare(
-      'UPDATE payments SET amount = ?, descripcion = ? WHERE id = ?'
+    const result = await db.execute(
+      'UPDATE payments SET amount = $1, descripcion = $2 WHERE id = $3',
+      [amount, descripcion, id]
     );
-    const result = await stmt.run(amount, descripcion, id);
 
     return result.changes > 0;
   }
 
   async delete(id) {
-    const stmt = db.prepare('DELETE FROM payments WHERE id = ?');
-    const result = await stmt.run(id);
+    const result = await db.execute('DELETE FROM payments WHERE id = $1', [id]);
 
     return result.changes > 0;
   }
 
   async findByClientId(clientId) {
-    const stmt = db.prepare(`
+    const rows = await db.getAll(`
       SELECT 
         p.*,
         o.id as o_id, 
         o.client_id as o_client_id, 
         o.status as o_status, 
-        o.total as o_total
+        o.total as o_total,
+        c.name as o_client_name,
+        o.description as o_description,
+        o.notes as o_notes
       FROM payments p
       LEFT JOIN orders o ON p.order_id = o.id
-      WHERE o.client_id = ?
+      LEFT JOIN clients c ON o.client_id = c.id
+      WHERE o.client_id = $1
       ORDER BY p.date DESC
-    `);
-
-    const rows = await stmt.all(clientId);
+    `, [clientId]);
 
     return rows.map(row => new Payment({
       id: row.id,
@@ -157,20 +177,22 @@ class PaymentsRepository {
             id: row.o_id,
             client_id: row.o_client_id,
             status: row.o_status,
-            total: row.o_total
+            total: row.o_total,
+            client_name: row.o_client_name,
+            description: row.o_description,
+            notes: row.o_notes
           }
         : null
     }));
   }
 
   async getTotalPaymentsByOrderId(orderId) {
-    const stmt = db.prepare(`
+    const result = await db.getOne(`
       SELECT COALESCE(SUM(amount), 0) as total
       FROM payments 
-      WHERE order_id = ?
-    `);
+      WHERE order_id = $1
+    `, [orderId]);
 
-    const result = await stmt.get(orderId);
     return result ? parseFloat(result.total) || 0 : 0;
   }
 }

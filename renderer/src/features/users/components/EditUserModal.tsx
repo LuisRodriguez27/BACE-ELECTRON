@@ -205,11 +205,11 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700">Estado:</span>
                 <span className={`px-2 py-1 text-xs rounded-full ${
-                  user.active === 1 
+                  user.active === true 
                     ? 'bg-green-100 text-green-800' 
                     : 'bg-red-100 text-red-800'
                 }`}>
-                  {user.active === 1 ? 'Activo' : 'Inactivo'}
+                  {user.active === true ? 'Activo' : 'Inactivo'}
                 </span>
               </div>
             </div>

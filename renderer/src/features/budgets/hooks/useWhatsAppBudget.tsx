@@ -210,12 +210,7 @@ export function useWhatsAppBudget() {
         toast.warning('El cliente no tiene número registrado. Selecciona el chat manualmente.');
       }
 
-      const api = (window as any).api;
-      if (api?.openExternal) {
-        await api.openExternal(whatsappUrl);
-      } else {
-        window.open(whatsappUrl, '_blank');
-      }
+      await window.api.openExternal(whatsappUrl);
 
     } catch (error) {
       console.error('Error al enviar por WhatsApp:', error);
@@ -229,9 +224,7 @@ export function useWhatsAppBudget() {
     }
   };
 
-  const WhatsAppDialog = () => {
-    if (!isDialogOpen) return null;
-    return (
+  const whatsappDialogElement = isDialogOpen ? (
       <div className="fixed inset-0 flex items-center justify-center z-9999" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
         <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-lg mx-4">
           <h2 className="text-xl font-bold mb-4 text-gray-900">Mensaje de WhatsApp</h2>
@@ -247,8 +240,7 @@ export function useWhatsAppBudget() {
           </div>
         </div>
       </div>
-    );
-  };
+  ) : null;
 
-  return { isSendingWhatsApp, sendWhatsApp: startWhatsAppFlow, WhatsAppDialog };
+  return { isSendingWhatsApp, sendWhatsApp: startWhatsAppFlow, whatsappDialogElement };
 }

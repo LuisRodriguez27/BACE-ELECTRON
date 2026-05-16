@@ -23,6 +23,7 @@ import { Route as DashboardOrdersRouteImport } from './routes/dashboard.orders'
 import { Route as DashboardHistoryRouteImport } from './routes/dashboard.history'
 import { Route as DashboardConfigurationsRouteImport } from './routes/dashboard.configurations'
 import { Route as DashboardClientsRouteImport } from './routes/dashboard.clients'
+import { Route as DashboardCashSessionRouteImport } from './routes/dashboard.cash-session'
 import { Route as DashboardBudgetsRouteImport } from './routes/dashboard.budgets'
 
 const LoginLazyRouteImport = createFileRoute('/login')()
@@ -122,6 +123,11 @@ const DashboardClientsRoute = DashboardClientsRouteImport.update({
   path: '/clients',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardCashSessionRoute = DashboardCashSessionRouteImport.update({
+  id: '/cash-session',
+  path: '/cash-session',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardBudgetsRoute = DashboardBudgetsRouteImport.update({
   id: '/budgets',
   path: '/budgets',
@@ -138,6 +144,7 @@ export interface FileRoutesByFullPath {
   '/error-503': typeof Error503LazyRoute
   '/login': typeof LoginLazyRoute
   '/dashboard/budgets': typeof DashboardBudgetsRoute
+  '/dashboard/cash-session': typeof DashboardCashSessionRoute
   '/dashboard/clients': typeof DashboardClientsRoute
   '/dashboard/configurations': typeof DashboardConfigurationsRoute
   '/dashboard/history': typeof DashboardHistoryRoute
@@ -158,6 +165,7 @@ export interface FileRoutesByTo {
   '/error-503': typeof Error503LazyRoute
   '/login': typeof LoginLazyRoute
   '/dashboard/budgets': typeof DashboardBudgetsRoute
+  '/dashboard/cash-session': typeof DashboardCashSessionRoute
   '/dashboard/clients': typeof DashboardClientsRoute
   '/dashboard/configurations': typeof DashboardConfigurationsRoute
   '/dashboard/history': typeof DashboardHistoryRoute
@@ -180,6 +188,7 @@ export interface FileRoutesById {
   '/error-503': typeof Error503LazyRoute
   '/login': typeof LoginLazyRoute
   '/dashboard/budgets': typeof DashboardBudgetsRoute
+  '/dashboard/cash-session': typeof DashboardCashSessionRoute
   '/dashboard/clients': typeof DashboardClientsRoute
   '/dashboard/configurations': typeof DashboardConfigurationsRoute
   '/dashboard/history': typeof DashboardHistoryRoute
@@ -203,6 +212,7 @@ export interface FileRouteTypes {
     | '/error-503'
     | '/login'
     | '/dashboard/budgets'
+    | '/dashboard/cash-session'
     | '/dashboard/clients'
     | '/dashboard/configurations'
     | '/dashboard/history'
@@ -223,6 +233,7 @@ export interface FileRouteTypes {
     | '/error-503'
     | '/login'
     | '/dashboard/budgets'
+    | '/dashboard/cash-session'
     | '/dashboard/clients'
     | '/dashboard/configurations'
     | '/dashboard/history'
@@ -244,6 +255,7 @@ export interface FileRouteTypes {
     | '/error-503'
     | '/login'
     | '/dashboard/budgets'
+    | '/dashboard/cash-session'
     | '/dashboard/clients'
     | '/dashboard/configurations'
     | '/dashboard/history'
@@ -395,6 +407,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardClientsRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/cash-session': {
+      id: '/dashboard/cash-session'
+      path: '/cash-session'
+      fullPath: '/dashboard/cash-session'
+      preLoaderRoute: typeof DashboardCashSessionRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/budgets': {
       id: '/dashboard/budgets'
       path: '/budgets'
@@ -407,6 +426,7 @@ declare module '@tanstack/react-router' {
 
 interface DashboardRouteChildren {
   DashboardBudgetsRoute: typeof DashboardBudgetsRoute
+  DashboardCashSessionRoute: typeof DashboardCashSessionRoute
   DashboardClientsRoute: typeof DashboardClientsRoute
   DashboardConfigurationsRoute: typeof DashboardConfigurationsRoute
   DashboardHistoryRoute: typeof DashboardHistoryRoute
@@ -421,6 +441,7 @@ interface DashboardRouteChildren {
 
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardBudgetsRoute: DashboardBudgetsRoute,
+  DashboardCashSessionRoute: DashboardCashSessionRoute,
   DashboardClientsRoute: DashboardClientsRoute,
   DashboardConfigurationsRoute: DashboardConfigurationsRoute,
   DashboardHistoryRoute: DashboardHistoryRoute,
