@@ -192,6 +192,39 @@ const StatsPage: React.FC = () => {
 
   const totalSales = (data?.salesOverTime || []).reduce((acc: number, item: any) => acc + item.total, 0)
 
+  const CustomXAxisTick = (props: any) => {
+    const { x, y, payload } = props;
+    const item = (data?.salesOverTime || []).find((d: any) => d.sale_date === payload.value);
+    const total = item ? item.total : 0;
+    
+    let dateStr = payload.value;
+    try {
+      if (payload.value) {
+        dateStr = format(new Date(payload.value + 'T12:00:00'), 'dd MMM', { locale: es });
+      }
+    } catch (e) {}
+
+    return (
+      <g transform={`translate(${x},${y})`}>
+        <text x={0} y={0} dy={16} textAnchor="middle" fill="#666" fontSize={12}>
+          {dateStr}
+        </text>
+        <text 
+          x={0} 
+          y={28} 
+          dx={4}
+          textAnchor="end"
+          fill="#000000" 
+          transform="rotate(-90, 0, 28)"
+          fontSize={12} 
+          fontWeight="bold"
+        >
+          {formatCurrency(total)}
+        </text>
+      </g>
+    );
+  };
+
   const getPeriodLabel = () => {
     if (period === 'custom') {
       if (!selectedDates || selectedDates.length === 0) return 'Sin días seleccionados';
@@ -548,19 +581,11 @@ const StatsPage: React.FC = () => {
           <CardContent>
             <div id="sales-over-time-chart" className="h-100">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data?.salesOverTime || []} margin={{ top: 25, right: 10, left: 10, bottom: 5 }}>
+                <BarChart data={data?.salesOverTime || []} margin={{ top: 25, right: 10, left: 10, bottom: 120 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis
                     dataKey="sale_date"
-                    tickFormatter={(value) => {
-                      if (!value) return '';
-                      try {
-                        // Append T12:00:00 to avoid UTC timezone offset shifting the date back one day
-                        return format(new Date(value + 'T12:00:00'), 'dd MMM', { locale: es })
-                      } catch {
-                        return value
-                      }
-                    }}
+                    tick={<CustomXAxisTick />}
                   />
                   <YAxis />
                   <Tooltip
@@ -575,9 +600,7 @@ const StatsPage: React.FC = () => {
                       }
                     }}
                   />
-                  <Bar dataKey="total" fill="#2563eb" name="Ventas">
-                    <LabelList dataKey="total" position="top" formatter={(value: any) => formatCurrency(value)} style={{ fill: '#1e3a8a', fontSize: 11, fontWeight: 'bold' }} />
-                  </Bar>
+                  <Bar dataKey="total" fill="#2563eb" name="Ventas" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -594,10 +617,16 @@ const StatsPage: React.FC = () => {
               <CardContent>
                 <div id="top-products-revenue-chart" className="h-75">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={data?.salesByProduct?.slice(0, 10) || []} layout="vertical" margin={{ top: 5, right: 80, left: 50, bottom: 5 }}>
+                    <BarChart data={data?.salesByProduct?.slice(0, 10) || []} layout="vertical" margin={{ top: 5, right: 80, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis type="number" />
-                      <YAxis dataKey="name" type="category" width={150} fontSize={12} />
+                      <YAxis 
+                        dataKey="name" 
+                        type="category" 
+                        width={280} 
+                        fontSize={12} 
+                        tickFormatter={(value) => typeof value === 'string' && value.length > 32 ? `${value.substring(0, 32)}...` : value}
+                      />
                       <Tooltip formatter={(value: any) => formatCurrency(value)} />
                       <Bar dataKey="total" fill="#16a34a" name="Ingresos">
                         <LabelList dataKey="total" position="right" formatter={(value: any) => formatCurrency(value)} style={{ fill: '#14532d', fontSize: 11, fontWeight: 'bold' }} />
@@ -615,10 +644,16 @@ const StatsPage: React.FC = () => {
               <CardContent>
                 <div id="top-products-quantity-chart" className="h-75">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={[...(data?.salesByProduct || [])].sort((a, b) => b.quantity - a.quantity).slice(0, 10)} layout="vertical" margin={{ top: 5, right: 40, left: 50, bottom: 5 }}>
+                    <BarChart data={[...(data?.salesByProduct || [])].sort((a, b) => b.quantity - a.quantity).slice(0, 10)} layout="vertical" margin={{ top: 5, right: 40, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis type="number" />
-                      <YAxis dataKey="name" type="category" width={150} fontSize={12} />
+                      <YAxis 
+                        dataKey="name" 
+                        type="category" 
+                        width={280} 
+                        fontSize={12} 
+                        tickFormatter={(value) => typeof value === 'string' && value.length > 32 ? `${value.substring(0, 32)}...` : value}
+                      />
                       <Tooltip formatter={(value: any) => [value, 'Unidades']} />
                       <Bar dataKey="quantity" fill="#f59e0b" name="Cantidad">
                         <LabelList dataKey="quantity" position="right" style={{ fill: '#78350f', fontSize: 11, fontWeight: 'bold' }} />
