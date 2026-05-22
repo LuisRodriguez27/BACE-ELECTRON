@@ -22,7 +22,7 @@ const PaymentsPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
 
   // ─── Filtros ───────────────────────────────────────────────────────────────
-  const [selectedOrderId, setSelectedOrderId] = useState<number | 'free' | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<number | 'free' | 'simple' | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchType, setSearchType] = useState<'payment_id' | 'order_id' | 'amount' | 'method' | 'info'>('payment_id');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -63,7 +63,7 @@ const PaymentsPage: React.FC = () => {
 
   // ─── Helper: construye filtros según estado actual ─────────────────────────
   const buildFilters = useCallback((): PaymentFilters => ({
-    freeOnly: selectedOrderId === 'free',
+    orderFilter: selectedOrderId,
     ...(debouncedSearch.trim()
       ? { searchType, searchTerm: debouncedSearch.trim() }
       : {}),
@@ -118,7 +118,11 @@ const PaymentsPage: React.FC = () => {
 
     try {
       const result = await PaymentsApiService.getPaginated(nextPage, PAGE_LIMIT, buildFilters());
-      setPayments(prev => [...prev, ...result.data]);
+      setPayments(prev => {
+        const existingIds = new Set(prev.map(p => `${p.is_simple_order ? 'sop' : 'p'}-${p.id}`));
+        const newUnique = result.data.filter(p => !existingIds.has(`${p.is_simple_order ? 'sop' : 'p'}-${p.id}`));
+        return [...prev, ...newUnique];
+      });
       setHasMore(result.pagination.hasNext);
       setNextPage(p => p + 1);
     } catch {
@@ -158,6 +162,7 @@ const PaymentsPage: React.FC = () => {
     setDebouncedSearch('');
     if (value === '') setSelectedOrderId(null);
     else if (value === 'free') setSelectedOrderId('free');
+    else if (value === 'simple') setSelectedOrderId('simple');
     else setSelectedOrderId(Number(value));
   };
 
@@ -279,12 +284,13 @@ const PaymentsPage: React.FC = () => {
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-700 mb-2">Filtrar por Orden:</label>
             <select
-              value={selectedOrderId === null ? '' : selectedOrderId === 'free' ? 'free' : String(selectedOrderId)}
+              value={selectedOrderId === null ? '' : selectedOrderId === 'free' ? 'free' : selectedOrderId === 'simple' ? 'simple' : String(selectedOrderId)}
               onChange={(e) => handleOrderChange(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">Todos los pagos</option>
               <option value="free">Pagos libres (sin orden)</option>
+              <option value="simple">Órdenes rápidas</option>
               {orders.map((order) => (
                 <option key={order.id} value={order.id}>
                   Orden #{order.id} — {order.client?.name} — ${order.total.toFixed(2)}
@@ -380,6 +386,7 @@ const PaymentsPage: React.FC = () => {
           <h2 className="text-lg font-semibold text-gray-900">
             {selectedOrderId === null && 'Todos los pagos'}
             {selectedOrderId === 'free' && 'Pagos libres (sin orden)'}
+            {selectedOrderId === 'simple' && 'Pagos de Órdenes rápidas'}
             {typeof selectedOrderId === 'number' && `Pagos de la Orden #${selectedOrderId}`}
             {' '}
             <span className="text-gray-400 font-normal text-sm">({totalCount})</span>
@@ -394,9 +401,11 @@ const PaymentsPage: React.FC = () => {
               <p className="text-gray-500 mb-4">
                 {selectedOrderId === 'free'
                   ? 'No hay pagos libres registrados'
-                  : typeof selectedOrderId === 'number'
-                    ? 'Esta orden aún no tiene pagos registrados'
-                    : 'No hay pagos que coincidan con los filtros'}
+                  : selectedOrderId === 'simple'
+                    ? 'No hay pagos de órdenes rápidas registrados'
+                    : typeof selectedOrderId === 'number'
+                      ? 'Esta orden aún no tiene pagos registrados'
+                      : 'No hay pagos que coincidan con los filtros'}
               </p>
               <Button className="flex items-center gap-2 mx-auto" onClick={openCreateModal}>
                 <Plus size={16} />
@@ -406,14 +415,16 @@ const PaymentsPage: React.FC = () => {
           ) : (
             <div className="space-y-4">
               {payments.map((payment) => (
-                <div key={payment.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                <div key={payment.is_simple_order ? `sop-${payment.id}` : `p-${payment.id}`} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                         <DollarSign className="h-6 w-6 text-green-600" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-gray-900">Pago #{payment.id}</h3>
+                        <h3 className="font-semibold text-gray-900">
+                          {payment.is_simple_order ? `Pago (Rápida) #${payment.id}` : `Pago #${payment.id}`}
+                        </h3>
                         <div className="flex flex-wrap items-center gap-4 mt-1 text-sm text-gray-600">
                           <div className="flex items-center gap-1">
                             <Calendar size={14} />
@@ -425,13 +436,17 @@ const PaymentsPage: React.FC = () => {
                               ${payment.amount.toFixed(2)} MXN
                             </span>
                           </div>
-                          {payment.order_id && (
+                          {payment.is_simple_order ? (
+                            <div className="flex items-center gap-1">
+                              <Receipt size={14} />
+                              <span>Orden Rápida #{payment.simple_order_id}</span>
+                            </div>
+                          ) : payment.order_id ? (
                             <div className="flex items-center gap-1">
                               <Receipt size={14} />
                               <span>Orden #{payment.order_id}</span>
                             </div>
-                          )}
-                          {!payment.order_id && (
+                          ) : (
                             <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
                               Pago libre
                             </span>
@@ -506,11 +521,13 @@ const PaymentsPage: React.FC = () => {
         onPaymentUpdated={handlePaymentUpdated}
         onPaymentDeleted={handlePaymentDeleted}
         clientName={
-          selectedPayment?.order_id
-            ? orders.find(o => o.id === selectedPayment.order_id)?.client?.name ?? 'Sin cliente'
-            : 'Pago libre'
+          selectedPayment?.is_simple_order
+            ? selectedPayment.order?.client_name || 'Orden Rápida'
+            : selectedPayment?.order_id
+              ? orders.find(o => o.id === selectedPayment.order_id)?.client?.name ?? 'Sin cliente'
+              : 'Pago libre'
         }
-        isSimpleOrder={false}
+        isSimpleOrder={selectedPayment?.is_simple_order || false}
       />
 
       <PaymentsLogbookModal

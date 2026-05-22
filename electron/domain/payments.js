@@ -1,12 +1,14 @@
 class Payment {
-  constructor({ 
-    id, 
-    order_id, 
-    amount, 
-    date, 
+  constructor({
+    id,
+    order_id,
+    amount,
+    date,
     descripcion,
     info,
-    order = null 
+    order = null,
+    is_simple_order = false,
+    simple_order_id = null
   }) {
     this.id = id;
     this.order_id = order_id || null;
@@ -15,6 +17,8 @@ class Payment {
     this.descripcion = descripcion || null;
     this.info = info || null;
     this.order = order;
+    this.is_simple_order = is_simple_order;
+    this.simple_order_id = simple_order_id || null;
   }
 
   // Métodos de utilidad para el dominio
@@ -85,7 +89,7 @@ class Payment {
   // Validar consistencia del pago
   isValid() {
     return (
-      this.isValidAmount() && 
+      this.isValidAmount() &&
       this.isValidDate()
     );
   }
@@ -93,7 +97,7 @@ class Payment {
   // Para búsquedas y filtros
   matchesSearchTerm(searchTerm) {
     if (!searchTerm) return true;
-    
+
     const term = searchTerm.toLowerCase();
     return (
       (this.descripcion && this.descripcion.toLowerCase().includes(term)) ||
@@ -105,6 +109,9 @@ class Payment {
 
   // Información del display
   getDisplayName() {
+    if (this.is_simple_order) {
+      return `Pago #${this.id} - Orden Rápida #${this.simple_order_id}`;
+    }
     const orderInfo = this.hasOrder() ? ` - Orden #${this.order.id}` : ` - Orden #${this.order_id}`;
     return `Pago #${this.id}${orderInfo}`;
   }
@@ -147,11 +154,11 @@ class Payment {
   // Estado del pago basado en el monto
   getPaymentStatus() {
     if (!this.hasOrder()) return 'unknown';
-    
+
     if (this.isOverPayment()) return 'overpaid';
     if (this.isFullPayment()) return 'full';
     if (this.isPartialPayment()) return 'partial';
-    
+
     return 'unknown';
   }
 
@@ -192,7 +199,9 @@ class Payment {
       paymentStatus: this.getPaymentStatus(),
       paymentStatusLabel: this.getPaymentStatusLabel(),
       canEdit: this.canEdit(),
-      canDelete: this.canDelete()
+      canDelete: this.canDelete(),
+      is_simple_order: this.is_simple_order,
+      simple_order_id: this.simple_order_id
     };
   }
 }

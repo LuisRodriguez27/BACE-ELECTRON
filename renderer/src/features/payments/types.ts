@@ -23,6 +23,8 @@ export interface Payment {
   date?: string; // ISO date string
   descripcion?: string;
   info?: string | null;
+  is_simple_order?: boolean;
+  simple_order_id?: number | null;
   // Para joins con orders
   order?: {
     id: number;
@@ -37,6 +39,7 @@ export interface Payment {
 
 export interface PaymentFilters {
   freeOnly?: boolean;
+  orderFilter?: number | 'free' | 'simple' | null;
   searchType?: 'payment_id' | 'order_id' | 'amount' | 'method' | 'info';
   searchTerm?: string;
 }
