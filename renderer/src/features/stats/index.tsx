@@ -216,6 +216,7 @@ const StatsPage: React.FC = () => {
   const handlePrint = () => {
     const totalSalesText = formatCurrency(totalSales)
     const periodText = getPeriodLabel();
+    const paymentMethodText = paymentMethod === 'all' ? 'Todos los métodos' : paymentMethod;
 
     const getChartSvg = (id: string, title: string) => {
       const container = document.getElementById(id);
@@ -294,6 +295,9 @@ const StatsPage: React.FC = () => {
                 <div class="summary-label">Ventas Totales del Periodo</div>
                 <span class="summary-value">${totalSalesText}</span>
                 <span class="summary-period">${periodText}</span>
+                <div style="margin-top: 10px; font-size: 14px; color: #4b5563; font-weight: 500;">
+                  Método de pago: <span style="color: #2563eb;">${paymentMethodText}</span>
+                </div>
             </div>
             
             ${timelineChart}
