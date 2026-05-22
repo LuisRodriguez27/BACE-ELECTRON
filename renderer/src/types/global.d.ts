@@ -4,7 +4,7 @@ import { Permission, CreatePermissionForm, EditPermissionForm } from "../feature
 import { Product, CreateProductForm, EditProductForm, SimilarNameResult } from "../features/products/types";
 import { ProductTemplate, CreateProductTemplateForm, EditProductTemplateForm } from "../features/productTemplates/types";
 import { Order, CreateOrderForm, EditOrderForm, OrderProduct, CreateOrderProductForm, EditOrderProductForm } from "../features/orders/types";
-import { Payment, CreatePaymentForm, EditPaymentForm } from "../features/payments/types";
+import { Payment, CreatePaymentForm, EditPaymentForm, PaymentFilters, PaginatedPayments } from "../features/payments/types";
 import type { LoginCredentials, LoginResponse } from "@/features/auth/types";
 import type { Budget, BudgetProduct, CreateBudgetForm } from "@/features/budgets";
 import {
@@ -107,6 +107,7 @@ declare global {
 
       // Pagos
       getAllPayments: () => Promise<Payment[]>;
+      getPaymentsPaginated: (page: number, limit: number, filters?: PaymentFilters) => Promise<PaginatedPayments>;
       getPaymentsByOrderId: (orderId: number) => Promise<Payment[]>;
       getPaymentById: (id: number) => Promise<Payment>;
       createPayment: (data: CreatePaymentForm) => Promise<Payment>;

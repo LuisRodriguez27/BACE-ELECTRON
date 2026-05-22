@@ -1,11 +1,17 @@
-import type { 
-  Payment, 
-  CreatePaymentForm
+import type {
+  Payment,
+  CreatePaymentForm,
+  PaymentFilters,
+  PaginatedPayments,
 } from "./types";
 
 export const PaymentsApiService = {
   getAll: async (): Promise<Payment[]> => {
     return window.api.getAllPayments();
+  },
+
+  getPaginated: async (page: number, limit: number, filters?: PaymentFilters): Promise<PaginatedPayments> => {
+    return window.api.getPaymentsPaginated(page, limit, filters);
   },
 
   findByOrderId: async (orderId: number): Promise<Payment[]> => {

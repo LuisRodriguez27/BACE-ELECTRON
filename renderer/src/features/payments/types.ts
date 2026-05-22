@@ -23,6 +23,8 @@ export interface Payment {
   date?: string; // ISO date string
   descripcion?: string;
   info?: string | null;
+  is_simple_order?: boolean;
+  simple_order_id?: number | null;
   // Para joins con orders
   order?: {
     id: number;
@@ -33,4 +35,25 @@ export interface Payment {
     description?: string | null;
     notes?: string | null;
   } | null;
+}
+
+export interface PaymentFilters {
+  freeOnly?: boolean;
+  orderFilter?: number | 'free' | 'simple' | null;
+  searchType?: 'payment_id' | 'order_id' | 'amount' | 'method' | 'info';
+  searchTerm?: string;
+}
+
+export interface PaymentPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
+export interface PaginatedPayments {
+  data: Payment[];
+  pagination: PaymentPagination;
 }

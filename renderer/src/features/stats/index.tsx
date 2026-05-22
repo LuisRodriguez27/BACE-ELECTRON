@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/index'
 import { Button } from '@/components/ui/button'
 import { Printer, X, Plus } from 'lucide-react'
 import { StatsService } from './StatsService'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from 'recharts'
 import { format, startOfWeek, endOfWeek, setWeek, getWeek } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -192,6 +192,39 @@ const StatsPage: React.FC = () => {
 
   const totalSales = (data?.salesOverTime || []).reduce((acc: number, item: any) => acc + item.total, 0)
 
+  const CustomXAxisTick = (props: any) => {
+    const { x, y, payload } = props;
+    const item = (data?.salesOverTime || []).find((d: any) => d.sale_date === payload.value);
+    const total = item ? item.total : 0;
+    
+    let dateStr = payload.value;
+    try {
+      if (payload.value) {
+        dateStr = format(new Date(payload.value + 'T12:00:00'), 'dd MMM', { locale: es });
+      }
+    } catch (e) {}
+
+    return (
+      <g transform={`translate(${x},${y})`}>
+        <text x={0} y={0} dy={16} textAnchor="middle" fill="#666" fontSize={12}>
+          {dateStr}
+        </text>
+        <text 
+          x={0} 
+          y={28} 
+          dx={4}
+          textAnchor="end"
+          fill="#000000" 
+          transform="rotate(-90, 0, 28)"
+          fontSize={12} 
+          fontWeight="bold"
+        >
+          {formatCurrency(total)}
+        </text>
+      </g>
+    );
+  };
+
   const getPeriodLabel = () => {
     if (period === 'custom') {
       if (!selectedDates || selectedDates.length === 0) return 'Sin días seleccionados';
@@ -216,6 +249,7 @@ const StatsPage: React.FC = () => {
   const handlePrint = () => {
     const totalSalesText = formatCurrency(totalSales)
     const periodText = getPeriodLabel();
+    const paymentMethodText = paymentMethod === 'all' ? 'Todos los métodos' : paymentMethod;
 
     const getChartSvg = (id: string, title: string) => {
       const container = document.getElementById(id);
@@ -252,7 +286,7 @@ const StatsPage: React.FC = () => {
         <head>
           <title>Reporte de Ventas</title>
           <style>
-            @page { size: letter portrait; margin: 1.5cm; }
+            @page { size: letter landscape; margin: 1.5cm; }
             body { font-family: 'Arial', sans-serif; -webkit-print-color-adjust: exact; color: #1a1a1a; max-width: 100%; }
             .header { text-align: center; margin-bottom: 2rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 1rem; }
             h1 { color: #1e40af; margin: 0; font-size: 24px; text-transform: uppercase; }
@@ -274,10 +308,9 @@ const StatsPage: React.FC = () => {
             .chart-container { margin-bottom: 2rem; page-break-inside: avoid; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; }
             .chart-container h3 { margin: 0 0 1rem 0; color: #374151; font-size: 16px; border-left: 4px solid #3b82f6; padding-left: 10px; }
             .chart-wrapper { display: flex; justify-content: center; overflow: hidden; }
-            .chart-wrapper svg { width: 100% !important; height: auto !important; max-height: 250px; }
+            .chart-wrapper svg { width: 100% !important; height: auto !important; max-height: 550px; }
             
-            .row-charts { display: flex; gap: 15px; margin-bottom: 2rem; page-break-inside: avoid; }
-            .row-charts .chart-container { flex: 1; margin-bottom: 0; width: 50%; }
+            .page-break { page-break-before: always; }
 
             @media print {
                body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -294,14 +327,16 @@ const StatsPage: React.FC = () => {
                 <div class="summary-label">Ventas Totales del Periodo</div>
                 <span class="summary-value">${totalSalesText}</span>
                 <span class="summary-period">${periodText}</span>
+                <div style="margin-top: 10px; font-size: 14px; color: #4b5563; font-weight: 500;">
+                  Método de pago: <span style="color: #2563eb;">${paymentMethodText}</span>
+                </div>
             </div>
             
             ${timelineChart}
             
-            <div class="row-charts">
-                ${revenueChart}
-                ${quantityChart}
-            </div>
+            ${revenueChart ? `<div class="page-break"></div>${revenueChart}` : ''}
+            
+            ${quantityChart ? `<div class="page-break"></div>${quantityChart}` : ''}
         </body>
       </html>
     `);
@@ -546,19 +581,11 @@ const StatsPage: React.FC = () => {
           <CardContent>
             <div id="sales-over-time-chart" className="h-100">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data?.salesOverTime || []}>
+                <BarChart data={data?.salesOverTime || []} margin={{ top: 25, right: 10, left: 10, bottom: 120 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis
                     dataKey="sale_date"
-                    tickFormatter={(value) => {
-                      if (!value) return '';
-                      try {
-                        // Append T12:00:00 to avoid UTC timezone offset shifting the date back one day
-                        return format(new Date(value + 'T12:00:00'), 'dd MMM', { locale: es })
-                      } catch {
-                        return value
-                      }
-                    }}
+                    tick={<CustomXAxisTick />}
                   />
                   <YAxis />
                   <Tooltip
@@ -590,12 +617,20 @@ const StatsPage: React.FC = () => {
               <CardContent>
                 <div id="top-products-revenue-chart" className="h-75">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={data?.salesByProduct?.slice(0, 10) || []} layout="vertical" margin={{ left: 50 }}>
+                    <BarChart data={data?.salesByProduct?.slice(0, 10) || []} layout="vertical" margin={{ top: 5, right: 80, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis type="number" />
-                      <YAxis dataKey="name" type="category" width={150} fontSize={12} />
+                      <YAxis 
+                        dataKey="name" 
+                        type="category" 
+                        width={280} 
+                        fontSize={12} 
+                        tickFormatter={(value) => typeof value === 'string' && value.length > 32 ? `${value.substring(0, 32)}...` : value}
+                      />
                       <Tooltip formatter={(value: any) => formatCurrency(value)} />
-                      <Bar dataKey="total" fill="#16a34a" name="Ingresos" />
+                      <Bar dataKey="total" fill="#16a34a" name="Ingresos">
+                        <LabelList dataKey="total" position="right" formatter={(value: any) => formatCurrency(value)} style={{ fill: '#14532d', fontSize: 11, fontWeight: 'bold' }} />
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -609,12 +644,20 @@ const StatsPage: React.FC = () => {
               <CardContent>
                 <div id="top-products-quantity-chart" className="h-75">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={[...(data?.salesByProduct || [])].sort((a, b) => b.quantity - a.quantity).slice(0, 10)} layout="vertical" margin={{ left: 50 }}>
+                    <BarChart data={[...(data?.salesByProduct || [])].sort((a, b) => b.quantity - a.quantity).slice(0, 10)} layout="vertical" margin={{ top: 5, right: 40, left: 0, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis type="number" />
-                      <YAxis dataKey="name" type="category" width={150} fontSize={12} />
+                      <YAxis 
+                        dataKey="name" 
+                        type="category" 
+                        width={280} 
+                        fontSize={12} 
+                        tickFormatter={(value) => typeof value === 'string' && value.length > 32 ? `${value.substring(0, 32)}...` : value}
+                      />
                       <Tooltip formatter={(value: any) => [value, 'Unidades']} />
-                      <Bar dataKey="quantity" fill="#f59e0b" name="Cantidad" />
+                      <Bar dataKey="quantity" fill="#f59e0b" name="Cantidad">
+                        <LabelList dataKey="quantity" position="right" style={{ fill: '#78350f', fontSize: 11, fontWeight: 'bold' }} />
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

@@ -262,12 +262,14 @@ ipcMain.handle('orders:getProducts', async (event, orderId) => await orderServic
 
 // Manejo de eventos IPC para pagos
 ipcMain.handle('payments:getAll', async () => await paymentService.getAllPayments());
+ipcMain.handle('payments:getPaginated', async (event, page, limit, filters) => await paymentService.getPaymentsPaginated(page, limit, filters));
 ipcMain.handle('payments:getPaymentsByOrderId', async (event, orderId) => await paymentService.getPaymentsByOrderId(orderId));
 ipcMain.handle('payments:getById', async (event, id) => await paymentService.getPaymentById(id));
 ipcMain.handle('payments:create', async (event, data) => await paymentService.createPayment(data));
 ipcMain.handle('payments:update', async (event, id, data) => await paymentService.updatePayment(id, data));
 ipcMain.handle('payments:delete', async (event, id) => await paymentService.deletePayment(id));
-ipcMain.handle('payments:getByClientId', async (event, clientId) => await paymentService.getPaymentsByClientId(clientId));
+ipcMain.handle('payments:getByClientId', async (event, clientId)=> await paymentService.getPaymentsByClientId(clientId));
+
 
 // Manejo de eventos IPC para presupuestos
 ipcMain.handle('budgets:getAll', async () => await budgetService.getAllBudgets());

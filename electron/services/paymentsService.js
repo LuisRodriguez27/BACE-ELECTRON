@@ -15,6 +15,23 @@ class PaymentsService {
     }
   }
 
+  async getPaymentsPaginated(page = 1, limit = 20, filters = {}) {
+    try {
+      if (page < 1) page = 1;
+      if (limit < 1 || limit > 500) limit = 20;
+
+      const result = await paymentsRepository.findPaginated(page, limit, filters);
+
+      return {
+        data: result.data.map(payment => payment.toPlainObject()),
+        pagination: result.pagination,
+      };
+    } catch (error) {
+      console.error('Error al obtener pagos paginados:', error);
+      throw new Error('Error al obtener pagos');
+    }
+  }
+
   async getPaymentsByOrderId(orderId) {
     try {
       if (!orderId || isNaN(orderId)) {
