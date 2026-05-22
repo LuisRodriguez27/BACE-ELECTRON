@@ -253,7 +253,7 @@ const StatsPage: React.FC = () => {
         <head>
           <title>Reporte de Ventas</title>
           <style>
-            @page { size: letter portrait; margin: 1.5cm; }
+            @page { size: letter landscape; margin: 1.5cm; }
             body { font-family: 'Arial', sans-serif; -webkit-print-color-adjust: exact; color: #1a1a1a; max-width: 100%; }
             .header { text-align: center; margin-bottom: 2rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 1rem; }
             h1 { color: #1e40af; margin: 0; font-size: 24px; text-transform: uppercase; }
@@ -275,10 +275,9 @@ const StatsPage: React.FC = () => {
             .chart-container { margin-bottom: 2rem; page-break-inside: avoid; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; }
             .chart-container h3 { margin: 0 0 1rem 0; color: #374151; font-size: 16px; border-left: 4px solid #3b82f6; padding-left: 10px; }
             .chart-wrapper { display: flex; justify-content: center; overflow: hidden; }
-            .chart-wrapper svg { width: 100% !important; height: auto !important; max-height: 250px; }
+            .chart-wrapper svg { width: 100% !important; height: auto !important; max-height: 550px; }
             
-            .row-charts { display: flex; gap: 15px; margin-bottom: 2rem; page-break-inside: avoid; }
-            .row-charts .chart-container { flex: 1; margin-bottom: 0; width: 50%; }
+            .page-break { page-break-before: always; }
 
             @media print {
                body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -302,10 +301,9 @@ const StatsPage: React.FC = () => {
             
             ${timelineChart}
             
-            <div class="row-charts">
-                ${revenueChart}
-                ${quantityChart}
-            </div>
+            ${revenueChart ? `<div class="page-break"></div>${revenueChart}` : ''}
+            
+            ${quantityChart ? `<div class="page-break"></div>${quantityChart}` : ''}
         </body>
       </html>
     `);
