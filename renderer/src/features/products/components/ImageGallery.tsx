@@ -119,7 +119,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
         />
       </div>
 
-      <div className="flex-1 min-h-62.5 relative bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 overflow-hidden flex flex-col">
+      <div className="flex-1 min-h-[15.625rem] relative bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 overflow-hidden flex flex-col">
         {currentImages.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-gray-400">
             <ImageIcon size={48} className="mb-2 opacity-50" />
@@ -135,7 +135,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                     <img
                       src={`imagenes://${imgPath}`}
                       alt={`Producto ${index + 1}`}
-                      className="w-full h-full object-contain max-h-75"
+                      className="w-full h-full object-contain max-h-[18.75rem]"
                     />
                     <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
                       <Button

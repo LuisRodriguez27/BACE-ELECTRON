@@ -724,7 +724,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
                     {showClientDropdown && (
                       <div 
                         id="client-dropdown"
-                        className="absolute z-9999 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto"
+                        className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto"
                       >
                         {getFilteredClients().length > 0 ? (
                           getFilteredClients().map((client) => (
@@ -1029,7 +1029,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
                             {showDropdowns[index] && dropdownPositions[index] && createPortal(
                               <div 
                                 id={`item-dropdown-${index}`}
-                                className="fixed z-9999 bg-white border border-gray-300 rounded-md shadow-lg overflow-y-auto"
+                                className="fixed z-[9999] bg-white border border-gray-300 rounded-md shadow-lg overflow-y-auto"
                                 style={{
                                   top: `${dropdownPositions[index].top}px`,
                                   left: `${dropdownPositions[index].left}px`,

@@ -313,19 +313,19 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
             >
               {hasPreferentialPrice && (
                 <div
-                  className="absolute bottom-16 right-5 w-22 bg-red-600 text-white font-bold text-center p-1.5 select-none"
+                  className="absolute bottom-16 right-5 w-[5.5rem] bg-red-600 text-white font-bold text-center p-1.5 select-none"
                   style={{ zIndex: 10, fontSize: '0.55rem', lineHeight: '1.2' }}
                 >
                   USTED HA ADQUIRIDO UN PRECIO ESPECIAL
                 </div>
               )}
 
-              <div className='absolute top-13 right-28 text-2xl font-bold text-red-600'>
+              <div className='absolute top-[3.25rem] right-28 text-2xl font-bold text-red-600'>
                 {budgetData.id}
               </div>
 
               {/* Cliente y Teléfono */}
-              <div className='absolute top-30 left-25 text-l font-bold text-black'>
+              <div className='absolute top-[7.5rem] left-[6.25rem] text-l font-bold text-black'>
                 {/* fixed columns to prevent shifting */}
                 <div style={{ display: 'grid', gridTemplateColumns: '17rem 8rem 1rem', columnGap: '5rem', alignItems: 'center' }}>
                   {/* Cliente */}
@@ -384,7 +384,7 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
               </div>
 
               {/* Total */}
-              <div className="absolute bottom-5 right-15 min-w-32 flex flex-col items-center justify-center text-red-600 font-bold border-2 border-red-600 bg-white/50 px-2 py-1">
+              <div className="absolute bottom-5 right-[3.75rem] min-w-32 flex flex-col items-center justify-center text-red-600 font-bold border-2 border-red-600 bg-white/50 px-2 py-1">
                 <div className="text-sm leading-tight">TOTAL</div>
                 <div className="text-xl leading-none">
                   ${budgetData.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

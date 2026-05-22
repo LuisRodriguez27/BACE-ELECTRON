@@ -319,7 +319,7 @@ const SimpleOrderPrintPreviewModal: React.FC<SimpleOrderPrintPreviewModalProps> 
                     }}
                   >
                     {/* Fechas */}
-                    <div className="absolute top-18 right-1 text-sm font-bold text-black">
+                    <div className="absolute top-[4.5rem] right-1 text-sm font-bold text-black">
                       <div className="flex items-start" style={{ minWidth: '255px' }}>
                         <div className="text-right" style={{ width: '110px' }}>
                           <div className="flex gap-4">
@@ -331,11 +331,11 @@ const SimpleOrderPrintPreviewModal: React.FC<SimpleOrderPrintPreviewModalProps> 
                       </div>
                     </div>
 
-                    <div className='absolute top-32 right-55'>
+                    <div className='absolute top-32 right-[13.75rem]'>
                       {getHours(orderData.date)}
                     </div>
 
-                    <div className='absolute top-32 left-25 text-xl font-bold text-black'>
+                    <div className='absolute top-32 left-[6.25rem] text-xl font-bold text-black'>
                       <div className="grid grid-cols-2 gap-20">
                         {/* Cliente */}
                         <div className="truncate flex items-center gap-2" style={{ fontSize: 'calc(1em - 2px)' }}>
@@ -345,7 +345,7 @@ const SimpleOrderPrintPreviewModal: React.FC<SimpleOrderPrintPreviewModalProps> 
                     </div>
 
                     {/* Productos */}
-                    <div className="absolute top-38 left-8 right-10 text-black">
+                    <div className="absolute top-[9.5rem] left-8 right-10 text-black">
                       <div className="grid grid-cols-12 gap-2 text-lg font-semibold mb-2 border-b border-gray-400 pb-1">
                         <div className="col-span-1 text-center">Cant.</div>
                         <div className="col-span-7 text-left">Producto</div>
@@ -373,36 +373,36 @@ const SimpleOrderPrintPreviewModal: React.FC<SimpleOrderPrintPreviewModalProps> 
                       ))}
                     </div>
 
-                    <div className="absolute bottom-13 right-20 text-xl font-bold text-red-600">
+                    <div className="absolute bottom-[3.25rem] right-20 text-xl font-bold text-red-600">
                       <div className='text-center'>
                         No. R-{orderData.id}
                       </div>
                     </div>
 
-                    <div className='absolute bottom-29 left-50'>
+                    <div className='absolute bottom-[7.25rem] left-[12.5rem]'>
                       <div className='text-blue-900 font-bold'>
                         GRACIAS POR SU COMPRA. LE ATENDIÓ {orderData.user?.username || ''}
                       </div>
                     </div>
 
-                    <div className='absolute bottom-25 left-70'>
+                    <div className='absolute bottom-[6.25rem] left-[17.5rem]'>
                       <div className=''>
                         {paymentsData.length > 0 ? `Pago realizado con: ${paymentsData[0]?.descripcion || ''}` : ''}
                       </div>
                     </div>
 
                     {/* Pagos */}
-                    <div className="absolute bottom-14 left-43 w-32 h-8 flex items-center justify-center text-green-700 font-bold text-xl">
+                    <div className="absolute bottom-14 left-[10.75rem] w-32 h-8 flex items-center justify-center text-green-700 font-bold text-xl">
                       {paymentsData.length > 0 ? `$${totalPagos.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}
                     </div>
 
                     {/* Saldo */}
-                    <div className="absolute bottom-14 left-79 w-32 h-8 flex items-center justify-center text-red-600 font-bold text-xl">
+                    <div className="absolute bottom-14 left-[19.75rem] w-32 h-8 flex items-center justify-center text-red-600 font-bold text-xl">
                       ${saldoPendiente > 0 ? saldoPendiente.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00'}
                     </div>
 
                     {/* Total */}
-                    <div className="absolute bottom-14 left-113 w-32 h-8 flex items-center justify-center text-black font-bold text-xl">
+                    <div className="absolute bottom-14 left-[28.25rem] w-32 h-8 flex items-center justify-center text-black font-bold text-xl">
                       ${orderData.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
 

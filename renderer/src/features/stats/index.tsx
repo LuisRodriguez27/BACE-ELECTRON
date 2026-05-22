@@ -323,7 +323,7 @@ const StatsPage: React.FC = () => {
       <div className="flex justify-between items-left">
         <div className="flex gap-4">
           <select
-            className="flex h-10 w-45 items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            className="flex h-10 w-[11.25rem] items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             value={period}
             onChange={(e) => setPeriod(e.target.value as any)}
             disabled={!canFilterStats}
@@ -335,7 +335,7 @@ const StatsPage: React.FC = () => {
           </select>
 
           <select
-            className="flex h-10 w-45 items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            className="flex h-10 w-[11.25rem] items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             value={source}
             onChange={(e) => setSource(e.target.value)}
             disabled={!canFilterStats}
@@ -375,7 +375,7 @@ const StatsPage: React.FC = () => {
 
           {(period === 'month' || period === 'week') && (
             <select
-              className="flex h-10 w-35 items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              className="flex h-10 w-[8.75rem] items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
               disabled={!canFilterStats}
@@ -450,7 +450,7 @@ const StatsPage: React.FC = () => {
 
           {(period === 'month' || period === 'year' || period === 'week') && (
             <select
-              className="flex h-10 w-25 items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              className="flex h-10 w-[6.25rem] items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
               value={selectedYear}
               onChange={(e) => setSelectedYear(parseInt(e.target.value))}
               disabled={!canFilterStats}
@@ -464,7 +464,7 @@ const StatsPage: React.FC = () => {
           )}
 
           <select
-            className="flex h-10 w-45 items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            className="flex h-10 w-[11.25rem] items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
             value={productId}
             onChange={(e) => setProductId(e.target.value)}
             disabled={!canFilterStats}
@@ -544,7 +544,7 @@ const StatsPage: React.FC = () => {
             <CardTitle>Ventas por Tiempo</CardTitle>
           </CardHeader>
           <CardContent>
-            <div id="sales-over-time-chart" className="h-100">
+            <div id="sales-over-time-chart" className="h-[25rem]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data?.salesOverTime || []}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -588,7 +588,7 @@ const StatsPage: React.FC = () => {
                 <CardTitle>Top Productos (Ingresos)</CardTitle>
               </CardHeader>
               <CardContent>
-                <div id="top-products-revenue-chart" className="h-75">
+                <div id="top-products-revenue-chart" className="h-[18.75rem]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data?.salesByProduct?.slice(0, 10) || []} layout="vertical" margin={{ left: 50 }}>
                       <CartesianGrid strokeDasharray="3 3" />
@@ -607,7 +607,7 @@ const StatsPage: React.FC = () => {
                 <CardTitle>Top Productos (Cantidad)</CardTitle>
               </CardHeader>
               <CardContent>
-                <div id="top-products-quantity-chart" className="h-75">
+                <div id="top-products-quantity-chart" className="h-[18.75rem]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={[...(data?.salesByProduct || [])].sort((a, b) => b.quantity - a.quantity).slice(0, 10)} layout="vertical" margin={{ left: 50 }}>
                       <CartesianGrid strokeDasharray="3 3" />
