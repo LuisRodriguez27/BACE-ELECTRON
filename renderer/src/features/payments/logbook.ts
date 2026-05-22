@@ -3,26 +3,35 @@ import type { Payment } from './types';
 import type { Order } from '../orders/types';
 
 // ─── Tipos auxiliares ──────────────────────────────────────────────────────
+export type PaymentMethodFilter = 'Efectivo' | 'Transferencia' | 'Tarjeta' | 'Otro';
+
 export interface PaymentLogbookFilters {
   dateFrom?: string;  // YYYY-MM-DD
   dateTo?: string;    // YYYY-MM-DD
+  paymentMethod?: PaymentMethodFilter; // Filtro por método de pago
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 const fmt = (n: number) =>
   n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const filterByDate = (payments: Payment[], filters: PaymentLogbookFilters) => {
+const filterPayments = (payments: Payment[], filters: PaymentLogbookFilters) => {
   return payments.filter(p => {
-    if (!p.date) return true;
-    const d = new Date(p.date);
-    if (filters.dateFrom) {
-      const from = new Date(filters.dateFrom + 'T00:00:00');
-      if (d < from) return false;
+    // Filtro por fecha
+    if (p.date) {
+      const d = new Date(p.date);
+      if (filters.dateFrom) {
+        const from = new Date(filters.dateFrom + 'T00:00:00');
+        if (d < from) return false;
+      }
+      if (filters.dateTo) {
+        const to = new Date(filters.dateTo + 'T23:59:59');
+        if (d > to) return false;
+      }
     }
-    if (filters.dateTo) {
-      const to = new Date(filters.dateTo + 'T23:59:59');
-      if (d > to) return false;
+    // Filtro por método de pago (campo descripcion)
+    if (filters.paymentMethod) {
+      if (p.descripcion !== filters.paymentMethod) return false;
     }
     return true;
   });
@@ -67,38 +76,39 @@ export const generatePaymentsReceivedLogbook = (
   currentDate: string,
   orders: Order[] = []
 ): string => {
-  const filtered = filterByDate(payments, filters);
+  const filtered = filterPayments(payments, filters);
 
-  const rangeLabel = filters.dateFrom || filters.dateTo
-    ? `Período: ${filters.dateFrom ?? '—'} al ${filters.dateTo ?? '—'}`
-    : 'Todos los registros';
+  const methodLabel = filters.paymentMethod ? ` · Método: ${filters.paymentMethod}` : '';
+  const rangeLabel = (filters.dateFrom || filters.dateTo)
+    ? `Período: ${filters.dateFrom ?? '—'} al ${filters.dateTo ?? '—'}${methodLabel}`
+    : `Todos los registros${methodLabel}`;
 
   const totalAmount = filtered.reduce((acc, p) => acc + p.amount, 0);
 
   const rows = filtered.length === 0
     ? `<tr><td colspan="7" class="center">No hay pagos en el período seleccionado</td></tr>`
     : filtered.map(p => {
-        const dateStr = p.date ? formatDateMX(p.date, 'DD/MM/YYYY HH:mm') : '—';
-        const orderBadge = p.order_id
-          ? `<span class="badge-orden">Orden #${p.order_id}</span>`
-          : `<span class="badge-libre">Libre</span>`;
-        const clienteStr = p.order ? (p.order.client_name ?? '—') : '—';
-        
-        let descripcionStr = p.info ? p.info : '—';
-        if (p.order_id) {
-          let orderDesc = p.order?.description || p.order?.notes;
-          if (orders && orders.length > 0) {
-            const relatedOrder = orders.find(o => o.id === p.order_id);
-            if (relatedOrder) {
-              orderDesc = relatedOrder.description || relatedOrder.notes || orderDesc;
-            }
-          }
-          if (orderDesc) {
-            descripcionStr = p.info ? `${orderDesc} (Pago: ${p.info})` : orderDesc;
+      const dateStr = p.date ? formatDateMX(p.date, 'DD/MM/YYYY HH:mm') : '—';
+      const orderBadge = p.order_id
+        ? `<span class="badge-orden">Orden #${p.order_id}</span>`
+        : `<span class="badge-libre">Libre</span>`;
+      const clienteStr = p.order ? (p.order.client_name ?? '—') : '—';
+
+      let descripcionStr = p.info ? p.info : '—';
+      if (p.order_id) {
+        let orderDesc = p.order?.description || p.order?.notes;
+        if (orders && orders.length > 0) {
+          const relatedOrder = orders.find(o => o.id === p.order_id);
+          if (relatedOrder) {
+            orderDesc = relatedOrder.description || relatedOrder.notes || orderDesc;
           }
         }
-        
-        return `
+        if (orderDesc) {
+          descripcionStr = p.info ? `${orderDesc} (Pago: ${p.info})` : orderDesc;
+        }
+      }
+
+      return `
           <tr>
             <td class="center"><strong>${p.id}</strong></td>
             <td class="center">${dateStr}</td>
@@ -108,7 +118,7 @@ export const generatePaymentsReceivedLogbook = (
             <td class="center">${p.descripcion ?? '—'}</td>
             <td class="right"><strong>$${fmt(p.amount)}</strong></td>
           </tr>`;
-      }).join('');
+    }).join('');
 
   return `<!DOCTYPE html>
 <html>
@@ -184,11 +194,11 @@ export const generatePendingPaymentsLogbook = (
   const rows = filtered.length === 0
     ? `<tr><td colspan="7" class="center">No hay órdenes con pagos pendientes en el período seleccionado</td></tr>`
     : filtered.map(o => {
-        const dateStr = formatDateMX(o.date, 'DD/MM/YYYY');
-        const isSinPago = o.totalPaid <= 0 && o.balance > 0;
-        const rowClass = isSinPago ? 'bg-sin-pago' : 'bg-pendiente';
-        const clientName = o.client?.name ?? o.client_name ?? '—';
-        return `
+      const dateStr = formatDateMX(o.date, 'DD/MM/YYYY');
+      const isSinPago = o.totalPaid <= 0 && o.balance > 0;
+      const rowClass = isSinPago ? 'bg-sin-pago' : 'bg-pendiente';
+      const clientName = o.client?.name ?? o.client_name ?? '—';
+      return `
           <tr class="${rowClass}">
             <td class="center"><strong>#${o.id}</strong></td>
             <td class="center">${dateStr}</td>
@@ -198,7 +208,7 @@ export const generatePendingPaymentsLogbook = (
             <td class="right">$${fmt(o.totalPaid)}</td>
             <td class="right"><strong>$${fmt(o.balance)}</strong></td>
           </tr>`;
-      }).join('');
+    }).join('');
 
   return `<!DOCTYPE html>
 <html>

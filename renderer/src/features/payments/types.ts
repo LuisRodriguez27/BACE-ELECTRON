@@ -34,3 +34,23 @@ export interface Payment {
     notes?: string | null;
   } | null;
 }
+
+export interface PaymentFilters {
+  freeOnly?: boolean;
+  searchType?: 'payment_id' | 'order_id' | 'amount' | 'method' | 'info';
+  searchTerm?: string;
+}
+
+export interface PaymentPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
+export interface PaginatedPayments {
+  data: Payment[];
+  pagination: PaymentPagination;
+}

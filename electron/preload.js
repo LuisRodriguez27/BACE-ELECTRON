@@ -78,6 +78,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // Pagos
   getAllPayments: () => ipcRenderer.invoke('payments:getAll'),
+  getPaymentsPaginated: (page, limit, filters) => ipcRenderer.invoke('payments:getPaginated', page, limit, filters),
   getPaymentsByOrderId: (orderId) => ipcRenderer.invoke('payments:getPaymentsByOrderId', orderId),
   getPaymentById: (id) => ipcRenderer.invoke('payments:getById', id),
   createPayment: (data) => ipcRenderer.invoke('payments:create', data),

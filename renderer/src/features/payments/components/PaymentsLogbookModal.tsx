@@ -1,21 +1,22 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { X, Printer, BookOpen, AlertCircle, CalendarDays, Calendar } from 'lucide-react';
+import { X, Printer, BookOpen, AlertCircle, CalendarDays, Calendar, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDateMX } from '@/utils/dateUtils';
 import type { Payment } from '../types';
 import type { Order } from '../../orders/types';
+import { PaymentsApiService } from '../PaymentsApiService';
 import {
   generatePaymentsReceivedLogbook,
   generatePendingPaymentsLogbook,
   type PaymentLogbookFilters,
+  type PaymentMethodFilter,
   type OrderWithBalance,
 } from '../logbook';
 
 interface PaymentsLogbookModalProps {
   isOpen: boolean;
   onClose: () => void;
-  payments: Payment[];
   orders: Order[];
 }
 
@@ -34,62 +35,79 @@ const monthStart = () => { const d = new Date(); return `${d.getFullYear()}-${St
 const PaymentsLogbookModal: React.FC<PaymentsLogbookModalProps> = ({
   isOpen,
   onClose,
-  payments,
   orders,
 }) => {
+  const [allPayments, setAllPayments] = useState<Payment[]>([]);
+  const [loadingPayments, setLoadingPayments] = useState(false);
   const [logbookType, setLogbookType] = useState<LogbookType>('received');
   const [dateMode, setDateMode] = useState<DateMode>('single');
   const [singleDate, setSingleDate] = useState('');
   const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo]   = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodFilter | 'all'>('all');
 
-  // Resetear al abrir
+  // Cargar todos los pagos + resetear filtros al abrir
   useEffect(() => {
-    if (isOpen) {
-      setLogbookType('received');
-      setDateMode('single');
-      setSingleDate(today());
-      setDateFrom('');
-      setDateTo('');
-    }
+    if (!isOpen) return;
+    setLogbookType('received');
+    setDateMode('single');
+    setSingleDate(today());
+    setDateFrom('');
+    setDateTo('');
+    setPaymentMethod('all');
+
+    setLoadingPayments(true);
+    PaymentsApiService.getAll()
+      .then(setAllPayments)
+      .catch(() => setAllPayments([]))
+      .finally(() => setLoadingPayments(false));
   }, [isOpen]);
 
   // ─── Construir filtros según el modo ──────────────────────────────────
   const filters: PaymentLogbookFilters = useMemo(() => {
-    if (dateMode === 'all') return {};
-    if (dateMode === 'single') return { dateFrom: singleDate, dateTo: singleDate };
-    return { dateFrom: dateFrom || undefined, dateTo: dateTo || undefined };
-  }, [dateMode, singleDate, dateFrom, dateTo]);
+    const base: PaymentLogbookFilters =
+      dateMode === 'all' ? {} :
+        dateMode === 'single' ? { dateFrom: singleDate, dateTo: singleDate } :
+          { dateFrom: dateFrom || undefined, dateTo: dateTo || undefined };
+    if (logbookType === 'received' && paymentMethod !== 'all') {
+      base.paymentMethod = paymentMethod;
+    }
+    return base;
+  }, [dateMode, singleDate, dateFrom, dateTo, paymentMethod, logbookType]);
 
   // ─── Pagos filtrados ──────────────────────────────────────────────────
   const filteredPayments = useMemo(() => {
-    return payments.filter(p => {
-      if (!p.date) return true;
-      const d = new Date(p.date);
-      if (filters.dateFrom) { if (d < new Date(filters.dateFrom + 'T00:00:00')) return false; }
-      if (filters.dateTo)   { if (d > new Date(filters.dateTo   + 'T23:59:59')) return false; }
+    return allPayments.filter(p => {
+      if (p.date) {
+        const d = new Date(p.date);
+        if (filters.dateFrom) { if (d < new Date(filters.dateFrom + 'T00:00:00')) return false; }
+        if (filters.dateTo) { if (d > new Date(filters.dateTo + 'T23:59:59')) return false; }
+      }
+      if (filters.paymentMethod) {
+        if (p.descripcion !== filters.paymentMethod) return false;
+      }
       return true;
     });
-  }, [payments, filters]);
+  }, [allPayments, filters]);
 
   // ─── Órdenes con saldo ────────────────────────────────────────────────
   const ordersWithBalance: OrderWithBalance[] = useMemo(() => {
     return orders
       .map(o => {
-        const paid = payments
+        const paid = allPayments
           .filter(p => p.order_id === o.id)
           .reduce((acc, p) => acc + p.amount, 0);
         return { ...o, totalPaid: paid, balance: o.total - paid };
       })
       .filter(o => o.balance > 0.009);
-  }, [orders, payments]);
+  }, [orders, allPayments]);
 
   const filteredPendingOrders = useMemo(() => {
     return ordersWithBalance.filter(o => {
       if (!o.date) return true;
       const d = new Date(o.date);
       if (filters.dateFrom) { if (d < new Date(filters.dateFrom + 'T00:00:00')) return false; }
-      if (filters.dateTo)   { if (d > new Date(filters.dateTo   + 'T23:59:59')) return false; }
+      if (filters.dateTo) { if (d > new Date(filters.dateTo + 'T23:59:59')) return false; }
       return true;
     });
   }, [ordersWithBalance, filters]);
@@ -141,11 +159,10 @@ const PaymentsLogbookModal: React.FC<PaymentsLogbookModalProps> = ({
   const shortcutBtn = (label: string, active: boolean, onClick: () => void) => (
     <button
       onClick={onClick}
-      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-        active
+      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${active
           ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
           : 'bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-600'
-      }`}
+        }`}
     >
       {label}
     </button>
@@ -183,11 +200,10 @@ const PaymentsLogbookModal: React.FC<PaymentsLogbookModalProps> = ({
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => setLogbookType('received')}
-                className={`flex flex-col items-center gap-1 p-3 rounded-lg border-2 text-sm transition-all ${
-                  logbookType === 'received'
+                className={`flex flex-col items-center gap-1 p-3 rounded-lg border-2 text-sm transition-all ${logbookType === 'received'
                     ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
                     : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                }`}
+                  }`}
               >
                 <Printer size={17} />
                 <span className="font-medium">Pagos Recibidos</span>
@@ -197,11 +213,10 @@ const PaymentsLogbookModal: React.FC<PaymentsLogbookModalProps> = ({
               </button>
               <button
                 onClick={() => setLogbookType('pending')}
-                className={`flex flex-col items-center gap-1 p-3 rounded-lg border-2 text-sm transition-all ${
-                  logbookType === 'pending'
+                className={`flex flex-col items-center gap-1 p-3 rounded-lg border-2 text-sm transition-all ${logbookType === 'pending'
                     ? 'border-orange-500 bg-orange-50 text-orange-700'
                     : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                }`}
+                  }`}
               >
                 <AlertCircle size={17} />
                 <span className="font-medium">Pagos Pendientes</span>
@@ -211,6 +226,27 @@ const PaymentsLogbookModal: React.FC<PaymentsLogbookModalProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Método de pago — solo para Pagos Recibidos */}
+          {logbookType === 'received' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Método de pago</label>
+              <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+                {(['all', 'Efectivo', 'Transferencia', 'Tarjeta', 'Otro'] as const).map((m, idx) => (
+                  <button
+                    key={m}
+                    onClick={() => setPaymentMethod(m)}
+                    className={`flex-1 py-2 text-xs font-medium transition-colors ${idx > 0 ? 'border-l border-gray-300' : ''} ${paymentMethod === m
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                      }`}
+                  >
+                    {m === 'all' ? 'Todos' : m}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Período */}
           <div>
@@ -223,44 +259,41 @@ const PaymentsLogbookModal: React.FC<PaymentsLogbookModalProps> = ({
 
             {/* Atajos rápidos */}
             <div className="flex flex-wrap gap-2 mb-3">
-              {shortcutBtn('Hoy',       isSingleActive(today()),     () => applyShortcut(today(), today(), 'single'))}
-              {shortcutBtn('Ayer',       isSingleActive(yesterday()), () => applyShortcut(yesterday(), yesterday(), 'single'))}
-              {shortcutBtn('Esta semana', isShortcutActive(weekStart(), today()),  () => applyShortcut(weekStart(), today()))}
-              {shortcutBtn('Este mes',   isShortcutActive(monthStart(), today()),  () => applyShortcut(monthStart(), today()))}
-              {shortcutBtn('Todo',       dateMode === 'all',                        () => setDateMode('all'))}
+              {shortcutBtn('Hoy', isSingleActive(today()), () => applyShortcut(today(), today(), 'single'))}
+              {shortcutBtn('Ayer', isSingleActive(yesterday()), () => applyShortcut(yesterday(), yesterday(), 'single'))}
+              {shortcutBtn('Esta semana', isShortcutActive(weekStart(), today()), () => applyShortcut(weekStart(), today()))}
+              {shortcutBtn('Este mes', isShortcutActive(monthStart(), today()), () => applyShortcut(monthStart(), today()))}
+              {shortcutBtn('Todo', dateMode === 'all', () => setDateMode('all'))}
             </div>
 
             {/* Selector de modo */}
             <div className="flex rounded-lg border border-gray-300 overflow-hidden mb-3">
               <button
                 onClick={() => { setDateMode('single'); setSingleDate(today()); }}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors ${
-                  dateMode === 'single'
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors ${dateMode === 'single'
                     ? 'bg-indigo-600 text-white'
                     : 'bg-white text-gray-600 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 <CalendarDays size={13} />
                 Un día
               </button>
               <button
                 onClick={() => { setDateMode('range'); setDateFrom(''); setDateTo(''); }}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium border-l border-gray-300 transition-colors ${
-                  dateMode === 'range'
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium border-l border-gray-300 transition-colors ${dateMode === 'range'
                     ? 'bg-indigo-600 text-white'
                     : 'bg-white text-gray-600 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 <Calendar size={13} />
                 Rango de fechas
               </button>
               <button
                 onClick={() => setDateMode('all')}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium border-l border-gray-300 transition-colors ${
-                  dateMode === 'all'
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium border-l border-gray-300 transition-colors ${dateMode === 'all'
                     ? 'bg-indigo-600 text-white'
                     : 'bg-white text-gray-600 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 Todos
               </button>
@@ -311,19 +344,17 @@ const PaymentsLogbookModal: React.FC<PaymentsLogbookModalProps> = ({
           </div>
 
           {/* Previsualización */}
-          <div className={`rounded-lg p-4 border ${
-            logbookType === 'received'
+          <div className={`rounded-lg p-4 border ${logbookType === 'received'
               ? 'bg-indigo-50 border-indigo-200'
               : 'bg-orange-50 border-orange-200'
-          }`}>
+            }`}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-500 mb-0.5">
                   {logbookType === 'received' ? 'Pagos a imprimir' : 'Órdenes a imprimir'}
                 </p>
-                <p className={`text-2xl font-bold ${
-                  logbookType === 'received' ? 'text-indigo-700' : 'text-orange-700'
-                }`}>
+                <p className={`text-2xl font-bold ${logbookType === 'received' ? 'text-indigo-700' : 'text-orange-700'
+                  }`}>
                   {previewCount} {logbookType === 'received' ? 'pago(s)' : 'orden(es)'}
                 </p>
               </div>
@@ -331,9 +362,8 @@ const PaymentsLogbookModal: React.FC<PaymentsLogbookModalProps> = ({
                 <p className="text-xs text-gray-500 mb-0.5">
                   {logbookType === 'received' ? 'Total recibido' : 'Total pendiente'}
                 </p>
-                <p className={`text-xl font-bold ${
-                  logbookType === 'received' ? 'text-indigo-700' : 'text-orange-700'
-                }`}>
+                <p className={`text-xl font-bold ${logbookType === 'received' ? 'text-indigo-700' : 'text-orange-700'
+                  }`}>
                   ${totalFmt}
                 </p>
               </div>
@@ -351,15 +381,16 @@ const PaymentsLogbookModal: React.FC<PaymentsLogbookModalProps> = ({
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button
             onClick={handlePrint}
-            disabled={previewCount === 0}
-            className={`flex items-center gap-2 ${
-              logbookType === 'pending'
+            disabled={previewCount === 0 || loadingPayments}
+            className={`flex items-center gap-2 ${logbookType === 'pending'
                 ? 'bg-orange-600 hover:bg-orange-700'
                 : 'bg-indigo-600 hover:bg-indigo-700'
-            }`}
+              }`}
           >
-            <Printer size={15} />
-            Imprimir Bitácora
+            {loadingPayments
+              ? <Loader2 size={15} className="animate-spin" />
+              : <Printer size={15} />}
+            {loadingPayments ? 'Cargando...' : 'Imprimir Bitácora'}
           </Button>
         </div>
       </div>
