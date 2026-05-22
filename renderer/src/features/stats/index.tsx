@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/index'
 import { Button } from '@/components/ui/button'
 import { Printer, X, Plus } from 'lucide-react'
 import { StatsService } from './StatsService'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from 'recharts'
 import { format, startOfWeek, endOfWeek, setWeek, getWeek } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { usePermissions } from '@/hooks/use-permissions'
@@ -548,7 +548,7 @@ const StatsPage: React.FC = () => {
           <CardContent>
             <div id="sales-over-time-chart" className="h-100">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data?.salesOverTime || []}>
+                <BarChart data={data?.salesOverTime || []} margin={{ top: 25, right: 10, left: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis
                     dataKey="sale_date"
@@ -575,7 +575,9 @@ const StatsPage: React.FC = () => {
                       }
                     }}
                   />
-                  <Bar dataKey="total" fill="#2563eb" name="Ventas" />
+                  <Bar dataKey="total" fill="#2563eb" name="Ventas">
+                    <LabelList dataKey="total" position="top" formatter={(value: any) => formatCurrency(value)} style={{ fill: '#1e3a8a', fontSize: 11, fontWeight: 'bold' }} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -592,12 +594,14 @@ const StatsPage: React.FC = () => {
               <CardContent>
                 <div id="top-products-revenue-chart" className="h-75">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={data?.salesByProduct?.slice(0, 10) || []} layout="vertical" margin={{ left: 50 }}>
+                    <BarChart data={data?.salesByProduct?.slice(0, 10) || []} layout="vertical" margin={{ top: 5, right: 80, left: 50, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis type="number" />
                       <YAxis dataKey="name" type="category" width={150} fontSize={12} />
                       <Tooltip formatter={(value: any) => formatCurrency(value)} />
-                      <Bar dataKey="total" fill="#16a34a" name="Ingresos" />
+                      <Bar dataKey="total" fill="#16a34a" name="Ingresos">
+                        <LabelList dataKey="total" position="right" formatter={(value: any) => formatCurrency(value)} style={{ fill: '#14532d', fontSize: 11, fontWeight: 'bold' }} />
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -611,12 +615,14 @@ const StatsPage: React.FC = () => {
               <CardContent>
                 <div id="top-products-quantity-chart" className="h-75">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={[...(data?.salesByProduct || [])].sort((a, b) => b.quantity - a.quantity).slice(0, 10)} layout="vertical" margin={{ left: 50 }}>
+                    <BarChart data={[...(data?.salesByProduct || [])].sort((a, b) => b.quantity - a.quantity).slice(0, 10)} layout="vertical" margin={{ top: 5, right: 40, left: 50, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis type="number" />
                       <YAxis dataKey="name" type="category" width={150} fontSize={12} />
                       <Tooltip formatter={(value: any) => [value, 'Unidades']} />
-                      <Bar dataKey="quantity" fill="#f59e0b" name="Cantidad" />
+                      <Bar dataKey="quantity" fill="#f59e0b" name="Cantidad">
+                        <LabelList dataKey="quantity" position="right" style={{ fill: '#78350f', fontSize: 11, fontWeight: 'bold' }} />
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
