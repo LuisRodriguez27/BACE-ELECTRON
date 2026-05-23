@@ -143,10 +143,20 @@ const ProductsPage: React.FC = () => {
       // Obtener todos los productos con sus plantillas (subproductos)
       const productsWithTemplates = await ProductsApiService.findAllWithTemplates();
 
-      // Filtrar si hay búsqueda activa (opcional, pero consistente con la UI)
-      // Si el usuario quiere imprimir TODO el inventario siempre, quitamos este filtro.
-      // Asumiremos que quiere imprimir lo que ve o todo? El prompt dice "imprimir todos los productos que tengo en la app".
-      // Usaremos productsWithTemplates completo.
+      // Filtrar si hay búsqueda activa
+      const filteredForPrint = productsWithTemplates.filter(product => {
+        if (!product || typeof product !== 'object' || !product.id || !product.name) {
+          return false;
+        }
+
+        const searchLower = searchTerm.toLowerCase();
+
+        return (
+          product.name.toLowerCase().includes(searchLower) ||
+          (product.serial_number && product.serial_number.toLowerCase().includes(searchLower)) ||
+          (product.id && product.id.toString().includes(searchLower))
+        );
+      });
 
       // Generar HTML
       const printHTML = `
@@ -261,7 +271,7 @@ const ProductsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              ${productsWithTemplates.map((p, index) => {
+              ${filteredForPrint.map((p, index) => {
         const productRow = `
                   <tr class="product-row">
                     <td>${index + 1}. ${p.name}</td>
