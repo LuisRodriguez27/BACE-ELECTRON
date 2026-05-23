@@ -138,7 +138,11 @@ const ProductsPage: React.FC = () => {
 
   const handlePrintInventory = async () => {
     try {
-      const toastId = toast.loading('Preparando documento de impresión...');
+      const toastId = toast.loading(
+        searchTerm 
+          ? 'Preparando impresión de resultados filtrados...' 
+          : 'Preparando impresión del inventario completo...'
+      );
 
       // Obtener todos los productos con sus plantillas (subproductos)
       const productsWithTemplates = await ProductsApiService.findAllWithTemplates();
@@ -404,7 +408,7 @@ const ProductsPage: React.FC = () => {
             onClick={handlePrintInventory}
           >
             <Printer size={16} />
-            Imprimir Inventario
+            {searchTerm ? 'Imprimir Resultados' : 'Imprimir Inventario'}
           </Button>
           <Button
             variant="outline"
@@ -438,6 +442,12 @@ const ProductsPage: React.FC = () => {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
+            {searchTerm && (
+              <p className="text-xs text-blue-600 mt-2 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                Búsqueda activa: se imprimirán únicamente los {filteredProducts.length} productos filtrados.
+              </p>
+            )}
           </div>
         </div>
       </div>
