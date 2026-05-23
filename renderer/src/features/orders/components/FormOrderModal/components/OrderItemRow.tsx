@@ -102,7 +102,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Selector de Producto/Plantilla */}
         <div className="lg:col-span-2">
           <Label className="text-sm font-medium text-gray-700">
@@ -211,9 +211,31 @@ const OrderItemRow: React.FC<OrderItemRowProps> = ({
           />
         </div>
 
+        {/* Estado de Entrega y Pago */}
+        <div className="flex flex-col gap-2 justify-center pt-5">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={!!item.is_delivered}
+              onChange={(e) => updateOrderItem(index, { is_delivered: e.target.checked })}
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm font-medium text-gray-700">Entregado</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={!!item.is_paid}
+              onChange={(e) => updateOrderItem(index, { is_paid: e.target.checked })}
+              className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+            />
+            <span className="text-sm font-medium text-gray-700">Liquidado</span>
+          </label>
+        </div>
+
         {/* Información adicional del item */}
         {item.id > 0 && (
-          <div className="lg:col-span-4 pt-4 border-t border-gray-200">
+          <div className="lg:col-span-5 pt-4 border-t border-gray-200">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               {item.serial_number && (
                 <div>

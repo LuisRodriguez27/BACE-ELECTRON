@@ -50,7 +50,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AppWrapper />
-      <UpdateBanner />
+      {/* <UpdateBanner /> */}
       <ReactQueryDevtools 
         initialIsOpen={false} 
         buttonPosition='top-right'

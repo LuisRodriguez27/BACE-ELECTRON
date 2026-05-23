@@ -235,7 +235,9 @@ class OrderService {
           product_id: item.product_id ? parseInt(item.product_id) : null,
           template_id: item.template_id ? parseInt(item.template_id) : null,
           quantity: parseFloat(item.quantity),
-          unit_price: parseFloat(item.unit_price)
+          unit_price: parseFloat(item.unit_price),
+          is_delivered: item.is_delivered === true || item.is_delivered === 'true',
+          is_paid: item.is_paid === true || item.is_paid === 'true'
         }))
       };
 
@@ -379,7 +381,9 @@ class OrderService {
           product_id: item.product_id ? parseInt(item.product_id) : null,
           template_id: item.template_id ? parseInt(item.template_id) : null,
           quantity: parseFloat(item.quantity),
-          unit_price: parseFloat(item.unit_price)
+          unit_price: parseFloat(item.unit_price),
+          is_delivered: item.is_delivered === true || item.is_delivered === 'true',
+          is_paid: item.is_paid === true || item.is_paid === 'true'
         }));
       }
 

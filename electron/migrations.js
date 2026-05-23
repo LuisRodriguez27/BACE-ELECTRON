@@ -377,7 +377,30 @@ const MIGRATIONS = [
         CROSS JOIN permissions p
         WHERE u.id = 1
         AND p.name IN ('Abrir Caja', 'Cerrar Caja', 'Ver Caja', 'Registrar Egreso');
-      `)
+      `);
+    }
+  },
+
+  {
+    version: 14,
+    name: 'add_delivered_and_paid_to_order_products',
+    isApplied: async (client) => {
+      const { rows } = await client.query(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name = 'order_products'
+          AND column_name IN ('is_delivered', 'is_paid')
+      `);
+      return parseInt(rows[0].count) === 2;
+    },
+    up: async (client) => {
+      await client.query(`
+        ALTER TABLE order_products
+          ADD COLUMN IF NOT EXISTS is_delivered BOOLEAN NOT NULL DEFAULT FALSE
+      `);
+      await client.query(`
+        ALTER TABLE order_products
+          ADD COLUMN IF NOT EXISTS is_paid BOOLEAN NOT NULL DEFAULT FALSE
+      `);
     }
   },
 

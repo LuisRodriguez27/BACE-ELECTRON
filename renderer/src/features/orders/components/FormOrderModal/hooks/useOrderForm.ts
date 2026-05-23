@@ -98,7 +98,9 @@ export const useOrderForm = ({
               quantity: op.quantity,
               unit_price: op.unit_price,
               description: op.product_description,
-              serial_number: op.serial_number
+              serial_number: op.serial_number,
+              is_delivered: !!op.is_delivered,
+              is_paid: !!op.is_paid
             };
           } else {
             // Es una plantilla
@@ -114,7 +116,9 @@ export const useOrderForm = ({
               height: op.template_height,
               colors: op.template_colors,
               position: op.template_position,
-              texts: op.template_texts
+              texts: op.template_texts,
+              is_delivered: !!op.is_delivered,
+              is_paid: !!op.is_paid
             };
           }
         });

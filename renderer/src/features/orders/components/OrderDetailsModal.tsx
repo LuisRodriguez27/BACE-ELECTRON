@@ -666,6 +666,16 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                                           <><Layers className="h-3 w-3 inline mr-1" />Plantilla</>
                                         )}
                                       </span>
+                                      {product.is_delivered && (
+                                        <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-800 border border-green-200">
+                                          Entregado
+                                        </span>
+                                      )}
+                                      {product.is_paid && (
+                                        <span className="px-2 py-1 text-xs rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                          Liquidado
+                                        </span>
+                                      )}
                                       {isPriceModified && (
                                         <span className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-amber-100 text-amber-800" title={`Precio original: $${Number(originalPrice).toFixed(2)}`}>
                                           <Tag className="h-3 w-3 inline" />

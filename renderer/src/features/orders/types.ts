@@ -33,6 +33,8 @@ export const orderItemSchema = z.object({
   template_id: z.number().int().min(1).nullable().optional(),
   quantity: z.number().min(0.0001, 'La cantidad debe ser al menos 0.1'),
   unit_price: z.number().min(0, 'El precio debe ser un número positivo'),
+  is_delivered: z.boolean().optional(),
+  is_paid: z.boolean().optional(),
 }).refine((data) => {
   // Debe tener exactamente uno: product_id O template_id
   const hasProduct = data.product_id !== null && data.product_id !== undefined;
@@ -119,6 +121,8 @@ export interface OrderProduct {
   quantity: number;
   unit_price: number;
   total_price: number;
+  is_delivered?: boolean;
+  is_paid?: boolean;
 
   // Datos añadidos por JOIN con products
   product_name?: string;
@@ -153,6 +157,8 @@ export interface OrderFormItem {
   colors?: string; // solo plantillas
   position?: string; // solo plantillas
   texts?: string; // solo plantillas
+  is_delivered?: boolean;
+  is_paid?: boolean;
 }
 
 // Funciones de utilidad
@@ -162,14 +168,18 @@ export const createOrderItemFromFormItem = (formItem: OrderFormItem): OrderItem 
       product_id: formItem.id,
       template_id: null,
       quantity: formItem.quantity,
-      unit_price: formItem.unit_price
+      unit_price: formItem.unit_price,
+      is_delivered: !!formItem.is_delivered,
+      is_paid: !!formItem.is_paid
     };
   } else {
     return {
       product_id: null,
       template_id: formItem.id,
       quantity: formItem.quantity,
-      unit_price: formItem.unit_price
+      unit_price: formItem.unit_price,
+      is_delivered: !!formItem.is_delivered,
+      is_paid: !!formItem.is_paid
     };
   }
 };

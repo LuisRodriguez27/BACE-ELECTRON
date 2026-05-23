@@ -279,11 +279,13 @@ class OrderRepository {
       const quantity = parseFloat(item.quantity);
       const unitPrice = parseFloat(item.unit_price);
       const totalPrice = quantity * unitPrice;
+      const isDelivered = item.is_delivered === true || item.is_delivered === 'true';
+      const isPaid = item.is_paid === true || item.is_paid === 'true';
 
       await db.execute(`
-        INSERT INTO order_products (order_id, product_id, template_id, quantity, unit_price, total_price)
-        VALUES ($1, $2, $3, $4, $5, $6)
-      `, [orderId, productId, templateId, quantity, unitPrice, totalPrice]);
+        INSERT INTO order_products (order_id, product_id, template_id, quantity, unit_price, total_price, is_delivered, is_paid)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `, [orderId, productId, templateId, quantity, unitPrice, totalPrice, isDelivered, isPaid]);
     }
   }
 

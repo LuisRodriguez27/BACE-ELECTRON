@@ -88,13 +88,15 @@ const schemaTables = `
   );
 
   CREATE TABLE IF NOT EXISTS order_products (
-    id          SERIAL        PRIMARY KEY,
-    order_id    INTEGER       NOT NULL REFERENCES orders(id),
-    product_id  INTEGER       REFERENCES products(id),
-    template_id INTEGER       REFERENCES product_templates(id),
-    quantity    DECIMAL(10,4) NOT NULL,
-    unit_price  DECIMAL(10,2) NOT NULL,
-    total_price DECIMAL(10,2) NOT NULL,
+    id           SERIAL        PRIMARY KEY,
+    order_id     INTEGER       NOT NULL REFERENCES orders(id),
+    product_id   INTEGER       REFERENCES products(id),
+    template_id  INTEGER       REFERENCES product_templates(id),
+    quantity     DECIMAL(10,4) NOT NULL,
+    unit_price   DECIMAL(10,2) NOT NULL,
+    total_price  DECIMAL(10,2) NOT NULL,
+    is_delivered BOOLEAN       NOT NULL DEFAULT FALSE,
+    is_paid      BOOLEAN       NOT NULL DEFAULT FALSE,
     CHECK (product_id IS NOT NULL OR template_id IS NOT NULL)
   );
 
