@@ -5,7 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { PaymentsApiService } from '../payments/PaymentsApiService';
 import CreatePaymentModal from '../payments/components/CreatePaymentModal';
 import type { Payment } from '../payments/types';
-import CreateOrderModal from './components/CreateOrderModal';
+import CreateOrderModal from './components/FormOrderModal';
 import OrderDetailsModal from './components/OrderDetailsModal';
 // import OrderEditModal from './components/OrderEditModal'; // Ya no se usa, ahora CreateOrderModal maneja todo
 import { OrdersApiService } from './OrdersApiService';

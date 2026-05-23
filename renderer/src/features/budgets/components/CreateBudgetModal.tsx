@@ -1,6 +1,8 @@
 import { Button, Input, Label } from '@/components/ui';
 import { todayDateInputMX, isoToDateInputMX, preserveTimeOrStartOfDay } from '@/utils/dateUtils';
 import type { Client } from '@/features/clients/types';
+import { useClientSearch } from '@/features/clients/hooks/useClientSearch';
+import ClientSearchField from '@/features/orders/components/FormOrderModal/components/ClientSearchField';
 import CreateClientModal from '@/features/clients/components/CreateClientModal';
 import CreateTemplateModal from '@/features/products/components/CreateTemplateModal';
 import QuickCreateProductModal from '@/features/products/components/QuickCreateProductModal';
@@ -9,7 +11,7 @@ import { ProductTemplatesApiService } from '@/features/productTemplates/ProductT
 import type { ProductTemplate } from '@/features/productTemplates/types';
 import { extractErrorMessage } from '@/utils/errorHandling';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Calendar, DollarSign, Layers, Loader, Package, Plus, ReceiptText, Search, ShoppingBag, Trash2, X, User } from 'lucide-react';
+import { Calendar, DollarSign, Layers, Loader, Package, Plus, ReceiptText, Search, ShoppingBag, Trash2, X } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';
@@ -39,10 +41,8 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [clients, setClients] = useState<Client[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [templates, setTemplates] = useState<ProductTemplate[]>([]);
-  const [loadingClients, setLoadingClients] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [showCreateProductModal, setShowCreateProductModal] = useState(false);
@@ -50,9 +50,6 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
   const [showCreateClientModal, setShowCreateClientModal] = useState(false);
   const [selectedProductForTemplate, setSelectedProductForTemplate] = useState<Product | null>(null);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
-  const [clientSearchTerm, setClientSearchTerm] = useState('');
-  const [showClientDropdown, setShowClientDropdown] = useState(false);
-  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [originalBudgetDate, setOriginalBudgetDate] = useState<string | null>(null);
   
   // Estado de los items de la orden (productos y plantillas)
@@ -69,6 +66,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
     formState: { errors },
     reset,
     setValue,
+    unregister,
   } = useForm<CreateBudgetForm>({
     resolver: zodResolver(createBudgetSchema),
     defaultValues: {
@@ -77,6 +75,9 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
       items: []
     }
   });
+
+  // Hook reutilizable de búsqueda de clientes
+  const clientSearch = useClientSearch({ setValue, unregister });
 
   // Efecto para cargar datos en edición
   useEffect(() => {
@@ -90,9 +91,9 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
       setValue('user_id', budgetToEdit.user_id);
       
       // Establecer cliente seleccionado
-      setSelectedClientId(budgetToEdit.client_id);
+      clientSearch.setSelectedClientId(budgetToEdit.client_id);
       if (budgetToEdit.client) {
-        setClientSearchTerm(`${budgetToEdit.client.name} - ${budgetToEdit.client.phone}`);
+        clientSearch.setClientSearchTerm(`${budgetToEdit.client.name} - ${budgetToEdit.client.phone}`);
       }
 
       // Convertir productos del presupuesto a items del formulario
@@ -141,8 +142,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
         date: todayDateInputMX(),
         items: []
       });
-      setSelectedClientId(null);
-      setClientSearchTerm('');
+      clientSearch.reset();
       setBudgetItems([{
         type: 'product',
         id: 0,
@@ -220,23 +220,11 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
   // Cargar datos al abrir el modal
   useEffect(() => {
     if (isOpen) {
-      loadClients();
+      clientSearch.loadClients();
       loadProducts();
       loadTemplates();
     }
   }, [isOpen]);
-
-  // Efecto para sincronizar el cliente seleccionado con el estado de búsqueda
-  useEffect(() => {
-    if (selectedClientId && clients.length > 0) {
-      const selectedClient = clients.find(c => c.id === selectedClientId);
-      if (selectedClient && !clientSearchTerm) {
-        setClientSearchTerm(`${selectedClient.name} - ${selectedClient.phone}`);
-      }
-    }
-  }, [selectedClientId, clients, clientSearchTerm]);
-
-
 
   // Recalcular posiciones cuando cambie el tamaño de la ventana
   useEffect(() => {
@@ -257,12 +245,11 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
     };
   }, [showDropdowns]);
 
-  // Cerrar dropdowns al hacer clic fuera
+  // Cerrar dropdowns de items al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
       
-      // Manejar dropdowns de items de productos/plantillas
       budgetItems.forEach((_, index) => {
         const dropdown = document.getElementById(`item-dropdown-${index}`);
         const inputElement = document.getElementById(`item-input-${index}`);
@@ -276,39 +263,13 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
           }
         }
       });
-      
-      // Manejar dropdown de clientes
-      const clientDropdown = document.getElementById('client-dropdown');
-      const clientInput = document.getElementById('client-search-input');
-      
-      if (clientDropdown && showClientDropdown) {
-        const isClickInsideClientDropdown = clientDropdown.contains(target);
-        const isClickInsideClientInput = clientInput?.contains(target);
-        
-        if (!isClickInsideClientDropdown && !isClickInsideClientInput) {
-          setShowClientDropdown(false);
-        }
-      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [budgetItems, showDropdowns, showClientDropdown]);
-
-  const loadClients = async () => {
-    try {
-      setLoadingClients(true);
-      const response = await window.api.getAllClients();
-      setClients(response);
-    } catch (err) {
-      console.error('Error loading clients:', err);
-      setError('Error al cargar los clientes');
-    } finally {
-      setLoadingClients(false);
-    }
-  };
+  }, [budgetItems, showDropdowns]);
 
 
 
@@ -494,7 +455,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
       }
 
       // Validar que se seleccionó un cliente
-      if (!selectedClientId) {
+      if (!clientSearch.selectedClientId) {
         setError('Debe seleccionar un cliente');
         return;
       }
@@ -503,7 +464,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
         const updateData: any = {
            ...formData,
            date: preserveTimeOrStartOfDay(formData.date, originalBudgetDate),
-           client_id: selectedClientId,
+           client_id: clientSearch.selectedClientId,
            // Si estamos editando, usamos edited_by en lugar de user_id
            edited_by: currentUserId
         };
@@ -524,7 +485,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
         const budgetData: CreateBudgetForm = {
             ...formData,
             date: preserveTimeOrStartOfDay(formData.date, null),
-            client_id: selectedClientId,
+            client_id: clientSearch.selectedClientId!,
             user_id: currentUserId
         };
 
@@ -552,19 +513,14 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
     setDropdownPositions({});
     setSelectedCategory({});
     setSelectedProductForTemplate(null);
-    setClientSearchTerm('');
-    setSelectedClientId(null);
+    clientSearch.reset();
     setOriginalBudgetDate(null);
-    setShowClientDropdown(false);
     setError(null);
     onClose();
   };
 
   const handleClientCreated = (newClient: Client) => {
-    setClients(prev => [...prev, newClient]);
-    setSelectedClientId(newClient.id);
-    setValue('client_id', newClient.id);
-    setClientSearchTerm(`${newClient.name} - ${newClient.phone}`);
+    clientSearch.handleClientCreated(newClient);
   };
 
   const handleProductCreated = (newProduct: Product) => {
@@ -573,28 +529,6 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
 
   const handleTemplateCreated = (newTemplate: ProductTemplate) => {
     setTemplates(prev => [...prev, newTemplate]);
-  };
-
-  // Obtener lista filtrada de clientes
-  const getFilteredClients = () => {
-    let result = clients;
-    if (clientSearchTerm.trim()) {
-      const searchLower = clientSearchTerm.toLowerCase();
-      result = clients.filter(client => 
-        client.name.toLowerCase().includes(searchLower) ||
-        (client.phone && client.phone.includes(searchLower)) ||
-        (client.id.toString().includes(searchLower))
-      );
-    }
-    return [...result].sort((a, b) => a.id - b.id);
-  };
-
-  // Seleccionar un cliente
-  const selectClient = (client: Client) => {
-    setSelectedClientId(client.id);
-    setValue('client_id', client.id);
-    setClientSearchTerm(`${client.name} - ${client.phone}`);
-    setShowClientDropdown(false);
   };
   
   if (!isOpen) return null;
@@ -654,152 +588,12 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
           {/* Información básica */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             {/* Cliente */}
-            <div className="md:col-span-2">
-              <div className="flex items-center justify-between mb-1">
-                <Label htmlFor="client_id" className="text-sm font-medium text-gray-700">
-                  Cliente *
-                </Label>
-                <Button
-                  type="button"
-                  onClick={() => setShowCreateClientModal(true)}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-1 text-xs px-3 py-1 h-7 border-blue-200 text-blue-600 hover:bg-blue-50"
-                >
-                  <User size={12} />
-                  Nuevo Cliente
-                </Button>
-              </div>
-              <div className="mt-1">
-                {loadingClients ? (
-                  <div className="flex items-center gap-2 p-2 border rounded-lg">
-                    <Loader className="animate-spin" size={16} />
-                    <span className="text-sm text-gray-500">Cargando clientes...</span>
-                  </div>
-                ) : clients.length === 0 ? (
-                  <div className="flex items-center justify-between p-3 border border-dashed border-gray-300 rounded-lg">
-                    <div className="flex items-center gap-2 text-gray-500">
-                      <User size={16} />
-                      <span className="text-sm">No hay clientes registrados</span>
-                    </div>
-                    <Button
-                      type="button"
-                      onClick={() => setShowCreateClientModal(true)}
-                      size="sm"
-                      className="flex items-center gap-2"
-                    >
-                      <Plus size={14} />
-                      Crear Primer Cliente
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="relative">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 z-10" size={16} />
-                      <Input
-                        id="client-search-input"
-                        type="text"
-                        placeholder="Buscar cliente por nombre, teléfono o ID..."
-                        value={clientSearchTerm}
-                        onChange={(e) => {
-                          const searchTerm = e.target.value;
-                          setClientSearchTerm(searchTerm);
-                          setShowClientDropdown(true);
-                          
-                          // Si el texto no coincide con el cliente seleccionado, limpiar la selección
-                          if (selectedClientId) {
-                            const selectedClient = clients.find(c => c.id === selectedClientId);
-                            if (selectedClient && searchTerm !== `${selectedClient.name} - ${selectedClient.phone}`) {
-                              setSelectedClientId(null);
-                              setValue('client_id', 0);
-                            }
-                          }
-                        }}
-                        onFocus={() => setShowClientDropdown(true)}
-                        className="pl-10 pr-4"
-                      />
-                    </div>
-                    
-                    {/* Dropdown de clientes */}
-                    {showClientDropdown && (
-                      <div 
-                        id="client-dropdown"
-                        className="absolute z-9999 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto"
-                      >
-                        {getFilteredClients().length > 0 ? (
-                          getFilteredClients().map((client) => (
-                            <div
-                              key={client.id}
-                              className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 group"
-                              onClick={() => selectClient(client)}
-                            >
-                              <div className="flex items-center gap-2">
-                                {client.color && (
-                                  <div 
-                                    className="w-3 h-3 rounded-full"
-                                    style={{ backgroundColor: client.color }}
-                                  />
-                                )}
-                                <User className="h-4 w-4 text-gray-400" />
-                                <div className="flex-1">
-                                  <div className="text-xs text-gray-500">
-                                    ID: {client.id}
-                                  </div>
-                                  <div className="font-medium text-sm text-gray-900">
-                                    {client.name}
-                                  </div>
-                                  <div className="text-xs text-gray-500">
-                                    {client.phone}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="px-3 py-4 text-center">
-                            <div className="flex flex-col items-center gap-2">
-                              <User className="h-8 w-8 text-gray-400" />
-                              <p className="text-sm text-gray-500 mb-2">No se encontraron clientes</p>
-                              {clientSearchTerm && (
-                                <div className="flex flex-col gap-2">
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setClientSearchTerm('');
-                                      setShowClientDropdown(true);
-                                    }}
-                                    className="text-xs"
-                                  >
-                                    Limpiar búsqueda
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    onClick={() => {
-                                      setShowCreateClientModal(true);
-                                      setShowClientDropdown(false);
-                                    }}
-                                    className="text-xs"
-                                  >
-                                    <Plus size={12} className="mr-1" />
-                                    Crear cliente
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-              {errors.client_id && (
-                <p className="mt-1 text-sm text-red-600">{errors.client_id.message}</p>
-              )}
-            </div>
+            <ClientSearchField
+              clientSearch={clientSearch}
+              register={register}
+              errors={errors}
+              onOpenCreateClientModal={() => setShowCreateClientModal(true)}
+            />
 
             {/* Fecha del presupuesto */}
             <div>
@@ -1213,7 +1007,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting || budgetItems.length === 0 || !selectedClientId}
+              disabled={isSubmitting || budgetItems.length === 0 || !clientSearch.selectedClientId}
               className="flex items-center gap-2"
             >
               {isSubmitting && <Loader className="animate-spin" size={16} />}
@@ -1254,17 +1048,17 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
       )}
       
       {/* Modal de vista previa de impresión */}
-      {showPrintPreview && selectedClientId && (
+      {showPrintPreview && clientSearch.selectedClientId && (
         <BudgetPrintPreviewModal
           isOpen={showPrintPreview}
           onClose={() => setShowPrintPreview(false)}
           budgetData={{
             id: nextBudgetId,
-            client_id: selectedClientId || 0,
+            client_id: clientSearch.selectedClientId || 0,
             user_id: currentUserId,
             date: (document.getElementById('date') as HTMLInputElement)?.value || todayDateInputMX(),
             total: total,
-            client: selectedClientId ? clients.find(c => c.id === selectedClientId) : undefined,
+            client: clientSearch.selectedClientId ? clientSearch.clients.find(c => c.id === clientSearch.selectedClientId) : undefined,
             budgetProducts: budgetItems.map((item, index) => ({
               id: index,
               budget_id: nextBudgetId,
