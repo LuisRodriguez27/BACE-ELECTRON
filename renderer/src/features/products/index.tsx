@@ -158,7 +158,13 @@ const ProductsPage: React.FC = () => {
           <style>
             @page {
               size: letter;
-              margin: 1.5cm;
+              margin: 1.5cm 1.5cm 2cm 1.5cm;
+              @bottom-right {
+                content: "Página " counter(page) " de " counter(pages);
+                font-family: 'Segoe UI', Arial, sans-serif;
+                font-size: 9px;
+                color: #6b7280;
+              }
             }
             body {
               font-family: 'Segoe UI', Arial, sans-serif;
@@ -255,10 +261,10 @@ const ProductsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              ${productsWithTemplates.map(p => {
+              ${productsWithTemplates.map((p, index) => {
         const productRow = `
                   <tr class="product-row">
-                    <td>${p.name}</td>
+                    <td>${index + 1}. ${p.name}</td>
                     <td class="serial-col">${p.serial_number || '-'}</td>
                     <td class="price-col">$${p.price.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
                   </tr>
@@ -552,8 +558,8 @@ const ProductsPage: React.FC = () => {
 
                     <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
                       <span className={`px-2 py-1 text-xs rounded-full ${product.active === true
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
                         }`}>
                         {product.active === true ? 'Activo' : 'Inactivo'}
                       </span>
