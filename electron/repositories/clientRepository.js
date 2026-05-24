@@ -4,7 +4,13 @@ const Client = require('../domain/client');
 class ClientRepository {
 
   async findAll() {
-    const clients = await db.getAll('SELECT * FROM clients WHERE active = true');
+    const clients = await db.getAll('SELECT * FROM clients WHERE active = true ORDER BY id DESC');
+    
+    return clients.map(client => new Client(client));
+  }
+  
+  async findAllInvested() {
+    const clients = await db.getAll('SELECT * FROM clients WHERE active = true ORDER BY id ASC');
     
     return clients.map(client => new Client(client));
   }

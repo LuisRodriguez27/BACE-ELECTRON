@@ -216,6 +216,7 @@ ipcMain.handle('permissions:removeFromUser', async (event, data) => await permis
 
 // Manejo de eventos IPC para clientes
 ipcMain.handle('clients:getAll', async () => await clientService.getAllClients());
+ipcMain.handle('clients:getAllInvested', async () => await clientService.getAllInvestedClients());
 ipcMain.handle('clients:getById', async (event, id) => await clientService.getClientById(id));
 ipcMain.handle('clients:create', async (event, data) => await clientService.createClient(data));
 ipcMain.handle('clients:update', async (event, id, data) => await clientService.updateClient(id, data));

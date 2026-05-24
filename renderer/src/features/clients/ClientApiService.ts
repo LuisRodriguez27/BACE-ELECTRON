@@ -5,6 +5,10 @@ export const ClientApiService = {
     return window.api.getAllClients();
   },
 
+  findAllInvested: async (): Promise<Client[]> => {
+    return window.api.getAllInvestedClients();
+  },
+
   findById: async (id: number): Promise<Client> => {
     return window.api.getClientById(id);
   },

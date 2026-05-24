@@ -59,6 +59,7 @@ declare global {
 
       // Clientes
       getAllClients: () => Promise<Client[]>;
+      getAllInvestedClients: () => Promise<Client[]>;
       getClientById: (id: number) => Promise<Client>;
       createClient: (data: CreateClientForm) => Promise<Client>;
       updateClient: (id: number, data: EditClientForm) => Promise<Client>;

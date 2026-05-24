@@ -1,12 +1,14 @@
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
-import { Calculator, CreditCard, Edit3, MapPin, MessageCircle, Phone, Plus, Search, ShoppingBag, Trash2, Users } from 'lucide-react';
+import { Calculator, CreditCard, Edit3, MapPin, MessageCircle, Phone, Plus, Printer, Search, ShoppingBag, Trash2, Users } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ClientApiService } from './ClientApiService';
 import { ClientColorIndicator, ClientOrdersModal, ClientPaymentsModal, CreateClientModal, DeleteClientModal, EditClientModal, ClientBudgetModal } from './components';
 import { useWhatsAppClient } from './hooks/useWhatsAppClient';
 import type { Client } from './types';
+import { formatDateMX, nowISO } from '@/utils/dateUtils';
+import { generateClientsPrintHtml } from './logbook';
 
 const ClientsPage: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
@@ -128,6 +130,36 @@ const ClientsPage: React.FC = () => {
     setSelectedClient(null);
   };
 
+  const handlePrintClients = async () => {
+    try {
+      const allInvestedClients = await ClientApiService.findAllInvested();
+      
+      const filteredInvested = allInvestedClients.filter(client =>
+        client && client.name && (
+          client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (client.phone && client.phone.includes(searchTerm)) ||
+          (client.address && client.address.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          client.id.toString().includes(searchTerm)
+        )
+      );
+
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        toast.error('Por favor permite ventanas emergentes para imprimir');
+        return;
+      }
+
+      const currentDate = formatDateMX(nowISO(), 'dddd, D [de] MMMM [de] YYYY');
+      const htmlContent = generateClientsPrintHtml(filteredInvested, currentDate);
+
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+    } catch (err) {
+      console.error('Error al imprimir clientes:', err);
+      toast.error('Error al intentar imprimir la lista de clientes');
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-6">
@@ -171,13 +203,23 @@ const ClientsPage: React.FC = () => {
             Administra la información de tus clientes
           </p>
         </div>
-        <Button 
-          className="flex items-center gap-2"
-          onClick={openCreateModal}
-        >
-          <Plus size={16} />
-          Nuevo Cliente
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            className="flex items-center gap-2 bg-slate-600 hover:bg-slate-700"
+            onClick={handlePrintClients}
+            title="Imprimir Directorio de Clientes"
+          >
+            <Printer size={16} />
+            Imprimir
+          </Button>
+          <Button 
+            className="flex items-center gap-2"
+            onClick={openCreateModal}
+          >
+            <Plus size={16} />
+            Nuevo Cliente
+          </Button>
+        </div>
       </div>
 
       {/* Filtros y búsqueda */}

@@ -12,6 +12,16 @@ class ClientService {
     }
   }
 
+  async getAllInvestedClients() {
+    try {
+      const clients = await clientRepository.findAllInvested();
+      return clients.map(client => client.toPlainObject());
+    } catch (error) {
+      console.error('Error al obtener clientes:', error);
+      throw new Error('Error al obtener clientes');
+    }
+  }
+
   async getClientById(id) {
     try {
       if (!id || isNaN(id)) {

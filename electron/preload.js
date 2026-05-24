@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // Clientes
   getAllClients: () => ipcRenderer.invoke('clients:getAll'),
+  getAllInvestedClients: () => ipcRenderer.invoke('clients:getAllInvested'),
   getClientById: (id) => ipcRenderer.invoke('clients:getById', id),
   createClient: (data) => ipcRenderer.invoke('clients:create', data),
   updateClient: (id, data) => ipcRenderer.invoke('clients:update', id, data),
