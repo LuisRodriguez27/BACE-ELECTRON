@@ -1,6 +1,7 @@
 import { useAuthStore } from '@/store/auth'
 import { authService } from '@/features/auth/AuthService'
-import logo from '@/assets/LOGO.jpg'
+import logo from '@/assets/LogoSinFondo.png'
+// import logo from '@/assets/LogoLetras.png'
 import pkg from '../../../../package.json'
 
 export function Dashboard() {
