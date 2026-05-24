@@ -50,6 +50,7 @@ contextBridge.exposeInMainWorld('api', {
   getProductWithTemplates: (productId) => ipcRenderer.invoke('products:getWithTemplates', productId),
   getAllProductsWithTemplates: () => ipcRenderer.invoke('products:getAllWithTemplates'),
   searchProducts: (searchTerm) => ipcRenderer.invoke('products:search', searchTerm),
+  searchProductsWithTemplates: (searchTerm) => ipcRenderer.invoke('products:searchWithTemplates', searchTerm),
   findSimilarNames: () => ipcRenderer.invoke('products:findSimilarNames'),
 
   // Plantillas de productos

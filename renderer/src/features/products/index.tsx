@@ -16,6 +16,7 @@ const ProductsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -33,37 +34,47 @@ const ProductsPage: React.FC = () => {
   // Precargar imágenes en background cuando la lista de productos esté disponible
   useImagePreloader(products);
 
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Update debounced search term
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  // Fetch products when debounced search term changes
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        setLoading(true);
-        const data = await ProductsApiService.findAllWithTemplates();
-        setProducts(data);
+        if (!loading) setIsSearching(true);
+        if (debouncedSearch.trim() === '') {
+          const data = await ProductsApiService.findAllWithTemplates();
+          setProducts(data);
+        } else {
+          const data = await ProductsApiService.searchWithTemplates(debouncedSearch);
+          setProducts(data);
+        }
       } catch (err) {
         console.error('Error fetching products:', err);
         setError('Error al cargar productos');
       } finally {
         setLoading(false);
+        setIsSearching(false);
       }
     };
     fetchProducts();
-  }, []);
+  }, [debouncedSearch]);
 
-  // Validar que los datos sean válidos y filtrar
+  // Ya no filtramos localmente, la BD hace el trabajo pesado y mejorado
   const filteredProducts = products.filter(product => {
-    // Validación defensiva: asegurar que el product sea válido
     if (!product || typeof product !== 'object' || !product.id || !product.name) {
       console.warn('Producto inválido encontrado en la lista:', product);
       return false;
     }
-
-    const searchLower = searchTerm.toLowerCase();
-
-    return (
-      product.name.toLowerCase().includes(searchLower) ||
-      (product.serial_number && product.serial_number.toLowerCase().includes(searchLower)) ||
-      (product.id && product.id.toString().includes(searchLower))
-    );
+    return true; // Mostrar todo lo que devuelva la BD
   });
 
   const handleProductCreated = (newProduct: Product) => {
@@ -144,23 +155,8 @@ const ProductsPage: React.FC = () => {
           : 'Preparando impresión del inventario completo...'
       );
 
-      // Obtener todos los productos con sus plantillas (subproductos)
-      const productsWithTemplates = await ProductsApiService.findAllWithTemplates();
-
-      // Filtrar si hay búsqueda activa
-      const filteredForPrint = productsWithTemplates.filter(product => {
-        if (!product || typeof product !== 'object' || !product.id || !product.name) {
-          return false;
-        }
-
-        const searchLower = searchTerm.toLowerCase();
-
-        return (
-          product.name.toLowerCase().includes(searchLower) ||
-          (product.serial_number && product.serial_number.toLowerCase().includes(searchLower)) ||
-          (product.id && product.id.toString().includes(searchLower))
-        );
-      });
+      // Generar reporte (backend manda ya filtrado)
+      const filteredForPrint = products;
 
       // Generar HTML
       const printHTML = `
@@ -433,7 +429,13 @@ const ProductsPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+              {isSearching ? (
+                <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+                </div>
+              ) : (
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+              )}
               <input
                 type="text"
                 placeholder="Buscar productos..."

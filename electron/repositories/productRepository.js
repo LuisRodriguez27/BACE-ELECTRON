@@ -100,18 +100,61 @@ class ProductRepository {
     return result.count;
   }
 
-  // Búsqueda avanzada
+  // Búsqueda avanzada y flexible
   async searchByTerm(searchTerm) {
-    const term = `%${searchTerm}%`;
+    if (!searchTerm || typeof searchTerm !== 'string' || !searchTerm.trim()) return [];
+
+    const cleanTerm = searchTerm.trim();
+    
+    // 1. Búsqueda exacta parcial (el % permite "La" -> "Lapiz")
+    const exactLike = `%${cleanTerm}%`;
+    
+    // 2. Búsqueda sin espacios (ej. si buscan "cocacola" encuentra "coca cola")
+    const condensedTerm = `%${cleanTerm.replace(/\s+/g, '')}%`;
+
+    // 3. Búsqueda por palabras (sin importar el orden, ej. "pro macbook" encuentra "macbook pro")
+    const words = cleanTerm.split(/[\s\-\.,_]+/).filter(w => w.length > 0);
+    
+    const wordConditions = [];
+    const params = [exactLike, condensedTerm, cleanTerm]; 
+    
+    let paramIndex = 4;
+    for (const word of words) {
+      params.push(`%${word}%`);
+      wordConditions.push(`(
+        unaccent(name) ILIKE unaccent($${paramIndex}) OR 
+        unaccent(serial_number) ILIKE unaccent($${paramIndex}) OR 
+        unaccent(description) ILIKE unaccent($${paramIndex})
+      )`);
+      paramIndex++;
+    }
+    
+    const wordsWhereClause = wordConditions.length > 0 ? wordConditions.join(' AND ') : 'false';
+
     const products = await db.getAll(`
-      SELECT * FROM products 
+      SELECT *, 
+             similarity(unaccent(name), unaccent($3)) as sim_name,
+             word_similarity(unaccent($3), unaccent(name)) as wsim_name
+      FROM products 
       WHERE active = true AND (
-        name ILIKE $1 OR 
-        serial_number ILIKE $1 OR 
-        description ILIKE $1
+        -- Mantenemos la coincidencia parcial exacta para el debounce ("La" -> "Lapiz") ignorando acentos
+        (unaccent(name) ILIKE unaccent($1) OR unaccent(serial_number) ILIKE unaccent($1) OR unaccent(description) ILIKE unaccent($1))
+        OR
+        (unaccent(REPLACE(name, ' ', '')) ILIKE unaccent($2))
+        OR
+        (${wordsWhereClause})
+        OR
+        -- Búsqueda difusa combinada con unaccent. 
+        -- word_similarity es excelente para errores tipográficos en palabras parciales ("lapis" dentro de "lapicero")
+        (similarity(unaccent(name), unaccent($3)) > 0.25 OR word_similarity(unaccent($3), unaccent(name)) > 0.4)
       )
-      ORDER BY name
-    `, [term]);
+      ORDER BY 
+        -- Ordena priorizando coincidencias exactas y luego similitudes más fuertes
+        (unaccent(name) ILIKE unaccent($1)) DESC,
+        wsim_name DESC,
+        sim_name DESC, 
+        name
+    `, params);
     
     return products.map(product => new Product(product));
   }
@@ -163,6 +206,24 @@ class ProductRepository {
   // Obtener todos los productos con sus plantillas
   async findAllWithTemplates() {
     const products = await this.findAll();
+
+    return await Promise.all(products.map(async product => {
+      const templates = await db.getAll(`
+        SELECT pt.*, u.username as created_by_username
+        FROM product_templates pt
+        LEFT JOIN users u ON pt.created_by = u.id
+        WHERE pt.product_id = $1 AND pt.active = true
+      `, [product.id]);
+      return {
+        ...product.toPlainObject(),
+        templates
+      };
+    }));
+  }
+
+  // Buscar productos con sus plantillas
+  async searchWithTemplates(searchTerm) {
+    const products = await this.searchByTerm(searchTerm);
 
     return await Promise.all(products.map(async product => {
       const templates = await db.getAll(`

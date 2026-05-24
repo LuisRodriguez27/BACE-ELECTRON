@@ -14,7 +14,7 @@ export const ProductsApiService = {
     return window.api.getProductWithTemplates(id);
   },
 
-  findAllWithTemplates: async (): Promise<(Product & { templates: ProductTemplate[] })[]> => {
+  findAllWithTemplates: async (): Promise<(Product & { templates?: ProductTemplate[] })[]> => {
     return window.api.getAllProductsWithTemplates();
   },
 
@@ -32,6 +32,10 @@ export const ProductsApiService = {
 
   search: async (searchTerm: string): Promise<Product[]> => {
     return window.api.searchProducts(searchTerm);
+  },
+
+  searchWithTemplates: async (searchTerm: string): Promise<(Product & { templates?: ProductTemplate[] })[]> => {
+    return window.api.searchProductsWithTemplates(searchTerm);
   },
 
   findSimilarNames: async (): Promise<SimilarNameResult[]> => {

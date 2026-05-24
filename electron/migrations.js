@@ -404,6 +404,24 @@ const MIGRATIONS = [
     }
   },
 
+  // v15: Crear extensiones unaccent y pg_trgm para búsquedas difusas
+  {
+    version: 15,
+    name: 'add_search_extensions',
+    isApplied: async (client) => {
+      const { rows } = await client.query(`
+        SELECT COUNT(*) FROM pg_extension 
+        WHERE extname IN ('unaccent', 'pg_trgm')
+      `);
+      return parseInt(rows[0].count) >= 2;
+    },
+    up: async (client) => {
+      // Creamos las extensiones si no existen
+      await client.query(`CREATE EXTENSION IF NOT EXISTS unaccent`);
+      await client.query(`CREATE EXTENSION IF NOT EXISTS pg_trgm`);
+    }
+  },
+
   // AGREGA NUEVAS MIGRACIONES AQUÍ
 ];
 

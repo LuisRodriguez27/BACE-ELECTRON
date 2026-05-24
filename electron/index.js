@@ -234,6 +234,7 @@ ipcMain.handle('products:delete', async (event, id) => await productService.dele
 ipcMain.handle('products:getWithTemplates', async (event, productId) => await productService.getProductWithTemplates(productId));
 ipcMain.handle('products:getAllWithTemplates', async () => await productService.getAllProductsWithTemplates());
 ipcMain.handle('products:search', async (event, searchTerm) => await productService.searchProducts(searchTerm));
+ipcMain.handle('products:searchWithTemplates', async (event, searchTerm) => await productService.searchProductsWithTemplates(searchTerm));
 ipcMain.handle('products:findSimilarNames', async () => await productService.getProductsWithSimilarNames());
 
 // Manejo de eventos IPC para plantillas de productos

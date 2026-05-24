@@ -199,6 +199,19 @@ class ProductService {
     }
   }
 
+  async searchProductsWithTemplates(searchTerm) {
+    try {
+      if (!searchTerm || searchTerm.trim().length === 0) {
+        return this.getAllProductsWithTemplates();
+      }
+
+      return await productRepository.searchWithTemplates(searchTerm.trim());
+    } catch (error) {
+      console.error('Error al buscar productos con plantillas:', error);
+      throw new Error('Error al buscar productos con plantillas');
+    }
+  }
+
   async getProductsCount() {
     try {
       return await productRepository.countActiveProducts();

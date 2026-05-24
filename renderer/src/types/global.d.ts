@@ -79,8 +79,9 @@ declare global {
 
       // Funciones avanzadas de productos
       getProductWithTemplates: (productId: number) => Promise<Product & { templates: ProductTemplate[] }>;
-      getAllProductsWithTemplates: () => Promise<(Product & { templates: ProductTemplate[] })[]>;
+      getAllProductsWithTemplates: () => Promise<(Product & { templates?: ProductTemplate[] })[]>;
       searchProducts: (searchTerm: string) => Promise<Product[]>;
+      searchProductsWithTemplates: (searchTerm: string) => Promise<(Product & { templates?: ProductTemplate[] })[]>;
       findSimilarNames: () => Promise<SimilarNameResult[]>;
 
       // Plantillas de productos
