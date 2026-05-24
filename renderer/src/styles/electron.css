@@ -1,8 +1,17 @@
 /* Estilos específicos para Electron */
 
+:root {
+  --app-bg: #dededf; /* Fondo general claro */
+  --app-card: #ffffff;
+  --app-card-hover: #f9fafb;
+  --app-text: #111827;
+  --app-border: #e5e7eb;
+}
+
 /* Asegurar que el body tenga un fondo sólido */
 body {
-  background-color: #ffffff !important;
+  background-color: var(--app-bg) !important;
+  color: var(--app-text);
   -webkit-app-region: no-drag;
 }
 
@@ -45,13 +54,13 @@ body {
   z-index: 50 !important;
 }
 
-/* Asegurar que los fondos sean sólidos */
+/* Mapeo de clases de Tailwind */
 .bg-white {
-  background-color: #ffffff !important;
+  background-color: var(--app-card) !important;
 }
 
 .bg-gray-50 {
-  background-color: #f9fafb !important;
+  background-color: var(--app-card-hover) !important;
 }
 
 .bg-blue-100 {

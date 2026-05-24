@@ -17,6 +17,7 @@
     "@tanstack/react-router": "^1.131.27",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "darkreader": "^4.9.125",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.18",
     "embla-carousel-autoplay": "^8.6.0",

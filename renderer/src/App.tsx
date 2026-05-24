@@ -38,6 +38,10 @@ const queryClient = new QueryClient({
   }
 })
 
+import { useEffect } from 'react'
+import { useThemeStore } from '@/store/theme'
+import { enable as enableDarkMode, disable as disableDarkMode } from 'darkreader'
+
 function AppWrapper() {
   // Initialize auth hook to check authentication status
   useAuth()
@@ -46,6 +50,20 @@ function AppWrapper() {
 }
 
 function App() {
+  const theme = useThemeStore((state) => state.theme)
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      enableDarkMode({
+        brightness: 100,
+        contrast: 95,
+        sepia: 10
+      });
+    } else {
+      disableDarkMode();
+    }
+  }, [theme])
+
   return (
     <QueryClientProvider client={queryClient}>
       <AppWrapper />

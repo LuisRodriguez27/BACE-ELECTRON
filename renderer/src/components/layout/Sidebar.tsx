@@ -14,12 +14,15 @@ import {
   DollarSign,
   MessageCircle,
   Info,
-  HandCoins
+  HandCoins,
+  Moon,
+  Sun
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSidebarStore } from '@/store/sidebar'
 import { cn } from '@/lib/utils'
 import { usePermissions } from '@/hooks/use-permissions'
+import { useThemeStore } from '@/store/theme'
 import AboutModal from './AboutModal'
 
 interface MenuItem {
@@ -100,6 +103,7 @@ const menuItems: MenuItem[] = [
 
 const Sidebar: React.FC = () => {
   const { isExpanded, toggleSidebar } = useSidebarStore()
+  const { theme, toggleTheme } = useThemeStore()
   const location = useLocation()
   const { canAccess } = usePermissions()
   const [isAboutOpen, setIsAboutOpen] = useState(false)
@@ -196,6 +200,30 @@ const Sidebar: React.FC = () => {
               : 'opacity-0 -translate-x-2 w-0 overflow-hidden'
           )}>
             WhatsApp
+          </span>
+        </button>
+
+        <button
+          onClick={toggleTheme}
+          title={theme === 'light' ? 'Modo Oscuro' : 'Modo Claro'}
+          className={cn(
+            'w-full flex items-center px-3 py-2 rounded-lg transition-colors duration-200 group min-w-10',
+            'text-gray-300 hover:bg-gray-800 hover:text-white',
+            !isExpanded && 'justify-center'
+          )}
+        >
+          {theme === 'light' ? (
+            <Moon size={20} className="shrink-0 w-5 h-5 text-indigo-400 group-hover:text-indigo-300" />
+          ) : (
+            <Sun size={20} className="shrink-0 w-5 h-5 text-yellow-400 group-hover:text-yellow-300" />
+          )}
+          <span className={cn(
+            'ml-3 transition-all duration-300 whitespace-nowrap',
+            isExpanded
+              ? 'opacity-100 translate-x-0'
+              : 'opacity-0 -translate-x-2 w-0 overflow-hidden'
+          )}>
+            {theme === 'light' ? 'Modo Oscuro' : 'Modo Claro'}
           </span>
         </button>
 
