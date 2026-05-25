@@ -113,7 +113,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
             return {
               type: 'template' as const,
               id: bp.template_id || 0,
-              name: bp.product_name ? `${bp.product_name} (Plantilla)` : 'Plantilla',
+              name: bp.template_base_product_name ? `${bp.template_base_product_name} (Plantilla)` : (bp.product_name ? `${bp.product_name} (Plantilla)` : 'Plantilla'),
               quantity: bp.quantity,
               unit_price: bp.unit_price,
               width: bp.template_width,

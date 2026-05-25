@@ -339,10 +339,12 @@ class BudgetRepository {
         pt.texts as template_texts,
         pt.description as template_description,
         pt.final_price as template_final_price,
-        u.username as template_created_by_username
+        u.username as template_created_by_username,
+        p_template.name as template_base_product_name
       FROM budget_products bp
       LEFT JOIN products p ON bp.product_id = p.id
       LEFT JOIN product_templates pt ON bp.template_id = pt.id
+      LEFT JOIN products p_template ON pt.product_id = p_template.id
       LEFT JOIN users u ON pt.created_by = u.id
       WHERE bp.budget_id = $1
       ORDER BY bp.id

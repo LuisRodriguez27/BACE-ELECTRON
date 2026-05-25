@@ -153,6 +153,7 @@ export interface BudgetProduct {
   template_description?: string;
   template_final_price?: number;
   template_created_by_username?: string;
+  template_base_product_name?: string;
 }
 
 // Tipos para el formulario del frontend
@@ -195,11 +196,12 @@ export const getBudgetItemDisplayName = (budgetProduct: BudgetProduct): string =
   if (budgetProduct.product_id) {
     return budgetProduct.product_name || `Producto #${budgetProduct.product_id}`;
   } else if (budgetProduct.template_id) {
-    const baseName = budgetProduct.product_name || 'Producto';
+    const baseName = budgetProduct.template_base_product_name || budgetProduct.product_name || 'Producto';
     return `${baseName} (Plantilla)`;
   }
   return 'Item desconocido';
 };
+
 
 export const getBudgetItemDescription = (budgetProduct: BudgetProduct): string => {
   if (budgetProduct.product_id) {

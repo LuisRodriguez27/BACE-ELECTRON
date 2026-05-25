@@ -8,7 +8,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { BudgetApiService } from './BudgetApiService';
 import CreateBudgetModal from './components/CreateBudgetModal';
-import type { Budget } from './types';
+import { getBudgetItemDisplayName, type Budget } from './types';
 import BudgetPrintPreviewModal from './components/BudgetPrintPreviewModal';
 import ClientColorIndicator from '../clients/components/ClientColorIndicator';
 import type { ClientColor } from '../clients/types';
@@ -448,7 +448,7 @@ const BudgetsPage: React.FC = () => {
                             <div className="flex flex-wrap gap-2 mt-1">
                               {budget.budgetProducts.map((bp, index) => (
                                 <span key={index} className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded">
-                                  {bp.product_name} (x{bp.quantity})
+                                  {getBudgetItemDisplayName(bp)} (x{bp.quantity})
                                 </span>
                               ))}
                             </div>
