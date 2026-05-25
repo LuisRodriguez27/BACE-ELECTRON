@@ -40,7 +40,8 @@ class SimpleOrderService {
         concept: order.concept,
         total: order.total,
         active: order.active,
-        client_name: order.client_name
+        client_name: order.client_name,
+        client_phone: order.client_phone
       });
 
       const newOrder = await simpleOrderRepository.getById(newId);

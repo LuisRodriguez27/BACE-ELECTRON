@@ -10,6 +10,7 @@ class SimpleOrder {
     active = true,
     user_username,
     client_name,
+    client_phone,
     payments = []
   }) {
     this.id = id;
@@ -20,6 +21,7 @@ class SimpleOrder {
     this.active = active;
     this.user_username = user_username || null;
     this.client_name = client_name || '';
+    this.client_phone = client_phone || '';
     this.payments = payments ? payments.map(p => new SimpleOrderPayment(p)) : [];
   }
 
@@ -82,6 +84,7 @@ class SimpleOrder {
       total: this.total,
       active: this.active,
       client_name: this.client_name,
+      client_phone: this.client_phone,
       user: this.getUser(),
       payments: this.payments.map(p => p.toPlainObject()),
       totalPaid: this.getTotalPaid(),

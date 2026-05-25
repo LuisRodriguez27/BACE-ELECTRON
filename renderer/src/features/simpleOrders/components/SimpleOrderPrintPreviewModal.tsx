@@ -103,7 +103,7 @@ const SimpleOrderPrintPreviewModal: React.FC<SimpleOrderPrintPreviewModalProps> 
             <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5rem;">
                 <!-- Cliente -->
                 <div style="grid-column: span 1 / span 1; font-size: calc(1em - 2px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem;">
-                    ${orderData.client_name || 'Cliente de Mostrador'}
+                    ${orderData.client_name || 'Cliente de Mostrador'}${orderData.client_phone ? ` - ${orderData.client_phone}` : ''}
                 </div>
             </div>
         </div>
@@ -339,7 +339,7 @@ const SimpleOrderPrintPreviewModal: React.FC<SimpleOrderPrintPreviewModalProps> 
                       <div className="grid grid-cols-2 gap-20">
                         {/* Cliente */}
                         <div className="truncate flex items-center gap-2" style={{ fontSize: 'calc(1em - 2px)' }}>
-                          <span>{orderData.client_name || 'Cliente de Mostrador'}</span>
+                          <span>{orderData.client_name || 'Cliente de Mostrador'}{orderData.client_phone ? ` - ${orderData.client_phone}` : ''}</span>
                         </div>
                       </div>
                     </div>

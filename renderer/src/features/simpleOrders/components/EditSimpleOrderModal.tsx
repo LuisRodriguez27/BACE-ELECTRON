@@ -27,12 +27,14 @@ const EditSimpleOrderModal: React.FC<EditSimpleOrderModalProps> = ({
 
   const [concept, setConcept] = useState('');
   const [client_name, setClientName] = useState('');
+  const [client_phone, setClientPhone] = useState('');
   const [total, setTotal] = useState<number | ''>('');
 
   useEffect(() => {
     if (isOpen && order) {
       setConcept(order.concept || '');
       setClientName(order.client_name || '');
+      setClientPhone(order.client_phone || '');
       setTotal(order.total || '');
       setError(null);
     }
@@ -60,6 +62,11 @@ const EditSimpleOrderModal: React.FC<EditSimpleOrderModalProps> = ({
         return;
     }
 
+    if (client_phone.trim() && client_phone.length !== 10) {
+      setError('El teléfono debe tener exactamente 10 dígitos');
+      return;
+    }
+
     setError(null);
     setLoading(true);
 
@@ -70,6 +77,7 @@ const EditSimpleOrderModal: React.FC<EditSimpleOrderModalProps> = ({
         concept,
         total: Number(total),
         client_name: client_name,
+        client_phone: client_phone,
         date: order.date,
         active: order.active
       });
@@ -132,6 +140,23 @@ const EditSimpleOrderModal: React.FC<EditSimpleOrderModalProps> = ({
                   value={client_name}
                   onChange={(e) => setClientName(e.target.value)}
                   placeholder="Nombre de la persona (para tickets / búsquedas)"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="client_phone" className="mb-1 block font-medium">Teléfono del Cliente <span className="text-gray-400 font-normal text-xs">(Opcional)</span></Label>
+                <Input
+                  id="client_phone"
+                  type="tel"
+                  maxLength={10}
+                  value={client_phone}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '');
+                    if (val.length <= 10) {
+                      setClientPhone(val);
+                    }
+                  }}
+                  placeholder="Teléfono del cliente..."
                 />
               </div>
 

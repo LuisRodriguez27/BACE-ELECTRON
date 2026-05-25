@@ -422,6 +422,26 @@ const MIGRATIONS = [
     }
   },
 
+  // v16: Agregar columna client_phone a simple_orders
+  {
+    version: 16,
+    name: 'add_client_phone_to_simple_orders',
+    isApplied: async (client) => {
+      const { rows } = await client.query(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name = 'simple_orders'
+          AND column_name = 'client_phone'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client) => {
+      await client.query(`
+        ALTER TABLE simple_orders
+          ADD COLUMN IF NOT EXISTS client_phone VARCHAR(50)
+      `);
+    }
+  },
+
   // AGREGA NUEVAS MIGRACIONES AQUÍ
 ];
 

@@ -137,6 +137,7 @@ const SimpleOrdersPage: React.FC = () => {
       order.id.toString().includes(s) ||
       order.concept.toLowerCase().includes(s) ||
       (order.client_name && order.client_name.toLowerCase().includes(s)) ||
+      (order.client_phone && order.client_phone.toLowerCase().includes(s)) ||
       (order.user?.username && order.user.username.toLowerCase().includes(s))
     );
   });
@@ -283,7 +284,12 @@ const SimpleOrdersPage: React.FC = () => {
                   <td className="py-3 px-4 text-gray-900 font-medium">#{order.id}</td>
                   <td className="py-3 px-4 text-gray-500">{formatDateTime(order.date)}</td>
                   <td className="py-3 px-4 text-gray-900">{order.concept}</td>
-                  <td className="py-3 px-4 text-gray-500">{order.client_name || '-'}</td>
+                  <td className="py-3 px-4 text-gray-500">
+                    <div>{order.client_name || '-'}</div>
+                    {order.client_phone && (
+                      <div className="text-xs text-gray-400 font-normal">{order.client_phone}</div>
+                    )}
+                  </td>
                   <td className="py-3 px-4 text-gray-500">{order.user?.username || 'N/A'}</td>
                   <td className="py-3 px-4 text-gray-900 font-medium text-right">${order.total.toFixed(2)}</td>
                   <td className={`py-3 px-4 font-medium text-right ${order.balance > 0 && order.totalPaid > 0 ? 'text-orange-600' : order.balance <= 0 ? 'text-green-600' : 'text-gray-500'}`}>

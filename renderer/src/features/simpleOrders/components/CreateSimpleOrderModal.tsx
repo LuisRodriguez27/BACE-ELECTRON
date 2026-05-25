@@ -22,6 +22,7 @@ const CreateSimpleOrderModal: React.FC<CreateSimpleOrderModalProps> = ({
 
   const [concept, setConcept] = useState('');
   const [client_name, setClientName] = useState('');
+  const [client_phone, setClientPhone] = useState('');
   const [total, setTotal] = useState<number | ''>('');
   const [abono, setAbono] = useState<number | ''>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('');
@@ -55,6 +56,11 @@ const CreateSimpleOrderModal: React.FC<CreateSimpleOrderModalProps> = ({
       return;
     }
 
+    if (client_phone.trim() && client_phone.length !== 10) {
+      setError('El teléfono debe tener exactamente 10 dígitos');
+      return;
+    }
+
     setError(null);
     setLoading(true);
 
@@ -65,6 +71,7 @@ const CreateSimpleOrderModal: React.FC<CreateSimpleOrderModalProps> = ({
         concept,
         total: Number(total),
         client_name: client_name,
+        client_phone: client_phone,
       });
 
       // 2. Si hay abono inicial, creamos el pago automáticamente
@@ -92,6 +99,7 @@ const CreateSimpleOrderModal: React.FC<CreateSimpleOrderModalProps> = ({
   const handleClose = () => {
     setConcept('');
     setClientName('');
+    setClientPhone('');
     setTotal('');
     setAbono('');
     setPaymentMethod('');
@@ -145,6 +153,29 @@ const CreateSimpleOrderModal: React.FC<CreateSimpleOrderModalProps> = ({
                 onChange={(e) => setClientName(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 placeholder="Nombre del cliente..."
+              />
+            </div>
+          </div>
+
+          {/* Teléfono (Opcional) */}
+          <div>
+            <Label htmlFor="clientPhone" className="text-sm font-medium text-gray-700">
+              Teléfono (Opcional)
+            </Label>
+            <div className="mt-1 relative">
+              <Input
+                id="clientPhone"
+                type="tel"
+                maxLength={10}
+                value={client_phone}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '');
+                  if (val.length <= 10) {
+                    setClientPhone(val);
+                  }
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                placeholder="Teléfono del cliente..."
               />
             </div>
           </div>

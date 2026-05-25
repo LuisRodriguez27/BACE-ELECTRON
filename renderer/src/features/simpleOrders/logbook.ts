@@ -62,7 +62,10 @@ export const generateSimpleOrdersLogbookHtml = (ordersToPrint: SimpleOrder[], cu
                 <td class="center"><strong>${order.id}</strong></td>
                 <td class="center">${dateStr}</td>
                 <td>${order.concept}</td>
-                <td class="center">${order.client_name || '-'}</td>
+                <td class="center">
+                  ${order.client_name || '-'}
+                  ${order.client_phone ? `<br><small style="color: #666;">${order.client_phone}</small>` : ''}
+                </td>
                 <td class="center">${order.user?.username || 'N/A'}</td>
                 <td class="right">$${order.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                 <td class="right">$${order.totalPaid.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>

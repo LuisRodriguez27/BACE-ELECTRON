@@ -39,22 +39,22 @@ class SimpleOrderRepository {
   }
 
   async create(orderData) {
-    const { user_id, date, concept, total, active = true, client_name } = orderData;
+    const { user_id, date, concept, total, active = true, client_name, client_phone } = orderData;
     const result = await db.execute(`
-      INSERT INTO simple_orders (user_id, date, concept, total, active, client_name)
-      VALUES ($1, $2, $3, $4, $5, $6)
-    `, [user_id, date, concept, total, active, client_name]);
+      INSERT INTO simple_orders (user_id, date, concept, total, active, client_name, client_phone)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `, [user_id, date, concept, total, active, client_name, client_phone]);
 
     return result.lastInsertRowid;
   }
 
   async update(id, orderData) {
-    const { user_id, date, concept, total, active = true, client_name } = orderData;
+    const { user_id, date, concept, total, active = true, client_name, client_phone } = orderData;
     const result = await db.execute(`
       UPDATE simple_orders 
-      SET user_id = $1, date = $2, concept = $3, total = $4, active = $5, client_name = $6
-      WHERE id = $7
-    `, [user_id, date, concept, total, active, client_name, id]);
+      SET user_id = $1, date = $2, concept = $3, total = $4, active = $5, client_name = $6, client_phone = $7
+      WHERE id = $8
+    `, [user_id, date, concept, total, active, client_name, client_phone, id]);
 
     return result.changes > 0;
   }

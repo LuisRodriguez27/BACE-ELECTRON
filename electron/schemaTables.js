@@ -138,6 +138,7 @@ const schemaTables = `
     date        TIMESTAMPTZ   NOT NULL,
     concept     TEXT          NOT NULL,
     client_name VARCHAR(255),
+    client_phone VARCHAR(50),
     total       DECIMAL(10,2) DEFAULT 0,
     active      BOOLEAN       NOT NULL DEFAULT TRUE
   );
