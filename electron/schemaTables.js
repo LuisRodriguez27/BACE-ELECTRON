@@ -166,6 +166,26 @@ const schemaTables = `
     active          BOOLEAN       NOT NULL DEFAULT TRUE
   );
 
+  CREATE TABLE IF NOT EXISTS suppliers (
+    id              SERIAL        PRIMARY KEY,
+    name            VARCHAR(150)  NOT NULL,
+    phone           VARCHAR(20),
+    email           VARCHAR(100),
+    description     TEXT,
+    is_active       BOOLEAN       NOT NULL DEFAULT TRUE
+  );
+
+  CREATE TABLE IF NOT EXISTS supplier_orders (
+    id              SERIAL        PRIMARY KEY,
+    supplier_id     INTEGER       NOT NULL REFERENCES suppliers(id),
+    order_id        INTEGER       REFERENCES orders(id),
+    order_date      TIMESTAMPTZ   NOT NULL,
+    status          VARCHAR(50),
+    notes           TEXT,
+    date            TIMESTAMPTZ   NOT NULL,
+    active          BOOLEAN       DEFAULT TRUE
+  );
+
 `;
 
 module.exports = schemaTables;
