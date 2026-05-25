@@ -1,6 +1,7 @@
 import type {
   Payment,
   CreatePaymentForm,
+  EditPaymentForm,
   PaymentFilters,
   PaginatedPayments,
 } from "./types";
@@ -26,7 +27,7 @@ export const PaymentsApiService = {
     return window.api.createPayment(payment);
   },
 
-  update: async (id: number, payment: Payment): Promise<Payment> => {
+  update: async (id: number, payment: EditPaymentForm): Promise<Payment> => {
     return window.api.updatePayment(id, payment);
   },
 

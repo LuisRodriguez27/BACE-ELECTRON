@@ -97,10 +97,7 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
           descripcion: validatedData.descripcion
         }) as any;
       } else {
-        updatedPayment = await PaymentsApiService.update(payment.id, {
-          ...payment,
-          ...validatedData
-        });
+        updatedPayment = await PaymentsApiService.update(payment.id, validatedData);
       }
 
       toast.success('Pago actualizado exitosamente');
