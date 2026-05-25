@@ -1,6 +1,6 @@
 import { Button, Input, Label } from '@/components/ui';
 import { extractErrorMessage } from '@/utils/errorHandling';
-import { DollarSign, FileText, Loader, Trash2, X } from 'lucide-react';
+import { DollarSign, FileText, Loader, Trash2, X, Phone, User, Info } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { PaymentsApiService } from '../PaymentsApiService';
@@ -35,7 +35,10 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [formData, setFormData] = useState<EditPaymentForm>({
     amount: 0,
-    descripcion: ''
+    descripcion: '',
+    info: '',
+    phone: '',
+    clientName: ''
   });
 
   const pendingAmount = orderTotal - currentPayments;
@@ -44,7 +47,10 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
     if (payment && isOpen) {
       setFormData({
         amount: payment.amount,
-        descripcion: payment.descripcion || ''
+        descripcion: payment.descripcion || '',
+        info: payment.info || '',
+        phone: payment.phone || '',
+        clientName: payment.client_name || ''
       });
       setError(null);
       setShowDeleteConfirm(false);
@@ -65,6 +71,20 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
       // Verificar que el nuevo monto no exceda lo disponible
       if (validatedData.amount > pendingAmount + payment.amount) {
         setError(`El monto no puede exceder el disponible: $${(pendingAmount + payment.amount).toFixed(2)}`);
+        setLoading(false);
+        return;
+      }
+
+      const isFreePayment = !payment.order_id && !isSimpleOrder;
+
+      if (isFreePayment && (!formData.info || formData.info.trim() === '')) {
+        setError('El campo "Información/Concepto" es requerido para pagos sin orden');
+        setLoading(false);
+        return;
+      }
+
+      if (isFreePayment && formData.phone && formData.phone.trim().length !== 10) {
+        setError('El teléfono debe tener exactamente 10 dígitos');
         setLoading(false);
         return;
       }
@@ -122,7 +142,10 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
   const handleClose = () => {
     setFormData({
       amount: 0,
-      descripcion: ''
+      descripcion: '',
+      info: '',
+      phone: '',
+      clientName: ''
     });
     setError(null);
     setShowDeleteConfirm(false);
@@ -267,6 +290,72 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
                 Máximo: ${(pendingAmount + payment.amount).toFixed(2)}
               </p>
             </div>
+
+            {/* Campos editables para pago libre */}
+            {!payment.order_id && !isSimpleOrder && (
+              <>
+                {/* Nombre de cliente */}
+                <div>
+                  <Label htmlFor="clientName" className="text-sm font-medium text-gray-700">
+                    Cliente / Nombre (Opcional)
+                  </Label>
+                  <div className="mt-1 relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                    <Input
+                      id="clientName"
+                      type="text"
+                      value={formData.clientName || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, clientName: e.target.value }))}
+                      className="pl-10"
+                      placeholder="Nombre del cliente..."
+                    />
+                  </div>
+                </div>
+
+                {/* Teléfono */}
+                <div>
+                  <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
+                    Teléfono (Opcional)
+                  </Label>
+                  <div className="mt-1 relative">
+                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                    <Input
+                      id="phone"
+                      type="tel"
+                      maxLength={10}
+                      value={formData.phone || ''}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        if (val.length <= 10) {
+                          setFormData(prev => ({ ...prev, phone: val }));
+                        }
+                      }}
+                      className="pl-10"
+                      placeholder="Teléfono del cliente..."
+                    />
+                  </div>
+                </div>
+
+                {/* Información / Concepto */}
+                <div>
+                  <Label htmlFor="info" className="text-sm font-medium text-gray-700">
+                    Información / Concepto *
+                  </Label>
+                  <div className="mt-1 relative">
+                    <Info className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                    <Input
+                      id="info"
+                      type="text"
+                      value={formData.info || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, info: e.target.value }))}
+                      className="pl-10"
+                      placeholder="Ej: Abono de cliente, pago de anticipo..."
+                      required
+                    />
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Descripción */}
             <div>

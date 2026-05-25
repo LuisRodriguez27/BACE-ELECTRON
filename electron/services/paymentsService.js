@@ -71,7 +71,7 @@ class PaymentsService {
     }
   }
 
-  async createPayment({ orderId, amount, date, descripcion, info }) {
+  async createPayment({ orderId, amount, date, descripcion, info, phone, clientName }) {
     try {
       // ── Verificar sesión de caja activa ───────────────────────────────
       const activeSession = await cashSessionRepository.getActive();
@@ -136,7 +136,9 @@ class PaymentsService {
         amount: parseFloat(amount),
         date: paymentDate.toISOString(),
         descripcion: descripcion?.trim() || null,
-        info: info.trim()
+        info: info.trim(),
+        phone: phone?.trim() || null,
+        client_name: clientName?.trim() || null
       });
 
       return payment.toPlainObject();
@@ -147,7 +149,7 @@ class PaymentsService {
     }
   }
 
-  async updatePayment(id, { amount, descripcion }) {
+  async updatePayment(id, { amount, descripcion, info, phone, clientName }) {
     try {
       if (!id || isNaN(id)) {
         throw new Error('ID de pago inválido');
@@ -188,7 +190,10 @@ class PaymentsService {
       // Actualizar pago
       const updated = await paymentsRepository.update(paymentId, {
         amount: amount !== undefined ? parseFloat(amount) : existingPayment.amount,
-        descripcion: descripcion !== undefined ? (descripcion?.trim() || null) : existingPayment.descripcion
+        descripcion: descripcion !== undefined ? (descripcion?.trim() || null) : existingPayment.descripcion,
+        info: info !== undefined ? (info?.trim() || null) : existingPayment.info,
+        phone: phone !== undefined ? (phone?.trim() || null) : existingPayment.phone,
+        client_name: clientName !== undefined ? (clientName?.trim() || null) : existingPayment.client_name
       });
 
       if (!updated) {

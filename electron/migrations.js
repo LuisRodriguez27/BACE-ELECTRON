@@ -442,6 +442,46 @@ const MIGRATIONS = [
     }
   },
 
+  // v17: Agregar columna phone a payments para pagos libres
+  {
+    version: 17,
+    name: 'add_phone_to_payments',
+    isApplied: async (client) => {
+      const { rows } = await client.query(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name = 'payments'
+          AND column_name = 'phone'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client) => {
+      await client.query(`
+        ALTER TABLE payments
+          ADD COLUMN IF NOT EXISTS phone VARCHAR(50)
+      `);
+    }
+  },
+
+  // v18: Agregar columna client_name a payments para pagos libres
+  {
+    version: 18,
+    name: 'add_client_name_to_payments',
+    isApplied: async (client) => {
+      const { rows } = await client.query(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name = 'payments'
+          AND column_name = 'client_name'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client) => {
+      await client.query(`
+        ALTER TABLE payments
+          ADD COLUMN IF NOT EXISTS client_name VARCHAR(255)
+      `);
+    }
+  },
+
   // AGREGA NUEVAS MIGRACIONES AQUÍ
 ];
 

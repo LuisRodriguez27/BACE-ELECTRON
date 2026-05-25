@@ -129,7 +129,9 @@ const schemaTables = `
     amount           DECIMAL(10,2) NOT NULL,
     date             TIMESTAMPTZ,
     descripcion      TEXT,
-    info             TEXT
+    info             TEXT,
+    phone            VARCHAR(50),
+    client_name      VARCHAR(255)
   );
 
   CREATE TABLE IF NOT EXISTS simple_orders (

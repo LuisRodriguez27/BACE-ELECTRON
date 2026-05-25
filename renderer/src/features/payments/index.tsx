@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Plus, Search, CreditCard, DollarSign, Calendar,
-  Receipt, Tag, BookOpen, Loader2
+  Receipt, Tag, BookOpen, Loader2, Phone
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PaymentsApiService } from './PaymentsApiService';
@@ -423,7 +423,14 @@ const PaymentsPage: React.FC = () => {
                       </div>
                       <div>
                         <h3 className="font-semibold text-gray-900">
-                          {payment.is_simple_order ? `Pago (Rápida) #${payment.id}` : `Pago #${payment.id}`}
+                          {payment.is_simple_order 
+                            ? `Pago (Rápida) #${payment.id}` 
+                            : payment.order_id 
+                              ? `Pago #${payment.id}` 
+                              : `Pago Libre #${payment.id}`}
+                          {(payment.client_name || payment.order?.client_name) && (
+                            <span className="text-gray-500 font-normal"> — {payment.client_name || payment.order?.client_name}</span>
+                          )}
                         </h3>
                         <div className="flex flex-wrap items-center gap-4 mt-1 text-sm text-gray-600">
                           <div className="flex items-center gap-1">
@@ -450,6 +457,12 @@ const PaymentsPage: React.FC = () => {
                             <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
                               Pago libre
                             </span>
+                          )}
+                          {(payment.phone || payment.order?.client_phone) && (
+                            <div className="flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                              <Phone size={12} />
+                              <span>{payment.phone || payment.order?.client_phone}</span>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -525,7 +538,7 @@ const PaymentsPage: React.FC = () => {
             ? selectedPayment.order?.client_name || 'Orden Rápida'
             : selectedPayment?.order_id
               ? orders.find(o => o.id === selectedPayment.order_id)?.client?.name ?? 'Sin cliente'
-              : 'Pago libre'
+              : selectedPayment?.client_name || 'Pago libre'
         }
         isSimpleOrder={selectedPayment?.is_simple_order || false}
       />

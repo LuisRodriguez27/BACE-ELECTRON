@@ -5,12 +5,17 @@ export const createPaymentSchema = z.object({
   amount: z.number().min(1, 'El monto debe ser mayor a 0'),
   date: z.string().optional(),
   descripcion: z.string().optional(),
-  info: z.string().optional()
+  info: z.string().optional(),
+  phone: z.string().optional(),
+  clientName: z.string().optional()
 });
 
 export const editPaymentSchema = z.object({
   amount: z.number().min(1, 'El monto debe ser mayor a 0'),
-  descripcion: z.string().optional()
+  descripcion: z.string().optional(),
+  info: z.string().optional(),
+  phone: z.string().optional(),
+  clientName: z.string().optional()
 });
 
 export type CreatePaymentForm = z.infer<typeof createPaymentSchema>;
@@ -23,6 +28,8 @@ export interface Payment {
   date?: string; // ISO date string
   descripcion?: string;
   info?: string | null;
+  phone?: string | null;
+  client_name?: string | null;
   is_simple_order?: boolean;
   simple_order_id?: number | null;
   // Para joins con orders
@@ -32,6 +39,7 @@ export interface Payment {
     status: string;
     total: number;
     client_name?: string;
+    client_phone?: string | null;
     description?: string | null;
     notes?: string | null;
   } | null;

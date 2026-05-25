@@ -6,6 +6,8 @@ class Payment {
     date,
     descripcion,
     info,
+    phone,
+    client_name,
     order = null,
     is_simple_order = false,
     simple_order_id = null
@@ -16,6 +18,8 @@ class Payment {
     this.date = date;
     this.descripcion = descripcion || null;
     this.info = info || null;
+    this.phone = phone || null;
+    this.client_name = client_name || null;
     this.order = order;
     this.is_simple_order = is_simple_order;
     this.simple_order_id = simple_order_id || null;
@@ -192,6 +196,8 @@ class Payment {
       date: this.date,
       descripcion: this.descripcion,
       info: this.info,
+      phone: this.phone,
+      client_name: this.client_name,
       order: this.getOrder(),
       formattedAmount: this.getFormattedAmount(),
       formattedDate: this.getFormattedDate(),

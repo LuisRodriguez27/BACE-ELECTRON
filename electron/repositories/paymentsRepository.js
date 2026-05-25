@@ -6,15 +6,15 @@ class PaymentsRepository {
   _getBaseQuery() {
     return `
       SELECT 
-        p.id, p.order_id, CAST(NULL AS INTEGER) as simple_order_id, p.cash_session_id, p.amount, p.date, p.descripcion, p.info, false as is_simple_order,
-        o.id as o_id, o.client_id as o_client_id, o.status as o_status, o.total as o_total, c.name as o_client_name, o.description as o_description, o.notes as o_notes
+        p.id, p.order_id, CAST(NULL AS INTEGER) as simple_order_id, p.cash_session_id, p.amount, p.date, p.descripcion, p.info, p.phone, p.client_name, false as is_simple_order,
+        o.id as o_id, o.client_id as o_client_id, o.status as o_status, o.total as o_total, c.name as o_client_name, o.description as o_description, o.notes as o_notes, c.phone as o_client_phone
       FROM payments p
       LEFT JOIN orders o ON p.order_id = o.id
       LEFT JOIN clients c ON o.client_id = c.id
       UNION ALL
       SELECT 
-        sp.id, CAST(NULL AS INTEGER) as order_id, sp.simple_order_id as simple_order_id, sp.cash_session_id, sp.amount, sp.date, sp.descripcion, so.concept as info, true as is_simple_order,
-        CAST(NULL AS INTEGER) as o_id, CAST(NULL AS INTEGER) as o_client_id, 'Completada' as o_status, so.total as o_total, so.client_name as o_client_name, so.concept as o_description, NULL as o_notes
+        sp.id, CAST(NULL AS INTEGER) as order_id, sp.simple_order_id as simple_order_id, sp.cash_session_id, sp.amount, sp.date, sp.descripcion, so.concept as info, so.client_phone as phone, so.client_name as client_name, true as is_simple_order,
+        CAST(NULL AS INTEGER) as o_id, CAST(NULL AS INTEGER) as o_client_id, 'Completada' as o_status, so.total as o_total, so.client_name as o_client_name, so.concept as o_description, NULL as o_notes, so.client_phone as o_client_phone
       FROM simple_order_payments sp
       LEFT JOIN simple_orders so ON sp.simple_order_id = so.id
     `;
@@ -28,6 +28,8 @@ class PaymentsRepository {
       date: row.date,
       descripcion: row.descripcion,
       info: row.info,
+      phone: row.phone,
+      client_name: row.client_name,
       is_simple_order: Boolean(row.is_simple_order),
       simple_order_id: row.simple_order_id,
       order: (row.o_id || row.is_simple_order) ? {
@@ -36,6 +38,7 @@ class PaymentsRepository {
         status: row.o_status,
         total: parseFloat(row.o_total || 0),
         client_name: row.o_client_name,
+        client_phone: row.o_client_phone,
         description: row.o_description,
         notes: row.o_notes,
       } : null,
@@ -60,6 +63,7 @@ class PaymentsRepository {
         o.status as o_status, 
         o.total as o_total,
         c.name as o_client_name,
+        c.phone as o_client_phone,
         o.description as o_description,
         o.notes as o_notes
       FROM payments p
@@ -76,6 +80,8 @@ class PaymentsRepository {
       date: row.date,
       descripcion: row.descripcion,
       info: row.info,
+      phone: row.phone,
+      client_name: row.client_name,
       order: row.o_id
         ? {
           id: row.o_id,
@@ -83,6 +89,7 @@ class PaymentsRepository {
           status: row.o_status,
           total: row.o_total,
           client_name: row.o_client_name,
+          client_phone: row.o_client_phone,
           description: row.o_description,
           notes: row.o_notes
         }
@@ -99,6 +106,7 @@ class PaymentsRepository {
         o.status as o_status, 
         o.total as o_total,
         c.name as o_client_name,
+        c.phone as o_client_phone,
         o.description as o_description,
         o.notes as o_notes
       FROM payments p
@@ -116,6 +124,8 @@ class PaymentsRepository {
       date: row.date,
       descripcion: row.descripcion,
       info: row.info,
+      phone: row.phone,
+      client_name: row.client_name,
       order: row.o_id
         ? {
           id: row.o_id,
@@ -123,6 +133,7 @@ class PaymentsRepository {
           status: row.o_status,
           total: row.o_total,
           client_name: row.o_client_name,
+          client_phone: row.o_client_phone,
           description: row.o_description,
           notes: row.o_notes
         }
@@ -130,22 +141,22 @@ class PaymentsRepository {
     });
   }
 
-  async create({ order_id, amount, date, descripcion, info }) {
+  async create({ order_id, amount, date, descripcion, info, phone, client_name }) {
     const activeSession = await cashSessionRepository.getActive();
     const cash_session_id = activeSession?.id ?? null;
 
     const result = await db.execute(
-      'INSERT INTO payments (order_id, cash_session_id, amount, date, descripcion, info) VALUES ($1, $2, $3, $4, $5, $6)',
-      [order_id || null, cash_session_id, amount, date, descripcion, info || null]
+      'INSERT INTO payments (order_id, cash_session_id, amount, date, descripcion, info, phone, client_name) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+      [order_id || null, cash_session_id, amount, date, descripcion, info || null, phone || null, client_name || null]
     );
 
     return await this.findById(result.lastInsertRowid);
   }
 
-  async update(id, { amount, descripcion }) {
+  async update(id, { amount, descripcion, info, phone, client_name }) {
     const result = await db.execute(
-      'UPDATE payments SET amount = $1, descripcion = $2 WHERE id = $3',
-      [amount, descripcion, id]
+      'UPDATE payments SET amount = $1, descripcion = $2, info = $3, phone = $4, client_name = $5 WHERE id = $6',
+      [amount, descripcion, info || null, phone || null, client_name || null, id]
     );
 
     return result.changes > 0;
@@ -166,6 +177,7 @@ class PaymentsRepository {
         o.status as o_status, 
         o.total as o_total,
         c.name as o_client_name,
+        c.phone as o_client_phone,
         o.description as o_description,
         o.notes as o_notes
       FROM payments p
@@ -182,6 +194,8 @@ class PaymentsRepository {
       date: row.date,
       descripcion: row.descripcion,
       info: row.info,
+      phone: row.phone,
+      client_name: row.client_name,
       order: row.o_id
         ? {
           id: row.o_id,
@@ -189,6 +203,7 @@ class PaymentsRepository {
           status: row.o_status,
           total: row.o_total,
           client_name: row.o_client_name,
+          client_phone: row.o_client_phone,
           description: row.o_description,
           notes: row.o_notes
         }
@@ -240,7 +255,7 @@ class PaymentsRepository {
           break;
         case 'info':
           whereParams.push(`%${term}%`);
-          conditions.push(`p.info ILIKE $${whereParams.length}`);
+          conditions.push(`(p.info ILIKE $${whereParams.length} OR p.phone LIKE $${whereParams.length} OR p.client_name ILIKE $${whereParams.length})`);
           break;
       }
     }

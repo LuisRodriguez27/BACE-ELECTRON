@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { Button, Input, Label } from '@/components/ui';
-import { X, DollarSign, Loader, Calendar, FileText, Info } from 'lucide-react';
+import { X, DollarSign, Loader, Calendar, FileText, Info, Phone, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { PaymentsApiService } from '../PaymentsApiService';
 import { SimpleOrdersApiService } from '../../simpleOrders/SimpleOrdersApiService';
@@ -40,7 +40,9 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
     amount: 0,
     date: todayDateInputMX(),
     descripcion: '',
-    info: ''
+    info: '',
+    phone: '',
+    clientName: ''
   });
 
   const pendingAmount = isFreePayment ? Infinity : orderTotal - currentPayments;
@@ -68,6 +70,12 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
       // Si es pago libre, requerir info
       if (isFreePayment && (!formData.info || formData.info.trim() === '')) {
         setError('El campo "Información/Concepto" es requerido para pagos sin orden');
+        setLoading(false);
+        return;
+      }
+
+      if (isFreePayment && formData.phone && formData.phone.trim().length !== 10) {
+        setError('El teléfono debe tener exactamente 10 dígitos');
         setLoading(false);
         return;
       }
@@ -109,7 +117,9 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
       amount: 0,
       date: todayDateInputMX(),
       descripcion: '',
-      info: ''
+      info: '',
+      phone: '',
+      clientName: ''
     });
     setError(null);
     onClose();
@@ -182,6 +192,52 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
             </div>
           )}
 
+          {/* Nombre de cliente — solo para pagos libres */}
+          {isFreePayment && (
+            <div>
+              <Label htmlFor="clientName" className="text-sm font-medium text-gray-700">
+                Cliente / Nombre (Opcional)
+              </Label>
+              <div className="mt-1 relative">
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <Input
+                  id="clientName"
+                  type="text"
+                  value={formData.clientName || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, clientName: e.target.value }))}
+                  className="pl-10"
+                  placeholder="Nombre del cliente..."
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Teléfono — solo para pagos libres */}
+          {isFreePayment && (
+            <div>
+              <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
+                Teléfono (Opcional)
+              </Label>
+              <div className="mt-1 relative">
+                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <Input
+                  id="phone"
+                  type="tel"
+                  maxLength={10}
+                  value={formData.phone || ''}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '');
+                    if (val.length <= 10) {
+                      setFormData(prev => ({ ...prev, phone: val }));
+                    }
+                  }}
+                  className="pl-10"
+                  placeholder="Teléfono del cliente..."
+                />
+              </div>
+            </div>
+          )}
+          
           {/* Información/Concepto — solo para pagos libres */}
           {isFreePayment && (
             <div>
@@ -205,6 +261,7 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
               </p>
             </div>
           )}
+
 
           {/* Botones de monto rápido (solo con orden) */}
           {!isFreePayment && pendingAmount > 0 && (
