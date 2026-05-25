@@ -1,6 +1,7 @@
 const paymentsRepository    = require('../repositories/paymentsRepository');
 const orderRepository       = require('../repositories/orderRepository');
 const cashSessionRepository = require('../repositories/cashSessionRepository');
+const clientRepository       = require('../repositories/clientRepository');
 const Payment               = require('../domain/payments');
 
 class PaymentsService {
@@ -124,25 +125,49 @@ class PaymentsService {
         });
 
         return payment.toPlainObject();
+      } else {
+        // Pago libre (sin orden) — requiere info
+        if (!info || !info.trim()) {
+          throw new Error('El campo "info" es requerido para pagos sin orden');
+        }
+
+        // Resolver info del cliente
+        let resolvedName = clientName;
+        let resolvedPhone = phone;
+        let wasClientCreated = false;
+        if (phone && phone.trim()) {
+          const cleanPhone = phone.trim();
+          const existingClient = await clientRepository.findByPhone(cleanPhone);
+          if (existingClient) {
+            if (!clientName || !clientName.trim()) {
+              resolvedName = existingClient.name;
+            }
+          } else if (clientName && clientName.trim()) {
+            await clientRepository.create({
+              name: clientName.trim(),
+              phone: cleanPhone
+            });
+            wasClientCreated = true;
+          }
+        }
+
+        const payment = await paymentsRepository.create({
+          order_id: null,
+          amount: parseFloat(amount),
+          date: paymentDate.toISOString(),
+          descripcion: descripcion?.trim() || null,
+          info: info.trim(),
+          phone: resolvedPhone?.trim() || null,
+          client_name: resolvedName?.trim() || null
+        });
+
+        const resObj = payment.toPlainObject();
+        if (wasClientCreated) {
+          resObj.clientCreated = true;
+        }
+        return resObj;
+
       }
-
-      // Pago libre (sin orden) — requiere info
-      if (!info || !info.trim()) {
-        throw new Error('El campo "info" es requerido para pagos sin orden');
-      }
-
-      const payment = await paymentsRepository.create({
-        order_id: null,
-        amount: parseFloat(amount),
-        date: paymentDate.toISOString(),
-        descripcion: descripcion?.trim() || null,
-        info: info.trim(),
-        phone: phone?.trim() || null,
-        client_name: clientName?.trim() || null
-      });
-
-      return payment.toPlainObject();
-
     } catch (error) {
       console.error('Error al crear pago:', error);
       throw error;
@@ -187,13 +212,36 @@ class PaymentsService {
         }
       }
 
+      // Resolver info del cliente si viene número de teléfono
+      let resolvedName = clientName !== undefined ? clientName : existingPayment.client_name;
+      let resolvedPhone = phone !== undefined ? phone : existingPayment.phone;
+      let wasClientCreated = false;
+
+      if (phone !== undefined) {
+        if (phone && phone.trim()) {
+          const cleanPhone = phone.trim();
+          const existingClient = await clientRepository.findByPhone(cleanPhone);
+          if (existingClient) {
+            if (!resolvedName || !resolvedName.trim()) {
+              resolvedName = existingClient.name;
+            }
+          } else if (resolvedName && resolvedName.trim()) {
+            await clientRepository.create({
+              name: resolvedName.trim(),
+              phone: cleanPhone
+            });
+            wasClientCreated = true;
+          }
+        }
+      }
+
       // Actualizar pago
       const updated = await paymentsRepository.update(paymentId, {
         amount: amount !== undefined ? parseFloat(amount) : existingPayment.amount,
         descripcion: descripcion !== undefined ? (descripcion?.trim() || null) : existingPayment.descripcion,
         info: info !== undefined ? (info?.trim() || null) : existingPayment.info,
-        phone: phone !== undefined ? (phone?.trim() || null) : existingPayment.phone,
-        client_name: clientName !== undefined ? (clientName?.trim() || null) : existingPayment.client_name
+        phone: resolvedPhone !== undefined ? (resolvedPhone?.trim() || null) : existingPayment.phone,
+        client_name: resolvedName !== undefined ? (resolvedName?.trim() || null) : existingPayment.client_name
       });
 
       if (!updated) {
@@ -202,7 +250,11 @@ class PaymentsService {
 
       // Obtener pago actualizado
       const updatedPayment = await paymentsRepository.findById(paymentId);
-      return updatedPayment.toPlainObject();
+      const resObj = updatedPayment.toPlainObject();
+      if (wasClientCreated) {
+        resObj.clientCreated = true;
+      }
+      return resObj;
 
     } catch (error) {
       console.error('Error al actualizar pago:', error);

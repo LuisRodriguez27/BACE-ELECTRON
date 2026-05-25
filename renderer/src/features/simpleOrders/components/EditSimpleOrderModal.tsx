@@ -72,7 +72,7 @@ const EditSimpleOrderModal: React.FC<EditSimpleOrderModalProps> = ({
 
     try {
       if (!order) return;
-      await SimpleOrdersApiService.update(order.id, {
+      const updatedOrder = await SimpleOrdersApiService.update(order.id, {
         user_id: order.user_id, // keep original user
         concept,
         total: Number(total),
@@ -83,6 +83,9 @@ const EditSimpleOrderModal: React.FC<EditSimpleOrderModalProps> = ({
       });
 
       toast.success('Orden rápida actualizada correctamente');
+      if (updatedOrder.clientCreated) {
+        toast.info('Cliente registrado exitosamente');
+      }
       onOrderUpdated();
       onClose();
     } catch (err: any) {

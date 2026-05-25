@@ -1,5 +1,6 @@
 const simpleOrderRepository  = require('../repositories/simpleOrderRepository');
 const cashSessionRepository  = require('../repositories/cashSessionRepository');
+const clientRepository       = require('../repositories/clientRepository');
 const SimpleOrder            = require('../domain/simpleOrder');
 
 class SimpleOrderService {
@@ -34,18 +35,42 @@ class SimpleOrderService {
         throw new Error('Los datos de la orden rápida son inválidos. Verifica que el empleado, concepto y total sean correctos.');
       }
 
+      let resolvedName = order.client_name;
+      let resolvedPhone = order.client_phone;
+      let wasClientCreated = false;
+
+      if (resolvedPhone && resolvedPhone.trim()) {
+        const cleanPhone = resolvedPhone.trim();
+        const existingClient = await clientRepository.findByPhone(cleanPhone);
+        if (existingClient) {
+          if (!resolvedName || !resolvedName.trim()) {
+            resolvedName = existingClient.name;
+          }
+        } else if (resolvedName && resolvedName.trim()) {
+          await clientRepository.create({
+            name: resolvedName.trim(),
+            phone: cleanPhone
+          });
+          wasClientCreated = true;
+        }
+      }
+
       const newId = await simpleOrderRepository.create({
         user_id: order.user_id,
         date: order.date || new Date().toISOString(),
         concept: order.concept,
         total: order.total,
         active: order.active,
-        client_name: order.client_name,
-        client_phone: order.client_phone
+        client_name: resolvedName?.trim() || null,
+        client_phone: resolvedPhone?.trim() || null
       });
 
       const newOrder = await simpleOrderRepository.getById(newId);
-      return newOrder.toPlainObject();
+      const resObj = newOrder.toPlainObject();
+      if (wasClientCreated) {
+        resObj.clientCreated = true;
+      }
+      return resObj;
     } catch (error) {
       console.error('Error in createSimpleOrder:', error);
       throw new Error('Hubo un error al crear la orden rápida.');
@@ -54,12 +79,47 @@ class SimpleOrderService {
 
   async updateSimpleOrder(id, orderData) {
     try {
-      const success = await simpleOrderRepository.update(id, orderData);
+      const existingOrder = await simpleOrderRepository.getById(id);
+      if (!existingOrder) {
+        throw new Error('Orden no encontrada.');
+      }
+
+      let resolvedName = orderData.client_name !== undefined ? orderData.client_name : existingOrder.client_name;
+      let resolvedPhone = orderData.client_phone !== undefined ? orderData.client_phone : existingOrder.client_phone;
+      let wasClientCreated = false;
+
+      if (resolvedPhone && resolvedPhone.trim()) {
+        const cleanPhone = resolvedPhone.trim();
+        const existingClient = await clientRepository.findByPhone(cleanPhone);
+        if (existingClient) {
+          if (!resolvedName || !resolvedName.trim()) {
+            resolvedName = existingClient.name;
+          }
+        } else if (resolvedName && resolvedName.trim()) {
+          await clientRepository.create({
+            name: resolvedName.trim(),
+            phone: cleanPhone
+          });
+          wasClientCreated = true;
+        }
+      }
+
+      const updatedData = {
+        ...orderData,
+        client_name: resolvedName?.trim() || null,
+        client_phone: resolvedPhone?.trim() || null
+      };
+
+      const success = await simpleOrderRepository.update(id, updatedData);
       if (!success) {
         throw new Error('No se pudo actualizar la orden rápida, posiblemente no exista.');
       }
       const updatedOrder = await simpleOrderRepository.getById(id);
-      return updatedOrder.toPlainObject();
+      const resObj = updatedOrder.toPlainObject();
+      if (wasClientCreated) {
+        resObj.clientCreated = true;
+      }
+      return resObj;
     } catch (error) {
       console.error(`Error in updateSimpleOrder (${id}):`, error);
       throw new Error('Hubo un error al actualizar la orden rápida.');

@@ -24,6 +24,7 @@ export interface SimpleOrder {
   payments: SimpleOrderPayment[];
   totalPaid: number;
   balance: number;
+  clientCreated?: boolean;
 }
 
 export interface CreateSimpleOrderForm {

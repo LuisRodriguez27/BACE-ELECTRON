@@ -85,6 +85,9 @@ const CreateSimpleOrderModal: React.FC<CreateSimpleOrderModalProps> = ({
       }
 
       toast.success('Orden rápida registrada exitosamente');
+      if (respOrder.clientCreated) {
+        toast.info('Cliente registrado exitosamente');
+      }
       onOrderCreated();
       handleClose();
     } catch (err: any) {

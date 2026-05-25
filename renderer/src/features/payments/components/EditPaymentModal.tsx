@@ -104,6 +104,9 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
       }
 
       toast.success('Pago actualizado exitosamente');
+      if (updatedPayment.clientCreated) {
+        toast.info('Cliente registrado exitosamente');
+      }
       onPaymentUpdated(updatedPayment);
       handleClose();
     } catch (err) {

@@ -99,6 +99,9 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
       }
 
       toast.success('Pago registrado exitosamente');
+      if (newPayment.clientCreated) {
+        toast.info('Cliente registrado exitosamente');
+      }
       onPaymentCreated(newPayment);
       handleClose();
     } catch (err) {

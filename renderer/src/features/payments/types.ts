@@ -30,6 +30,7 @@ export interface Payment {
   info?: string | null;
   phone?: string | null;
   client_name?: string | null;
+  clientCreated?: boolean;
   is_simple_order?: boolean;
   simple_order_id?: number | null;
   // Para joins con orders
