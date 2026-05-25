@@ -50,6 +50,7 @@ const commonStyles = `
   .total-row td { background-color: #f0f0f0 !important; font-weight: bold; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .badge-libre { background-color: #fef3c7; color: #92400e; padding: 1px 4px; border-radius: 3px; font-size: 9px; }
   .badge-orden { background-color: #dbeafe; color: #1e40af; padding: 1px 4px; border-radius: 3px; font-size: 9px; }
+  .badge-rapida { background-color: #f3e8ff; color: #6b21a8; padding: 1px 4px; border-radius: 3px; font-size: 9px; }
   .bg-pendiente { background-color: #fde8d0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .bg-sin-pago  { background-color: #fecaca !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .bg-pagado    { background-color: #dcfce7 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -89,10 +90,15 @@ export const generatePaymentsReceivedLogbook = (
     ? `<tr><td colspan="7" class="center">No hay pagos en el período seleccionado</td></tr>`
     : filtered.map(p => {
       const dateStr = p.date ? formatDateMX(p.date, 'DD/MM/YYYY HH:mm') : '—';
-      const orderBadge = p.order_id
-        ? `<span class="badge-orden">Orden #${p.order_id}</span>`
-        : `<span class="badge-libre">Libre</span>`;
-      const clienteStr = p.order ? (p.order.client_name ?? '—') : '—';
+      let orderBadge = '';
+      if (p.is_simple_order) {
+        orderBadge = `<span class="badge-rapida">Rápida #${p.simple_order_id}</span>`;
+      } else if (p.order_id) {
+        orderBadge = `<span class="badge-orden">Orden #${p.order_id}</span>`;
+      } else {
+        orderBadge = `<span class="badge-libre">Libre</span>`;
+      }
+      const clienteStr = p.client_name || p.order?.client_name || '—';
 
       let descripcionStr = p.info ? p.info : '—';
       if (p.order_id) {
