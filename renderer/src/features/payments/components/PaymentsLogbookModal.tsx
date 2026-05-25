@@ -45,6 +45,7 @@ const PaymentsLogbookModal: React.FC<PaymentsLogbookModalProps> = ({
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodFilter | 'all'>('all');
+  const [paymentTypeFilter, setPaymentTypeFilter] = useState<'all' | 'orders' | 'free' | 'simple'>('all');
 
   // Cargar todos los pagos + resetear filtros al abrir
   useEffect(() => {
@@ -55,6 +56,7 @@ const PaymentsLogbookModal: React.FC<PaymentsLogbookModalProps> = ({
     setDateFrom('');
     setDateTo('');
     setPaymentMethod('all');
+    setPaymentTypeFilter('all');
 
     setLoadingPayments(true);
     PaymentsApiService.getAll()
@@ -69,11 +71,14 @@ const PaymentsLogbookModal: React.FC<PaymentsLogbookModalProps> = ({
       dateMode === 'all' ? {} :
         dateMode === 'single' ? { dateFrom: singleDate, dateTo: singleDate } :
           { dateFrom: dateFrom || undefined, dateTo: dateTo || undefined };
-    if (logbookType === 'received' && paymentMethod !== 'all') {
-      base.paymentMethod = paymentMethod;
+    if (logbookType === 'received') {
+      if (paymentMethod !== 'all') {
+        base.paymentMethod = paymentMethod;
+      }
+      base.paymentType = paymentTypeFilter;
     }
     return base;
-  }, [dateMode, singleDate, dateFrom, dateTo, paymentMethod, logbookType]);
+  }, [dateMode, singleDate, dateFrom, dateTo, paymentMethod, paymentTypeFilter, logbookType]);
 
   // ─── Pagos filtrados ──────────────────────────────────────────────────
   const filteredPayments = useMemo(() => {
@@ -85,6 +90,15 @@ const PaymentsLogbookModal: React.FC<PaymentsLogbookModalProps> = ({
       }
       if (filters.paymentMethod) {
         if (p.descripcion !== filters.paymentMethod) return false;
+      }
+      if (filters.paymentType && filters.paymentType !== 'all') {
+        if (filters.paymentType === 'orders') {
+          if (!p.order_id || p.is_simple_order) return false;
+        } else if (filters.paymentType === 'free') {
+          if (p.order_id || p.is_simple_order) return false;
+        } else if (filters.paymentType === 'simple') {
+          if (!p.is_simple_order) return false;
+        }
       }
       return true;
     });
@@ -242,6 +256,32 @@ const PaymentsLogbookModal: React.FC<PaymentsLogbookModalProps> = ({
                       }`}
                   >
                     {m === 'all' ? 'Todos' : m}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Tipo de pago — solo para Pagos Recibidos */}
+          {logbookType === 'received' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Filtrar por Tipo</label>
+              <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+                {([
+                  { value: 'all', label: 'Todo' },
+                  { value: 'orders', label: 'Órdenes' },
+                  { value: 'free', label: 'Pagos Libres' },
+                  { value: 'simple', label: 'Órdenes Rápidas' }
+                ] as const).map((t, idx) => (
+                  <button
+                    key={t.value}
+                    onClick={() => setPaymentTypeFilter(t.value)}
+                    className={`flex-1 py-2 text-xs font-medium transition-colors ${idx > 0 ? 'border-l border-gray-300' : ''} ${paymentTypeFilter === t.value
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-white text-gray-600 hover:bg-gray-50'
+                      }`}
+                  >
+                    {t.label}
                   </button>
                 ))}
               </div>

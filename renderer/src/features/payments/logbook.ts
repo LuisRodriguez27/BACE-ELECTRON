@@ -9,6 +9,7 @@ export interface PaymentLogbookFilters {
   dateFrom?: string;  // YYYY-MM-DD
   dateTo?: string;    // YYYY-MM-DD
   paymentMethod?: PaymentMethodFilter; // Filtro por método de pago
+  paymentType?: 'all' | 'orders' | 'free' | 'simple'; // Filtro por tipo de pago
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -32,6 +33,16 @@ const filterPayments = (payments: Payment[], filters: PaymentLogbookFilters) => 
     // Filtro por método de pago (campo descripcion)
     if (filters.paymentMethod) {
       if (p.descripcion !== filters.paymentMethod) return false;
+    }
+    // Filtro por tipo de pago (Órdenes, Pagos Libres, Órdenes Rápidas)
+    if (filters.paymentType && filters.paymentType !== 'all') {
+      if (filters.paymentType === 'orders') {
+        if (!p.order_id || p.is_simple_order) return false;
+      } else if (filters.paymentType === 'free') {
+        if (p.order_id || p.is_simple_order) return false;
+      } else if (filters.paymentType === 'simple') {
+        if (!p.is_simple_order) return false;
+      }
     }
     return true;
   });
@@ -78,11 +89,17 @@ export const generatePaymentsReceivedLogbook = (
   orders: Order[] = []
 ): string => {
   const filtered = filterPayments(payments, filters);
-
+  const typeLabelMap = {
+    all: 'Todos los registros',
+    orders: 'Solo Órdenes',
+    free: 'Solo Pagos Libres',
+    simple: 'Solo Órdenes Rápidas'
+  };
+  const typeText = filters.paymentType ? typeLabelMap[filters.paymentType] : 'Todos los registros';
   const methodLabel = filters.paymentMethod ? ` · Método: ${filters.paymentMethod}` : '';
   const rangeLabel = (filters.dateFrom || filters.dateTo)
-    ? `Período: ${filters.dateFrom ?? '—'} al ${filters.dateTo ?? '—'}${methodLabel}`
-    : `Todos los registros${methodLabel}`;
+    ? `${typeText} · Período: ${filters.dateFrom ?? '—'} al ${filters.dateTo ?? '—'}${methodLabel}`
+    : `${typeText}${methodLabel}`;
 
   const totalAmount = filtered.reduce((acc, p) => acc + p.amount, 0);
 
