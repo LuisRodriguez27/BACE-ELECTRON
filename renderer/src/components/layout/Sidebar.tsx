@@ -111,7 +111,7 @@ const Sidebar: React.FC = () => {
   return (
     <>
       <div className={cn(
-        'flex flex-col h-screen bg-gray-900 text-white transition-all duration-300 ease-in-out',
+        'flex flex-col h-screen overflow-hidden bg-gray-900 text-white transition-all duration-300 ease-in-out',
         isExpanded ? 'w-64' : 'w-16'
       )}>
       {/* Header con botón de toggle */}
@@ -133,7 +133,7 @@ const Sidebar: React.FC = () => {
       </div>
 
       {/* Navigation Menu */}
-      <nav className="flex-1 px-2 py-4 space-y-2">
+      <nav className="flex-1 overflow-y-auto sidebar-scroll px-2 py-4 space-y-2">
         {menuItems.map((item) => {
           // Solo ocultar la opción de Usuarios si no tiene permiso
           if (item.id === 'users' && !canAccess('Gestionar Usuario')) {
