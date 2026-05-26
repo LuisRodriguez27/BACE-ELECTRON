@@ -482,6 +482,38 @@ const MIGRATIONS = [
     }
   },
 
+  // v19: Agregar permisos de mayoristas
+  {
+    version: 19,
+    name: 'add_supplier_permissions',
+    isApplied: async (client) => {
+      const { rows } = await client.query(`
+        SELECT id FROM permissions 
+        WHERE name = 'Ver Mayoristas' 
+        LIMIT 1;
+      `);
+      return rows.length > 0;
+    },
+    up: async (client) => {
+      await client.query(`
+        INSERT INTO permissions (name, description, active)
+        VALUES
+          ('Ver Mayoristas', 'Permite ver el módulo de mayoristas/proveedores', true),
+          ('Crear Orden Mayorista', 'Permite crear una orden para un mayorista', true)
+        ON CONFLICT (name) DO UPDATE SET active = true;
+      `);
+      await client.query(`
+        INSERT INTO user_permissions (user_id, permission_id, active)
+        SELECT u.id, p.id, true
+        FROM users u
+        CROSS JOIN permissions p
+        WHERE u.id = 1
+          AND p.name IN ('Ver Mayoristas', 'Crear Orden Mayorista')
+        ON CONFLICT DO NOTHING;
+      `);
+    }
+  },
+
   // AGREGA NUEVAS MIGRACIONES AQUÍ
 ];
 
