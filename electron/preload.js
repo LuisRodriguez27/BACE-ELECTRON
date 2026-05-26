@@ -138,6 +138,23 @@ contextBridge.exposeInMainWorld('api', {
   updateExpense: (id, data) => ipcRenderer.invoke('expenses:update', id, data),
   deleteExpense: (id) => ipcRenderer.invoke('expenses:delete', id),
 
+  // Proveedores (Suppliers)
+  getAllSuppliers: () => ipcRenderer.invoke('suppliers:getAll'),
+  getSupplierById: (id) => ipcRenderer.invoke('suppliers:getById', id),
+  createSupplier: (data) => ipcRenderer.invoke('suppliers:create', data),
+  updateSupplier: (id, data) => ipcRenderer.invoke('suppliers:update', id, data),
+  deleteSupplier: (id) => ipcRenderer.invoke('suppliers:delete', id),
+  searchSuppliers: (searchTerm) => ipcRenderer.invoke('suppliers:search', searchTerm),
+
+  // Ordenes de Proveedor (Supplier Orders)
+  getAllSupplierOrders: () => ipcRenderer.invoke('supplierOrders:getAll'),
+  getSupplierOrderById: (id) => ipcRenderer.invoke('supplierOrders:getById', id),
+  getSupplierOrdersBySupplierId: (supplierId) => ipcRenderer.invoke('supplierOrders:getBySupplierId', supplierId),
+  getSupplierOrdersByOrderId: (orderId) => ipcRenderer.invoke('supplierOrders:getByOrderId', orderId),
+  createSupplierOrder: (data) => ipcRenderer.invoke('supplierOrders:create', data),
+  updateSupplierOrder: (id, data) => ipcRenderer.invoke('supplierOrders:update', id, data),
+  deleteSupplierOrder: (id) => ipcRenderer.invoke('supplierOrders:delete', id),
+
   // Imágenes en NAS
   uploadImage: (productId, buffer, originalName) => ipcRenderer.invoke('upload-image', productId, buffer, originalName),
   deleteImage: (relativePath) => ipcRenderer.invoke('delete-image', relativePath),

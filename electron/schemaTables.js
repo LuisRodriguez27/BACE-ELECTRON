@@ -172,6 +172,7 @@ const schemaTables = `
     phone           VARCHAR(20),
     email           VARCHAR(100),
     description     TEXT,
+    columns         TEXT,
     is_active       BOOLEAN       NOT NULL DEFAULT TRUE
   );
 

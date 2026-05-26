@@ -1,0 +1,51 @@
+class SupplierOrder {
+  constructor({
+    id,
+    supplier_id,
+    order_id,
+    order_date,
+    status,
+    notes,
+    date,
+    active = true,
+    supplier_name,
+    supplier_phone,
+    order_total
+  }) {
+    this.id = id;
+    this.supplier_id = supplier_id;
+    this.order_id = order_id || null;
+    this.order_date = order_date;
+    this.status = status || null;
+    this.notes = notes || null;
+    this.date = date;
+    this.active = active;
+
+    // Joined properties
+    this.supplier_name = supplier_name || null;
+    this.supplier_phone = supplier_phone || null;
+    this.order_total = order_total !== undefined && order_total !== null ? parseFloat(order_total) : null;
+  }
+
+  isActive() {
+    return this.active === true;
+  }
+
+  toPlainObject() {
+    return {
+      id: this.id,
+      supplier_id: this.supplier_id,
+      order_id: this.order_id,
+      order_date: this.order_date,
+      status: this.status,
+      notes: this.notes,
+      date: this.date,
+      active: this.active,
+      supplier_name: this.supplier_name,
+      supplier_phone: this.supplier_phone,
+      order_total: this.order_total
+    };
+  }
+}
+
+module.exports = SupplierOrder;

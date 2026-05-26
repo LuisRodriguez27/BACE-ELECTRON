@@ -22,6 +22,8 @@ const simpleOrderService = require('./services/simpleOrderService');
 const cashSessionService = require('./services/cashSessionService');
 const expensesService = require('./services/expensesService');
 const imageService = require('./services/imageService');
+const supplierService = require('./services/supplierService');
+const supplierOrderService = require('./services/supplierOrderService');
 
 // Configuración de logs para no ir a ciegas
 autoUpdater.logger = log;
@@ -322,6 +324,23 @@ ipcMain.handle('expenses:getById', async (event, id) => await expensesService.ge
 ipcMain.handle('expenses:create', async (event, data) => await expensesService.create(data));
 ipcMain.handle('expenses:update', async (event, id, data) => await expensesService.update(id, data));
 ipcMain.handle('expenses:delete', async (event, id) => await expensesService.delete(id));
+
+// Manejo de eventos IPC para proveedores
+ipcMain.handle('suppliers:getAll', async () => await supplierService.getAllSuppliers());
+ipcMain.handle('suppliers:getById', async (event, id) => await supplierService.getSupplierById(id));
+ipcMain.handle('suppliers:create', async (event, data) => await supplierService.createSupplier(data));
+ipcMain.handle('suppliers:update', async (event, id, data) => await supplierService.updateSupplier(id, data));
+ipcMain.handle('suppliers:delete', async (event, id) => await supplierService.deleteSupplier(id));
+ipcMain.handle('suppliers:search', async (event, searchTerm) => await supplierService.searchSuppliers(searchTerm));
+
+// Manejo de eventos IPC para órdenes de proveedor
+ipcMain.handle('supplierOrders:getAll', async () => await supplierOrderService.getAllSupplierOrders());
+ipcMain.handle('supplierOrders:getById', async (event, id) => await supplierOrderService.getSupplierOrderById(id));
+ipcMain.handle('supplierOrders:getBySupplierId', async (event, supplierId) => await supplierOrderService.getSupplierOrdersBySupplierId(supplierId));
+ipcMain.handle('supplierOrders:getByOrderId', async (event, orderId) => await supplierOrderService.getSupplierOrdersByOrderId(orderId));
+ipcMain.handle('supplierOrders:create', async (event, data) => await supplierOrderService.createSupplierOrder(data));
+ipcMain.handle('supplierOrders:update', async (event, id, data) => await supplierOrderService.updateSupplierOrder(id, data));
+ipcMain.handle('supplierOrders:delete', async (event, id) => await supplierOrderService.deleteSupplierOrder(id));
 
 // Manejo de eventos IPC para imágenes
 ipcMain.handle('upload-image', async (event, productId, buffer, originalName) => await imageService.uploadImage(productId, buffer, originalName));
