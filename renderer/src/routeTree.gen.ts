@@ -15,6 +15,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as DashboardUsersRouteImport } from './routes/dashboard.users'
+import { Route as DashboardSuppliersRouteImport } from './routes/dashboard.suppliers'
 import { Route as DashboardStatsRouteImport } from './routes/dashboard.stats'
 import { Route as DashboardSimpleOrdersRouteImport } from './routes/dashboard.simple-orders'
 import { Route as DashboardProductsRouteImport } from './routes/dashboard.products'
@@ -81,6 +82,11 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
 const DashboardUsersRoute = DashboardUsersRouteImport.update({
   id: '/users',
   path: '/users',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardSuppliersRoute = DashboardSuppliersRouteImport.update({
+  id: '/suppliers',
+  path: '/suppliers',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardStatsRoute = DashboardStatsRouteImport.update({
@@ -153,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/products': typeof DashboardProductsRoute
   '/dashboard/simple-orders': typeof DashboardSimpleOrdersRoute
   '/dashboard/stats': typeof DashboardStatsRoute
+  '/dashboard/suppliers': typeof DashboardSuppliersRoute
   '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
@@ -174,6 +181,7 @@ export interface FileRoutesByTo {
   '/dashboard/products': typeof DashboardProductsRoute
   '/dashboard/simple-orders': typeof DashboardSimpleOrdersRoute
   '/dashboard/stats': typeof DashboardStatsRoute
+  '/dashboard/suppliers': typeof DashboardSuppliersRoute
   '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard': typeof DashboardIndexRoute
 }
@@ -197,6 +205,7 @@ export interface FileRoutesById {
   '/dashboard/products': typeof DashboardProductsRoute
   '/dashboard/simple-orders': typeof DashboardSimpleOrdersRoute
   '/dashboard/stats': typeof DashboardStatsRoute
+  '/dashboard/suppliers': typeof DashboardSuppliersRoute
   '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
@@ -221,6 +230,7 @@ export interface FileRouteTypes {
     | '/dashboard/products'
     | '/dashboard/simple-orders'
     | '/dashboard/stats'
+    | '/dashboard/suppliers'
     | '/dashboard/users'
     | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
@@ -242,6 +252,7 @@ export interface FileRouteTypes {
     | '/dashboard/products'
     | '/dashboard/simple-orders'
     | '/dashboard/stats'
+    | '/dashboard/suppliers'
     | '/dashboard/users'
     | '/dashboard'
   id:
@@ -264,6 +275,7 @@ export interface FileRouteTypes {
     | '/dashboard/products'
     | '/dashboard/simple-orders'
     | '/dashboard/stats'
+    | '/dashboard/suppliers'
     | '/dashboard/users'
     | '/dashboard/'
   fileRoutesById: FileRoutesById
@@ -351,6 +363,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardUsersRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/suppliers': {
+      id: '/dashboard/suppliers'
+      path: '/suppliers'
+      fullPath: '/dashboard/suppliers'
+      preLoaderRoute: typeof DashboardSuppliersRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/stats': {
       id: '/dashboard/stats'
       path: '/stats'
@@ -435,6 +454,7 @@ interface DashboardRouteChildren {
   DashboardProductsRoute: typeof DashboardProductsRoute
   DashboardSimpleOrdersRoute: typeof DashboardSimpleOrdersRoute
   DashboardStatsRoute: typeof DashboardStatsRoute
+  DashboardSuppliersRoute: typeof DashboardSuppliersRoute
   DashboardUsersRoute: typeof DashboardUsersRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
@@ -450,6 +470,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardProductsRoute: DashboardProductsRoute,
   DashboardSimpleOrdersRoute: DashboardSimpleOrdersRoute,
   DashboardStatsRoute: DashboardStatsRoute,
+  DashboardSuppliersRoute: DashboardSuppliersRoute,
   DashboardUsersRoute: DashboardUsersRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }

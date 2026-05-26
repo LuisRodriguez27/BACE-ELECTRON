@@ -25,6 +25,13 @@ import type {
   UpdateCashSessionForm,
   PaginatedResult,
 } from "../features/cashSession/types";
+import {
+  Supplier,
+  CreateSupplierForm,
+  EditSupplierForm,
+  SupplierOrder,
+  CreateSupplierOrderForm
+} from "../features/suppliers/types";
 
 declare global {
   interface Window {
@@ -168,6 +175,23 @@ declare global {
       createExpense: (data: CreateExpenseForm) => Promise<Expense>;
       updateExpense: (id: number, data: UpdateExpenseForm) => Promise<Expense>;
       deleteExpense: (id: number) => Promise<void>;
+
+      // Proveedores (Suppliers)
+      getAllSuppliers: () => Promise<Supplier[]>;
+      getSupplierById: (id: number) => Promise<Supplier>;
+      createSupplier: (data: CreateSupplierForm) => Promise<Supplier>;
+      updateSupplier: (id: number, data: EditSupplierForm) => Promise<Supplier>;
+      deleteSupplier: (id: number) => Promise<void>;
+      searchSuppliers: (searchTerm: string) => Promise<Supplier[]>;
+
+      // Ordenes de Proveedor (Supplier Orders)
+      getAllSupplierOrders: () => Promise<SupplierOrder[]>;
+      getSupplierOrderById: (id: number) => Promise<SupplierOrder>;
+      getSupplierOrdersBySupplierId: (supplierId: number) => Promise<SupplierOrder[]>;
+      getSupplierOrdersByOrderId: (orderId: number) => Promise<SupplierOrder[]>;
+      createSupplierOrder: (data: CreateSupplierOrderForm) => Promise<SupplierOrder>;
+      updateSupplierOrder: (id: number, data: Partial<CreateSupplierOrderForm>) => Promise<SupplierOrder>;
+      deleteSupplierOrder: (id: number) => Promise<void>;
 
       // Shell / Utilidades
       openExternal: (url: string) => Promise<void>;

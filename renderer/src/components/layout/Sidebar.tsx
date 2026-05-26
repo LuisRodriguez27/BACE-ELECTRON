@@ -16,7 +16,8 @@ import {
   Info,
   HandCoins,
   Moon,
-  Sun
+  Sun,
+  Truck
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSidebarStore } from '@/store/sidebar'
@@ -94,6 +95,12 @@ const menuItems: MenuItem[] = [
     path: '/dashboard/clients'
   },
   {
+    id: 'suppliers',
+    label: 'Proveedores',
+    icon: Truck,
+    path: '/dashboard/suppliers'
+  },
+  {
     id: 'users',
     label: 'Usuarios',
     icon: UserCog,
@@ -137,6 +144,10 @@ const Sidebar: React.FC = () => {
         {menuItems.map((item) => {
           // Solo ocultar la opción de Usuarios si no tiene permiso
           if (item.id === 'users' && !canAccess('Gestionar Usuario')) {
+            return null
+          }
+
+          if (item.id === 'suppliers' && !canAccess('Ver Mayoristas')) {
             return null
           }
 
