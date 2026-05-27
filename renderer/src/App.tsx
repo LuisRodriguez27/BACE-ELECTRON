@@ -41,6 +41,7 @@ const queryClient = new QueryClient({
 import { useEffect } from 'react'
 import { useThemeStore } from '@/store/theme'
 import { enable as enableDarkMode, disable as disableDarkMode } from 'darkreader'
+import UpdateBanner from './components/layout/UpdateBanner'
 
 function AppWrapper() {
   // Initialize auth hook to check authentication status
@@ -67,7 +68,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AppWrapper />
-      {/* <UpdateBanner /> */}
+      <UpdateBanner />
       <ReactQueryDevtools 
         initialIsOpen={false} 
         buttonPosition='top-right'
