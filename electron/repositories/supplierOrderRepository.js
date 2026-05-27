@@ -1,7 +1,27 @@
 const db = require('../db');
 const SupplierOrder = require('../domain/supplierOrder');
+const SupplierOrderItem = require('../domain/supplierOrderItem');
 
 class SupplierOrderRepository {
+  async getOrderItems(supplierOrderId) {
+    const rows = await db.getAll(`
+      SELECT * FROM supplier_order_items
+      WHERE supplier_order_id = $1 AND active = true
+      ORDER BY id ASC
+    `, [supplierOrderId]);
+    return rows.map(r => new SupplierOrderItem(r));
+  }
+
+  async addItemsToOrder(supplierOrderId, items) {
+    for (const item of items) {
+      const itemDataJson = typeof item === 'string' ? item : JSON.stringify(item);
+      await db.execute(`
+        INSERT INTO supplier_order_items (supplier_order_id, item_data, active)
+        VALUES ($1, $2, true)
+      `, [supplierOrderId, itemDataJson]);
+    }
+  }
+
   async findAll() {
     const rows = await db.getAll(`
       SELECT so.*, 
@@ -14,7 +34,11 @@ class SupplierOrderRepository {
       WHERE so.active = true
       ORDER BY so.date DESC
     `);
-    return rows.map(r => new SupplierOrder(r));
+    
+    return await Promise.all(rows.map(async r => {
+      const items = await this.getOrderItems(r.id);
+      return new SupplierOrder({ ...r, supplierOrderItems: items });
+    }));
   }
 
   async findById(id) {
@@ -29,7 +53,9 @@ class SupplierOrderRepository {
       WHERE so.id = $1 AND so.active = true
     `, [id]);
     if (!row) return null;
-    return new SupplierOrder(row);
+    
+    const items = await this.getOrderItems(id);
+    return new SupplierOrder({ ...row, supplierOrderItems: items });
   }
 
   async findBySupplierId(supplierId) {
@@ -44,7 +70,11 @@ class SupplierOrderRepository {
       WHERE so.supplier_id = $1 AND so.active = true
       ORDER BY so.date DESC
     `, [supplierId]);
-    return rows.map(r => new SupplierOrder(r));
+    
+    return await Promise.all(rows.map(async r => {
+      const items = await this.getOrderItems(r.id);
+      return new SupplierOrder({ ...r, supplierOrderItems: items });
+    }));
   }
 
   async findByOrderId(orderId) {
@@ -59,52 +89,89 @@ class SupplierOrderRepository {
       WHERE so.order_id = $1 AND so.active = true
       ORDER BY so.date DESC
     `, [orderId]);
-    return rows.map(r => new SupplierOrder(r));
+    
+    return await Promise.all(rows.map(async r => {
+      const items = await this.getOrderItems(r.id);
+      return new SupplierOrder({ ...r, supplierOrderItems: items });
+    }));
   }
 
   async create(orderData) {
-    const result = await db.execute(`
-      INSERT INTO supplier_orders (supplier_id, order_id, order_date, status, notes, date, active)
-      VALUES ($1, $2, $3, $4, $5, $6, true)
-    `, [
-      orderData.supplier_id,
-      orderData.order_id || null,
-      orderData.order_date,
-      orderData.status || null,
-      orderData.notes || null,
-      orderData.date || new Date().toISOString()
-    ]);
+    const transaction = db.transaction(async () => {
+      const result = await db.execute(`
+        INSERT INTO supplier_orders (supplier_id, order_id, order_date, status, notes, date, active)
+        VALUES ($1, $2, $3, $4, $5, $6, true)
+      `, [
+        orderData.supplier_id,
+        orderData.order_id || null,
+        orderData.order_date,
+        orderData.status || null,
+        orderData.notes || null,
+        orderData.date || new Date().toISOString()
+      ]);
 
-    return this.findById(result.lastInsertRowid);
+      const supplierOrderId = result.lastInsertRowid;
+
+      if (orderData.items && Array.isArray(orderData.items)) {
+        await this.addItemsToOrder(supplierOrderId, orderData.items);
+      }
+
+      return supplierOrderId;
+    });
+
+    const supplierOrderId = await transaction();
+    return this.findById(supplierOrderId);
   }
 
   async update(id, orderData) {
-    const fields = [];
-    const values = [];
-    let idx = 1;
+    const transaction = db.transaction(async () => {
+      const fields = [];
+      const values = [];
+      let idx = 1;
 
-    if (orderData.supplier_id !== undefined) { fields.push(`supplier_id = $${idx++}`); values.push(orderData.supplier_id); }
-    if (orderData.order_id !== undefined) { fields.push(`order_id = $${idx++}`); values.push(orderData.order_id); }
-    if (orderData.order_date !== undefined) { fields.push(`order_date = $${idx++}`); values.push(orderData.order_date); }
-    if (orderData.status !== undefined) { fields.push(`status = $${idx++}`); values.push(orderData.status); }
-    if (orderData.notes !== undefined) { fields.push(`notes = $${idx++}`); values.push(orderData.notes); }
-    if (orderData.date !== undefined) { fields.push(`date = $${idx++}`); values.push(orderData.date); }
+      if (orderData.supplier_id !== undefined) { fields.push(`supplier_id = $${idx++}`); values.push(orderData.supplier_id); }
+      if (orderData.order_id !== undefined) { fields.push(`order_id = $${idx++}`); values.push(orderData.order_id); }
+      if (orderData.order_date !== undefined) { fields.push(`order_date = $${idx++}`); values.push(orderData.order_date); }
+      if (orderData.status !== undefined) { fields.push(`status = $${idx++}`); values.push(orderData.status); }
+      if (orderData.notes !== undefined) { fields.push(`notes = $${idx++}`); values.push(orderData.notes); }
+      if (orderData.date !== undefined) { fields.push(`date = $${idx++}`); values.push(orderData.date); }
 
-    if (fields.length === 0) return this.findById(id);
+      if (fields.length > 0) {
+        values.push(id);
+        await db.execute(`
+          UPDATE supplier_orders
+          SET ${fields.join(', ')}
+          WHERE id = $${idx} AND active = true
+        `, values);
+      }
 
-    values.push(id);
-    await db.execute(`
-      UPDATE supplier_orders
-      SET ${fields.join(', ')}
-      WHERE id = $${idx} AND active = true
-    `, values);
+      if (orderData.items && Array.isArray(orderData.items)) {
+        await db.execute('DELETE FROM supplier_order_items WHERE supplier_order_id = $1', [id]);
+        await this.addItemsToOrder(id, orderData.items);
+      }
 
+      return id;
+    });
+
+    await transaction();
     return this.findById(id);
   }
 
   async delete(id) {
     const result = await db.execute('UPDATE supplier_orders SET active = false WHERE id = $1', [id]);
     return result.changes > 0;
+  }
+
+  async findPreviousItemsBySupplier(supplierId) {
+    const rows = await db.getAll(`
+      SELECT soi.item_data
+      FROM supplier_order_items soi
+      JOIN supplier_orders so ON soi.supplier_order_id = so.id
+      WHERE so.supplier_id = $1 AND soi.active = true AND so.active = true
+      ORDER BY soi.id DESC
+    `, [supplierId]);
+    
+    return rows.map(r => typeof r.item_data === 'string' ? JSON.parse(r.item_data) : r.item_data);
   }
 }
 

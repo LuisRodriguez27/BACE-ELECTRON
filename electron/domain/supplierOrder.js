@@ -10,7 +10,8 @@ class SupplierOrder {
     active = true,
     supplier_name,
     supplier_phone,
-    order_total
+    order_total,
+    supplierOrderItems = []
   }) {
     this.id = id;
     this.supplier_id = supplier_id;
@@ -25,6 +26,7 @@ class SupplierOrder {
     this.supplier_name = supplier_name || null;
     this.supplier_phone = supplier_phone || null;
     this.order_total = order_total !== undefined && order_total !== null ? parseFloat(order_total) : null;
+    this.supplierOrderItems = supplierOrderItems || [];
   }
 
   isActive() {
@@ -43,7 +45,8 @@ class SupplierOrder {
       active: this.active,
       supplier_name: this.supplier_name,
       supplier_phone: this.supplier_phone,
-      order_total: this.order_total
+      order_total: this.order_total,
+      supplierOrderItems: this.supplierOrderItems
     };
   }
 }

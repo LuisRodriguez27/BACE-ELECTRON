@@ -14,6 +14,10 @@ class SupplierRepository {
   }
 
   async create(supplierData) {
+    const columnsJson = supplierData.columns 
+      ? (typeof supplierData.columns === 'string' ? supplierData.columns : JSON.stringify(supplierData.columns))
+      : '[]';
+
     const result = await db.execute(`
       INSERT INTO suppliers (name, phone, email, description, columns, is_active)
       VALUES ($1, $2, $3, $4, $5, true)
@@ -22,7 +26,7 @@ class SupplierRepository {
       supplierData.phone ? supplierData.phone.trim() : null,
       supplierData.email ? supplierData.email.trim() : null,
       supplierData.description ? supplierData.description.trim() : null,
-      supplierData.columns ? supplierData.columns.trim() : null
+      columnsJson
     ]);
 
     return new Supplier({
@@ -37,6 +41,10 @@ class SupplierRepository {
   }
 
   async update(id, supplierData) {
+    const columnsJson = supplierData.columns 
+      ? (typeof supplierData.columns === 'string' ? supplierData.columns : JSON.stringify(supplierData.columns))
+      : '[]';
+
     const result = await db.execute(`
       UPDATE suppliers
       SET name = $1, phone = $2, email = $3, description = $4, columns = $5
@@ -46,7 +54,7 @@ class SupplierRepository {
       supplierData.phone ? supplierData.phone.trim() : null,
       supplierData.email ? supplierData.email.trim() : null,
       supplierData.description ? supplierData.description.trim() : null,
-      supplierData.columns ? supplierData.columns.trim() : null,
+      columnsJson,
       id
     ]);
     return result.changes > 0;

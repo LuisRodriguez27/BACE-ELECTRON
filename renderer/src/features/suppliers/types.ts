@@ -3,10 +3,10 @@ import { z } from 'zod';
 // Schema for creating a supplier
 export const createSupplierSchema = z.object({
   name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
-  phone: z.string().nullable().optional(),
+  phone: z.string().min(10, 'El teléfono debete de tener al menos 10 digitos').or(z.literal('')).nullable().optional(),
   email: z.string().email('Formato de correo electrónico inválido').or(z.literal('')).nullable().optional(),
   description: z.string().nullable().optional(),
-  columns: z.string().nullable().optional()
+  columns: z.array(z.string()).nullable().optional()
 });
 
 // Schema for editing a supplier
@@ -23,7 +23,7 @@ export interface Supplier {
   phone: string | null;
   email: string | null;
   description: string | null;
-  columns: string | null;
+  columns: string[] | null;
   is_active: boolean;
 }
 
@@ -34,7 +34,8 @@ export const createSupplierOrderSchema = z.object({
   order_date: z.string().min(1, 'La fecha de la orden es requerida'),
   status: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
-  date: z.string().optional()
+  date: z.string().optional(),
+  items: z.array(z.record(z.string(), z.any())).optional()
 });
 
 // Schema for editing a supplier order
@@ -57,4 +58,5 @@ export interface SupplierOrder {
   supplier_name?: string | null;
   supplier_phone?: string | null;
   order_total?: number | null;
+  supplierOrderItems?: any[];
 }

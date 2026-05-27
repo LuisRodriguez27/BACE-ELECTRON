@@ -154,6 +154,7 @@ contextBridge.exposeInMainWorld('api', {
   createSupplierOrder: (data) => ipcRenderer.invoke('supplierOrders:create', data),
   updateSupplierOrder: (id, data) => ipcRenderer.invoke('supplierOrders:update', id, data),
   deleteSupplierOrder: (id) => ipcRenderer.invoke('supplierOrders:delete', id),
+  getPreviousSupplierOrderItems: (supplierId) => ipcRenderer.invoke('supplierOrders:getPreviousItems', supplierId),
 
   // Imágenes en NAS
   uploadImage: (productId, buffer, originalName) => ipcRenderer.invoke('upload-image', productId, buffer, originalName),

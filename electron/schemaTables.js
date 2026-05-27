@@ -172,7 +172,7 @@ const schemaTables = `
     phone           VARCHAR(20),
     email           VARCHAR(100),
     description     TEXT,
-    columns         TEXT,
+    columns         JSONB         NOT NULL DEFAULT '[]'::jsonb,
     is_active       BOOLEAN       NOT NULL DEFAULT TRUE
   );
 
@@ -186,6 +186,14 @@ const schemaTables = `
     date            TIMESTAMPTZ   NOT NULL,
     active          BOOLEAN       DEFAULT TRUE
   );
+
+  CREATE TABLE IF NOT EXISTS supplier_order_items (
+    id                SERIAL        PRIMARY KEY,
+    supplier_order_id INTEGER       NOT NULL REFERENCES supplier_orders(id),
+    item_data         JSONB         NOT NULL,
+    active            BOOLEAN       NOT NULL DEFAULT TRUE
+  );
+
 
 `;
 

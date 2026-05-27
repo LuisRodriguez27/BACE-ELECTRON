@@ -5,7 +5,14 @@ class Supplier {
     this.phone = phone || null;
     this.email = email || null;
     this.description = description || null;
-    this.columns = columns || null;
+    
+    // Parse columns if string, or assign as array
+    try {
+      this.columns = typeof columns === 'string' ? JSON.parse(columns) : (columns || []);
+    } catch (e) {
+      this.columns = [];
+    }
+    
     this.is_active = is_active;
   }
 

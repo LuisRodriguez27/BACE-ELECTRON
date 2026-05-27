@@ -192,6 +192,7 @@ declare global {
       createSupplierOrder: (data: CreateSupplierOrderForm) => Promise<SupplierOrder>;
       updateSupplierOrder: (id: number, data: Partial<CreateSupplierOrderForm>) => Promise<SupplierOrder>;
       deleteSupplierOrder: (id: number) => Promise<void>;
+      getPreviousSupplierOrderItems: (supplierId: number) => Promise<any[]>;
 
       // Shell / Utilidades
       openExternal: (url: string) => Promise<void>;

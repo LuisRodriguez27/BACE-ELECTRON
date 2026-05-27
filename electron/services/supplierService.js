@@ -50,7 +50,7 @@ class SupplierService {
         phone: phone ? phone.trim() : null,
         email: email ? email.trim() : null,
         description: description ? description.trim() : null,
-        columns: columns ? columns.trim() : null
+        columns: columns ? (typeof columns === 'string' ? columns.trim() : columns) : null
       });
 
       return supplier.toPlainObject();
@@ -93,7 +93,7 @@ class SupplierService {
         phone: phone ? phone.trim() : null,
         email: email ? email.trim() : null,
         description: description ? description.trim() : null,
-        columns: columns ? columns.trim() : null
+        columns: columns ? (typeof columns === 'string' ? columns.trim() : columns) : null
       });
 
       if (!updated) {

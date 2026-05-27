@@ -58,7 +58,7 @@ class SupplierOrderService {
     }
   }
 
-  async createSupplierOrder({ supplier_id, order_id, order_date, status, notes, date }) {
+  async createSupplierOrder({ supplier_id, order_id, order_date, status, notes, date, items }) {
     try {
       if (!supplier_id || isNaN(supplier_id)) {
         throw new Error('ID de proveedor es requerido e inválido');
@@ -81,13 +81,18 @@ class SupplierOrderService {
         throw new Error('Fecha de registro inválida');
       }
 
+      if (items && !Array.isArray(items)) {
+        throw new Error('Los artículos de la orden deben ser proporcionados como una lista (array)');
+      }
+
       const order = await supplierOrderRepository.create({
         supplier_id: parseInt(supplier_id),
         order_id: order_id ? parseInt(order_id) : null,
         order_date,
         status: status ? status.trim() : null,
         notes: notes ? notes.trim() : null,
-        date: date || new Date().toISOString()
+        date: date || new Date().toISOString(),
+        items
       });
 
       return order.toPlainObject();
@@ -149,6 +154,13 @@ class SupplierOrderService {
         payload.date = data.date;
       }
 
+      if (data.items !== undefined) {
+        if (data.items !== null && !Array.isArray(data.items)) {
+          throw new Error('Los artículos de la orden deben ser proporcionados como una lista (array)');
+        }
+        payload.items = data.items;
+      }
+
       if (Object.keys(payload).length === 0) {
         throw new Error('No se proporcionaron campos para actualizar');
       }
@@ -180,6 +192,18 @@ class SupplierOrderService {
       }
     } catch (error) {
       console.error('Error al eliminar orden de proveedor:', error);
+      throw error;
+    }
+  }
+
+  async getPreviousItemsBySupplier(supplierId) {
+    try {
+      if (!supplierId || isNaN(supplierId)) {
+        throw new Error('ID de proveedor inválido');
+      }
+      return await supplierOrderRepository.findPreviousItemsBySupplier(parseInt(supplierId));
+    } catch (error) {
+      console.error('Error al obtener artículos anteriores por proveedor:', error);
       throw error;
     }
   }

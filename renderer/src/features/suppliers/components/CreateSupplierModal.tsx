@@ -22,6 +22,7 @@ const CreateSupplierModal: React.FC<CreateSupplierModalProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [columnsList, setColumnsList] = useState<string[]>(['']);
 
   const {
     register,
@@ -34,28 +35,44 @@ const CreateSupplierModal: React.FC<CreateSupplierModalProps> = ({
       name: '',
       phone: '',
       email: '',
-      description: '',
-      columns: ''
+      description: ''
     }
   });
+
+  const handleAddColumn = () => {
+    setColumnsList([...columnsList, '']);
+  };
+
+  const handleRemoveColumn = (index: number) => {
+    setColumnsList(columnsList.filter((_, i) => i !== index));
+  };
+
+  const handleColumnChange = (index: number, value: string) => {
+    const updated = [...columnsList];
+    updated[index] = value;
+    setColumnsList(updated);
+  };
 
   const onSubmit = async (data: CreateSupplierForm) => {
     try {
       setIsSubmitting(true);
       setError(null);
 
-      // Convert empty strings to null for backend compatibility
+      // Filter empty columns and build payload
+      const cleanedColumns = columnsList.map(c => c.trim()).filter(c => c.length > 0);
+
       const payload = {
         name: data.name,
         phone: data.phone || null,
         email: data.email || null,
         description: data.description || null,
-        columns: data.columns || null
+        columns: cleanedColumns.length > 0 ? cleanedColumns : null
       };
 
-      const newSupplier = await SuppliersApiService.create(payload);
+      const newSupplier = await SuppliersApiService.create(payload as any);
       onSupplierCreated(newSupplier);
       reset();
+      setColumnsList(['']);
       onClose();
     } catch (err: any) {
       console.error('Error creating supplier:', err);
@@ -68,6 +85,7 @@ const CreateSupplierModal: React.FC<CreateSupplierModalProps> = ({
 
   const handleClose = () => {
     reset();
+    setColumnsList(['']);
     setError(null);
     onClose();
   };
@@ -92,6 +110,7 @@ const CreateSupplierModal: React.FC<CreateSupplierModalProps> = ({
             </div>
           </div>
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             onClick={handleClose}
@@ -109,7 +128,7 @@ const CreateSupplierModal: React.FC<CreateSupplierModalProps> = ({
             </div>
           )}
 
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
             {/* Name */}
             <div>
               <Label htmlFor="name" className="text-sm font-medium text-gray-700">
@@ -139,10 +158,16 @@ const CreateSupplierModal: React.FC<CreateSupplierModalProps> = ({
                 <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                 <Input
                   id="phone"
-                  type="text"
+                  type="tel"
+                  maxLength={10}
                   placeholder="Número de contacto (opcional)"
                   className="pl-10 focus:ring-blue-500 focus:border-blue-500"
-                  {...register('phone')}
+                  {...register('phone', {
+                    onChange: (e) => {
+                      const val = e.target.value.replace(/\D/g, '');
+                      e.target.value = val.slice(0, 10);
+                    }
+                  })}
                 />
               </div>
               {errors.phone && (
@@ -171,23 +196,45 @@ const CreateSupplierModal: React.FC<CreateSupplierModalProps> = ({
             </div>
 
             {/* Columns (Columnas) */}
-            <div>
-              <Label htmlFor="columns" className="text-sm font-medium text-gray-700">
-                Columnas (Para tablas)
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">
+                Columnas para Pedidos
               </Label>
-              <div className="mt-1 relative">
-                <LayoutGrid className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                <Input
-                  id="columns"
-                  type="text"
-                  placeholder="Ej: Pasillo A, Estante 3 (opcional)"
-                  className="pl-10 focus:ring-blue-500 focus:border-blue-500"
-                  {...register('columns')}
-                />
+              <p className="text-xs text-gray-500">
+                Define las columnas que tendrá la tabla de pedidos de este proveedor (ej: Pzas, Mod, Talla, Color).
+              </p>
+              <div className="space-y-2">
+                {columnsList.map((col, idx) => (
+                  <div key={idx} className="flex gap-2 items-center">
+                    <LayoutGrid className="text-gray-400 shrink-0" size={16} />
+                    <Input
+                      type="text"
+                      placeholder={`Nombre de columna #${idx + 1}`}
+                      value={col}
+                      onChange={(e) => handleColumnChange(idx, e.target.value)}
+                      className="focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => handleRemoveColumn(idx)}
+                      disabled={columnsList.length === 1 && col === ''}
+                      className="h-9 w-9 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg shrink-0"
+                    >
+                      <X size={16} />
+                    </Button>
+                  </div>
+                ))}
               </div>
-              {errors.columns && (
-                <p className="mt-1 text-sm text-red-600">{errors.columns.message}</p>
-              )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddColumn}
+                className="mt-1 w-full text-blue-600 hover:text-blue-700 border-dashed border-blue-300 hover:bg-blue-50"
+              >
+                + Agregar Columna
+              </Button>
             </div>
 
             {/* Description */}

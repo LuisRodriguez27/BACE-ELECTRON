@@ -341,6 +341,7 @@ ipcMain.handle('supplierOrders:getByOrderId', async (event, orderId) => await su
 ipcMain.handle('supplierOrders:create', async (event, data) => await supplierOrderService.createSupplierOrder(data));
 ipcMain.handle('supplierOrders:update', async (event, id, data) => await supplierOrderService.updateSupplierOrder(id, data));
 ipcMain.handle('supplierOrders:delete', async (event, id) => await supplierOrderService.deleteSupplierOrder(id));
+ipcMain.handle('supplierOrders:getPreviousItems', async (event, supplierId) => await supplierOrderService.getPreviousItemsBySupplier(supplierId));
 
 // Manejo de eventos IPC para imágenes
 ipcMain.handle('upload-image', async (event, productId, buffer, originalName) => await imageService.uploadImage(productId, buffer, originalName));
