@@ -298,8 +298,8 @@ class OrderRepository {
       throw new Error('La orden no existe');
     }
 
-    if (existingOrder.isCompleted() || existingOrder.isCancelled()) {
-      throw new Error('No se puede editar una orden completada o cancelada');
+    if (existingOrder.isCancelled()) {
+      throw new Error('No se puede editar una orden cancelada');
     }
 
     const fieldsToUpdate = {};

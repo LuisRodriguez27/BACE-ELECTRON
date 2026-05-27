@@ -1,12 +1,15 @@
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Calendar, CheckCircle, Clock, DollarSign, Eye, Loader2, Search, ShoppingCart } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle, Clock, DollarSign, Edit3, Eye, Loader2, Search, ShoppingCart } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import OrderDetailsModal from '../orders/components/OrderDetailsModal';
+import CreateOrderModal from '../orders/components/FormOrderModal';
 import type { Order } from '../orders/types';
 import { PaymentsApiService } from '../payments/PaymentsApiService';
 import type { Payment } from '../payments/types';
 import { SalesApiService } from './SalesApiService';
 import { formatDateMX, formatDateOnlyMX } from '@/utils/dateUtils';
+import { useAuthStore } from '@/store/auth';
+import { usePermissions } from '@/hooks/use-permissions';
 
 interface PaginationInfo {
   page: number;
@@ -24,6 +27,7 @@ const OrdersPage: React.FC = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [pagination, setPagination] = useState<PaginationInfo>({
     page: 1,
@@ -36,6 +40,9 @@ const OrdersPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentSearchTerm, setCurrentSearchTerm] = useState(''); // Para saber qué término se está usando actualmente
   const [searchDebounceTimer, setSearchDebounceTimer] = useState<number | null>(null);
+  
+  const { checkPermission } = usePermissions();
+  const { user } = useAuthStore();
   
   const observerRef = useRef<IntersectionObserver | null>(null);
   const lastOrderElementRef = useCallback((node: HTMLDivElement) => {
@@ -193,8 +200,40 @@ const OrdersPage: React.FC = () => {
     setShowDetailsModal(true);
   };
 
-  const closeModal = () => {
+  const handleEditOrder = (orderId: number) => {
+    if (!checkPermission("Editar Órdenes")) {
+      return;
+    }
+    setSelectedOrderId(orderId);
+    setShowEditModal(true);
+  };
+
+  const handleOrderUpdated = (updatedOrder: Order) => {
+    // Si la orden ya no está completada, la removemos del historial
+    if (updatedOrder.status !== 'Completado') {
+      setOrders(prev => prev.filter(o => o.id !== updatedOrder.id));
+      setPagination(prev => ({
+        ...prev,
+        total: Math.max(0, prev.total - 1)
+      }));
+    } else {
+      setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+    }
+  };
+
+  const handleOrderCreated = (newOrder: Order) => {
+    if (newOrder.status === 'Completado') {
+      setOrders(prev => [newOrder, ...prev]);
+      setPagination(prev => ({
+        ...prev,
+        total: prev.total + 1
+      }));
+    }
+  };
+
+  const closeModals = () => {
     setShowDetailsModal(false);
+    setShowEditModal(false);
     setSelectedOrderId(null);
   };
 
@@ -393,6 +432,17 @@ const OrdersPage: React.FC = () => {
                       </div>
                     
                     <div className="flex items-center gap-2">
+                      {checkPermission("Editar Órdenes") && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditOrder(order.id)}
+                          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        >
+                          <Edit3 size={14} />
+                          Edición
+                        </Button>
+                      )}
                       <Button 
                         variant="outline" 
                         size="sm"
@@ -508,9 +558,25 @@ const OrdersPage: React.FC = () => {
       {/* Modals */}
       <OrderDetailsModal
         isOpen={showDetailsModal}
-        onClose={closeModal}
+        onClose={closeModals}
         orderId={selectedOrderId}
-        // No pasamos onOrderUpdated para deshabilitar edición en historial
+        onOrderUpdated={handleOrderUpdated}
+        onEditClick={(orderId) => {
+          setShowDetailsModal(false);
+          setSelectedOrderId(orderId);
+          setTimeout(() => {
+            setShowEditModal(true);
+          }, 100);
+        }}
+      />
+
+      <CreateOrderModal
+        isOpen={showEditModal}
+        onClose={closeModals}
+        onOrderCreated={handleOrderCreated}
+        onOrderUpdated={handleOrderUpdated}
+        currentUserId={user?.id!}
+        orderId={selectedOrderId}
       />
 
     </div>

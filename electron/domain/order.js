@@ -308,7 +308,7 @@ class Order {
 
   // Verificaciones de negocio
   canEdit() {
-    return !this.isCompleted() && !this.isCancelled();
+    return !this.isCancelled();
   }
 
   canEditProducts() {

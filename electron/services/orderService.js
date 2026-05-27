@@ -268,7 +268,7 @@ class OrderService {
 
       // Validar que se puede editar
       if (!existingOrder.canEdit()) {
-        throw new Error('No se puede editar una orden completada o cancelada');
+        throw new Error('No se puede editar una orden cancelada');
       }
 
       const { estimated_delivery_date, status, responsable, notes, description, edited_by, items, client_id, date } = orderData;
