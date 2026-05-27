@@ -13,6 +13,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { calculateOrderTotal, createOrderItemFromFormItem, createOrderSchema, type CreateOrderForm, type Order } from '../../types';
 import { todayDateInputMX } from '@/utils/dateUtils';
 import { toast } from 'sonner';
+import { useNavigate } from '@tanstack/react-router';
 
 // Hooks
 import { useOrderItems } from './hooks/useOrderItems';
@@ -40,6 +41,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   orderId = null,
   onOrderUpdated
 }) => {
+  const navigate = useNavigate();
   // Initialize form at this level to avoid circular dependencies between hooks
   const formMethods = useForm<CreateOrderForm>({
     resolver: zodResolver(createOrderSchema),
@@ -257,6 +259,23 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
 
           {/* Actions */}
           <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+            {orderForm.isEditMode && orderId && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  orderForm.handleClose();
+                  navigate({
+                    to: '/dashboard/suppliers',
+                    search: { orderId: Number(orderId) } as any
+                  });
+                }}
+                className="mr-auto flex items-center gap-2 border-blue-200 text-blue-600 hover:bg-blue-50"
+              >
+                <Layers size={16} />
+                Surtir con Proveedor
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"

@@ -3,7 +3,6 @@ class SupplierOrder {
     id,
     supplier_id,
     order_id,
-    order_date,
     status,
     notes,
     date,
@@ -16,7 +15,6 @@ class SupplierOrder {
     this.id = id;
     this.supplier_id = supplier_id;
     this.order_id = order_id || null;
-    this.order_date = order_date;
     this.status = status || null;
     this.notes = notes || null;
     this.date = date;
@@ -38,7 +36,6 @@ class SupplierOrder {
       id: this.id,
       supplier_id: this.supplier_id,
       order_id: this.order_id,
-      order_date: this.order_date,
       status: this.status,
       notes: this.notes,
       date: this.date,

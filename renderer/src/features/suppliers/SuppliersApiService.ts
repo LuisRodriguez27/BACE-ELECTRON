@@ -53,5 +53,9 @@ export const SuppliersApiService = {
 
   deleteOrder: async (id: number): Promise<void> => {
     return window.api.deleteSupplierOrder(id);
+  },
+
+  getPreviousItems: async (supplierId: number): Promise<any[]> => {
+    return window.api.getPreviousSupplierOrderItems(supplierId);
   }
 };

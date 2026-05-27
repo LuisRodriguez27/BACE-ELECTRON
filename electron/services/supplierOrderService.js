@@ -58,7 +58,7 @@ class SupplierOrderService {
     }
   }
 
-  async createSupplierOrder({ supplier_id, order_id, order_date, status, notes, date, items }) {
+  async createSupplierOrder({ supplier_id, order_id, status, notes, date, items }) {
     try {
       if (!supplier_id || isNaN(supplier_id)) {
         throw new Error('ID de proveedor es requerido e inválido');
@@ -69,16 +69,12 @@ class SupplierOrderService {
         throw new Error('El proveedor especificado no existe o está inactivo');
       }
 
-      if (!order_date) {
+      if (!date) {
         throw new Error('La fecha de la orden de compra es requerida');
       }
 
-      if (isNaN(new Date(order_date).getTime())) {
+      if (isNaN(new Date(date).getTime())) {
         throw new Error('Fecha de la orden de compra inválida');
-      }
-
-      if (date && isNaN(new Date(date).getTime())) {
-        throw new Error('Fecha de registro inválida');
       }
 
       if (items && !Array.isArray(items)) {
@@ -88,10 +84,9 @@ class SupplierOrderService {
       const order = await supplierOrderRepository.create({
         supplier_id: parseInt(supplier_id),
         order_id: order_id ? parseInt(order_id) : null,
-        order_date,
         status: status ? status.trim() : null,
         notes: notes ? notes.trim() : null,
-        date: date || new Date().toISOString(),
+        date,
         items
       });
 
@@ -132,13 +127,6 @@ class SupplierOrderService {
         payload.order_id = data.order_id ? parseInt(data.order_id) : null;
       }
 
-      if (data.order_date !== undefined) {
-        if (!data.order_date || isNaN(new Date(data.order_date).getTime())) {
-          throw new Error('Fecha de la orden de compra inválida');
-        }
-        payload.order_date = data.order_date;
-      }
-
       if (data.status !== undefined) {
         payload.status = data.status ? data.status.trim() : null;
       }
@@ -149,7 +137,7 @@ class SupplierOrderService {
 
       if (data.date !== undefined) {
         if (!data.date || isNaN(new Date(data.date).getTime())) {
-          throw new Error('Fecha de registro inválida');
+          throw new Error('Fecha de la orden de compra inválida');
         }
         payload.date = data.date;
       }

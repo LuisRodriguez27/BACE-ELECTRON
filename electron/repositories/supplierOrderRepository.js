@@ -99,12 +99,11 @@ class SupplierOrderRepository {
   async create(orderData) {
     const transaction = db.transaction(async () => {
       const result = await db.execute(`
-        INSERT INTO supplier_orders (supplier_id, order_id, order_date, status, notes, date, active)
-        VALUES ($1, $2, $3, $4, $5, $6, true)
+        INSERT INTO supplier_orders (supplier_id, order_id, status, notes, date, active)
+        VALUES ($1, $2, $3, $4, $5, true)
       `, [
         orderData.supplier_id,
         orderData.order_id || null,
-        orderData.order_date,
         orderData.status || null,
         orderData.notes || null,
         orderData.date || new Date().toISOString()
@@ -131,7 +130,6 @@ class SupplierOrderRepository {
 
       if (orderData.supplier_id !== undefined) { fields.push(`supplier_id = $${idx++}`); values.push(orderData.supplier_id); }
       if (orderData.order_id !== undefined) { fields.push(`order_id = $${idx++}`); values.push(orderData.order_id); }
-      if (orderData.order_date !== undefined) { fields.push(`order_date = $${idx++}`); values.push(orderData.order_date); }
       if (orderData.status !== undefined) { fields.push(`status = $${idx++}`); values.push(orderData.status); }
       if (orderData.notes !== undefined) { fields.push(`notes = $${idx++}`); values.push(orderData.notes); }
       if (orderData.date !== undefined) { fields.push(`date = $${idx++}`); values.push(orderData.date); }

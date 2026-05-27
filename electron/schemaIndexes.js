@@ -57,7 +57,7 @@ const schemaIndexes = `
   CREATE INDEX IF NOT EXISTS idx_expenses_active_true                    ON expenses(date) WHERE active = TRUE;
 
   -- suppliers
-  CREATE INDEX IF NOT EXISTS idx_supplier_orders_date ON supplier_orders(order_date);
+  CREATE INDEX IF NOT EXISTS idx_supplier_orders_date ON supplier_orders(date);
   CREATE INDEX IF NOT EXISTS idx_supplier_orders_supplier ON supplier_orders(supplier_id);
   CREATE INDEX IF NOT EXISTS idx_supplier_order_items_order ON supplier_order_items(supplier_order_id);
 
