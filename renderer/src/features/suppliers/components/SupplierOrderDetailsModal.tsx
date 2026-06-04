@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import type { Supplier, SupplierOrder } from '../types';
 import { formatDateMX } from '@/utils/dateUtils';
 import html2canvas from 'html2canvas';
+import { sanitizeOklchOnClone } from '@/utils/canvasUtils';
 import { toast } from 'sonner';
 
 interface SupplierOrderDetailsModalProps {
@@ -41,7 +42,8 @@ const SupplierOrderDetailsModal: React.FC<SupplierOrderDetailsModalProps> = ({
         backgroundColor: '#ffffff',
         scale: 2, // crisp quality
         logging: false,
-        useCORS: true
+        useCORS: true,
+        onclone: sanitizeOklchOnClone
       });
       const dataUrl = canvas.toDataURL('image/png');
       const link = document.createElement('a');

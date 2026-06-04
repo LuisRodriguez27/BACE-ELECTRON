@@ -38,7 +38,6 @@ const UpdateBanner: React.FC = () => {
 
   return (
     <>
-      {/* ── Trigger DEV ──────────────────────────────────────────────────── */}
       {isDev && !ready && (
         <button
           id="dev-updater-toggle"
@@ -46,9 +45,9 @@ const UpdateBanner: React.FC = () => {
             setVersion('4.2.0'); 
             setReady(true); 
           }}
-          className="fixed bottom-20 left-4 z-99999 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-xs text-gray-400 transition hover:bg-gray-700 hover:text-white"
+          className="fixed bottom-6 right-4 z-99999 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-xs text-gray-400 transition hover:bg-gray-700 hover:text-white"
         >
-          DEV: simular update
+          Simular update
         </button>
       )}
 
