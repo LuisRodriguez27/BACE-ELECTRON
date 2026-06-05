@@ -39,6 +39,9 @@ export const CashSessionApiService = {
 
   update: (id: number, data: UpdateCashSessionForm): Promise<CashSession> =>
     window.api.updateCashSession(id, data),
+
+  reopen: (id: number): Promise<CashSession> =>
+    window.api.reopenCashSession(id),
 };
 
 // ── Expenses ──────────────────────────────────────────────────────────────────

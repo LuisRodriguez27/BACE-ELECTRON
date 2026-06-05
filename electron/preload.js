@@ -129,6 +129,7 @@ contextBridge.exposeInMainWorld('api', {
   openCashSession: (data) => ipcRenderer.invoke('cashSessions:open', data),
   closeCashSession: (id, data) => ipcRenderer.invoke('cashSessions:close', id, data),
   updateCashSession: (id, data) => ipcRenderer.invoke('cashSessions:update', id, data),
+  reopenCashSession: (id) => ipcRenderer.invoke('cashSessions:reopen', id),
 
   // Gastos
   getExpenses: (page, limit) => ipcRenderer.invoke('expenses:getAll', page, limit),

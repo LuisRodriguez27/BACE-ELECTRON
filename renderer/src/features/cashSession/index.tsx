@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { formatDateMX } from '@/utils/dateUtils';
 
 import { CashSessionApiService, ExpensesApiService } from './CashSessionApiService';
@@ -86,7 +87,7 @@ const CashSessionPage: React.FC = () => {
   const [summary, setSummary] = useState<CashSessionSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { checkPermission } = usePermissions();
+  const { checkPermission, canAccess } = usePermissions();
 
   // expenses local (subset del session)
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -97,6 +98,8 @@ const CashSessionPage: React.FC = () => {
   const [showExpForm, setShowExpForm] = useState(false);
   const [editingExp, setEditingExp] = useState<Expense | null>(null);
   const [showPrint, setShowPrint] = useState(false);
+  const [reopenConfirmId, setReopenConfirmId] = useState<number | null>(null);
+  const [reopenLoading, setReopenLoading] = useState(false);
 
   // accordion
   const [showPayments, setShowPayments] = useState(false);
@@ -213,6 +216,34 @@ const CashSessionPage: React.FC = () => {
       fetchSession();
     } catch (err: any) {
       toast.error(err.message || 'Error al cerrar la sesión');
+    }
+  };
+
+  const handleReopen = (id: number) => {
+    if (!checkPermission("Reabrir Caja")) {
+      return;
+    }
+    if (session) {
+      toast.error('Ya existe una sesión de caja abierta. Ciérrala antes de reabrir otra.');
+      return;
+    }
+    setReopenConfirmId(id);
+  };
+
+  const executeReopen = async (id: number) => {
+    setReopenLoading(true);
+    try {
+      await CashSessionApiService.reopen(id);
+      toast.success('Sesión de caja reabierta correctamente');
+      setReopenConfirmId(null);
+      fetchSession();
+      if (tab === 'history') {
+        fetchHistory(historyPage);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Error al reabrir la sesión de caja');
+    } finally {
+      setReopenLoading(false);
     }
   };
 
@@ -689,13 +720,29 @@ const CashSessionPage: React.FC = () => {
                         <td className="px-4 py-3 text-right font-medium text-red-700">{fmt(expenses)}</td>
                         <td className="px-4 py-3 text-right font-bold text-blue-700">{fmt(s.closing_balance)}</td>
                         <td className="px-4 py-3 text-center">
-                          <button
-                            onClick={() => setDetailId(s.id)}
-                            className="p-1.5 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50"
-                            title="Ver detalle"
-                          >
-                            <Eye size={15} />
-                          </button>
+                          <div className="flex justify-center gap-1">
+                            {canAccess('Reabrir Caja') && (
+                              <button
+                                onClick={() => handleReopen(s.id)}
+                                disabled={!!session}
+                                className={`p-1.5 rounded transition-colors ${
+                                  session
+                                    ? 'text-gray-200 cursor-not-allowed'
+                                    : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
+                                }`}
+                                title={session ? 'Ya existe una sesión de caja activa' : 'Reabrir caja'}
+                              >
+                                <LockOpen size={15} />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setDetailId(s.id)}
+                              className="p-1.5 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+                              title="Ver detalle"
+                            >
+                              <Eye size={15} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -766,6 +813,13 @@ const CashSessionPage: React.FC = () => {
         <SessionDetailModal
           sessionId={detailId}
           onClose={() => setDetailId(null)}
+          hasActiveSession={!!session}
+          onReopenSuccess={() => {
+            fetchSession();
+            if (tab === 'history') {
+              fetchHistory(historyPage);
+            }
+          }}
         />
       )}
 
@@ -776,6 +830,18 @@ const CashSessionPage: React.FC = () => {
           onClose={() => setShowPrint(false)}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={reopenConfirmId !== null}
+        onClose={() => setReopenConfirmId(null)}
+        onConfirm={() => reopenConfirmId && executeReopen(reopenConfirmId)}
+        title="Reabrir Sesión de Caja"
+        message="¿Estás seguro de que deseas volver a abrir esta sesión de caja? Esto la marcará como abierta y podrás registrar nuevos movimientos."
+        confirmText="Reabrir Caja"
+        cancelText="Cancelar"
+        type="warning"
+        isLoading={reopenLoading}
+      />
     </div>
   );
 };

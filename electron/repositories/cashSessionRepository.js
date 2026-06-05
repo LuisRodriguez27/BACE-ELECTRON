@@ -190,6 +190,29 @@ class CashSessionRepository {
     return updated;
   }
 
+  async reopen(id) {
+    const existing = await this.getActive();
+    if (existing) {
+      throw new Error(`No se puede reabrir la sesión porque ya existe una sesión de caja abierta (ID: ${existing.id}).`);
+    }
+
+    const session = await this.getById(id);
+    if (!session) throw new Error('Sesión de caja no encontrada.');
+    if (session.isActive()) throw new Error('La sesión de caja ya está abierta.');
+
+    const row = await db.getOne(`
+      UPDATE cash_sessions
+      SET status = 'open',
+          closing_date = NULL,
+          closing_balance = 0
+      WHERE id = $1
+      RETURNING *
+    `, [id]);
+
+    const [updated] = await this._hydrate([row]);
+    return updated;
+  }
+
   async update(id, data) {
     const session = await this.getById(id);
     if (!session) throw new Error('Sesión de caja no encontrada.');

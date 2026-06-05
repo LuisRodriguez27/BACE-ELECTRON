@@ -537,6 +537,37 @@ const MIGRATIONS = [
     }
   },
 
+  // v21: Agregar permiso de reabrir caja
+  {
+    version: 21,
+    name: 'add_reopen_cash_permission',
+    isApplied: async (client) => {
+      const { rows } = await client.query(`
+        SELECT id FROM permissions 
+        WHERE name = 'Reabrir Caja' 
+        LIMIT 1;
+      `);
+      return rows.length > 0;
+    },
+    up: async (client) => {
+      await client.query(`
+        INSERT INTO permissions (name, description, active)
+        VALUES
+          ('Reabrir Caja', 'Permite volver a abrir una sesión de caja cerrada', true)
+        ON CONFLICT (name) DO UPDATE SET active = true;
+      `);
+      await client.query(`
+        INSERT INTO user_permissions (user_id, permission_id, active)
+        SELECT u.id, p.id, true
+        FROM users u
+        CROSS JOIN permissions p
+        WHERE u.id = 1
+          AND p.name = 'Reabrir Caja'
+        ON CONFLICT DO NOTHING;
+      `);
+    }
+  },
+
   // AGREGA NUEVAS MIGRACIONES AQUÍ
 ];
 

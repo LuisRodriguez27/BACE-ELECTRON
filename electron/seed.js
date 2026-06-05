@@ -81,6 +81,17 @@ async function seed() {
 
   // Estadisticas
   ["Estadisticas", "Permite visualizar las estadisticas de ventas", true],
+
+  // Caja
+  ["Abrir Caja", "Abre una caja", true],
+  ["Cerrar Caja", "Cierra una caja", true],
+  ["Ver Caja", "Puede ver los movimientos de la caja", true],
+  ["Registrar Egreso", "Puede registrar egresos", true],
+  ["Reabrir Caja", "Permite volver a abrir una sesión de caja cerrada", true],
+
+  // Proveedores / Mayoristas
+  ["Ver Mayoristas", "Permite ver el módulo de mayoristas/proveedores", true],
+  ["Crear Orden Mayorista", "Permite crear una orden para un mayorista", true]
   ];
   for (const perm of permissions) {
     await db.execute(`

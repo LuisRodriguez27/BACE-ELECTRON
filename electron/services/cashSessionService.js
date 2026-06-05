@@ -1,4 +1,5 @@
 const cashSessionRepository = require('../repositories/cashSessionRepository');
+const authService = require('./authService');
 
 class CashSessionService {
 	async getAll(page = 1, limit = 20) {
@@ -162,6 +163,23 @@ class CashSessionService {
       return session.toPlainObject();
     } catch (error) {
       console.error('Error al actualizar sesión de caja:', error);
+      throw error;
+    }
+  }
+
+  async reopen(id) {
+    try {
+      if (!id || isNaN(id)) throw new Error('ID de sesión inválido');
+
+      const authorized = await authService.hasPermission('Reabrir Caja');
+      if (!authorized) {
+        throw new Error('No tienes permiso para reabrir la caja');
+      }
+
+      const session = await cashSessionRepository.reopen(parseInt(id));
+      return session.toPlainObject();
+    } catch (error) {
+      console.error('Error al reabrir sesión de caja:', error);
       throw error;
     }
   }

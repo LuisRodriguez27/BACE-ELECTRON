@@ -167,6 +167,7 @@ declare global {
       openCashSession: (data: OpenCashSessionForm) => Promise<CashSession>;
       closeCashSession: (id: number, data: CloseCashSessionForm) => Promise<CashSession>;
       updateCashSession: (id: number, data: UpdateCashSessionForm) => Promise<CashSession>;
+      reopenCashSession: (id: number) => Promise<CashSession>;
 
       // Gastos
       getExpenses: (page: number, limit: number) => Promise<PaginatedResult<Expense>>;

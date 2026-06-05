@@ -316,6 +316,7 @@ ipcMain.handle('cashSessions:getSummary', async (event, id) => await cashSession
 ipcMain.handle('cashSessions:open', async (event, data) => await cashSessionService.open(data));
 ipcMain.handle('cashSessions:close', async (event, id, data) => await cashSessionService.close(id, data));
 ipcMain.handle('cashSessions:update', async (event, id, data) => await cashSessionService.update(id, data));
+ipcMain.handle('cashSessions:reopen', async (event, id) => await cashSessionService.reopen(id));
 
 // Manejo de eventos IPC para gastos
 ipcMain.handle('expenses:getAll', async (event, page, limit) => await expensesService.getAll(page, limit));
