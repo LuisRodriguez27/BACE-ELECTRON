@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { X, Calendar, FileText, User, Link, Printer, Image } from 'lucide-react';
+import { X, Calendar, FileText, User, Link, Printer, Image, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Supplier, SupplierOrder } from '../types';
 import { formatDateMX } from '@/utils/dateUtils';
@@ -56,6 +56,52 @@ const SupplierOrderDetailsModal: React.FC<SupplierOrderDetailsModalProps> = ({
     } catch (err) {
       console.error('Error al guardar la imagen:', err);
       toast.error('Error al generar la imagen');
+    }
+  };
+
+  const handleSendWhatsApp = async () => {
+    if (!exportRef.current || !order) return;
+    try {
+      toast.loading('Generando imagen del pedido...', { id: 'whatsapp-supplier-status' });
+      const canvas = await html2canvas(exportRef.current, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        onclone: sanitizeOklchOnClone
+      });
+
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(b => {
+          if (b) resolve(b);
+          else reject(new Error('No se pudo generar la imagen PNG'));
+        }, 'image/png', 1.0);
+      });
+
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        toast.success('Imagen copiada. ¡Pégala en WhatsApp con Ctrl+V!', { id: 'whatsapp-supplier-status' });
+      } catch (clipErr) {
+        console.error('Error writing to clipboard:', clipErr);
+        toast.error('No se pudo copiar la imagen al portapapeles automáticamente.', { id: 'whatsapp-supplier-status' });
+      }
+
+      // Open WhatsApp Web
+      const rawPhone = (order.supplier_phone || '').replace(/\D/g, '');
+      const phoneWithCountry = rawPhone.length === 10 ? `52${rawPhone}` : rawPhone;
+
+      let whatsappUrl: string;
+      if (phoneWithCountry) {
+        whatsappUrl = `https://web.whatsapp.com/send?phone=${phoneWithCountry}`;
+      } else {
+        whatsappUrl = `https://web.whatsapp.com/`;
+        toast.warning('El proveedor no tiene número registrado. Abre WhatsApp y selecciona el chat manualmente.', { id: 'whatsapp-supplier-status' });
+      }
+
+      await window.api.openExternal(whatsappUrl);
+    } catch (err) {
+      console.error('Error al enviar por WhatsApp:', err);
+      toast.error('Ocurrió un error al preparar el envío por WhatsApp.', { id: 'whatsapp-supplier-status' });
     }
   };
 
@@ -306,6 +352,15 @@ const SupplierOrderDetailsModal: React.FC<SupplierOrderDetailsModalProps> = ({
             >
               <Image size={16} />
               Guardar Imagen
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleSendWhatsApp}
+              className="flex items-center gap-2 border-green-300 text-green-700 hover:bg-green-50 hover:text-green-800"
+            >
+              <MessageCircle size={16} className="text-green-600" />
+              Enviar por WhatsApp
             </Button>
           </div>
           <Button type="button" onClick={onClose} className="bg-blue-600 hover:bg-blue-700 text-white">
