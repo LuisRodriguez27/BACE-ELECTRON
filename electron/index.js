@@ -24,6 +24,7 @@ const expensesService = require('./services/expensesService');
 const imageService = require('./services/imageService');
 const supplierService = require('./services/supplierService');
 const supplierOrderService = require('./services/supplierOrderService');
+const printLogService = require('./services/printLogService');
 
 // Configuración de logs para no ir a ciegas
 autoUpdater.logger = log;
@@ -343,6 +344,19 @@ ipcMain.handle('supplierOrders:create', async (event, data) => await supplierOrd
 ipcMain.handle('supplierOrders:update', async (event, id, data) => await supplierOrderService.updateSupplierOrder(id, data));
 ipcMain.handle('supplierOrders:delete', async (event, id) => await supplierOrderService.deleteSupplierOrder(id));
 ipcMain.handle('supplierOrders:getPreviousItems', async (event, supplierId) => await supplierOrderService.getPreviousItemsBySupplier(supplierId));
+
+// Manejo de eventos IPC para bitácora de impresión
+ipcMain.handle('printLogs:getActive', async () => await printLogService.getActivePrintLogs());
+ipcMain.handle('printLogs:getPaginated', async (event, page, limit, searchTerm, searchDate) => await printLogService.getPrintLogsPaginated(page, limit, searchTerm, searchDate));
+ipcMain.handle('printLogs:getHistoryDays', async (event, todayLocalStr, page, limit, searchTerm, searchDate) => await printLogService.getPrintLogsHistoryDays(todayLocalStr, page, limit, searchTerm, searchDate));
+ipcMain.handle('printLogs:getByDay', async (event, dateLocalStr) => await printLogService.getPrintLogsByDay(dateLocalStr));
+ipcMain.handle('printLogs:getById', async (event, id) => await printLogService.getPrintLogById(id));
+ipcMain.handle('printLogs:getByOrderId', async (event, orderId) => await printLogService.getPrintLogsByOrderId(orderId));
+ipcMain.handle('printLogs:create', async (event, data) => await printLogService.createPrintLog(data));
+ipcMain.handle('printLogs:update', async (event, id, data) => await printLogService.updatePrintLog(id, data));
+ipcMain.handle('printLogs:updateCheckboxes', async (event, id, data) => await printLogService.updatePrintLogCheckboxes(id, data));
+ipcMain.handle('printLogs:delete', async (event, id) => await printLogService.deletePrintLog(id));
+
 
 // Manejo de eventos IPC para imágenes
 ipcMain.handle('upload-image', async (event, productId, buffer, originalName) => await imageService.uploadImage(productId, buffer, originalName));

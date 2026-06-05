@@ -568,7 +568,110 @@ const MIGRATIONS = [
     }
   },
 
+  // v22: Crear tabla de bitácora de impresión y agregar permisos correspondientes
+  {
+    version: 22,
+    name: 'create_print_logs_table',
+    isApplied: async (client) => {
+      const { rows } = await client.query(`
+        SELECT COUNT(*) FROM information_schema.tables 
+        WHERE table_name = 'print_logs'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client) => {
+      // 1. Crear tabla print_logs
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS print_logs (
+          id                   SERIAL        PRIMARY KEY,
+          order_id             INTEGER       REFERENCES orders(id) ON DELETE SET NULL,
+          descripcion          TEXT          NOT NULL,
+          hora_entrega         TIMESTAMPTZ   NOT NULL,
+          responsable          VARCHAR(255)  NOT NULL CHECK (responsable IN ('most', 'maq')),
+          observaciones        TEXT,
+          envio                VARCHAR(255)  NOT NULL,
+          pago                 DECIMAL(10,2),
+          maquila_completada   BOOLEAN       NOT NULL DEFAULT FALSE,
+          mostrador_completado BOOLEAN       NOT NULL DEFAULT FALSE,
+          created_at           TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+          active               BOOLEAN       NOT NULL DEFAULT TRUE
+        );
+      `);
+
+      // 2. Crear índices
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS idx_print_logs_order_id ON print_logs(order_id);
+      `);
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS idx_print_logs_active ON print_logs(active);
+      `);
+
+      // 3. Crear permisos
+      await client.query(`
+        INSERT INTO permissions (name, description, active)
+        VALUES
+          ('Ver Bitacora de Impresion', 'Permite ver la bitácora de impresión', true),
+          ('Gestionar Bitacora de Impresion', 'Permite crear, editar y eliminar registros de la bitácora de impresión', true)
+        ON CONFLICT (name) DO UPDATE SET active = true;
+      `);
+
+      // 4. Asignar permisos al admin (id = 1)
+      await client.query(`
+        INSERT INTO user_permissions (user_id, permission_id, active)
+        SELECT u.id, p.id, true
+        FROM users u
+        CROSS JOIN permissions p
+        WHERE u.id = 1
+          AND p.name IN ('Ver Bitacora de Impresion', 'Gestionar Bitacora de Impresion')
+        ON CONFLICT DO NOTHING;
+      `);
+    }
+  },
+
+  // v23: Agregar columnas faltantes a print_logs si ya existía la tabla
+  {
+    version: 23,
+    name: 'add_print_logs_missing_columns',
+    isApplied: async (client) => {
+      const { rows } = await client.query(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name = 'print_logs' AND column_name = 'created_at'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client) => {
+      await client.query(`
+        ALTER TABLE print_logs 
+          ADD COLUMN IF NOT EXISTS maquila_completada BOOLEAN NOT NULL DEFAULT FALSE,
+          ADD COLUMN IF NOT EXISTS mostrador_completado BOOLEAN NOT NULL DEFAULT FALSE,
+          ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+      `);
+      await client.query(`
+        ALTER TABLE print_logs 
+          DROP CONSTRAINT IF EXISTS chk_responsable,
+          ADD CONSTRAINT chk_responsable CHECK (responsable IN ('most', 'maq'));
+      `);
+    }
+  },
+
   // AGREGA NUEVAS MIGRACIONES AQUÍ
+  {
+    version: 24,
+    name: 'add_print_logs_status_column',
+    isApplied: async (client) => {
+      const { rows } = await client.query(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name = 'print_logs' AND column_name = 'status'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client) => {
+      await client.query(`
+        ALTER TABLE print_logs 
+          ADD COLUMN IF NOT EXISTS status VARCHAR(50) NOT NULL DEFAULT 'Pendiente' CHECK (status IN ('Pendiente', 'En Proceso', 'Realizado'));
+      `);
+    }
+  }
 ];
 
 // RUNNER PRINCIPAL

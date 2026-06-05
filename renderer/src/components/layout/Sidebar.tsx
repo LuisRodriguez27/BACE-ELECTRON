@@ -17,7 +17,8 @@ import {
   HandCoins,
   Moon,
   Sun,
-  Truck
+  Truck,
+  Printer
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSidebarStore } from '@/store/sidebar'
@@ -81,6 +82,12 @@ const menuItems: MenuItem[] = [
     label: 'Sesión de Caja',
     icon: HandCoins,
     path: '/dashboard/cash-session'
+  },
+  {
+    id: 'print-logs',
+    label: 'Bitácora de Impresión',
+    icon: Printer,
+    path: '/dashboard/print-logs'
   },
   {
     id: 'stats',
@@ -160,6 +167,10 @@ const Sidebar: React.FC = () => {
           }
 
           if (item.id === 'cash-session' && !canAccess('Ver Caja')) {
+            return null
+          }
+
+          if (item.id === 'print-logs' && !canAccess('Ver Bitacora de Impresion')) {
             return null
           }
 

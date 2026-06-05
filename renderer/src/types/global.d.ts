@@ -7,6 +7,7 @@ import { Order, CreateOrderForm, EditOrderForm, OrderProduct, CreateOrderProduct
 import { Payment, CreatePaymentForm, EditPaymentForm, PaymentFilters, PaginatedPayments } from "../features/payments/types";
 import type { LoginCredentials, LoginResponse } from "@/features/auth/types";
 import type { Budget, BudgetProduct, CreateBudgetForm } from "@/features/budgets";
+import { PrintLog, CreatePrintLogForm, EditPrintLogForm, GroupedPrintLogs, PaginatedPrintLogs } from "../features/printLogs/types";
 import {
   SimpleOrder,
   CreateSimpleOrderForm,
@@ -194,6 +195,18 @@ declare global {
       updateSupplierOrder: (id: number, data: Partial<CreateSupplierOrderForm>) => Promise<SupplierOrder>;
       deleteSupplierOrder: (id: number) => Promise<void>;
       getPreviousSupplierOrderItems: (supplierId: number) => Promise<any[]>;
+
+      // Bitácora de Impresión
+      getActivePrintLogs: () => Promise<GroupedPrintLogs[]>;
+      getPrintLogsPaginated: (page: number, limit: number, searchTerm: string, searchDate: string | null) => Promise<PaginatedPrintLogs>;
+      getPrintLogsHistoryDays: (todayLocalStr: string, page: number, limit: number, searchTerm: string, searchDate: string | null) => Promise<any>;
+      getPrintLogsByDay: (dateStr: string) => Promise<PrintLog[]>;
+      getPrintLogById: (id: number) => Promise<PrintLog>;
+      getPrintLogsByOrderId: (orderId: number) => Promise<PrintLog[]>;
+      createPrintLog: (data: CreatePrintLogForm) => Promise<PrintLog>;
+      updatePrintLog: (id: number, data: EditPrintLogForm) => Promise<PrintLog>;
+      updatePrintLogCheckboxes: (id: number, data: { maquila_completada?: boolean; mostrador_completado?: boolean }) => Promise<PrintLog>;
+      deletePrintLog: (id: number) => Promise<void>;
 
       // Shell / Utilidades
       openExternal: (url: string) => Promise<void>;

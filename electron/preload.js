@@ -157,6 +157,18 @@ contextBridge.exposeInMainWorld('api', {
   deleteSupplierOrder: (id) => ipcRenderer.invoke('supplierOrders:delete', id),
   getPreviousSupplierOrderItems: (supplierId) => ipcRenderer.invoke('supplierOrders:getPreviousItems', supplierId),
 
+  // Bitácora de Impresión (Print Logs)
+  getActivePrintLogs: () => ipcRenderer.invoke('printLogs:getActive'),
+  getPrintLogsPaginated: (page, limit, searchTerm, searchDate) => ipcRenderer.invoke('printLogs:getPaginated', page, limit, searchTerm, searchDate),
+  getPrintLogsHistoryDays: (todayLocalStr, page, limit, searchTerm, searchDate) => ipcRenderer.invoke('printLogs:getHistoryDays', todayLocalStr, page, limit, searchTerm, searchDate),
+  getPrintLogsByDay: (dateLocalStr) => ipcRenderer.invoke('printLogs:getByDay', dateLocalStr),
+  getPrintLogById: (id) => ipcRenderer.invoke('printLogs:getById', id),
+  getPrintLogsByOrderId: (orderId) => ipcRenderer.invoke('printLogs:getByOrderId', orderId),
+  createPrintLog: (data) => ipcRenderer.invoke('printLogs:create', data),
+  updatePrintLog: (id, data) => ipcRenderer.invoke('printLogs:update', id, data),
+  updatePrintLogCheckboxes: (id, data) => ipcRenderer.invoke('printLogs:updateCheckboxes', id, data),
+  deletePrintLog: (id) => ipcRenderer.invoke('printLogs:delete', id),
+
   // Imágenes en NAS
   uploadImage: (productId, buffer, originalName) => ipcRenderer.invoke('upload-image', productId, buffer, originalName),
   deleteImage: (relativePath) => ipcRenderer.invoke('delete-image', relativePath),

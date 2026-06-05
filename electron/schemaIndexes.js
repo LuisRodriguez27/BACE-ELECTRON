@@ -62,6 +62,10 @@ const schemaIndexes = `
   CREATE INDEX IF NOT EXISTS idx_supplier_orders_user_id ON supplier_orders(user_id);
   CREATE INDEX IF NOT EXISTS idx_supplier_order_items_order ON supplier_order_items(supplier_order_id);
 
+  -- print_logs
+  CREATE INDEX IF NOT EXISTS idx_print_logs_order_id ON print_logs(order_id);
+  CREATE INDEX IF NOT EXISTS idx_print_logs_active   ON print_logs(active);
+
 `;
 
 module.exports = schemaIndexes;

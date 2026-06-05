@@ -19,6 +19,7 @@ import { Route as DashboardSuppliersRouteImport } from './routes/dashboard.suppl
 import { Route as DashboardStatsRouteImport } from './routes/dashboard.stats'
 import { Route as DashboardSimpleOrdersRouteImport } from './routes/dashboard.simple-orders'
 import { Route as DashboardProductsRouteImport } from './routes/dashboard.products'
+import { Route as DashboardPrintLogsRouteImport } from './routes/dashboard.print-logs'
 import { Route as DashboardPaymentsRouteImport } from './routes/dashboard.payments'
 import { Route as DashboardOrdersRouteImport } from './routes/dashboard.orders'
 import { Route as DashboardHistoryRouteImport } from './routes/dashboard.history'
@@ -104,6 +105,11 @@ const DashboardProductsRoute = DashboardProductsRouteImport.update({
   path: '/products',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardPrintLogsRoute = DashboardPrintLogsRouteImport.update({
+  id: '/print-logs',
+  path: '/print-logs',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardPaymentsRoute = DashboardPaymentsRouteImport.update({
   id: '/payments',
   path: '/payments',
@@ -156,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/history': typeof DashboardHistoryRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/payments': typeof DashboardPaymentsRoute
+  '/dashboard/print-logs': typeof DashboardPrintLogsRoute
   '/dashboard/products': typeof DashboardProductsRoute
   '/dashboard/simple-orders': typeof DashboardSimpleOrdersRoute
   '/dashboard/stats': typeof DashboardStatsRoute
@@ -178,6 +185,7 @@ export interface FileRoutesByTo {
   '/dashboard/history': typeof DashboardHistoryRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/payments': typeof DashboardPaymentsRoute
+  '/dashboard/print-logs': typeof DashboardPrintLogsRoute
   '/dashboard/products': typeof DashboardProductsRoute
   '/dashboard/simple-orders': typeof DashboardSimpleOrdersRoute
   '/dashboard/stats': typeof DashboardStatsRoute
@@ -202,6 +210,7 @@ export interface FileRoutesById {
   '/dashboard/history': typeof DashboardHistoryRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/payments': typeof DashboardPaymentsRoute
+  '/dashboard/print-logs': typeof DashboardPrintLogsRoute
   '/dashboard/products': typeof DashboardProductsRoute
   '/dashboard/simple-orders': typeof DashboardSimpleOrdersRoute
   '/dashboard/stats': typeof DashboardStatsRoute
@@ -227,6 +236,7 @@ export interface FileRouteTypes {
     | '/dashboard/history'
     | '/dashboard/orders'
     | '/dashboard/payments'
+    | '/dashboard/print-logs'
     | '/dashboard/products'
     | '/dashboard/simple-orders'
     | '/dashboard/stats'
@@ -249,6 +259,7 @@ export interface FileRouteTypes {
     | '/dashboard/history'
     | '/dashboard/orders'
     | '/dashboard/payments'
+    | '/dashboard/print-logs'
     | '/dashboard/products'
     | '/dashboard/simple-orders'
     | '/dashboard/stats'
@@ -272,6 +283,7 @@ export interface FileRouteTypes {
     | '/dashboard/history'
     | '/dashboard/orders'
     | '/dashboard/payments'
+    | '/dashboard/print-logs'
     | '/dashboard/products'
     | '/dashboard/simple-orders'
     | '/dashboard/stats'
@@ -391,6 +403,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardProductsRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/print-logs': {
+      id: '/dashboard/print-logs'
+      path: '/print-logs'
+      fullPath: '/dashboard/print-logs'
+      preLoaderRoute: typeof DashboardPrintLogsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/payments': {
       id: '/dashboard/payments'
       path: '/payments'
@@ -451,6 +470,7 @@ interface DashboardRouteChildren {
   DashboardHistoryRoute: typeof DashboardHistoryRoute
   DashboardOrdersRoute: typeof DashboardOrdersRoute
   DashboardPaymentsRoute: typeof DashboardPaymentsRoute
+  DashboardPrintLogsRoute: typeof DashboardPrintLogsRoute
   DashboardProductsRoute: typeof DashboardProductsRoute
   DashboardSimpleOrdersRoute: typeof DashboardSimpleOrdersRoute
   DashboardStatsRoute: typeof DashboardStatsRoute
@@ -467,6 +487,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardHistoryRoute: DashboardHistoryRoute,
   DashboardOrdersRoute: DashboardOrdersRoute,
   DashboardPaymentsRoute: DashboardPaymentsRoute,
+  DashboardPrintLogsRoute: DashboardPrintLogsRoute,
   DashboardProductsRoute: DashboardProductsRoute,
   DashboardSimpleOrdersRoute: DashboardSimpleOrdersRoute,
   DashboardStatsRoute: DashboardStatsRoute,
