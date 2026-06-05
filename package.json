@@ -1,6 +1,6 @@
 {
   "name": "bace",
-  "version": "6.1.1",
+  "version": "6.1.2", 
   "description": "Aplicación BACE Electron",
   "main": "electron/index.js",
   "author": "Luis Rodriguez",
@@ -68,8 +68,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "BACE",
-      "differentialPackage": false
+      "shortcutName": "BACE"
     },
     "mac": {
       "target": [

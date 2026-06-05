@@ -28,7 +28,6 @@ const supplierOrderService = require('./services/supplierOrderService');
 // Configuración de logs para no ir a ciegas
 autoUpdater.logger = log;
 autoUpdater.logger.transports.file.level = 'info';
-autoUpdater.disableDifferentialDownload = true;
 
 let whatsappWindow = null;
 let isQuitting = false;
