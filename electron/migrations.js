@@ -513,6 +513,29 @@ const MIGRATIONS = [
       `);
     }
   },
+  // v20: Agregar columna user_id a supplier_orders
+  {
+    version: 20,
+    name: 'add_user_id_to_supplier_orders',
+    isApplied: async (client) => {
+      const { rows } = await client.query(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name = 'supplier_orders'
+          AND column_name = 'user_id'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client) => {
+      await client.query(`
+        ALTER TABLE supplier_orders
+          ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)
+      `);
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS idx_supplier_orders_user_id
+          ON supplier_orders(user_id)
+      `);
+    }
+  },
 
   // AGREGA NUEVAS MIGRACIONES AQUÍ
 ];

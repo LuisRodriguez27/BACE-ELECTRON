@@ -105,6 +105,7 @@ const SupplierOrderDetailsModal: React.FC<SupplierOrderDetailsModalProps> = ({
             <strong>ID Pedido:</strong> #${order.id} | 
             <strong>Fecha:</strong> ${formatDateMX(order.date, 'DD/MM/YYYY, h:mm A')}
             ${order.order_id ? ` | <strong>Orden de Cliente Vinculada:</strong> #${order.order_id}` : ''}
+            ${order.username ? ` | <strong>Generado por:</strong> ${order.username}` : ''}
           </div>
 
           <table>
@@ -185,6 +186,9 @@ const SupplierOrderDetailsModal: React.FC<SupplierOrderDetailsModalProps> = ({
               <p className="text-sm text-gray-700">
                 <span className="font-medium text-gray-500">Fecha:</span> {formatDateMX(order.date, 'DD/MM/YYYY, h:mm A')}
               </p>
+              <p className="text-sm text-gray-700 mt-1">
+                <span className="font-medium text-gray-500">Generado por:</span> {order.username || <span className="text-gray-400 italic text-xs">Desconocido</span>}
+              </p>
               <div className="mt-1 flex items-center gap-1.5 text-sm">
                 <span className="font-medium text-gray-500">Estado:</span>
                 <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
@@ -228,6 +232,11 @@ const SupplierOrderDetailsModal: React.FC<SupplierOrderDetailsModalProps> = ({
                 <p className="text-xs text-gray-500 mt-1">
                   Proveedor: <span className="font-semibold text-gray-800">{order.supplier_name || 'Desconocido'}</span>
                 </p>
+                {order.username && (
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Generado por: <span className="font-semibold text-gray-800">{order.username}</span>
+                  </p>
+                )}
               </div>
               <div className="text-right">
                 <p className="text-sm font-bold text-gray-900">Pedido #{order.id}</p>

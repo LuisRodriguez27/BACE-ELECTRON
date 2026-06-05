@@ -110,6 +110,7 @@ const SupplierOrdersTab: React.FC<SupplierOrdersTabProps> = ({ suppliers, initia
   const filteredOrders = orders.filter(o => {
     const search = searchTerm.toLowerCase();
     const supName = String(o.supplier_name || '').toLowerCase();
+    const username = String(o.username || '').toLowerCase();
     const notes = String(o.notes || '').toLowerCase();
     const date = String(o.date || '').toLowerCase();
     const status = String(o.status || '').toLowerCase();
@@ -117,6 +118,7 @@ const SupplierOrdersTab: React.FC<SupplierOrdersTabProps> = ({ suppliers, initia
 
     return (
       supName.includes(search) ||
+      username.includes(search) ||
       notes.includes(search) ||
       date.includes(search) ||
       status.includes(search) ||
@@ -194,6 +196,9 @@ const SupplierOrdersTab: React.FC<SupplierOrdersTabProps> = ({ suppliers, initia
                     Proveedor
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    Empleado
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
                     Fecha Pedido
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
@@ -223,6 +228,9 @@ const SupplierOrdersTab: React.FC<SupplierOrdersTabProps> = ({ suppliers, initia
                           <User size={14} className="text-gray-400" />
                           <span className="text-sm font-semibold text-gray-900">{order.supplier_name || `ID #${order.supplier_id}`}</span>
                         </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-semibold">
+                        {order.username || <span className="text-gray-400 italic text-xs">-</span>}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2 text-sm text-gray-600">

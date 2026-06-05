@@ -59,6 +59,7 @@ const schemaIndexes = `
   -- suppliers
   CREATE INDEX IF NOT EXISTS idx_supplier_orders_date ON supplier_orders(date);
   CREATE INDEX IF NOT EXISTS idx_supplier_orders_supplier ON supplier_orders(supplier_id);
+  CREATE INDEX IF NOT EXISTS idx_supplier_orders_user_id ON supplier_orders(user_id);
   CREATE INDEX IF NOT EXISTS idx_supplier_order_items_order ON supplier_order_items(supplier_order_id);
 
 `;

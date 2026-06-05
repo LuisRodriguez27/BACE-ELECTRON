@@ -1,5 +1,6 @@
 const supplierOrderRepository = require('../repositories/supplierOrderRepository');
 const supplierRepository = require('../repositories/supplierRepository');
+const userRepository = require('../repositories/userRepository');
 
 class SupplierOrderService {
   async getAllSupplierOrders() {
@@ -58,7 +59,7 @@ class SupplierOrderService {
     }
   }
 
-  async createSupplierOrder({ supplier_id, order_id, status, notes, date, items }) {
+  async createSupplierOrder({ supplier_id, order_id, status, notes, date, items, user_id }) {
     try {
       if (!supplier_id || isNaN(supplier_id)) {
         throw new Error('ID de proveedor es requerido e inválido');
@@ -67,6 +68,16 @@ class SupplierOrderService {
       const supplier = await supplierRepository.findById(parseInt(supplier_id));
       if (!supplier) {
         throw new Error('El proveedor especificado no existe o está inactivo');
+      }
+
+      if (user_id) {
+        if (isNaN(user_id)) {
+          throw new Error('ID de usuario/empleado inválido');
+        }
+        const user = await userRepository.findById(parseInt(user_id));
+        if (!user) {
+          throw new Error('El usuario especificado no existe');
+        }
       }
 
       if (!date) {
@@ -84,6 +95,7 @@ class SupplierOrderService {
       const order = await supplierOrderRepository.create({
         supplier_id: parseInt(supplier_id),
         order_id: order_id ? parseInt(order_id) : null,
+        user_id: user_id ? parseInt(user_id) : null,
         status: status ? status.trim() : null,
         notes: notes ? notes.trim() : null,
         date,
@@ -125,6 +137,21 @@ class SupplierOrderService {
 
       if (data.order_id !== undefined) {
         payload.order_id = data.order_id ? parseInt(data.order_id) : null;
+      }
+
+      if (data.user_id !== undefined) {
+        if (data.user_id !== null) {
+          if (isNaN(data.user_id)) {
+            throw new Error('ID de usuario/empleado inválido');
+          }
+          const user = await userRepository.findById(parseInt(data.user_id));
+          if (!user) {
+            throw new Error('El usuario especificado no existe');
+          }
+          payload.user_id = parseInt(data.user_id);
+        } else {
+          payload.user_id = null;
+        }
       }
 
       if (data.status !== undefined) {

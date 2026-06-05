@@ -180,6 +180,7 @@ const schemaTables = `
     id              SERIAL        PRIMARY KEY,
     supplier_id     INTEGER       NOT NULL REFERENCES suppliers(id),
     order_id        INTEGER       REFERENCES orders(id),
+    user_id         INTEGER       REFERENCES users(id),
     status          VARCHAR(50),
     notes           TEXT,
     date            TIMESTAMPTZ   NOT NULL,

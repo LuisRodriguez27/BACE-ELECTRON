@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { useAuthStore } from '@/store/auth';
 import { SuppliersApiService } from '../SuppliersApiService';
 import type { Supplier, SupplierOrder } from '../types';
 import { formatDateMX, todayDateInputMX, preserveTimeOrStartOfDay } from '@/utils/dateUtils';
@@ -23,6 +24,7 @@ const CreateSupplierOrderModal: React.FC<CreateSupplierOrderModalProps> = ({
   suppliers,
   initialOrderId
 }) => {
+  const { user } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [clientOrders, setClientOrders] = useState<any[]>([]);
 
@@ -167,6 +169,7 @@ const CreateSupplierOrderModal: React.FC<CreateSupplierOrderModalProps> = ({
       const payload = {
         supplier_id: supplierId,
         order_id: orderId,
+        user_id: user?.id || null,
         date: preserveTimeOrStartOfDay(orderDate),
         status: status || null,
         notes: notes || null,

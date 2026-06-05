@@ -31,6 +31,7 @@ export interface Supplier {
 export const createSupplierOrderSchema = z.object({
   supplier_id: z.number().int().positive('ID de proveedor requerido'),
   order_id: z.number().int().positive().nullable().optional(),
+  user_id: z.number().int().positive().nullable().optional(),
   status: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   date: z.string().min(1, 'La fecha de la orden es requerida'),
@@ -49,6 +50,7 @@ export interface SupplierOrder {
   id: number;
   supplier_id: number;
   order_id: number | null;
+  user_id: number | null;
   status: string | null;
   notes: string | null;
   date: string;
@@ -56,5 +58,6 @@ export interface SupplierOrder {
   supplier_name?: string | null;
   supplier_phone?: string | null;
   order_total?: number | null;
+  username?: string | null;
   supplierOrderItems?: any[];
 }
