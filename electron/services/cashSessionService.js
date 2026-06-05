@@ -122,8 +122,8 @@ class CashSessionService {
 
       const closing_balance = parseFloat(data?.closing_balance);
 
-      if (isNaN(closing_balance) || closing_balance < 0) {
-        throw new Error('El balance de cierre debe ser un número mayor o igual a 0');
+      if (isNaN(closing_balance)) {
+        throw new Error('El balance de cierre debe ser un número válido');
       }
 
       const session = await cashSessionRepository.close(parseInt(id), {

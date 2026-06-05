@@ -26,7 +26,7 @@ const CloseSessionModal: React.FC<Props> = ({ session, summary, onClose, onConfi
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isNaN(closing) || closing < 0) { setError('Ingresa un balance de cierre válido (≥ 0)'); return; }
+    if (isNaN(closing)) { setError('Ingresa un balance de cierre válido'); return; }
     setLoading(true);
     setError(null);
     try {
@@ -61,7 +61,6 @@ const CloseSessionModal: React.FC<Props> = ({ session, summary, onClose, onConfi
             <label className="block text-sm font-medium text-gray-700 mb-1">Balance de cierre real ($)</label>
             <input
               type="number"
-              min="0"
               step="0.01"
               value={balance}
               onChange={e => setBalance(e.target.value)}
