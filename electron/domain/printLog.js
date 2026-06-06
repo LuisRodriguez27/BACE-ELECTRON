@@ -8,8 +8,7 @@ class PrintLog {
     observaciones,
     envio,
     pago,
-    maquila_completada = false,
-    mostrador_completado = false,
+    completado = false,
     status = 'Pendiente',
     created_at = null,
     active = true,
@@ -24,8 +23,7 @@ class PrintLog {
     this.observaciones = observaciones || null;
     this.envio = envio;
     this.pago = pago !== undefined && pago !== null ? parseFloat(pago) : null;
-    this.maquila_completada = maquila_completada === true || maquila_completada === 1 || maquila_completada === 'true';
-    this.mostrador_completado = mostrador_completado === true || mostrador_completado === 1 || mostrador_completado === 'true';
+    this.completado = completado === true || completado === 1 || completado === 'true';
     this.status = status || 'Pendiente';
     this.created_at = created_at;
     this.active = active;
@@ -48,8 +46,7 @@ class PrintLog {
       observaciones: this.observaciones,
       envio: this.envio,
       pago: this.pago,
-      maquila_completada: this.maquila_completada,
-      mostrador_completado: this.mostrador_completado,
+      completado: this.completado,
       status: this.status,
       created_at: this.created_at,
       active: this.active,

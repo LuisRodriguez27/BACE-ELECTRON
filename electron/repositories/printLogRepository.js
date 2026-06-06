@@ -2,7 +2,7 @@ const db = require('../db');
 const PrintLog = require('../domain/printLog');
 
 class PrintLogRepository {
-  async getActive(todayStart) {
+  async getActive(todayLocalStr) {
     const rows = await db.getAll(`
       SELECT pl.*,
              c.name AS client_name
@@ -11,11 +11,11 @@ class PrintLogRepository {
       LEFT JOIN clients c ON o.client_id = c.id
       WHERE pl.active = TRUE
         AND (
-          pl.created_at >= $1
-          OR (pl.created_at < $1 AND (pl.maquila_completada = FALSE OR pl.mostrador_completado = FALSE))
+          TO_CHAR(pl.created_at AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') >= $1
+          OR (TO_CHAR(pl.created_at AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') < $1 AND pl.completado = FALSE)
         )
       ORDER BY pl.created_at ASC, pl.hora_entrega ASC
-    `, [todayStart]);
+    `, [todayLocalStr]);
 
     return rows.map(r => new PrintLog(r));
   }
@@ -108,9 +108,9 @@ class PrintLogRepository {
     return rows.map(r => new PrintLog(r));
   }
 
-  async create({ order_id, descripcion, hora_entrega, responsable, observaciones, envio, pago, maquila_completada = false, mostrador_completado = false, status = 'Pendiente', created_at }) {
-    const fields = ['order_id', 'descripcion', 'hora_entrega', 'responsable', 'observaciones', 'envio', 'pago', 'maquila_completada', 'mostrador_completado', 'status', 'active'];
-    const placeholders = ['$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8', '$9', '$10', 'TRUE'];
+  async create({ order_id, descripcion, hora_entrega, responsable, observaciones, envio, pago, completado = false, status = 'Pendiente', created_at }) {
+    const fields = ['order_id', 'descripcion', 'hora_entrega', 'responsable', 'observaciones', 'envio', 'pago', 'completado', 'status', 'active'];
+    const placeholders = ['$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8', '$9', 'TRUE'];
     const values = [
       order_id || null,
       descripcion.trim(),
@@ -119,8 +119,7 @@ class PrintLogRepository {
       observaciones ? observaciones.trim() : null,
       envio.trim(),
       pago !== undefined && pago !== null ? parseFloat(pago) : null,
-      maquila_completada || false,
-      mostrador_completado || false,
+      completado || false,
       status || 'Pendiente'
     ];
 
@@ -150,8 +149,7 @@ class PrintLogRepository {
     if (printLogData.observaciones !== undefined) { fields.push(`observaciones = $${idx++}`); values.push(printLogData.observaciones ? printLogData.observaciones.trim() : null); }
     if (printLogData.envio !== undefined) { fields.push(`envio = $${idx++}`); values.push(printLogData.envio.trim()); }
     if (printLogData.pago !== undefined) { fields.push(`pago = $${idx++}`); values.push(printLogData.pago !== null ? parseFloat(printLogData.pago) : null); }
-    if (printLogData.maquila_completada !== undefined) { fields.push(`maquila_completada = $${idx++}`); values.push(printLogData.maquila_completada); }
-    if (printLogData.mostrador_completado !== undefined) { fields.push(`mostrador_completado = $${idx++}`); values.push(printLogData.mostrador_completado); }
+    if (printLogData.completado !== undefined) { fields.push(`completado = $${idx++}`); values.push(printLogData.completado); }
     if (printLogData.status !== undefined) { fields.push(`status = $${idx++}`); values.push(printLogData.status); }
     if (printLogData.created_at !== undefined) { fields.push(`created_at = $${idx++}`); values.push(printLogData.created_at); }
 
@@ -167,18 +165,14 @@ class PrintLogRepository {
     return this.getById(id);
   }
 
-  async updateCheckboxes(id, maquila_completada, mostrador_completado) {
+  async updateCheckboxes(id, completado) {
     const fields = [];
     const values = [];
     let idx = 1;
 
-    if (maquila_completada !== undefined) {
-      fields.push(`maquila_completada = $${idx++}`);
-      values.push(maquila_completada === true || maquila_completada === 'true' || maquila_completada === 1);
-    }
-    if (mostrador_completado !== undefined) {
-      fields.push(`mostrador_completado = $${idx++}`);
-      values.push(mostrador_completado === true || mostrador_completado === 'true' || mostrador_completado === 1);
+    if (completado !== undefined) {
+      fields.push(`completado = $${idx++}`);
+      values.push(completado === true || completado === 'true' || completado === 1);
     }
 
     if (fields.length === 0) return this.getById(id);
@@ -235,7 +229,7 @@ class PrintLogRepository {
       SELECT 
         TO_CHAR(pl.created_at AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as log_date,
         COUNT(*) as total_logs,
-        BOOL_AND(pl.maquila_completada = TRUE AND pl.mostrador_completado = TRUE) as all_completed
+        BOOL_AND(pl.completado = TRUE) as all_completed
       FROM print_logs pl
       LEFT JOIN orders o ON pl.order_id = o.id
       LEFT JOIN clients c ON o.client_id = c.id

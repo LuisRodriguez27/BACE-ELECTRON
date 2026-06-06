@@ -203,8 +203,7 @@ const schemaTables = `
     observaciones        TEXT,
     envio                VARCHAR(255)  NOT NULL,
     pago                 DECIMAL(10,2),
-    maquila_completada   BOOLEAN       NOT NULL DEFAULT FALSE,
-    mostrador_completado BOOLEAN       NOT NULL DEFAULT FALSE,
+    completado           BOOLEAN       NOT NULL DEFAULT FALSE,
     status               VARCHAR(50)   NOT NULL DEFAULT 'Pendiente' CHECK (status IN ('Pendiente', 'En Proceso', 'Realizado')),
     created_at           TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
     active               BOOLEAN       NOT NULL DEFAULT TRUE

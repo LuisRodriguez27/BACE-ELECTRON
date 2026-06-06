@@ -47,7 +47,7 @@ export const PrintLogsApiService = {
 
   updateCheckboxes: async (
     id: number, 
-    checkboxes: { maquila_completada?: boolean; mostrador_completado?: boolean }
+    checkboxes: { completado?: boolean }
   ): Promise<PrintLog> => {
     return window.api.updatePrintLogCheckboxes(id, checkboxes);
   },

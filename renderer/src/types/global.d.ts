@@ -205,7 +205,7 @@ declare global {
       getPrintLogsByOrderId: (orderId: number) => Promise<PrintLog[]>;
       createPrintLog: (data: CreatePrintLogForm) => Promise<PrintLog>;
       updatePrintLog: (id: number, data: EditPrintLogForm) => Promise<PrintLog>;
-      updatePrintLogCheckboxes: (id: number, data: { maquila_completada?: boolean; mostrador_completado?: boolean }) => Promise<PrintLog>;
+      updatePrintLogCheckboxes: (id: number, data: { completado?: boolean }) => Promise<PrintLog>;
       deletePrintLog: (id: number) => Promise<void>;
 
       // Shell / Utilidades

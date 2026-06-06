@@ -3,22 +3,41 @@ const printLogRepository = require('../repositories/printLogRepository');
 class PrintLogService {
   async getActivePrintLogs() {
     try {
-      // Obtener el inicio del día de hoy en UTC
-      const todayStart = new Date().toISOString().split('T')[0] + 'T00:00:00.000Z';
-      const logs = await printLogRepository.getActive(todayStart);
+      // Obtener el inicio del día de hoy en la zona horaria local de México
+      const dateParts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Mexico_City',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).formatToParts(new Date());
+      const year = dateParts.find(p => p.type === 'year').value;
+      const month = dateParts.find(p => p.type === 'month').value;
+      const day = dateParts.find(p => p.type === 'day').value;
+      const todayLocalStr = `${year}-${month}-${day}`;
 
-      // Agrupar los logs por la fecha UTC (YYYY-MM-DD)
+      const logs = await printLogRepository.getActive(todayLocalStr);
+
+      // Agrupar los logs por la fecha local de México (YYYY-MM-DD)
       const groups = {};
       for (const log of logs) {
         if (!log.created_at) continue;
 
         const dateObj = new Date(log.created_at);
-        const utcDateStr = dateObj.toISOString().split('T')[0];
+        const logDateParts = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'America/Mexico_City',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).formatToParts(dateObj);
+        const logYear = logDateParts.find(p => p.type === 'year').value;
+        const logMonth = logDateParts.find(p => p.type === 'month').value;
+        const logDay = logDateParts.find(p => p.type === 'day').value;
+        const localDateStr = `${logYear}-${logMonth}-${logDay}`;
 
-        if (!groups[utcDateStr]) {
-          groups[utcDateStr] = [];
+        if (!groups[localDateStr]) {
+          groups[localDateStr] = [];
         }
-        groups[utcDateStr].push(log.toPlainObject());
+        groups[localDateStr].push(log.toPlainObject());
       }
 
       // Convertir el objeto de agrupaciones en un arreglo ordenado cronológicamente: [ { date, logs } ]
@@ -85,7 +104,7 @@ class PrintLogService {
     }
   }
 
-  async createPrintLog({ order_id, descripcion, hora_entrega, responsable, observaciones, envio, pago, maquila_completada, mostrador_completado, status, created_at }) {
+  async createPrintLog({ order_id, descripcion, hora_entrega, responsable, observaciones, envio, pago, completado, status, created_at }) {
     try {
       if (!descripcion || !descripcion.trim()) {
         throw new Error('La descripción es requerida');
@@ -121,8 +140,7 @@ class PrintLogService {
         observaciones: observaciones ? observaciones.trim() : null,
         envio: envio.trim(),
         pago: pago !== undefined && pago !== null && pago !== '' ? parseFloat(pago) : null,
-        maquila_completada: maquila_completada === true || maquila_completada === 'true' || maquila_completada === 1,
-        mostrador_completado: mostrador_completado === true || mostrador_completado === 'true' || mostrador_completado === 1,
+        completado: completado === true || completado === 'true' || completado === 1,
         status: status || 'Pendiente',
         created_at: created_at || null
       });
@@ -185,11 +203,8 @@ class PrintLogService {
       if (updatedData.pago !== undefined) {
         updatedData.pago = updatedData.pago !== null && updatedData.pago !== '' ? parseFloat(updatedData.pago) : null;
       }
-      if (updatedData.maquila_completada !== undefined) {
-        updatedData.maquila_completada = updatedData.maquila_completada === true || updatedData.maquila_completada === 'true' || updatedData.maquila_completada === 1;
-      }
-      if (updatedData.mostrador_completado !== undefined) {
-        updatedData.mostrador_completado = updatedData.mostrador_completado === true || updatedData.mostrador_completado === 'true' || updatedData.mostrador_completado === 1;
+      if (updatedData.completado !== undefined) {
+        updatedData.completado = updatedData.completado === true || updatedData.completado === 'true' || updatedData.completado === 1;
       }
 
       const log = await printLogRepository.update(logId, updatedData);
@@ -200,7 +215,7 @@ class PrintLogService {
     }
   }
 
-  async updatePrintLogCheckboxes(id, { maquila_completada, mostrador_completado }) {
+  async updatePrintLogCheckboxes(id, { completado }) {
     try {
       const logId = parseInt(id, 10);
       if (isNaN(logId)) {
@@ -212,11 +227,11 @@ class PrintLogService {
         throw new Error('Registro de bitácora no encontrado');
       }
 
-      if (maquila_completada === undefined && mostrador_completado === undefined) {
-        throw new Error('Debe proporcionar al menos un estado de checkbox a actualizar');
+      if (completado === undefined) {
+        throw new Error('Debe proporcionar el estado del checkbox a actualizar');
       }
 
-      const log = await printLogRepository.updateCheckboxes(logId, maquila_completada, mostrador_completado);
+      const log = await printLogRepository.updateCheckboxes(logId, completado);
       return log.toPlainObject();
     } catch (error) {
       console.error('Error al actualizar checkboxes de bitácora:', error);

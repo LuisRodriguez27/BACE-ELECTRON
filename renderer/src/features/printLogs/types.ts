@@ -25,8 +25,7 @@ export interface PrintLog {
   observaciones: string | null;
   envio: string;
   pago: number | null;
-  maquila_completada: boolean;
-  mostrador_completado: boolean;
+  completado: boolean;
   status: 'Pendiente' | 'En Proceso' | 'Realizado';
   created_at: string;
   active: boolean;

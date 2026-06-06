@@ -671,6 +671,25 @@ const MIGRATIONS = [
           ADD COLUMN IF NOT EXISTS status VARCHAR(50) NOT NULL DEFAULT 'Pendiente' CHECK (status IN ('Pendiente', 'En Proceso', 'Realizado'));
       `);
     }
+  },
+  {
+    version: 25,
+    name: 'rename_maquila_completada_to_completado_and_drop_mostrador_completado',
+    isApplied: async (client) => {
+      const { rows } = await client.query(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name = 'print_logs' AND column_name = 'completado'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client) => {
+      await client.query(`
+        ALTER TABLE print_logs RENAME COLUMN maquila_completada TO completado;
+      `);
+      await client.query(`
+        ALTER TABLE print_logs DROP COLUMN IF EXISTS mostrador_completado;
+      `);
+    }
   }
 ];
 
