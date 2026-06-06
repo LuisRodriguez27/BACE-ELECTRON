@@ -15,6 +15,7 @@ import { PrintLogsApiService } from '../PrintLogsApiService';
 import { extractErrorMessage } from '@/utils/errorHandling';
 import type { GroupedPrintLogs, PrintLog, PrintLogsTableRef } from '../types';
 import { formatDateMX, formatDateHeaderMX, isBeforeNow } from '@/utils/dateUtils';
+import { generatePrintLogbookHtml } from '../logbook';
 
 interface ActivePrintLogsTableProps {
   onEditClick: (log: PrintLog) => void;
@@ -25,6 +26,22 @@ const ActivePrintLogsTable = forwardRef<PrintLogsTableRef, ActivePrintLogsTableP
     const [activeGroups, setActiveGroups] = useState<GroupedPrintLogs[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const handlePrintGroup = (logs: PrintLog[], dateStr: string) => {
+      try {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+          alert('Por favor permite ventanas emergentes para imprimir');
+          return;
+        }
+
+        const htmlContent = generatePrintLogbookHtml(logs, dateStr);
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+      } catch (err) {
+        console.error('Error printing group:', err);
+      }
+    };
 
     const fetchActiveLogs = async () => {
       try {
@@ -133,9 +150,21 @@ const ActivePrintLogsTable = forwardRef<PrintLogsTableRef, ActivePrintLogsTableP
                 <Calendar className="h-4 w-4 text-blue-500" />
                 {formatDateHeaderMX(group.date)}
               </CardTitle>
-              <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded border border-gray-200">
-                {group.logs.length} {group.logs.length === 1 ? 'impresión' : 'impresiones'}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded border border-gray-200">
+                  {group.logs.length} {group.logs.length === 1 ? 'impresión' : 'impresiones'}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2.5 flex items-center gap-1.5 text-xs bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                  onClick={() => handlePrintGroup(group.logs, group.date)}
+                  title="Imprimir esta bitácora"
+                >
+                  <Printer size={12} />
+                  Imprimir
+                </Button>
+              </div>
             </CardHeader>
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left text-gray-600 border-collapse">

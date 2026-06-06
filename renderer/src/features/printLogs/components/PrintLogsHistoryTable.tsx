@@ -13,12 +13,14 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Edit3,
-  X
+  X,
+  Printer
 } from 'lucide-react';
 import { PrintLogsApiService } from '../PrintLogsApiService';
 import { extractErrorMessage } from '@/utils/errorHandling';
 import type { PaginatedHistoryDays, PrintLog, PrintLogsTableRef } from '../types';
 import { formatDateMX, formatDateHeaderMX, todayDateInputMX } from '@/utils/dateUtils';
+import { generatePrintLogbookHtml } from '../logbook';
 
 
 interface PrintLogsHistoryTableProps {
@@ -42,6 +44,33 @@ const PrintLogsHistoryTable = forwardRef<PrintLogsTableRef, PrintLogsHistoryTabl
     const [logsError, setLogsError] = useState<string | null>(null);
 
     const todayLocalStr = todayDateInputMX();
+
+    const handlePrintGroup = (logs: PrintLog[], dateStr: string) => {
+      try {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+          alert('Por favor permite ventanas emergentes para imprimir');
+          return;
+        }
+
+        const htmlContent = generatePrintLogbookHtml(logs, dateStr);
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+      } catch (err) {
+        console.error('Error printing group:', err);
+      }
+    };
+
+    const handlePrintFromCard = async (e: React.MouseEvent, dateStr: string) => {
+      e.stopPropagation(); // Avoid opening the modal
+      try {
+        const logs = await PrintLogsApiService.getByDay(dateStr);
+        handlePrintGroup(logs, dateStr);
+      } catch (err) {
+        console.error('Error fetching print logs for day print:', err);
+        alert('Error al obtener los registros para imprimir: ' + extractErrorMessage(err));
+      }
+    };
 
     const fetchHistoryDays = async (page: number) => {
       try {
@@ -297,7 +326,18 @@ const PrintLogsHistoryTable = forwardRef<PrintLogsTableRef, PrintLogsHistoryTabl
                   </div>
                   <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500">
                     <span>{day.total_logs} {day.total_logs === 1 ? 'impresión' : 'impresiones'}</span>
-                    <span className="text-blue-600 font-semibold hover:underline">Ver detalles &rarr;</span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                        onClick={(e) => handlePrintFromCard(e, day.log_date)}
+                        title="Imprimir esta bitácora"
+                      >
+                        <Printer size={15} />
+                      </Button>
+                      <span className="text-blue-600 font-semibold hover:underline">Ver detalles &rarr;</span>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -378,14 +418,27 @@ const PrintLogsHistoryTable = forwardRef<PrintLogsTableRef, PrintLogsHistoryTabl
                     Detalles y control de estados para este día
                   </p>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setSelectedDay(null)}
-                  className="h-8 w-8 p-0"
-                >
-                  <X size={18} />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-1.5 bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                    onClick={() => handlePrintGroup(selectedDayLogs, selectedDay)}
+                    title="Imprimir esta bitácora"
+                    disabled={selectedDayLogs.length === 0 || isLoadingLogs}
+                  >
+                    <Printer size={16} />
+                    Imprimir
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setSelectedDay(null)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <X size={18} />
+                  </Button>
+                </div>
               </div>
 
               {/* Modal Body */}
