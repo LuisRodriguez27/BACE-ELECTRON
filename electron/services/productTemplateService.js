@@ -234,13 +234,6 @@ class ProductTemplateService {
         throw new Error('Plantilla no encontrada');
       }
 
-      // Lógica de negocio: verificar si la plantilla está en órdenes activas
-      // TODO: Implementar verificación de órdenes cuando esté listo el service de orders
-      // const hasActiveOrders = await orderService.hasActiveOrdersByTemplateId(templateId);
-      // if (hasActiveOrders) {
-      //   throw new Error('No se puede eliminar una plantilla que está en órdenes activas');
-      // }
-
       const deleted = await productTemplateRepository.delete(templateId);
 
       if (!deleted) {

@@ -64,7 +64,7 @@ const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
       let processedData = {
         ...data,
         colors: colorsInput.trim() || undefined,
-        created_by: 1 // TODO: Get from auth context
+        created_by: 1
       };
 
       const newTemplate = await ProductTemplatesApiService.create(processedData);

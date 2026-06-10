@@ -35,6 +35,21 @@ const SupplierOrderDetailsModal: React.FC<SupplierOrderDetailsModalProps> = ({
     return i;
   });
 
+  // Find the column representing the quantity/pieces (case-insensitive)
+  const piecesColumnKey = columns.find(col => {
+    const lower = col.toLowerCase().trim();
+    return lower === 'pzas' || lower === 'pza' || lower === 'pz' || lower === 'cantidad' || lower === 'cant' || lower === 'qty' || lower === 'piezas';
+  }) || columns[0];
+
+  // Calculate the total sum of pieces
+  const totalPieces = items.reduce((sum, item) => {
+    if (!piecesColumnKey) return sum;
+    const value = item[piecesColumnKey];
+    if (value === undefined || value === null) return sum;
+    const parsed = parseFloat(String(value).trim());
+    return sum + (isNaN(parsed) ? 0 : parsed);
+  }, 0);
+
   const handleSaveImage = async () => {
     if (!exportRef.current || !order) return;
     try {
@@ -299,7 +314,7 @@ const SupplierOrderDetailsModal: React.FC<SupplierOrderDetailsModalProps> = ({
             )}
 
             <div className="space-y-2">
-              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Artículos Solicitados ({items.length})</h4>
+              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Artículos Solicitados ({totalPieces})</h4>
               <div className="border border-gray-200 rounded-lg overflow-hidden">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-slate-50">
