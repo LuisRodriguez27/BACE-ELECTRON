@@ -14,6 +14,41 @@ interface SupplierOrderDetailsModalProps {
   suppliers: Supplier[];
 }
 
+const getProgressStyles = (status: string | null) => {
+  const s = String(status).toLowerCase();
+  if (s === 'cancelado') {
+    return {
+      percent: 0,
+      colorClass: 'bg-gray-400',
+      badgeClass: 'bg-gray-50 text-gray-500 border-gray-200',
+      label: 'Cancelado'
+    };
+  }
+  if (s === 'pagado') {
+    return {
+      percent: 66,
+      colorClass: 'bg-amber-500',
+      badgeClass: 'bg-amber-50 text-amber-700 border-amber-200',
+      label: 'Pagado'
+    };
+  }
+  if (s === 'entregado') {
+    return {
+      percent: 100,
+      colorClass: 'bg-green-500',
+      badgeClass: 'bg-green-50 text-green-700 border-green-200',
+      label: 'Entregado'
+    };
+  }
+  // Default to 'pendiente'
+  return {
+    percent: 33,
+    colorClass: 'bg-red-500',
+    badgeClass: 'bg-red-50 text-red-700 border-red-200',
+    label: 'Pendiente'
+  };
+};
+
 const SupplierOrderDetailsModal: React.FC<SupplierOrderDetailsModalProps> = ({
   isOpen,
   onClose,
@@ -21,6 +56,8 @@ const SupplierOrderDetailsModal: React.FC<SupplierOrderDetailsModalProps> = ({
   suppliers
 }) => {
   if (!isOpen || !order) return null;
+
+  const statusInfo = getProgressStyles(order.status);
 
   const exportRef = useRef<HTMLDivElement>(null);
 
@@ -250,17 +287,23 @@ const SupplierOrderDetailsModal: React.FC<SupplierOrderDetailsModalProps> = ({
               <p className="text-sm text-gray-700 mt-1">
                 <span className="font-medium text-gray-500">Generado por:</span> {order.username || <span className="text-gray-400 italic text-xs">Desconocido</span>}
               </p>
-              <div className="mt-1 flex items-center gap-1.5 text-sm">
-                <span className="font-medium text-gray-500">Estado:</span>
-                <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
-                  order.status === 'Recibido'
-                    ? 'bg-green-100 text-green-800'
-                    : order.status === 'Cancelado'
-                    ? 'bg-red-100 text-red-800'
-                    : 'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {order.status || 'Pendiente'}
-                </span>
+              {order.total !== undefined && order.total !== null && order.total > 0 && (
+                <p className="text-sm text-gray-700 mt-1">
+                  <span className="font-medium text-gray-500">Total:</span> <span className="font-bold text-slate-900">${order.total.toFixed(2)}</span>
+                </p>
+              )}
+              <div className="mt-2 flex flex-col gap-1">
+                <div className="flex items-center gap-1.5 text-sm">
+                  <span className="font-medium text-gray-500">Estado:</span>
+                  <span className={`inline-flex px-2 py-0.5 text-xs font-bold uppercase rounded border ${statusInfo.badgeClass}`}>
+                    {statusInfo.label}
+                  </span>
+                </div>
+                {String(order.status).toLowerCase() !== 'cancelado' && (
+                  <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1 overflow-hidden">
+                    <div className={`h-full rounded-full transition-all duration-300 ${statusInfo.colorClass}`} style={{ width: `${statusInfo.percent}%` }}></div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -304,6 +347,11 @@ const SupplierOrderDetailsModal: React.FC<SupplierOrderDetailsModalProps> = ({
                 <p className="text-xs text-gray-500 mt-1">
                   Fecha: {formatDateMX(order.date, 'DD/MM/YYYY, h:mm A')}
                 </p>
+                {order.total !== undefined && order.total !== null && order.total > 0 && (
+                  <p className="text-sm font-bold text-blue-600 mt-1">
+                    Total: ${(order.total).toFixed(2)}
+                  </p>
+                )}
               </div>
             </div>
 

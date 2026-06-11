@@ -7,7 +7,8 @@ class Expenses {
 		amount,
 		description,
 		date,
-		active
+		active,
+		supplier_order_id
 	}) {
 		this.id = id;
 		this.cash_session_id = cash_session_id;
@@ -17,6 +18,7 @@ class Expenses {
 		this.description = description;
 		this.date = date;
 		this.active = active;
+		this.supplier_order_id = supplier_order_id || null;
 	}
 
 	isValid() {
@@ -43,7 +45,8 @@ class Expenses {
 			amount: this.amount,
 			description: this.description,
 			date: this.date,
-			active: this.active
+			active: this.active,
+			supplier_order_id: this.supplier_order_id
 		};
 	}
 }

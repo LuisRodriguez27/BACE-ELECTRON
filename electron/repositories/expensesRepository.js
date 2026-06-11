@@ -64,24 +64,25 @@ class ExpensesRepository {
     return new Expenses(row);
   }
 
-  async create({ cash_session_id, user_id, amount, description, date }) {
+  async create({ cash_session_id, user_id, amount, description, date, supplier_order_id }) {
     const row = await db.getOne(`
-      INSERT INTO expenses (cash_session_id, user_id, amount, description, date, active)
-      VALUES ($1, $2, $3, $4, $5, TRUE)
+      INSERT INTO expenses (cash_session_id, user_id, amount, description, date, supplier_order_id, active)
+      VALUES ($1, $2, $3, $4, $5, $6, TRUE)
       RETURNING *
-    `, [cash_session_id, user_id, parseFloat(amount), description.trim(), date]);
+    `, [cash_session_id, user_id, parseFloat(amount), description.trim(), date, supplier_order_id || null]);
     return this.getById(row.id);
   }
 
-  async update(id, { amount, description, date, edited_by }) {
+  async update(id, { amount, description, date, edited_by, supplier_order_id }) {
     const fields = [];
     const values = [];
     let idx = 1;
 
-    if (amount      !== undefined) { fields.push(`amount      = $${idx++}`); values.push(parseFloat(amount)); }
-    if (description !== undefined) { fields.push(`description = $${idx++}`); values.push(description.trim()); }
-    if (date        !== undefined) { fields.push(`date        = $${idx++}`); values.push(date); }
-    if (edited_by   !== undefined) { fields.push(`edited_by   = $${idx++}`); values.push(edited_by); }
+    if (amount            !== undefined) { fields.push(`amount            = $${idx++}`); values.push(parseFloat(amount)); }
+    if (description       !== undefined) { fields.push(`description       = $${idx++}`); values.push(description.trim()); }
+    if (date              !== undefined) { fields.push(`date              = $${idx++}`); values.push(date); }
+    if (edited_by         !== undefined) { fields.push(`edited_by         = $${idx++}`); values.push(edited_by); }
+    if (supplier_order_id !== undefined) { fields.push(`supplier_order_id = $${idx++}`); values.push(supplier_order_id); }
 
     if (fields.length === 0) return this.getById(id);
 
@@ -100,6 +101,15 @@ class ExpensesRepository {
       UPDATE expenses SET active = FALSE WHERE id = $1 AND active = TRUE
     `, [id]);
     return result.changes > 0;
+  }
+
+  async findBySupplierOrderId(supplierOrderId) {
+    const row = await db.getOne(`
+      SELECT * FROM expenses
+      WHERE supplier_order_id = $1 AND active = TRUE
+    `, [supplierOrderId]);
+    if (!row) return null;
+    return new Expenses(row);
   }
 }
 

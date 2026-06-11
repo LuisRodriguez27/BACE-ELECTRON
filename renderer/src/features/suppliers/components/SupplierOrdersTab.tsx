@@ -19,6 +19,41 @@ interface SupplierOrdersTabProps {
   initialOrderId?: number | null;
 }
 
+const getProgressStyles = (status: string | null) => {
+  const s = String(status).toLowerCase();
+  if (s === 'cancelado') {
+    return {
+      percent: 0,
+      colorClass: 'bg-gray-400',
+      badgeClass: 'bg-gray-50 text-gray-500 border-gray-200',
+      label: 'Cancelado'
+    };
+  }
+  if (s === 'pagado') {
+    return {
+      percent: 66,
+      colorClass: 'bg-amber-500',
+      badgeClass: 'bg-amber-50 text-amber-700 border-amber-200',
+      label: 'Pagado'
+    };
+  }
+  if (s === 'entregado') {
+    return {
+      percent: 100,
+      colorClass: 'bg-green-500',
+      badgeClass: 'bg-green-50 text-green-700 border-green-200',
+      label: 'Entregado'
+    };
+  }
+  // Default to 'pendiente'
+  return {
+    percent: 33,
+    colorClass: 'bg-red-500',
+    badgeClass: 'bg-red-50 text-red-700 border-red-200',
+    label: 'Pendiente'
+  };
+};
+
 const SupplierOrdersTab: React.FC<SupplierOrdersTabProps> = ({ suppliers, initialOrderId }) => {
   const navigate = useNavigate();
   const { checkPermission } = usePermissions();
@@ -205,6 +240,9 @@ const SupplierOrdersTab: React.FC<SupplierOrdersTabProps> = ({ suppliers, initia
                     Estado
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    Total
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
                     Orden de Cliente
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
@@ -218,6 +256,7 @@ const SupplierOrdersTab: React.FC<SupplierOrdersTabProps> = ({ suppliers, initia
               <tbody className="bg-white divide-y divide-gray-100">
                 {filteredOrders.map((order) => {
                   const itemCount = order.supplierOrderItems?.length || 0;
+                  const statusInfo = getProgressStyles(order.status);
                   return (
                     <tr key={order.id} className="hover:bg-slate-50/50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
@@ -239,15 +278,23 @@ const SupplierOrdersTab: React.FC<SupplierOrdersTabProps> = ({ suppliers, initia
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
-                          order.status === 'Recibido'
-                            ? 'bg-green-100 text-green-800'
-                            : order.status === 'Cancelado'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {order.status || 'Pendiente'}
-                        </span>
+                        <div className="flex flex-col gap-1.5 min-w-[100px]">
+                          <span className={`inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-bold uppercase rounded border ${statusInfo.badgeClass}`}>
+                            {statusInfo.label}
+                          </span>
+                          {String(order.status).toLowerCase() !== 'cancelado' && (
+                            <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                              <div className={`h-full rounded-full transition-all duration-300 ${statusInfo.colorClass}`} style={{ width: `${statusInfo.percent}%` }}></div>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                        {order.total !== undefined && order.total !== null && order.total > 0 ? (
+                          `$${order.total.toFixed(2)}`
+                        ) : (
+                          <span className="text-gray-400 font-normal italic">-</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
                         {order.order_id ? (

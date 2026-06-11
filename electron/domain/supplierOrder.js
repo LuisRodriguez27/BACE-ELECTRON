@@ -12,7 +12,8 @@ class SupplierOrder {
     supplier_phone,
     order_total,
     username,
-    supplierOrderItems = []
+    supplierOrderItems = [],
+    total
   }) {
     this.id = id;
     this.supplier_id = supplier_id;
@@ -22,6 +23,7 @@ class SupplierOrder {
     this.notes = notes || null;
     this.date = date;
     this.active = active;
+    this.total = total !== undefined && total !== null ? parseFloat(total) : 0;
 
     // Joined properties
     this.supplier_name = supplier_name || null;
@@ -49,7 +51,8 @@ class SupplierOrder {
       supplier_phone: this.supplier_phone,
       order_total: this.order_total,
       username: this.username,
-      supplierOrderItems: this.supplierOrderItems
+      supplierOrderItems: this.supplierOrderItems,
+      total: this.total
     };
   }
 }

@@ -163,7 +163,8 @@ const schemaTables = `
     amount          DECIMAL(10,2) NOT NULL,
     description     TEXT          NOT NULL,
     date            TIMESTAMPTZ   NOT NULL,
-    active          BOOLEAN       NOT NULL DEFAULT TRUE
+    active          BOOLEAN       NOT NULL DEFAULT TRUE,
+    supplier_order_id INTEGER     REFERENCES supplier_orders(id)
   );
 
   CREATE TABLE IF NOT EXISTS suppliers (
@@ -184,6 +185,7 @@ const schemaTables = `
     status          VARCHAR(50),
     notes           TEXT,
     date            TIMESTAMPTZ   NOT NULL,
+    total           DECIMAL(10,2) DEFAULT 0,
     active          BOOLEAN       DEFAULT TRUE
   );
 

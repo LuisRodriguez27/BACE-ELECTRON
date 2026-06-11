@@ -107,15 +107,16 @@ class SupplierOrderRepository {
   async create(orderData) {
     const transaction = db.transaction(async () => {
       const result = await db.execute(`
-        INSERT INTO supplier_orders (supplier_id, order_id, user_id, status, notes, date, active)
-        VALUES ($1, $2, $3, $4, $5, $6, true)
+        INSERT INTO supplier_orders (supplier_id, order_id, user_id, status, notes, date, total, active)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, true)
       `, [
         orderData.supplier_id,
         orderData.order_id || null,
         orderData.user_id || null,
         orderData.status || null,
         orderData.notes || null,
-        orderData.date || new Date().toISOString()
+        orderData.date || new Date().toISOString(),
+        orderData.total || 0
       ]);
 
       const supplierOrderId = result.lastInsertRowid;
@@ -143,6 +144,7 @@ class SupplierOrderRepository {
       if (orderData.status !== undefined) { fields.push(`status = $${idx++}`); values.push(orderData.status); }
       if (orderData.notes !== undefined) { fields.push(`notes = $${idx++}`); values.push(orderData.notes); }
       if (orderData.date !== undefined) { fields.push(`date = $${idx++}`); values.push(orderData.date); }
+      if (orderData.total !== undefined) { fields.push(`total = $${idx++}`); values.push(orderData.total); }
 
       if (fields.length > 0) {
         values.push(id);

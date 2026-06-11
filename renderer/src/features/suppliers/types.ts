@@ -35,7 +35,8 @@ export const createSupplierOrderSchema = z.object({
   status: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   date: z.string().min(1, 'La fecha de la orden es requerida'),
-  items: z.array(z.record(z.string(), z.any())).optional()
+  items: z.array(z.record(z.string(), z.any())).optional(),
+  total: z.number().min(0, 'El total no puede ser negativo').optional()
 });
 
 // Schema for editing a supplier order
@@ -60,4 +61,5 @@ export interface SupplierOrder {
   order_total?: number | null;
   username?: string | null;
   supplierOrderItems?: any[];
+  total?: number;
 }

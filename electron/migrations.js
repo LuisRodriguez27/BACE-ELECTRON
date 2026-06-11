@@ -690,6 +690,38 @@ const MIGRATIONS = [
         ALTER TABLE print_logs DROP COLUMN IF EXISTS mostrador_completado;
       `);
     }
+  },
+  {
+    version: 26,
+    name: 'add_total_to_supplier_orders_and_supplier_order_id_to_expenses_and_normalize_statuses',
+    isApplied: async (client) => {
+      const { rows } = await client.query(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name = 'supplier_orders' AND column_name = 'total'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client) => {
+      await client.query(`
+        ALTER TABLE supplier_orders ADD COLUMN IF NOT EXISTS total DECIMAL(10,2) DEFAULT 0
+      `);
+      await client.query(`
+        ALTER TABLE expenses ADD COLUMN IF NOT EXISTS supplier_order_id INTEGER REFERENCES supplier_orders(id)
+      `);
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS idx_expenses_supplier_order_id ON expenses(supplier_order_id)
+      `);
+      await client.query(`
+        UPDATE supplier_orders
+        SET status = 'pendiente'
+        WHERE LOWER(status) = 'recibido' OR LOWER(status) = 'pendiente' OR status IS NULL
+      `);
+      await client.query(`
+        UPDATE supplier_orders
+        SET status = 'cancelado'
+        WHERE LOWER(status) = 'cancelado'
+      `);
+    }
   }
 ];
 

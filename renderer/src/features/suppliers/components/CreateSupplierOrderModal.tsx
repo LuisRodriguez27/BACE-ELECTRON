@@ -32,8 +32,9 @@ const CreateSupplierOrderModal: React.FC<CreateSupplierOrderModalProps> = ({
   const [supplierId, setSupplierId] = useState<number>(0);
   const [orderId, setOrderId] = useState<number | null>(null);
   const [orderDate, setOrderDate] = useState<string>(todayDateInputMX());
-  const [status, setStatus] = useState<string>('Pendiente');
+  const [status, setStatus] = useState<string>('pendiente');
   const [notes, setNotes] = useState<string>('');
+  const [total, setTotal] = useState<number>(0);
 
   // Dynamic items table state
   const [items, setItems] = useState<Record<string, any>[]>([{}]);
@@ -171,9 +172,10 @@ const CreateSupplierOrderModal: React.FC<CreateSupplierOrderModalProps> = ({
         order_id: orderId,
         user_id: user?.id || null,
         date: preserveTimeOrStartOfDay(orderDate),
-        status: status || null,
+        status: status ? status.toLowerCase() : 'pendiente',
         notes: notes || null,
-        items: cleanedItems
+        items: cleanedItems,
+        total: total
       };
 
       const newOrder = await SuppliersApiService.createOrder(payload);
@@ -191,8 +193,9 @@ const CreateSupplierOrderModal: React.FC<CreateSupplierOrderModalProps> = ({
     setSupplierId(0);
     setOrderId(null);
     setOrderDate(todayDateInputMX());
-    setStatus('Pendiente');
+    setStatus('pendiente');
     setNotes('');
+    setTotal(0);
     setItems([{}]);
     setPreviousItems([]);
     setActiveCell(null);
@@ -302,14 +305,32 @@ const CreateSupplierOrderModal: React.FC<CreateSupplierOrderModalProps> = ({
                 onChange={(e) => setStatus(e.target.value)}
                 className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
               >
-                <option value="Pendiente">Pendiente</option>
-                <option value="Recibido">Recibido</option>
-                <option value="Cancelado">Cancelado</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="pagado">Pagado</option>
+                <option value="entregado">Entregado</option>
+                <option value="cancelado">Cancelado</option>
               </select>
             </div>
 
+            {/* Total */}
+            <div>
+              <Label htmlFor="total" className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                <span className="text-gray-400 font-bold">$</span> Total Orden
+              </Label>
+              <Input
+                id="total"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                value={total === 0 ? '' : total}
+                onChange={(e) => setTotal(e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                className="mt-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              />
+            </div>
+
             {/* Notes */}
-            <div className="md:col-span-3">
+            <div className="md:col-span-2">
               <Label htmlFor="notes" className="text-sm font-medium text-gray-700 flex items-center gap-1">
                 <FileText size={14} className="text-gray-400" /> Notas / Observaciones
               </Label>

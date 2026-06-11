@@ -1,6 +1,8 @@
 const supplierOrderRepository = require('../repositories/supplierOrderRepository');
 const supplierRepository = require('../repositories/supplierRepository');
 const userRepository = require('../repositories/userRepository');
+const expensesRepository = require('../repositories/expensesRepository');
+const cashSessionRepository = require('../repositories/cashSessionRepository');
 
 class SupplierOrderService {
   async getAllSupplierOrders() {
@@ -59,7 +61,7 @@ class SupplierOrderService {
     }
   }
 
-  async createSupplierOrder({ supplier_id, order_id, status, notes, date, items, user_id }) {
+  async createSupplierOrder({ supplier_id, order_id, status, notes, date, items, user_id, total }) {
     try {
       if (!supplier_id || isNaN(supplier_id)) {
         throw new Error('ID de proveedor es requerido e inválido');
@@ -92,15 +94,49 @@ class SupplierOrderService {
         throw new Error('Los artículos de la orden deben ser proporcionados como una lista (array)');
       }
 
+      // Validar estado progresivo
+      const VALID_STATUSES = ['pendiente', 'pagado', 'entregado', 'cancelado'];
+      let normalizedStatus = 'pendiente';
+      if (status) {
+        normalizedStatus = status.trim().toLowerCase();
+        if (!VALID_STATUSES.includes(normalizedStatus)) {
+          throw new Error(`Estado inválido. Los estados permitidos son: ${VALID_STATUSES.join(', ')}`);
+        }
+      }
+
+      // Verificar sesión de caja activa si total > 0
+      const parsedTotal = total !== undefined && total !== null ? parseFloat(total) : 0;
+      let activeSession = null;
+      if (parsedTotal > 0) {
+        activeSession = await cashSessionRepository.getActive();
+        if (!activeSession) {
+          throw new Error('No hay una sesión de caja abierta. Abre la caja antes de registrar órdenes con total.');
+        }
+      }
+
       const order = await supplierOrderRepository.create({
         supplier_id: parseInt(supplier_id),
         order_id: order_id ? parseInt(order_id) : null,
         user_id: user_id ? parseInt(user_id) : null,
-        status: status ? status.trim() : null,
+        status: normalizedStatus,
         notes: notes ? notes.trim() : null,
         date,
+        total: parsedTotal,
         items
       });
+
+      // Crear Gasto relacionado si total > 0
+      if (parsedTotal > 0 && activeSession) {
+        const supplierName = supplier ? supplier.name : 'Desconocido';
+        await expensesRepository.create({
+          cash_session_id: activeSession.id,
+          user_id: user_id ? parseInt(user_id) : 1, // fallback al admin (id 1)
+          amount: parsedTotal,
+          description: `Pago Orden Proveedor #${order.id} - Proveedor: ${supplierName}`,
+          date: date || new Date().toISOString(),
+          supplier_order_id: order.id
+        });
+      }
 
       return order.toPlainObject();
     } catch (error) {
@@ -154,8 +190,18 @@ class SupplierOrderService {
         }
       }
 
+      // Validar estado progresivo
+      const VALID_STATUSES = ['pendiente', 'pagado', 'entregado', 'cancelado'];
       if (data.status !== undefined) {
-        payload.status = data.status ? data.status.trim() : null;
+        if (data.status !== null) {
+          const normalizedStatus = data.status.trim().toLowerCase();
+          if (!VALID_STATUSES.includes(normalizedStatus)) {
+            throw new Error(`Estado inválido. Los estados permitidos son: ${VALID_STATUSES.join(', ')}`);
+          }
+          payload.status = normalizedStatus;
+        } else {
+          payload.status = null;
+        }
       }
 
       if (data.notes !== undefined) {
@@ -176,8 +222,56 @@ class SupplierOrderService {
         payload.items = data.items;
       }
 
+      if (data.total !== undefined) {
+        payload.total = data.total !== null ? parseFloat(data.total) : 0;
+      }
+
       if (Object.keys(payload).length === 0) {
         throw new Error('No se proporcionaron campos para actualizar');
+      }
+
+      // Obtener el total final y los campos de gasto relacionados
+      const newTotal = payload.total !== undefined ? payload.total : (existing.total || 0);
+      const newDate = payload.date !== undefined ? payload.date : existing.date;
+      const newUserId = payload.user_id !== undefined ? payload.user_id : existing.user_id;
+      const newSupplierId = payload.supplier_id !== undefined ? payload.supplier_id : existing.supplier_id;
+
+      // Manejar el ciclo de vida del Gasto
+      const existingExpense = await expensesRepository.findBySupplierOrderId(orderId);
+
+      if (newTotal > 0) {
+        const supplier = await supplierRepository.findById(parseInt(newSupplierId));
+        const supplierName = supplier ? supplier.name : 'Desconocido';
+        const description = `Pago Orden Proveedor #${orderId} - Proveedor: ${supplierName}`;
+
+        if (existingExpense) {
+          // Actualizar gasto existente
+          await expensesRepository.update(existingExpense.id, {
+            amount: newTotal,
+            description,
+            date: newDate,
+            edited_by: newUserId || 1
+          });
+        } else {
+          // Crear nuevo gasto
+          const activeSession = await cashSessionRepository.getActive();
+          if (!activeSession) {
+            throw new Error('No hay una sesión de caja abierta. Abre la caja antes de registrar un total.');
+          }
+          await expensesRepository.create({
+            cash_session_id: activeSession.id,
+            user_id: newUserId || existing.user_id || 1,
+            amount: newTotal,
+            description,
+            date: newDate || new Date().toISOString(),
+            supplier_order_id: orderId
+          });
+        }
+      } else {
+        // Si total <= 0, eliminar gasto asociado si existe
+        if (existingExpense) {
+          await expensesRepository.delete(existingExpense.id);
+        }
       }
 
       const updated = await supplierOrderRepository.update(orderId, payload);
@@ -204,6 +298,12 @@ class SupplierOrderService {
       const deleted = await supplierOrderRepository.delete(orderId);
       if (!deleted) {
         throw new Error('Error al eliminar orden de proveedor');
+      }
+
+      // Eliminar Gasto relacionado si existe
+      const existingExpense = await expensesRepository.findBySupplierOrderId(orderId);
+      if (existingExpense) {
+        await expensesRepository.delete(existingExpense.id);
       }
     } catch (error) {
       console.error('Error al eliminar orden de proveedor:', error);

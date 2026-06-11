@@ -30,8 +30,9 @@ const EditSupplierOrderModal: React.FC<EditSupplierOrderModalProps> = ({
   const [supplierId, setSupplierId] = useState<number>(0);
   const [orderId, setOrderId] = useState<number | null>(null);
   const [orderDate, setOrderDate] = useState<string>('');
-  const [status, setStatus] = useState<string>('Pendiente');
+  const [status, setStatus] = useState<string>('pendiente');
   const [notes, setNotes] = useState<string>('');
+  const [total, setTotal] = useState<number>(0);
 
   // Dynamic items table state
   const [items, setItems] = useState<Record<string, any>[]>([{}]);
@@ -55,8 +56,9 @@ const EditSupplierOrderModal: React.FC<EditSupplierOrderModalProps> = ({
       setSupplierId(order.supplier_id);
       setOrderId(order.order_id);
       setOrderDate(isoToDateInputMX(order.date));
-      setStatus(order.status || 'Pendiente');
+      setStatus(order.status ? order.status.toLowerCase() : 'pendiente');
       setNotes(order.notes || '');
+      setTotal(order.total || 0);
 
       // Load items
       const loadedItems = (order.supplierOrderItems || []).map((i: any) => {
@@ -166,9 +168,10 @@ const EditSupplierOrderModal: React.FC<EditSupplierOrderModalProps> = ({
         supplier_id: supplierId,
         order_id: orderId,
         date: preserveTimeOrStartOfDay(orderDate, order.date),
-        status: status || null,
+        status: status ? status.toLowerCase() : 'pendiente',
         notes: notes || null,
-        items: cleanedItems
+        items: cleanedItems,
+        total: total
       };
 
       const updated = await SuppliersApiService.updateOrder(order.id, payload);
@@ -186,8 +189,9 @@ const EditSupplierOrderModal: React.FC<EditSupplierOrderModalProps> = ({
     setSupplierId(0);
     setOrderId(null);
     setOrderDate('');
-    setStatus('Pendiente');
+    setStatus('pendiente');
     setNotes('');
+    setTotal(0);
     setItems([{}]);
     setPreviousItems([]);
     setActiveCell(null);
@@ -297,14 +301,32 @@ const EditSupplierOrderModal: React.FC<EditSupplierOrderModalProps> = ({
                 onChange={(e) => setStatus(e.target.value)}
                 className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
               >
-                <option value="Pendiente">Pendiente</option>
-                <option value="Recibido">Recibido</option>
-                <option value="Cancelado">Cancelado</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="pagado">Pagado</option>
+                <option value="entregado">Entregado</option>
+                <option value="cancelado">Cancelado</option>
               </select>
             </div>
 
+            {/* Total */}
+            <div>
+              <Label htmlFor="total" className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                <span className="text-gray-400 font-bold">$</span> Total Orden
+              </Label>
+              <Input
+                id="total"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                value={total === 0 ? '' : total}
+                onChange={(e) => setTotal(e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                className="mt-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              />
+            </div>
+
             {/* Notes */}
-            <div className="md:col-span-3">
+            <div className="md:col-span-2">
               <Label htmlFor="notes" className="text-sm font-medium text-gray-700 flex items-center gap-1">
                 <FileText size={14} className="text-gray-400" /> Notas / Observaciones
               </Label>
