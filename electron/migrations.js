@@ -722,6 +722,23 @@ const MIGRATIONS = [
         WHERE LOWER(status) = 'cancelado'
       `);
     }
+  },
+  {
+    version: 27,
+    name: 'update_supplier_order_statuses_to_remove_entregado',
+    isApplied: async (client) => {
+      const { rows } = await client.query(`
+        SELECT COUNT(*) FROM schema_migrations WHERE version = 27
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client) => {
+      await client.query(`
+        UPDATE supplier_orders
+        SET status = 'pagado'
+        WHERE LOWER(status) = 'entregado'
+      `);
+    }
   }
 ];
 

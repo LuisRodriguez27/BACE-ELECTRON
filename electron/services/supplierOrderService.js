@@ -95,7 +95,7 @@ class SupplierOrderService {
       }
 
       // Validar estado progresivo
-      const VALID_STATUSES = ['pendiente', 'pagado', 'entregado', 'cancelado'];
+      const VALID_STATUSES = ['pendiente', 'pagado', 'cancelado'];
       let normalizedStatus = 'pendiente';
       if (status) {
         normalizedStatus = status.trim().toLowerCase();
@@ -191,7 +191,7 @@ class SupplierOrderService {
       }
 
       // Validar estado progresivo
-      const VALID_STATUSES = ['pendiente', 'pagado', 'entregado', 'cancelado'];
+      const VALID_STATUSES = ['pendiente', 'pagado', 'cancelado'];
       if (data.status !== undefined) {
         if (data.status !== null) {
           const normalizedStatus = data.status.trim().toLowerCase();

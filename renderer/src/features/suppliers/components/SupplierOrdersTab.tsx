@@ -32,25 +32,17 @@ const getProgressStyles = (status: string | null) => {
   }
   if (s === 'pagado') {
     return {
-      percent: 66,
-      colorClass: 'bg-amber-500',
-      badgeClass: 'bg-amber-50 text-amber-700 border-amber-200',
-      label: 'Pagado'
-    };
-  }
-  if (s === 'entregado') {
-    return {
       percent: 100,
       colorClass: 'bg-green-500',
       badgeClass: 'bg-green-50 text-green-700 border-green-200',
-      label: 'Entregado'
+      label: 'Pagado'
     };
   }
   // Default to 'pendiente'
   return {
-    percent: 33,
-    colorClass: 'bg-red-500',
-    badgeClass: 'bg-red-50 text-red-700 border-red-200',
+    percent: 50,
+    colorClass: 'bg-amber-500',
+    badgeClass: 'bg-amber-50 text-amber-700 border-amber-200',
     label: 'Pendiente'
   };
 };

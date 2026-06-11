@@ -307,7 +307,6 @@ const CreateSupplierOrderModal: React.FC<CreateSupplierOrderModalProps> = ({
               >
                 <option value="pendiente">Pendiente</option>
                 <option value="pagado">Pagado</option>
-                <option value="entregado">Entregado</option>
                 <option value="cancelado">Cancelado</option>
               </select>
             </div>
