@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { X, Calendar, FileText, User, Link, Printer, Image, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Supplier, SupplierOrder } from '../types';
+import { calculateOrderTotalPieces } from '../utils';
 import { formatDateMX } from '@/utils/dateUtils';
 import html2canvas from 'html2canvas';
 import { sanitizeOklchOnClone } from '@/utils/canvasUtils';
@@ -57,9 +58,8 @@ const SupplierOrderDetailsModal: React.FC<SupplierOrderDetailsModalProps> = ({
 }) => {
   if (!isOpen || !order) return null;
 
-  const statusInfo = getProgressStyles(order.status);
-
   const exportRef = useRef<HTMLDivElement>(null);
+  const statusInfo = getProgressStyles(order.status);
 
   const selectedSupplier = suppliers.find(s => s.id === order.supplier_id);
   const columns = selectedSupplier?.columns && selectedSupplier.columns.length > 0
@@ -72,20 +72,7 @@ const SupplierOrderDetailsModal: React.FC<SupplierOrderDetailsModalProps> = ({
     return i;
   });
 
-  // Find the column representing the quantity/pieces (case-insensitive)
-  const piecesColumnKey = columns.find(col => {
-    const lower = col.toLowerCase().trim();
-    return lower === 'pzas' || lower === 'pza' || lower === 'pz' || lower === 'cantidad' || lower === 'cant' || lower === 'qty' || lower === 'piezas';
-  }) || columns[0];
-
-  // Calculate the total sum of pieces
-  const totalPieces = items.reduce((sum, item) => {
-    if (!piecesColumnKey) return sum;
-    const value = item[piecesColumnKey];
-    if (value === undefined || value === null) return sum;
-    const parsed = parseFloat(String(value).trim());
-    return sum + (isNaN(parsed) ? 0 : parsed);
-  }, 0);
+  const totalPieces = calculateOrderTotalPieces(order, suppliers);
 
   const handleSaveImage = async () => {
     if (!exportRef.current || !order) return;

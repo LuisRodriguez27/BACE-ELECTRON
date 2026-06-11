@@ -7,6 +7,7 @@ import { usePermissions } from '@/hooks/use-permissions';
 import { toast } from 'sonner';
 import { formatDateMX } from '@/utils/dateUtils';
 import { useNavigate } from '@tanstack/react-router';
+import { calculateOrderTotalPieces } from '../utils';
 
 // Import modals
 import CreateSupplierOrderModal from './CreateSupplierOrderModal';
@@ -255,8 +256,10 @@ const SupplierOrdersTab: React.FC<SupplierOrdersTabProps> = ({ suppliers, initia
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
                 {filteredOrders.map((order) => {
-                  const itemCount = order.supplierOrderItems?.length || 0;
                   const statusInfo = getProgressStyles(order.status);
+
+                  const totalPieces = calculateOrderTotalPieces(order, suppliers);
+
                   return (
                     <tr key={order.id} className="hover:bg-slate-50/50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
@@ -306,7 +309,7 @@ const SupplierOrdersTab: React.FC<SupplierOrdersTabProps> = ({ suppliers, initia
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                        {itemCount} {itemCount === 1 ? 'artículo' : 'artículos'}
+                        {totalPieces} {totalPieces === 1 ? 'pieza' : 'piezas'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end gap-1.5">
