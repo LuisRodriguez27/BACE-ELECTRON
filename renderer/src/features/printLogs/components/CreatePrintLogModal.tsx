@@ -224,7 +224,7 @@ const CreatePrintLogModal: React.FC<CreatePrintLogModalProps> = ({
                 {logToEdit ? 'Editar Impresión' : 'Nueva Impresión'}
               </h2>
               <p className="text-sm text-gray-500">
-                {logToEdit ? `Modificar el registro #${logToEdit.id}` : 'Registrar un nuevo log de impresión'}
+                {logToEdit ? `Modificar el registro #${logToEdit.id}` : 'Registrar un nuevo registro de impresión'}
               </p>
             </div>
           </div>
@@ -393,7 +393,7 @@ const CreatePrintLogModal: React.FC<CreatePrintLogModalProps> = ({
               {/* Responsable */}
               <div>
                 <Label htmlFor="responsable" className="text-sm font-medium text-gray-700">
-                  Responsable *
+                  Tipo de Cliente *
                 </Label>
                 <div className="mt-1">
                   <select

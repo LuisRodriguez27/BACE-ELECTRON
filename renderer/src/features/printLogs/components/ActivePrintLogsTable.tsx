@@ -366,7 +366,7 @@ const ActivePrintLogsTable = forwardRef<PrintLogsTableRef, ActivePrintLogsTableP
                       <div className="text-xs">
                         <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Responsable</span>
                         <span className="font-semibold text-gray-700">
-                          {log.responsable === 'maq' ? 'Maquinaria' : log.responsable === 'most' ? 'Mostrador' : '-'}
+                          {log.responsable === 'maq' ? 'Maquila' : log.responsable === 'most' ? 'Mostrador' : '-'}
                         </span>
                       </div>
 
