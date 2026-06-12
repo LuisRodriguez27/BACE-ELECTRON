@@ -85,11 +85,17 @@ export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = (
             color-adjust: exact !important;
             font-family: Arial, sans-serif !important;
         }
+        html {
+            font-size: 16px !important;
+        }
         @page {
             size: 21.6cm 18.5cm landscape;
             margin: 0;
         }
         @media print {
+            html {
+                font-size: 16px !important;
+            }
             html, body {
                 width: 21.6cm !important;
                 height: 18.5cm !important;

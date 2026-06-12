@@ -188,21 +188,19 @@ const PrintPreviewModal: React.FC<PrintPreviewModalProps> = ({
                       {getHours(orderData.date)}
                     </div>
 
-                    <div className='absolute top-32 left-25 text-xl font-bold text-black'>
-                      <div className="grid grid-cols-2 gap-20">
-                        {/* Cliente */}
-                        <div className="truncate flex items-center gap-2" style={{ fontSize: 'calc(1em - 2px)' }}>
-                          {orderData.client?.color && (
-                            <ClientColorIndicator color={orderData.client.color as ClientColor} size="md" />
-                          )}
-                          <span>{orderData.client?.name || 'Cliente no especificado'}</span>
-                        </div>
+                    {/* Cliente */}
+                    <div className='absolute top-32 left-25 w-[288px] text-xl font-bold text-black flex items-center gap-2'>
+                      {orderData.client?.color && (
+                        <ClientColorIndicator color={orderData.client.color as ClientColor} size="md" />
+                      )}
+                      <span className="truncate" style={{ fontSize: 'calc(1em - 2px)' }}>
+                        {orderData.client?.name || 'Cliente no especificado'}
+                      </span>
+                    </div>
 
-                        {/* Numero de telefono */}
-                        <div className='ml-39'>
-                          {orderData.client?.phone || ''}
-                        </div>
-                      </div>
+                    {/* Teléfono */}
+                    <div className='absolute top-32 left-[620px] w-[152px] text-xl font-bold text-black truncate'>
+                      {orderData.client?.phone || ''}
                     </div>
 
                     {/* Productos en formato de tabla */}

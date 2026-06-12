@@ -179,11 +179,17 @@ const SimpleOrderPrintPreviewModal: React.FC<SimpleOrderPrintPreviewModalProps> 
             color-adjust: exact !important;
             font-family: Arial, sans-serif !important;
         }
+        html {
+            font-size: 16px !important;
+        }
         @page {
             size: 21.6cm 17cm landscape;
             margin: 0;
         }
         @media print {
+            html {
+                font-size: 16px !important;
+            }
             html, body {
                 width: 21.6cm !important;
                 height: auto !important;

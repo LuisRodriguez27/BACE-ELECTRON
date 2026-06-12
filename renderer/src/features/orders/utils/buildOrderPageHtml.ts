@@ -96,26 +96,23 @@ export function buildPageHtml(params: {
             ${getHours(orderData.date)}
         </div>
 
-        <!-- Cliente y Teléfono -->
-        <div style="position: absolute; top: 7.5rem; left: 6.25rem; font-size: 1.25rem; line-height: 1; font-weight: 700; color: rgb(0, 0, 0);">
-            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5rem;">
-                <!-- Cliente -->
-                <div style="grid-column: span 1 / span 1; font-size: calc(1em - 2px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 0.5rem;">
-                    ${orderData.client?.color
-                      ? `<div style="width: 1rem; height: 1rem; border-radius: 9999px; background-color: ${
-                          orderData.client.color === 'green'  ? '#22c55e' :
-                          orderData.client.color === 'yellow' ? '#eab308' :
-                          orderData.client.color === 'red'    ? '#ef4444' : 'transparent'
-                        }; flex-shrink: 0;"></div>`
-                      : ''}
-                    ${orderData.client?.name || 'Cliente no especificado'}
-                </div>
+        <!-- Cliente -->
+        <div style="position: absolute; top: 7.5rem; left: 6.25rem; width: 18rem; font-size: 1.25rem; line-height: 1; font-weight: 700; color: rgb(0, 0, 0); display: flex; align-items: center; gap: 0.5rem;">
+            ${orderData.client?.color
+              ? `<div style="width: 1rem; height: 1rem; border-radius: 9999px; background-color: ${
+                  orderData.client.color === 'green'  ? '#22c55e' :
+                  orderData.client.color === 'yellow' ? '#eab308' :
+                  orderData.client.color === 'red'    ? '#ef4444' : 'transparent'
+                }; flex-shrink: 0;"></div>`
+              : ''}
+            <span style="font-size: calc(1em - 2px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; width: 100%;">
+                ${orderData.client?.name || 'Cliente no especificado'}
+            </span>
+        </div>
 
-                <!-- Teléfono -->
-                <div style="grid-column: span 1 / span 1; margin-left: 10.5rem;">
-                    ${orderData.client?.phone || ''}
-                </div>
-            </div>
+        <!-- Teléfono -->
+        <div style="position: absolute; top: 7.5rem; left: 38.75rem; width: 9.5rem; font-size: 1.25rem; line-height: 1; font-weight: 700; color: rgb(0, 0, 0); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            ${orderData.client?.phone || ''}
         </div>
 
         <!-- Productos en formato de tabla -->
@@ -196,11 +193,17 @@ export const PRINT_STYLES = `
         color-adjust: exact !important;
         font-family: Arial, sans-serif !important;
     }
+    html {
+        font-size: 16px !important;
+    }
     @page {
         size: 21.6cm 17cm landscape;
         margin: 0;
     }
     @media print {
+        html {
+            font-size: 16px !important;
+        }
         html, body {
             width: 21.6cm !important;
             height: auto !important;

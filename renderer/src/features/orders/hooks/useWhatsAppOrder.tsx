@@ -133,15 +133,15 @@ export function useWhatsAppOrder() {
           ${getHours(orderData.date)}
         </div>
 
-        <!-- Cliente y teléfono -->
-        <div style="position:absolute;top:112px;left:100px;font-size:20px;line-height:1;font-weight:700;color:rgb(0,0,0);">
-          <div style="display:flex;gap:80px;align-items:center;">
-            <div style="display:flex;align-items:center;gap:8px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-              ${clientCircleColor ? `<div style="width:16px;height:16px;border-radius:9999px;background-color:${clientCircleColor};flex-shrink:0;"></div>` : ''}
-              <span style="display:flex;align-items:center;height:36px;font-size:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${orderData.client?.name || 'Cliente no especificado'}</span>
-            </div>
-            <div style="margin-left:168px;font-size:18px;height:36px;display:flex;align-items:center;">${orderData.client?.phone || ''}</div>
-          </div>
+        <!-- Cliente -->
+        <div style="position:absolute;top:112px;left:100px;width:288px;font-size:20px;line-height:1;font-weight:700;color:rgb(0,0,0);display:flex;align-items:center;gap:8px;">
+          ${clientCircleColor ? `<div style="width:16px;height:16px;border-radius:9999px;background-color:${clientCircleColor};flex-shrink:0;margin-top:18px"></div>` : ''}
+          <span style="display:flex;align-items:center;height:36px;font-size:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;">${orderData.client?.name || 'Cliente no especificado'}</span>
+        </div>
+
+        <!-- Teléfono -->
+        <div style="position:absolute;top:112px;left:620px;width:152px;font-size:18px;height:36px;display:flex;align-items:center;font-weight:700;color:rgb(0,0,0);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+          ${orderData.client?.phone || ''}
         </div>
 
         <!-- Tabla de productos -->
