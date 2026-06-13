@@ -120,7 +120,7 @@ const SimpleOrderPrintPreviewModal: React.FC<SimpleOrderPrintPreviewModalProps> 
                 <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; margin-bottom: 0.5rem; font-size: 1rem; line-height: 1.5rem; padding-top: 0.25rem; padding-bottom: 0.25rem;">
                     <div style="grid-column: span 1 / span 1; text-align: center;">${product.quantity}</div>
                     <div style="grid-column: span 7 / span 7; padding-left: 0.25rem;">
-                        <div style="font-weight: 500;">
+                        <div style="font-weight: 500; white-space: pre-wrap;">
                           ${product.name}
                         </div>
                     </div>
@@ -367,7 +367,7 @@ const SimpleOrderPrintPreviewModal: React.FC<SimpleOrderPrintPreviewModalProps> 
                             {product.quantity}
                           </div>
                           <div className="col-span-7 pl-1">
-                            <div className="font-medium">{product.name}</div>
+                            <div className="font-medium whitespace-pre-wrap">{product.name}</div>
                           </div>
                           <div className="col-span-2 text-right font-medium">
                             ${product.unit_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

@@ -40,8 +40,8 @@ const EditSimpleOrderModal: React.FC<EditSimpleOrderModalProps> = ({
     }
   }, [isOpen, order]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent | React.KeyboardEvent) => {
+    if (e) e.preventDefault();
     if (!user?.id) {
       toast.error('No hay un usuario activo detectado');
       return;
@@ -95,6 +95,27 @@ const EditSimpleOrderModal: React.FC<EditSimpleOrderModalProps> = ({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter') {
+      if (e.shiftKey) {
+        e.preventDefault();
+        const target = e.currentTarget;
+        const start = target.selectionStart;
+        const end = target.selectionEnd;
+        const newValue = concept.substring(0, start) + '\n' + concept.substring(end);
+        setConcept(newValue);
+        
+        // Put cursor after the inserted newline in the next tick
+        setTimeout(() => {
+          target.selectionStart = target.selectionEnd = start + 1;
+        }, 0);
+      } else if (!e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        handleSubmit(e);
+      }
+    }
+  };
+
   if (!isOpen || !order) return null;
 
   return (
@@ -127,10 +148,13 @@ const EditSimpleOrderModal: React.FC<EditSimpleOrderModalProps> = ({
             <div className="space-y-4">
               <div>
                 <Label htmlFor="concept" className="mb-1 block font-medium">Concepto principal <span className="text-red-500">*</span></Label>
-                <Input
+                <textarea
                   id="concept"
+                  rows={3}
                   value={concept}
                   onChange={(e) => setConcept(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                   placeholder="Ej: Impresiones variadas, engargolado..."
                   required
                 />

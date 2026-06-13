@@ -27,8 +27,8 @@ const CreateSimpleOrderModal: React.FC<CreateSimpleOrderModalProps> = ({
   const [abono, setAbono] = useState<number | ''>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent | React.KeyboardEvent) => {
+    if (e) e.preventDefault();
     if (!user?.id) {
       toast.error('No hay un usuario activo detectado');
       return;
@@ -96,6 +96,27 @@ const CreateSimpleOrderModal: React.FC<CreateSimpleOrderModalProps> = ({
       toast.error('Error al registrar la orden');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter') {
+      if (e.shiftKey) {
+        e.preventDefault();
+        const target = e.currentTarget;
+        const start = target.selectionStart;
+        const end = target.selectionEnd;
+        const newValue = concept.substring(0, start) + '\n' + concept.substring(end);
+        setConcept(newValue);
+        
+        // Put cursor after the inserted newline in the next tick
+        setTimeout(() => {
+          target.selectionStart = target.selectionEnd = start + 1;
+        }, 0);
+      } else if (!e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        handleSubmit(e);
+      }
     }
   };
 
@@ -194,6 +215,7 @@ const CreateSimpleOrderModal: React.FC<CreateSimpleOrderModalProps> = ({
                 rows={3}
                 value={concept}
                 onChange={(e) => setConcept(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 placeholder="Ej. Impresión de 50 hojas a color, diseño por maquila..."
                 required

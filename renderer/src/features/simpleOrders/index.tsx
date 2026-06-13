@@ -12,7 +12,7 @@ import CreateSimpleOrderModal from './components/CreateSimpleOrderModal';
 import EditSimpleOrderModal from './components/EditSimpleOrderModal';
 import EditPaymentModal from '../payments/components/EditPaymentModal';
 import SimpleOrderPrintPreviewModal from './components/SimpleOrderPrintPreviewModal';
-import { Eye, Pencil } from 'lucide-react';
+import { Eye, Pencil, MoreVertical } from 'lucide-react';
 
 
 
@@ -31,6 +31,7 @@ const SimpleOrdersPage: React.FC = () => {
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<SimpleOrderPayment | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all'|'pending'|'paid'>('all');
+  const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
 
   const fetchOrders = async () => {
     try {
@@ -72,6 +73,7 @@ const SimpleOrdersPage: React.FC = () => {
     setShowPrintModal(false);
     setSelectedOrderId(null);
     setSelectedPayment(null);
+    setOpenDropdownId(null);
   };
 
   const openCreateModal = () => {
@@ -261,8 +263,8 @@ const SimpleOrdersPage: React.FC = () => {
             <thead>
               <tr className="bg-gray-50 text-gray-600 text-sm border-b border-gray-200">
                 <th className="py-3 px-4 font-semibold uppercase">ID</th>
-                <th className="py-3 px-4 font-semibold uppercase">Fecha</th>
-                <th className="py-3 px-4 font-semibold uppercase">Concepto</th>
+                <th className="py-3 px-4 font-semibold uppercase w-44">Fecha</th>
+                <th className="py-3 px-4 font-semibold uppercase max-w-[150px]">Concepto</th>
                 <th className="py-3 px-4 font-semibold uppercase">Cliente</th>
                 <th className="py-3 px-4 font-semibold uppercase">Empleado</th>
                 <th className="py-3 px-4 font-semibold uppercase text-right">Total</th>
@@ -282,8 +284,8 @@ const SimpleOrdersPage: React.FC = () => {
               {filteredOrders.map(order => (
                 <tr key={order.id} className="hover:bg-gray-50 transition-colors">
                   <td className="py-3 px-4 text-gray-900 font-medium">#{order.id}</td>
-                  <td className="py-3 px-4 text-gray-500">{formatDateTime(order.date)}</td>
-                  <td className="py-3 px-4 text-gray-900">{order.concept}</td>
+                  <td className="py-3 px-4 text-gray-500 w-44">{formatDateTime(order.date)}</td>
+                  <td className="py-3 px-4 text-gray-900 truncate max-w-[150px]" title={order.concept}>{order.concept}</td>
                   <td className="py-3 px-4 text-gray-500">
                     <div>{order.client_name || '-'}</div>
                     {order.client_phone && (
@@ -298,45 +300,132 @@ const SimpleOrdersPage: React.FC = () => {
                   <td className="py-3 px-4 text-right">
                     {getPaymentBadge(order)}
                   </td>
-                  <td className="py-3 px-4 flex justify-center gap-2">
-                    <button 
-                      onClick={() => {
-                        setSelectedOrderId(order.id);
-                        setShowEditModal(true);
-                      }}
-                      className="p-1.5 rounded text-gray-400 hover:text-blue-600 bg-gray-50 hover:bg-blue-50"
-                      title="Editar Orden"
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setSelectedOrderId(order.id);
-                        setShowPrintModal(true);
-                      }}
-                      className="p-1.5 rounded text-gray-400 hover:text-purple-600 bg-gray-50 hover:bg-purple-50"
-                      title="Imprimir Orden"
-                    >
-                      <Printer size={16} />
-                    </button>
-                    <button 
-                      onClick={() => {
-                        setSelectedOrderId(order.id);
-                        setShowPaymentsListModal(true);
-                      }}
-                      className="p-1.5 rounded text-gray-400 hover:text-blue-600 bg-gray-50 hover:bg-blue-50"
-                      title="Ver Historial de Pagos"
-                    >
-                      <Eye size={16} />
-                    </button>
-                    <button 
-                      onClick={() => handleAddPayment(order.id)}
-                      disabled={order.balance <= 0}
-                      className={`p-1.5 rounded ${order.balance <= 0 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-green-600 bg-gray-50 hover:bg-green-50'}`}
-                      title="Agregar Pago"
-                    >
-                      <Plus size={16} />
-                    </button>
+                  <td className="py-3 px-4 text-center relative">
+                    {/* Botones completos en pantallas muy grandes */}
+                    <div className="hidden 2xl:flex justify-center gap-2">
+                      <button 
+                        onClick={() => {
+                          setSelectedOrderId(order.id);
+                          setShowEditModal(true);
+                        }}
+                        className="p-1.5 rounded text-gray-400 hover:text-blue-600 bg-gray-50 hover:bg-blue-50"
+                        title="Editar Orden"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setSelectedOrderId(order.id);
+                          setShowPrintModal(true);
+                        }}
+                        className="p-1.5 rounded text-gray-400 hover:text-purple-600 bg-gray-50 hover:bg-purple-50"
+                        title="Imprimir Orden"
+                      >
+                        <Printer size={16} />
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setSelectedOrderId(order.id);
+                          setShowPaymentsListModal(true);
+                        }}
+                        className="p-1.5 rounded text-gray-400 hover:text-blue-600 bg-gray-50 hover:bg-blue-50"
+                        title="Ver Historial de Pagos"
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button 
+                        onClick={() => handleAddPayment(order.id)}
+                        disabled={order.balance <= 0}
+                        className={`p-1.5 rounded ${order.balance <= 0 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-green-600 bg-gray-50 hover:bg-green-50'}`}
+                        title="Agregar Pago"
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </div>
+
+                    {/* Botón de tres puntos en pantallas medianas/pequeñas (como 1366px) */}
+                    <div className="2xl:hidden flex justify-center">
+                      <div className="relative">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenDropdownId(openDropdownId === order.id ? null : order.id);
+                          }}
+                          className="p-1.5 rounded text-gray-400 hover:text-gray-700 bg-gray-50 hover:bg-gray-100"
+                          title="Acciones"
+                        >
+                          <MoreVertical size={16} />
+                        </button>
+                        
+                        {openDropdownId === order.id && (
+                          <>
+                            {/* Backdrop invisible para cerrar al hacer clic fuera */}
+                            <div 
+                              className="fixed inset-0 z-30" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenDropdownId(null);
+                              }}
+                            />
+                            
+                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-40 origin-top-right text-left">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedOrderId(order.id);
+                                  setShowEditModal(true);
+                                  setOpenDropdownId(null);
+                                }}
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                              >
+                                <Pencil size={14} className="text-gray-400" />
+                                Editar Orden
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedOrderId(order.id);
+                                  setShowPrintModal(true);
+                                  setOpenDropdownId(null);
+                                }}
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                              >
+                                <Printer size={14} className="text-gray-400" />
+                                Imprimir Orden
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedOrderId(order.id);
+                                  setShowPaymentsListModal(true);
+                                  setOpenDropdownId(null);
+                                }}
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                              >
+                                <Eye size={14} className="text-gray-400" />
+                                Ver Pagos
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleAddPayment(order.id);
+                                  setOpenDropdownId(null);
+                                }}
+                                disabled={order.balance <= 0}
+                                className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${
+                                  order.balance <= 0 
+                                    ? 'text-gray-300 cursor-not-allowed' 
+                                    : 'text-gray-700 hover:bg-gray-100'
+                                }`}
+                              >
+                                <Plus size={14} className={order.balance <= 0 ? 'text-gray-200' : 'text-gray-400'} />
+                                Agregar Pago
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </td>
                 </tr>
               ))}

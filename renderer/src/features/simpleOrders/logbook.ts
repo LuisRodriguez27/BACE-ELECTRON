@@ -61,7 +61,7 @@ export const generateSimpleOrdersLogbookHtml = (ordersToPrint: SimpleOrder[], cu
               <tr class="${rowClass}">
                 <td class="center"><strong>${order.id}</strong></td>
                 <td class="center">${dateStr}</td>
-                <td>${order.concept}</td>
+                <td style="white-space: pre-wrap;">${order.concept}</td>
                 <td class="center">
                   ${order.client_name || '-'}
                   ${order.client_phone ? `<br><small style="color: #666;">${order.client_phone}</small>` : ''}
