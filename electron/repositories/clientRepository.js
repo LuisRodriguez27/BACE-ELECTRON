@@ -108,6 +108,59 @@ class ClientRepository {
     
     return clients.map(client => new Client(client));
   }
+
+  async findPaginated(page = 1, limit = 10, searchTerm = '') {
+    const offset = (page - 1) * limit;
+    
+    let searchCondition = '';
+    let searchParams = [];
+    let paramIndex = 1;
+    
+    if (searchTerm && searchTerm.trim()) {
+      const term = `%${searchTerm.trim()}%`;
+      searchCondition = `
+        AND (
+          CAST(id AS TEXT) ILIKE $${paramIndex}
+          OR name ILIKE $${paramIndex}
+          OR phone ILIKE $${paramIndex}
+          OR address ILIKE $${paramIndex}
+          OR description ILIKE $${paramIndex}
+        )
+      `;
+      searchParams = [term];
+      paramIndex = 2;
+    }
+    
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM clients
+      WHERE active = true ${searchCondition}
+    `;
+    const countResult = await db.getOne(countQuery, searchParams);
+    const total = countResult.total;
+    
+    const dataQuery = `
+      SELECT *
+      FROM clients
+      WHERE active = true ${searchCondition}
+      ORDER BY id DESC
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+    const clients = await db.getAll(dataQuery, [...searchParams, limit, offset]);
+    
+    return {
+      data: clients.map(client => new Client(client)),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1
+      },
+      searchTerm
+    };
+  }
 }
 
 module.exports = new ClientRepository();

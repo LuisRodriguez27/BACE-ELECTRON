@@ -73,6 +73,7 @@ declare global {
       updateClient: (id: number, data: EditClientForm) => Promise<Client>;
       deleteClient: (id: number) => Promise<void>;
       searchClients: (searchTerm: string) => Promise<Client[]>;
+      getClientsPaginated: (page: number, limit: number, searchTerm: string) => Promise<{ data: Client[], pagination: { page: number, limit: number, total: number, totalPages: number, hasNext: boolean, hasPrev: boolean } }>;
 
       // Productos
       getAllProducts: () => Promise<Product[]>;

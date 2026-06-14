@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Client } from '@/features/clients/types';
 import type { UseFormSetValue, UseFormUnregister } from 'react-hook-form';
+import { ClientApiService } from '../ClientApiService';
 
 export interface UseClientSearchOptions {
   setValue: UseFormSetValue<any>;
@@ -33,12 +34,27 @@ export const useClientSearch = ({ setValue, unregister }: UseClientSearchOptions
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [highlightClient, setHighlightClient] = useState(false);
 
-  // Efecto para sincronizar el cliente seleccionado con el estado de búsqueda
+  // Efecto para sincronizar el cliente seleccionado con el estado de búsqueda y recuperarlo si no está en la lista
   useEffect(() => {
-    if (selectedClientId && clients.length > 0) {
-      const selectedClient = clients.find(c => c.id === selectedClientId);
-      if (selectedClient && !clientSearchTerm) {
-        setClientSearchTerm(`${selectedClient.name} - ${selectedClient.phone}`);
+    if (selectedClientId) {
+      const exists = clients.some(c => c.id === selectedClientId);
+      if (!exists) {
+        ClientApiService.findById(selectedClientId)
+          .then(client => {
+            if (client) {
+              setClients(prev => {
+                if (prev.some(c => c.id === client.id)) return prev;
+                return [client, ...prev];
+              });
+              setClientSearchTerm(`${client.name} - ${client.phone}`);
+            }
+          })
+          .catch(err => console.error('Error al recuperar cliente por ID en buscador:', err));
+      } else {
+        const selectedClient = clients.find(c => c.id === selectedClientId);
+        if (selectedClient && clientSearchTerm !== `${selectedClient.name} - ${selectedClient.phone}`) {
+          setClientSearchTerm(`${selectedClient.name} - ${selectedClient.phone}`);
+        }
       }
     }
   }, [selectedClientId, clients, clientSearchTerm]);
@@ -69,8 +85,17 @@ export const useClientSearch = ({ setValue, unregister }: UseClientSearchOptions
   const loadClients = async () => {
     try {
       setLoadingClients(true);
-      const response = await window.api.getAllClients();
-      setClients(response);
+      const response = await ClientApiService.findPaginated(1, 20, '');
+      setClients(prev => {
+        const matched = response.data;
+        if (selectedClientId) {
+          const selectedClient = prev.find(c => c.id === selectedClientId);
+          if (selectedClient && !matched.some(c => c.id === selectedClientId)) {
+            return [selectedClient, ...matched];
+          }
+        }
+        return matched;
+      });
     } catch (err) {
       console.error('Error loading clients:', err);
     } finally {
@@ -78,19 +103,50 @@ export const useClientSearch = ({ setValue, unregister }: UseClientSearchOptions
     }
   };
 
-  const getFilteredClients = useCallback(() => {
-    let result = clients;
-
-    if (clientSearchTerm) {
-      result = clients.filter(client =>
-        client.name.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
-        client.phone.toLowerCase().includes(clientSearchTerm.toLowerCase()) ||
-        client.id.toString().includes(clientSearchTerm.toLowerCase())
-      );
+  // Manejar la búsqueda en base de datos con debounce
+  useEffect(() => {
+    if (!clientSearchTerm || clientSearchTerm.trim() === '') {
+      if (!selectedClientId) {
+        loadClients();
+      }
+      return;
     }
 
-    return [...result].sort((a, b) => a.id - b.id);
-  }, [clients, clientSearchTerm]);
+    if (selectedClientId) {
+      const selectedClient = clients.find(c => c.id === selectedClientId);
+      if (selectedClient && clientSearchTerm === `${selectedClient.name} - ${selectedClient.phone}`) {
+        return;
+      }
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setLoadingClients(true);
+        const response = await ClientApiService.findPaginated(1, 20, clientSearchTerm);
+        setClients(prev => {
+          const matched = response.data;
+          if (selectedClientId) {
+            const selectedClient = prev.find(c => c.id === selectedClientId);
+            if (selectedClient && !matched.some(c => c.id === selectedClientId)) {
+              return [selectedClient, ...matched];
+            }
+          }
+          return matched;
+        });
+      } catch (err) {
+        console.error('Error searching clients in hook:', err);
+      } finally {
+        setLoadingClients(false);
+      }
+    }, 300); // Debounce de 300ms
+
+    return () => clearTimeout(timer);
+  }, [clientSearchTerm, selectedClientId]);
+
+  const getFilteredClients = useCallback(() => {
+    // Como ya vienen filtrados del backend, solo los devolvemos ordenados por ID
+    return [...clients].sort((a, b) => a.id - b.id);
+  }, [clients]);
 
   const selectClient = useCallback((client: Client) => {
     setValue('client_id', client.id);
@@ -100,7 +156,7 @@ export const useClientSearch = ({ setValue, unregister }: UseClientSearchOptions
   }, [setValue]);
 
   const handleClientCreated = useCallback((newClient: Client) => {
-    setClients(prev => [...prev, newClient]);
+    setClients(prev => [newClient, ...prev]);
     // Seleccionar automáticamente el cliente recién creado
     setValue('client_id', newClient.id);
     setSelectedClientId(newClient.id);

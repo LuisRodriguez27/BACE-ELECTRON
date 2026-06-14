@@ -195,6 +195,24 @@ class ClientService {
       throw new Error('Error al buscar clientes');
     }
   }
+
+  async getClientsPaginated(page = 1, limit = 10, searchTerm = '') {
+    try {
+      if (page < 1) page = 1;
+      if (limit < 1 || limit > 100) limit = 10;
+      
+      const result = await clientRepository.findPaginated(page, limit, searchTerm);
+      
+      return {
+        data: result.data.map(client => client.toPlainObject()),
+        pagination: result.pagination,
+        searchTerm: result.searchTerm
+      };
+    } catch (error) {
+      console.error('Error al obtener clientes paginados:', error);
+      throw new Error('Error al obtener clientes paginados');
+    }
+  }
 }
 
 module.exports = new ClientService();

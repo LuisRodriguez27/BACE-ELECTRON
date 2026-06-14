@@ -38,6 +38,7 @@ contextBridge.exposeInMainWorld('api', {
   updateClient: (id, data) => ipcRenderer.invoke('clients:update', id, data),
   deleteClient: (id) => ipcRenderer.invoke('clients:delete', id),
   searchClients: (searchTerm) => ipcRenderer.invoke('clients:search', searchTerm),
+  getClientsPaginated: (page, limit, searchTerm) => ipcRenderer.invoke('clients:getPaginated', page, limit, searchTerm),
 
   // Productos
   getAllProducts: () => ipcRenderer.invoke('products:getAll'),
