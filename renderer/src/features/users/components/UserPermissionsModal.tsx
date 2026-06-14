@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Shield, User as UserIcon, Loader, Check } from 'lucide-react';
+import { X, Shield, Loader, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -255,40 +255,30 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
             )}
 
             {/* Search and Select All */}
-            <div className="space-y-4 flex-shrink-0">
-              {/* Search */}
-              <div>
-                <Label htmlFor="search" className="text-sm font-medium text-gray-700">
-                  Buscar permisos
-                </Label>
-                <Input
-                  id="search"
-                  type="text"
-                  placeholder="Buscar por nombre o descripción..."
-                  value={searchTerm}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-
-              {/* Select All Controls */}
-              {filteredPermissions.length > 0 && (
-                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <Shield className="h-4 w-4 text-blue-600" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-blue-900">
-                      Acciones masivas para {filteredPermissions.length} permisos
-                      {searchTerm && ' (filtrados)'}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
+            <div className="flex flex-col gap-3 flex-shrink-0 mb-4">
+              <div className="flex flex-col sm:flex-row gap-3 items-end justify-between">
+                <div className="flex-1 w-full">
+                  <Label htmlFor="search" className="text-sm font-medium text-gray-700">
+                    Buscar permisos
+                  </Label>
+                  <Input
+                    id="search"
+                    type="text"
+                    placeholder="Buscar por nombre o descripción..."
+                    value={searchTerm}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                {filteredPermissions.length > 0 && (
+                  <div className="flex gap-2 shrink-0 w-full sm:w-auto">
                     <Button
                       type="button"
                       size="sm"
                       variant="outline"
                       onClick={handleSelectAll}
                       disabled={isSelectingAll || isUpdatingPermission !== null || allFilteredSelected()}
-                      className="text-xs"
+                      className="text-xs flex-1 sm:flex-initial"
                     >
                       {isSelectingAll ? (
                         <>
@@ -296,7 +286,7 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
                           Asignando...
                         </>
                       ) : (
-                        'Seleccionar todos'
+                        'Asignar todos'
                       )}
                     </Button>
                     <Button
@@ -305,7 +295,7 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
                       variant="outline"
                       onClick={handleDeselectAll}
                       disabled={isSelectingAll || isUpdatingPermission !== null || noneFilteredSelected()}
-                      className="text-xs"
+                      className="text-xs flex-1 sm:flex-initial"
                     >
                       {isSelectingAll ? (
                         <>
@@ -313,26 +303,11 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
                           Removiendo...
                         </>
                       ) : (
-                        'Deseleccionar todos'
+                        'Desmarcar todos'
                       )}
                     </Button>
                   </div>
-                </div>
-              )}
-            </div>
-
-            {/* User Info */}
-            <div className="mb-4 mt-4 p-4 bg-gray-50 rounded-lg flex-shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <UserIcon className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="font-medium text-gray-900">{user.username}</h3>
-                  <p className="text-sm text-gray-500">
-                    {userPermissions.length} de {availablePermissions.length} permisos asignados
-                  </p>
-                </div>
+                )}
               </div>
             </div>
 
@@ -348,7 +323,7 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
                   <span className="ml-2 text-gray-500">Cargando permisos...</span>
                 </div>
               ) : (
-                <div className="space-y-2 pb-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-2">
                   {filteredPermissions.map((permission) => {
                     const hasPermission = getUserPermissionIds().includes(permission.id);
                     const isUpdating = isUpdatingPermission === permission.id;
@@ -402,8 +377,13 @@ const UserPermissionsModal: React.FC<UserPermissionsModalProps> = ({
 
         {/* Actions */}
         <div className="flex justify-between items-center p-6 border-t border-gray-200">
-          <div className="text-sm text-gray-500">
-            {userPermissions.length} de {availablePermissions.length} permisos asignados
+          <div className="flex flex-col gap-0.5">
+            <div className="text-sm font-medium text-gray-700">
+              {userPermissions.length} de {availablePermissions.length} permisos asignados
+            </div>
+            <div className="text-xs text-gray-400 italic">
+              * Los cambios se guardan automáticamente
+            </div>
           </div>
           <div className="flex gap-3">
             <Button
