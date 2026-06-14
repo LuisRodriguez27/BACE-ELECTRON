@@ -71,7 +71,9 @@ const UpdateBanner: React.FC = () => {
       {/* ── Modal (solo se abre al hacer clic en el botón) ───────────────── */}
       {ready && modalOpen && (
         <div
-          className="fixed inset-0 z-999999 flex items-center justify-center bg-black/60"
+          data-darkreader-ignore="true"
+          className="fixed inset-0 z-999999 flex items-center justify-center"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
           onClick={() => setModalOpen(false)} // cerrar al clickear el overlay
         >
           <div
