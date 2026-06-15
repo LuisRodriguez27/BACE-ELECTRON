@@ -559,9 +559,9 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
       className="fixed inset-0 flex items-center justify-center z-50"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full mx-4 max-h-[95vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full mx-4 max-h-[95vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
               <ReceiptText className="h-5 w-5 text-green-600" />
@@ -599,8 +599,10 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
         </div>
 
         {/* Content */}
-        <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="p-6">
-          {error && (
+        <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="px-6 pb-6 overflow-y-auto flex-1 min-h-0">
+            <div className="pt-6 space-y-6">
+            {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm text-red-800">{error}</p>
             </div>
@@ -654,10 +656,11 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
               </div>
             </div>
           </div>
+          </div>
 
           {/* Sección de Items (Productos y Plantillas) */}
           <div className="mt-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 sticky top-0 bg-white z-20 py-3 -mx-6 px-6 border-b">
               <div className="flex items-center gap-2">
                 <Package className="h-5 w-5 text-gray-600" />
                 <h3 className="text-lg font-medium text-gray-900">Productos y Plantillas</h3>
@@ -1021,9 +1024,10 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
               </div>
             )}
           </div>
+          </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
+          <div className="flex justify-end gap-3 p-6 border-t border-gray-200 bg-white flex-shrink-0 rounded-b-lg">
             <Button
               type="button"
               variant="outline"
