@@ -219,5 +219,5 @@ export const getBudgetItemType = (budgetProduct: BudgetProduct): 'product' | 'te
 };
 
 export const calculateBudgetTotal = (items: BudgetFormItem[]): number => {
-  return items.reduce((total, item) => total + (item.quantity * item.unit_price), 0);
+  return items.reduce((total, item) => total + ((item.quantity || 0) * (item.unit_price || 0)), 0);
 };

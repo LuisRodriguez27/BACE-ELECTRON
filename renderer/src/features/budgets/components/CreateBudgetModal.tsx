@@ -711,7 +711,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
                           </span>
                           {item.id > 0 && (
                             <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
-                              ${(item.quantity * item.unit_price).toFixed(2)}
+                              ${((item.quantity || 0) * (item.unit_price || 0)).toFixed(2)}
                             </span>
                           )}
                         </div>
@@ -931,8 +931,11 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
                             type="number"
                             min="0.0001"
                             step="0.0001"
-                            value={item.quantity}
-                            onChange={(e) => updateBudgetItem(index, { quantity: parseFloat(e.target.value) || 1 })}
+                            value={Number.isNaN(item.quantity) ? '' : item.quantity}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              updateBudgetItem(index, { quantity: val === '' ? NaN : parseFloat(val) });
+                            }}
                             className="mt-1"
                           />
                         </div>
@@ -944,8 +947,11 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
                             type="number"
                             step="0.01"
                             min="0"
-                            value={item.unit_price}
-                            onChange={(e) => updateBudgetItem(index, { unit_price: parseFloat(e.target.value) || 0 })}
+                            value={Number.isNaN(item.unit_price) ? '' : item.unit_price}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              updateBudgetItem(index, { unit_price: val === '' ? NaN : parseFloat(val) });
+                            }}
                             className="mt-1"
                           />
                         </div>

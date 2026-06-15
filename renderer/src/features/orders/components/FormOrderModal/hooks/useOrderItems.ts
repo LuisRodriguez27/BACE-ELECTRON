@@ -169,7 +169,7 @@ export const useOrderItems = (): UseOrderItemsReturn => {
       type: 'product',
       id: 0,
       name: '',
-      quantity: 0.0001,
+      quantity: 1,
       unit_price: 0
     };
     const newIndex = orderItems.length;

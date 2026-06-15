@@ -210,5 +210,5 @@ export const getOrderItemType = (orderProduct: OrderProduct): 'product' | 'templ
 };
 
 export const calculateOrderTotal = (items: OrderFormItem[]): number => {
-  return items.reduce((total, item) => total + (item.quantity * item.unit_price), 0);
+  return items.reduce((total, item) => total + ((item.quantity || 0) * (item.unit_price || 0)), 0);
 };
