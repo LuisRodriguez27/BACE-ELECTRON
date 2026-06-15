@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/auth';
 import { SuppliersApiService } from '../SuppliersApiService';
 import type { Supplier, SupplierOrder } from '../types';
 import { formatDateMX, todayDateInputMX, preserveTimeOrStartOfDay } from '@/utils/dateUtils';
+import { OrdersApiService } from '@/features/orders/OrdersApiService';
 
 interface CreateSupplierOrderModalProps {
   isOpen: boolean;
@@ -46,7 +47,7 @@ const CreateSupplierOrderModal: React.FC<CreateSupplierOrderModalProps> = ({
   // Fetch client orders for linkage
   useEffect(() => {
     if (isOpen) {
-      window.api.getAllOrders()
+      OrdersApiService.findAll()
         .then((data) => setClientOrders(data || []))
         .catch((err) => console.error('Error fetching client orders:', err));
     }

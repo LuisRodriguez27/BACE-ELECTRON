@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { SuppliersApiService } from '../SuppliersApiService';
 import type { Supplier, SupplierOrder } from '../types';
 import { formatDateMX, isoToDateInputMX, preserveTimeOrStartOfDay } from '@/utils/dateUtils';
+import { OrdersApiService } from '@/features/orders/OrdersApiService';
 
 interface EditSupplierOrderModalProps {
   isOpen: boolean;
@@ -44,7 +45,7 @@ const EditSupplierOrderModal: React.FC<EditSupplierOrderModalProps> = ({
   // Fetch client orders for linkage
   useEffect(() => {
     if (isOpen) {
-      window.api.getAllOrders()
+      OrdersApiService.findAll()
         .then((data) => setClientOrders(data || []))
         .catch((err) => console.error('Error fetching client orders:', err));
     }

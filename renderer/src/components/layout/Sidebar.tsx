@@ -126,7 +126,7 @@ const Sidebar: React.FC = () => {
     <>
       <div className={cn(
         'flex flex-col h-screen overflow-hidden bg-gray-900 text-white transition-all duration-300 ease-in-out',
-        isExpanded ? 'w-64' : 'w-16'
+        isExpanded ? 'w-64' : 'w-17'
       )}>
       {/* Header con botón de toggle */}
       <div className="flex items-center justify-between p-4 border-b border-gray-700">
