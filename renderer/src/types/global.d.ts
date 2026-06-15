@@ -91,6 +91,7 @@ declare global {
       getAllProductsWithTemplates: () => Promise<(Product & { templates?: ProductTemplate[] })[]>;
       searchProducts: (searchTerm: string) => Promise<Product[]>;
       searchProductsWithTemplates: (searchTerm: string) => Promise<(Product & { templates?: ProductTemplate[] })[]>;
+      getProductsPaginated: (page: number, limit: number, searchTerm: string) => Promise<{ data: (Product & { templates?: ProductTemplate[] })[], pagination: { page: number, limit: number, total: number, totalPages: number, hasNext: boolean, hasPrev: boolean } }>;
       findSimilarNames: () => Promise<SimilarNameResult[]>;
 
       // Plantillas de productos

@@ -58,6 +58,7 @@ export const useOrderItems = (): UseOrderItemsReturn => {
   const [showDropdowns, setShowDropdowns] = useState<{ [key: number]: boolean }>({});
   const [dropdownPositions, setDropdownPositions] = useState<{ [key: number]: DropdownPosition }>({});
   const [selectedCategory, setSelectedCategory] = useState<{ [key: number]: 'all' | 'products' | 'templates' }>({});
+  const [activeRowIndex, setActiveRowIndex] = useState<number | null>(null);
 
   // Función para calcular posición del dropdown
   const updateDropdownPosition = useCallback((index: number) => {
@@ -91,6 +92,7 @@ export const useOrderItems = (): UseOrderItemsReturn => {
 
   // Función mejorada para mostrar dropdown
   const showDropdownFn = useCallback((index: number) => {
+    setActiveRowIndex(index);
     updateDropdownPosition(index);
     setShowDropdowns(prev => ({ ...prev, [index]: true }));
   }, [updateDropdownPosition]);
@@ -140,11 +142,43 @@ export const useOrderItems = (): UseOrderItemsReturn => {
     };
   }, [orderItems, showDropdowns]);
 
+  // Búsqueda dinámica con debounce de productos para la fila activa
+  useEffect(() => {
+    if (activeRowIndex === null) return;
+    if (!showDropdowns[activeRowIndex]) return;
+
+    const searchTerm = searchTerms[activeRowIndex] || '';
+
+    const fetchProducts = async () => {
+      try {
+        setLoadingProducts(true);
+        const response = await window.api.getProductsPaginated(1, 50, searchTerm);
+        setProducts(response.data.filter(p => p.active === true));
+      } catch (err) {
+        console.error('Error searching products in orders hook:', err);
+      } finally {
+        setLoadingProducts(false);
+      }
+    };
+
+    if (searchTerm === '') {
+      fetchProducts();
+      return;
+    }
+
+    const timer = setTimeout(fetchProducts, 300);
+    return () => clearTimeout(timer);
+  }, [
+    activeRowIndex,
+    activeRowIndex !== null ? showDropdowns[activeRowIndex] : false,
+    activeRowIndex !== null ? searchTerms[activeRowIndex] : undefined
+  ]);
+
   const loadProducts = async () => {
     try {
       setLoadingProducts(true);
-      const response = await window.api.getAllProducts();
-      setProducts(response.filter(p => p.active === true));
+      const response = await window.api.getProductsPaginated(1, 50, '');
+      setProducts(response.data.filter(p => p.active === true));
     } catch (err) {
       console.error('Error loading products:', err);
     } finally {
@@ -179,6 +213,7 @@ export const useOrderItems = (): UseOrderItemsReturn => {
 
   const removeOrderItem = useCallback((index: number) => {
     setOrderItems(prev => prev.filter((_, i) => i !== index));
+    setActiveRowIndex(prev => prev === index ? null : prev);
     setSearchTerms(prev => {
       const newTerms = { ...prev };
       delete newTerms[index];
@@ -211,25 +246,19 @@ export const useOrderItems = (): UseOrderItemsReturn => {
     // Agregar productos si corresponde
     if (category === 'all' || category === 'products') {
       products.forEach(product => {
-        const matchesSearch = !searchTerm ||
-          product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (product.serial_number && product.serial_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
-
-        if (matchesSearch) {
-          items.push({
-            type: 'product',
-            item: product,
-          });
-        }
+        // Ya vienen filtrados de la BD para la fila activa, así que los agregamos directamente
+        items.push({
+          type: 'product',
+          item: product,
+        });
       });
     }
 
     // Agregar plantillas si corresponde
     if (category === 'all' || category === 'templates') {
       templates.forEach(template => {
-        const baseProduct = products.find(p => p.id === template.product_id);
-        const templateName = baseProduct ? `${baseProduct.name} (Plantilla)` : `Plantilla #${template.id}`;
+        const baseProductName = template.product_name || 'Producto';
+        const templateName = `${baseProductName} (Plantilla)`;
 
         const matchesSearch = !searchTerm ||
           templateName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -239,7 +268,7 @@ export const useOrderItems = (): UseOrderItemsReturn => {
         if (matchesSearch) {
           items.push({
             type: 'template',
-            item: { ...template, name: templateName, product_name: baseProduct?.name } as any
+            item: { ...template, name: templateName, product_name: baseProductName } as any
           });
         }
       });
@@ -268,8 +297,8 @@ export const useOrderItems = (): UseOrderItemsReturn => {
       setSearchTerms(prev => ({ ...prev, [index]: `${product.name}${product.serial_number ? ` (${product.serial_number})` : ''}` }));
     } else {
       const template = item as ProductTemplate;
-      const baseProduct = products.find(p => p.id === template.product_id);
-      const templateName = baseProduct ? `${baseProduct.name} (Plantilla)` : `Plantilla #${template.id}`;
+      const baseProductName = template.product_name || 'Producto';
+      const templateName = `${baseProductName} (Plantilla)`;
 
       updateOrderItem(index, {
         type: 'template',
@@ -287,7 +316,8 @@ export const useOrderItems = (): UseOrderItemsReturn => {
     }
 
     setShowDropdowns(prev => ({ ...prev, [index]: false }));
-  }, [updateOrderItem, products]);
+    setActiveRowIndex(null);
+  }, [updateOrderItem]);
 
   const reset = useCallback(() => {
     setOrderItems([]);
@@ -295,6 +325,7 @@ export const useOrderItems = (): UseOrderItemsReturn => {
     setShowDropdowns({});
     setDropdownPositions({});
     setSelectedCategory({});
+    setActiveRowIndex(null);
   }, []);
 
   return {

@@ -6,6 +6,24 @@ export const ProductsApiService = {
     return window.api.getAllProducts();
   },
 
+  findPaginated: async (
+    page: number,
+    limit: number,
+    searchTerm: string
+  ): Promise<{
+    data: (Product & { templates?: ProductTemplate[] })[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+      hasNext: boolean;
+      hasPrev: boolean;
+    };
+  }> => {
+    return window.api.getProductsPaginated(page, limit, searchTerm);
+  },
+
   findById: async (id: number): Promise<Product> => {
     return window.api.getProductById(id);
   },

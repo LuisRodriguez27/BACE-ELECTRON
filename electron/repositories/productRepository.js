@@ -238,6 +238,122 @@ class ProductRepository {
       };
     }));
   }
+
+  async findPaginatedWithTemplates(page = 1, limit = 10, searchTerm = '') {
+    const offset = (page - 1) * limit;
+    let products = [];
+    let total = 0;
+
+    if (!searchTerm || !searchTerm.trim()) {
+      // 1. Caso sin búsqueda
+      const countResult = await db.getOne('SELECT COUNT(*) as total FROM products WHERE active = true');
+      total = parseInt(countResult.total, 10) || 0;
+
+      const productsRaw = await db.getAll(`
+        SELECT * FROM products 
+        WHERE active = true 
+        ORDER BY id DESC 
+        LIMIT $1 OFFSET $2
+      `, [limit, offset]);
+      products = productsRaw.map(p => new Product(p));
+    } else {
+      // 2. Caso con búsqueda por similitud
+      const cleanTerm = searchTerm.trim();
+      const exactLike = `%${cleanTerm}%`;
+      const condensedTerm = `%${cleanTerm.replace(/\s+/g, '')}%`;
+      const words = cleanTerm.split(/[\s\-\.,_]+/).filter(w => w.length > 0);
+      
+      const wordConditions = [];
+      const params = [exactLike, condensedTerm, cleanTerm]; 
+      
+      let paramIndex = 4;
+      for (const word of words) {
+        params.push(`%${word}%`);
+        wordConditions.push(`(
+          unaccent(name) ILIKE unaccent($${paramIndex}) OR 
+          unaccent(serial_number) ILIKE unaccent($${paramIndex}) OR 
+          unaccent(description) ILIKE unaccent($${paramIndex})
+        )`);
+        paramIndex++;
+      }
+      
+      const wordsWhereClause = wordConditions.length > 0 ? wordConditions.join(' AND ') : 'false';
+
+      // Consulta de conteo para la búsqueda
+      const countQuery = `
+        SELECT COUNT(*) as total
+        FROM products 
+        WHERE active = true AND (
+          (unaccent(name) ILIKE unaccent($1) OR unaccent(serial_number) ILIKE unaccent($1) OR unaccent(description) ILIKE unaccent($1))
+          OR
+          (unaccent(REPLACE(name, ' ', '')) ILIKE unaccent($2))
+          OR
+          (${wordsWhereClause})
+          OR
+          (similarity(unaccent(name), unaccent($3)) > 0.25 OR word_similarity(unaccent($3), unaccent(name)) > 0.4)
+        )
+      `;
+      const countResult = await db.getOne(countQuery, params);
+      total = parseInt(countResult.total, 10) || 0;
+
+      // Consulta de datos con LIMIT y OFFSET
+      const limitParamIndex = paramIndex;
+      const offsetParamIndex = paramIndex + 1;
+      
+      const dataQuery = `
+        SELECT *, 
+               similarity(unaccent(name), unaccent($3)) as sim_name,
+               word_similarity(unaccent($3), unaccent(name)) as wsim_name
+        FROM products 
+        WHERE active = true AND (
+          (unaccent(name) ILIKE unaccent($1) OR unaccent(serial_number) ILIKE unaccent($1) OR unaccent(description) ILIKE unaccent($1))
+          OR
+          (unaccent(REPLACE(name, ' ', '')) ILIKE unaccent($2))
+          OR
+          (${wordsWhereClause})
+          OR
+          (similarity(unaccent(name), unaccent($3)) > 0.25 OR word_similarity(unaccent($3), unaccent(name)) > 0.4)
+        )
+        ORDER BY 
+          (unaccent(name) ILIKE unaccent($1)) DESC,
+          wsim_name DESC,
+          sim_name DESC, 
+          name
+        LIMIT $${limitParamIndex} OFFSET $${offsetParamIndex}
+      `;
+      
+      const productsRaw = await db.getAll(dataQuery, [...params, limit, offset]);
+      products = productsRaw.map(p => new Product(p));
+    }
+
+    // 3. Cargar plantillas asociadas a cada producto
+    const productsWithTemplates = await Promise.all(products.map(async product => {
+      const templates = await db.getAll(`
+        SELECT pt.*, u.username as created_by_username
+        FROM product_templates pt
+        LEFT JOIN users u ON pt.created_by = u.id
+        WHERE pt.product_id = $1 AND pt.active = true
+      `, [product.id]);
+      
+      return {
+        ...product.toPlainObject(),
+        templates
+      };
+    }));
+
+    return {
+      data: productsWithTemplates,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1
+      },
+      searchTerm
+    };
+  }
 }
 
 module.exports = new ProductRepository();

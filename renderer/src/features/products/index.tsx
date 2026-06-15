@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
-import { DollarSign, Edit3, Hash, Package, Plus, Search, Trash2, Printer, Layers } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { DollarSign, Edit3, Hash, Package, Plus, Search, Trash2, Printer, Layers, Loader2 } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { CreateProductModal, DeleteProductModal, EditProductModal, ProductDetailView, SimilarNamesModal } from './components';
 import ProductImageCarousel from './components/ProductImageCarousel';
@@ -14,9 +14,27 @@ import { formatDateMX, nowISO } from '@/utils/dateUtils';
 const ProductsPage: React.FC = () => {
   const [products, setProducts] = useState<(Product & { templates?: ProductTemplate[] })[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [currentSearchTerm, setCurrentSearchTerm] = useState('');
+
+  const [pagination, setPagination] = useState<{
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  }>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false
+  });
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -36,6 +54,18 @@ const ProductsPage: React.FC = () => {
 
   const [isSearching, setIsSearching] = useState(false);
 
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const lastProductElementRef = useCallback((node: HTMLDivElement) => {
+    if (loadingMore) return;
+    if (observerRef.current) observerRef.current.disconnect();
+    observerRef.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && pagination.hasNext) {
+        loadMoreProducts();
+      }
+    });
+    if (node) observerRef.current.observe(node);
+  }, [loadingMore, pagination.hasNext]);
+
   // Update debounced search term
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -45,27 +75,53 @@ const ProductsPage: React.FC = () => {
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
+  const loadProducts = async (page: number = 1, reset: boolean = true, searchQuery: string = '') => {
+    try {
+      if (page === 1) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+
+      const response = await ProductsApiService.findPaginated(page, 10, searchQuery);
+
+      if (reset) {
+        setProducts(response.data);
+      } else {
+        setProducts(prev => [...prev, ...response.data]);
+      }
+
+      setPagination(response.pagination);
+      setCurrentSearchTerm(searchQuery);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching products:', err);
+      setError('Error al cargar productos');
+      toast.error('Error al cargar los productos');
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+      setIsSearching(false);
+    }
+  };
+
+  const loadMoreProducts = () => {
+    if (!loadingMore && pagination.hasNext) {
+      loadProducts(pagination.page + 1, false, currentSearchTerm);
+    }
+  };
+
+  // Carga inicial
+  useEffect(() => {
+    loadProducts(1, true, '');
+  }, []);
+
   // Fetch products when debounced search term changes
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        if (!loading) setIsSearching(true);
-        if (debouncedSearch.trim() === '') {
-          const data = await ProductsApiService.findAllWithTemplates();
-          setProducts(data);
-        } else {
-          const data = await ProductsApiService.searchWithTemplates(debouncedSearch);
-          setProducts(data);
-        }
-      } catch (err) {
-        console.error('Error fetching products:', err);
-        setError('Error al cargar productos');
-      } finally {
-        setLoading(false);
-        setIsSearching(false);
-      }
-    };
-    fetchProducts();
+    if (debouncedSearch !== currentSearchTerm) {
+      setIsSearching(true);
+      loadProducts(1, true, debouncedSearch);
+    }
   }, [debouncedSearch]);
 
   // Ya no filtramos localmente, la BD hace el trabajo pesado y mejorado
@@ -80,6 +136,10 @@ const ProductsPage: React.FC = () => {
   const handleProductCreated = (newProduct: Product) => {
     // Prepend the new product so it shows at the top of the list immediately
     setProducts(prevProducts => [newProduct, ...prevProducts]);
+    setPagination(prev => ({
+      ...prev,
+      total: prev.total + 1
+    }));
     toast.success('Producto creado exitosamente');
   };
 
@@ -104,6 +164,10 @@ const ProductsPage: React.FC = () => {
     setProducts(prevProducts =>
       prevProducts.filter(product => product.id !== deletedProductId)
     );
+    setPagination(prev => ({
+      ...prev,
+      total: Math.max(0, prev.total - 1)
+    }));
     toast.success(`Producto ${deletedProduct?.name} eliminado exitosamente`);
   };
 
@@ -354,29 +418,13 @@ const ProductsPage: React.FC = () => {
     );
   }
 
-  if (loading) {
-    return (
-      <div className="p-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2 mb-6"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-48 bg-gray-200 rounded"></div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">{error}</p>
           <Button
-            onClick={() => window.location.reload()}
+            onClick={() => loadProducts(1, true, currentSearchTerm)}
             className="mt-2"
             size="sm"
           >
@@ -458,157 +506,194 @@ const ProductsPage: React.FC = () => {
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">
-            Productos ({filteredProducts.length})
+            Productos ({pagination.total})
           </h2>
         </div>
         <div className="p-6">
-          {filteredProducts.length === 0 ? (
+          {loading ? (
+            <div className="animate-pulse grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-48 bg-gray-200 rounded-lg"></div>
+              ))}
+            </div>
+          ) : filteredProducts.length === 0 ? (
             <div className="text-center py-12">
               <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No hay productos</h3>
               <p className="text-gray-500 mb-4">
-                Comienza agregando tu primer producto al catálogo
+                {currentSearchTerm 
+                  ? `No se encontraron productos que coincidan con "${currentSearchTerm}"`
+                  : 'Comienza agregando tu primer producto al catálogo'
+                }
               </p>
-              <Button
-                className="flex items-center gap-2 mx-auto"
-                onClick={openCreateModal}
-              >
-                <Plus size={16} />
-                Agregar Primer Producto
-              </Button>
+              {!currentSearchTerm && (
+                <Button
+                  className="flex items-center gap-2 mx-auto"
+                  onClick={openCreateModal}
+                >
+                  <Plus size={16} />
+                  Agregar Primer Producto
+                </Button>
+              )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
-              {filteredProducts.map((product) => (
-                <div key={product.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow flex">
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+                {filteredProducts.map((product, index) => (
+                  <div 
+                    key={product.id} 
+                    ref={index === filteredProducts.length - 1 ? lastProductElementRef : null}
+                    className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow flex"
+                  >
 
-                  {/* Columna izquierda — Información */}
-                  <div className="w-[60%] p-4 flex flex-col min-w-0">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex flex-col overflow-hidden mr-2">
-                        <h3 className="font-semibold text-gray-900 truncate" title={product.name}>
-                          <span className="text-gray-500 font-normal mr-2">#{product.id}</span>
-                          {product.name}
-                        </h3>
-                        <span className="inline-flex items-center text-xs text-gray-500 mt-1">
-                          <Layers size={12} className="mr-1" />
-                          {product.templates?.length || 0} {(product.templates?.length || 0) === 1 ? 'plantilla' : 'plantillas'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEditModal(product)}
-                          className='p-1 h-8 w-8'
-                        >
-                          <Edit3 size={14} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openDeleteModal(product)}
-                          className="p-1 h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 size={14} />
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 text-sm text-gray-600 flex-1">
-                      {product.serial_number && (
-                        <div className="flex items-center gap-2">
-                          <Hash size={14} />
-                          <span className="font-mono text-xs">{product.serial_number}</span>
+                    {/* Columna izquierda — Información */}
+                    <div className="w-[60%] p-4 flex flex-col min-w-0">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex flex-col overflow-hidden mr-2">
+                          <h3 className="font-semibold text-gray-900 truncate" title={product.name}>
+                            <span className="text-gray-500 font-normal mr-2">#{product.id}</span>
+                            {product.name}
+                          </h3>
+                          <span className="inline-flex items-center text-xs text-gray-500 mt-1">
+                            <Layers size={12} className="mr-1" />
+                            {product.templates?.length || 0} {(product.templates?.length || 0) === 1 ? 'plantilla' : 'plantillas'}
+                          </span>
                         </div>
-                      )}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEditModal(product)}
+                            className='p-1 h-8 w-8'
+                          >
+                            <Edit3 size={14} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openDeleteModal(product)}
+                            className="p-1 h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
+                      </div>
 
-                      {(() => {
-                        let activePrice = product.price;
-                        let isPromo = false;
-                        let isDiscount = false;
+                      <div className="space-y-2 text-sm text-gray-600 flex-1">
+                        {product.serial_number && (
+                          <div className="flex items-center gap-2">
+                            <Hash size={14} />
+                            <span className="font-mono text-xs">{product.serial_number}</span>
+                          </div>
+                        )}
 
-                        if (product.promo_price !== null && product.promo_price !== undefined && product.promo_price < product.price) {
-                          activePrice = product.promo_price;
-                          isPromo = true;
-                        }
+                        {(() => {
+                          let activePrice = product.price;
+                          let isPromo = false;
+                          let isDiscount = false;
 
-                        if (product.discount_price !== null && product.discount_price !== undefined && product.discount_price < activePrice) {
-                          activePrice = product.discount_price;
-                          isPromo = false;
-                          isDiscount = true;
-                        }
+                          if (product.promo_price !== null && product.promo_price !== undefined && product.promo_price < product.price) {
+                            activePrice = product.promo_price;
+                            isPromo = true;
+                          }
 
-                        if (isPromo || isDiscount) {
+                          if (product.discount_price !== null && product.discount_price !== undefined && product.discount_price < activePrice) {
+                            activePrice = product.discount_price;
+                            isPromo = false;
+                            isDiscount = true;
+                          }
+
+                          if (isPromo || isDiscount) {
+                            return (
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-2">
+                                  <DollarSign size={12} className="text-gray-400" />
+                                  <span className="text-gray-400 line-through text-xs">
+                                    ${product.price.toFixed(2)} MXN
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <DollarSign size={14} className={isPromo ? "text-blue-600" : "text-orange-600"} />
+                                  <span className={`font-semibold ${isPromo ? "text-blue-600" : "text-orange-600"}`}>
+                                    ${activePrice.toFixed(2)} MXN
+                                  </span>
+                                  <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${isPromo ? "bg-blue-100 text-blue-800" : "bg-orange-100 text-orange-800"}`}>
+                                    {isPromo ? 'Promo' : 'Desc'}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          }
+
                           return (
-                            <div className="flex flex-col gap-1">
-                              <div className="flex items-center gap-2">
-                                <DollarSign size={12} className="text-gray-400" />
-                                <span className="text-gray-400 line-through text-xs">
-                                  ${product.price.toFixed(2)} MXN
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <DollarSign size={14} className={isPromo ? "text-blue-600" : "text-orange-600"} />
-                                <span className={`font-semibold ${isPromo ? "text-blue-600" : "text-orange-600"}`}>
-                                  ${activePrice.toFixed(2)} MXN
-                                </span>
-                                <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${isPromo ? "bg-blue-100 text-blue-800" : "bg-orange-100 text-orange-800"}`}>
-                                  {isPromo ? 'Promo' : 'Desc'}
-                                </span>
-                              </div>
+                            <div className="flex items-center gap-2">
+                              <DollarSign size={14} />
+                              <span className="font-semibold text-green-600">
+                                ${product.price.toFixed(2)} MXN
+                              </span>
                             </div>
                           );
-                        }
+                        })()}
 
-                        return (
-                          <div className="flex items-center gap-2">
-                            <DollarSign size={14} />
-                            <span className="font-semibold text-green-600">
-                              ${product.price.toFixed(2)} MXN
-                            </span>
-                          </div>
-                        );
-                      })()}
+                        {product.description && (
+                          <p className="text-xs text-gray-500 line-clamp-2 mt-2">
+                            {product.description}
+                          </p>
+                        )}
+                      </div>
 
-                      {product.description && (
-                        <p className="text-xs text-gray-500 line-clamp-2 mt-2">
-                          {product.description}
-                        </p>
-                      )}
+                      <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
+                        <span className={`px-2 py-1 text-xs rounded-full ${product.active === true
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                          }`}>
+                          {product.active === true ? 'Activo' : 'Inactivo'}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openProductDetail(product.id)}
+                        >
+                          Ver Detalles
+                        </Button>
+                      </div>
                     </div>
 
-                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-                      <span className={`px-2 py-1 text-xs rounded-full ${product.active === true
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
-                        }`}>
-                        {product.active === true ? 'Activo' : 'Inactivo'}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openProductDetail(product.id)}
-                      >
-                        Ver Detalles
-                      </Button>
+                    {/* Columna derecha — Imagen (contenedor fijo) */}
+                    <div className="w-[40%] shrink-0 border-l border-gray-100 bg-gray-50">
+                      <ProductImageCarousel
+                        images={product.images}
+                        productName={product.name}
+                        height={undefined}
+                        showEmptyState
+                        fillContainer
+                      />
                     </div>
-                  </div>
 
-                  {/* Columna derecha — Imagen (contenedor fijo) */}
-                  <div className="w-[40%] shrink-0 border-l border-gray-100 bg-gray-50">
-                    <ProductImageCarousel
-                      images={product.images}
-                      productName={product.name}
-                      height={undefined}
-                      showEmptyState
-                      fillContainer
-                    />
                   </div>
+                ))}
+              </div>
 
+              {/* Loading indicator para scroll infinito */}
+              {loadingMore && (
+                <div className="flex justify-center items-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                  <span className="ml-2 text-gray-600">Cargando más productos...</span>
                 </div>
-              ))}
-            </div>
+              )}
+
+              {/* Mensaje cuando se han cargado todos los productos */}
+              {!loadingMore && !pagination.hasNext && filteredProducts.length > 0 && (
+                <div className="text-center py-8 border-t border-gray-100 mt-6">
+                  <p className="text-gray-500">
+                    {currentSearchTerm 
+                      ? `Se encontraron ${pagination.total} resultado${pagination.total !== 1 ? 's' : ''} para "${currentSearchTerm}"`
+                      : `Has visto todos los productos (${pagination.total})`
+                    }
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -239,6 +239,7 @@ ipcMain.handle('products:getWithTemplates', async (event, productId) => await pr
 ipcMain.handle('products:getAllWithTemplates', async () => await productService.getAllProductsWithTemplates());
 ipcMain.handle('products:search', async (event, searchTerm) => await productService.searchProducts(searchTerm));
 ipcMain.handle('products:searchWithTemplates', async (event, searchTerm) => await productService.searchProductsWithTemplates(searchTerm));
+ipcMain.handle('products:getPaginated', async (event, page, limit, searchTerm) => await productService.getProductsPaginated(page, limit, searchTerm));
 ipcMain.handle('products:findSimilarNames', async () => await productService.getProductsWithSimilarNames());
 
 // Manejo de eventos IPC para plantillas de productos
