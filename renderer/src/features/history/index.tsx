@@ -10,6 +10,9 @@ import { SalesApiService } from './SalesApiService';
 import { formatDateMX, formatDateOnlyMX } from '@/utils/dateUtils';
 import { useAuthStore } from '@/store/auth';
 import { usePermissions } from '@/hooks/use-permissions';
+import ClientColorIndicator from '../clients/components/ClientColorIndicator';
+import type { ClientColor } from '../clients/types';
+import { getOrderItemDisplayName } from '../orders/types';
 
 interface PaginationInfo {
   page: number;
@@ -472,59 +475,90 @@ const OrdersPage: React.FC = () => {
                     )}
                   
                   {/* Información adicional */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
-                    {order.client && (
-                      <div>
-                        <span className="text-sm font-medium text-gray-700">Cliente:</span>
-                        <div className="text-sm text-gray-600">ID: {order.client_id}</div>
-                        <p className="text-sm text-gray-600">{order.client.name}</p>
-                        {order.client.phone && (
-                          <p className="text-xs text-gray-500">{order.client.phone}</p>
-                        )}
-                      </div>
-                    )}
-                    
-                    {order.user && (
-                      <div>
-                        <span className="text-sm font-medium text-gray-700">Creado por:</span>
-                        <p className="text-sm text-gray-600">{order.user.username}</p>
-                      </div>
-                    )}
-                    
-                    {order.editedByUser && (
-                      <div>
-                        <span className="text-sm font-medium text-gray-700">Editado por:</span>
-                        <p className="text-sm text-gray-600">{order.editedByUser.username}</p>
-                      </div>
-                    )}
-                    
-                    {/* Información de pagos */}
-                    {paymentsCount > 0 && (
-                      <div>
-                        <span className="text-sm font-medium text-gray-700">Pagos:</span>
-                        <p className="text-sm text-gray-600">
-                          {paymentsCount} pago{paymentsCount !== 1 ? 's' : ''} registrado{paymentsCount !== 1 ? 's' : ''}
-                        </p>
-                        {remaining > 0 && (
-                          <p className="text-xs text-orange-600">
-                            Pendiente: ${remaining.toFixed(2)}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                    
-                    {order.orderProducts && order.orderProducts.length > 0 && (
-                      <div className={paymentsCount > 0 ? "" : "md:col-span-2"}>
-                        <span className="text-sm font-medium text-gray-700">Productos:</span>
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          {order.orderProducts.map((op, index) => (
-                            <span key={index} className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded">
-                              {op.product_name} (x{op.quantity})
-                            </span>
-                          ))}
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-4 border-t border-gray-100 mt-4">
+                    {/* Columna Izquierda: Cliente y Pagos (35% / 4 de 12 columnas) */}
+                    <div className="md:col-span-4 space-y-3">
+                      {order.client && (
+                        <div>
+                          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">Cliente</span>
+                          <div className="flex items-center gap-2">
+                            {order.client.color && (
+                              <ClientColorIndicator color={order.client.color as ClientColor} size="sm" />
+                            )}
+                            <p className="text-sm font-semibold text-gray-800 leading-tight">{order.client.name}</p>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                            <span>ID: {order.client_id}</span>
+                            {order.client.phone && (
+                              <>
+                                <span>•</span>
+                                <span>{order.client.phone}</span>
+                              </>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+
+                      {/* Información de pagos */}
+                      {paymentsCount > 0 && (
+                        <div>
+                          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">Estado de Pago</span>
+                          <p className="text-xs text-gray-600">
+                            {paymentsCount} pago{paymentsCount !== 1 ? 's' : ''} registrado{paymentsCount !== 1 ? 's' : ''}
+                          </p>
+                          {remaining > 0 ? (
+                            <p className="text-xs font-semibold text-orange-600">
+                              Pendiente: ${remaining.toFixed(2)}
+                            </p>
+                          ) : (
+                            <p className="text-xs font-semibold text-green-600">
+                              Liquidado
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Columna Derecha: Creado/Editado y Productos (65% / 8 de 12 columnas) */}
+                    <div className="md:col-span-8 space-y-3">
+                      {/* Creado por / Editado por */}
+                      {(order.user || order.editedByUser) && (
+                        <div className="flex flex-wrap gap-x-10 gap-y-1 text-xs text-gray-500">
+                          {order.user && (
+                            <div>
+                              <span className="font-semibold text-gray-400 uppercase tracking-wider">Creado por: </span>
+                              <span className="text-gray-650">{order.user.username}</span>
+                            </div>
+                          )}
+                          {order.editedByUser && (
+                            <div>
+                              <span className="font-semibold text-gray-400 uppercase tracking-wider">Editado por: </span>
+                              <span className="text-gray-650">{order.editedByUser.username}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {order.orderProducts && order.orderProducts.length > 0 && (
+                        <div>
+                          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Productos</span>
+                          <div className="flex flex-wrap gap-2">
+                            {order.orderProducts.map((op, index) => (
+                              <span key={index} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-md border border-blue-100">
+                                {getOrderItemDisplayName(op)}
+                                <span className="bg-blue-100 text-blue-800 px-1 rounded text-[10px] font-bold">x{op.quantity}</span>
+                                {op.is_delivered && (
+                                  <span className="text-[9px] bg-green-100 text-green-800 font-semibold px-1 rounded border border-green-200" title="Entregado">E</span>
+                                )}
+                                {op.is_paid && (
+                                  <span className="text-[9px] bg-emerald-100 text-emerald-800 font-semibold px-1 rounded border border-emerald-200" title="Liquidado">L</span>
+                                )}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 );
