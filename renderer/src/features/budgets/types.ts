@@ -76,8 +76,8 @@ export const budgetItemSchema = z.object({
 
 // Crear orden - nueva estructura con items
 export const createBudgetSchema = z.object({
-  client_id: z.number().int().min(1, 'El ID del cliente es obligatorio'),
-  user_id: z.number().int().min(1, 'El ID del usuario es obligatorio'),
+  client_id: z.number({ error: 'El cliente es obligatorio' }).int().min(1, 'El cliente es obligatorio'),
+  user_id: z.number({ error: 'El usuario es obligatorio' }).int().min(1, 'El usuario es obligatorio'),
   date: z.string().min(1, 'La fecha es obligatoria'), 
   items: z.array(budgetItemSchema).min(1, 'La orden debe tener al menos un producto o plantilla')
 });
