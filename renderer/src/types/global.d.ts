@@ -102,6 +102,7 @@ declare global {
       updateTemplate: (id: number, data: EditProductTemplateForm) => Promise<ProductTemplate>;
       deleteTemplate: (id: number) => Promise<void>;
       searchTemplates: (searchTerm: string) => Promise<ProductTemplate[]>;
+      getTemplatesPaginated: (page: number, limit: number, searchTerm: string) => Promise<{ data: ProductTemplate[], pagination: { page: number, limit: number, total: number, totalPages: number, hasNext: boolean, hasPrev: boolean } }>;
 
       // Ordenes
       getAllOrders: () => Promise<Order[]>;

@@ -65,6 +65,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // Funciones especiales de plantillas
   searchTemplates: (searchTerm) => ipcRenderer.invoke('templates:search', searchTerm),
+  getTemplatesPaginated: (page, limit, searchTerm) => ipcRenderer.invoke('templates:getPaginated', page, limit, searchTerm),
 
   // Ordenes
   getAllOrders: () => ipcRenderer.invoke('orders:getAll'),

@@ -252,6 +252,7 @@ ipcMain.handle('templates:delete', async (event, id) => await productTemplatesSe
 
 // Funciones especiales de plantillas
 ipcMain.handle('templates:search', async (event, searchTerm) => await productTemplatesService.searchTemplates(searchTerm));
+ipcMain.handle('templates:getPaginated', async (event, page, limit, searchTerm) => await productTemplatesService.getTemplatesPaginated(page, limit, searchTerm));
 
 // Manejo de eventos IPC para ordenes
 ipcMain.handle('orders:getAll', async () => await orderService.getAllOrders());

@@ -132,6 +132,87 @@ class ProductTemplateRepository {
 
     return templates.map(template => new ProductTemplate(template));
   }
+
+  async findPaginated(page = 1, limit = 10, searchTerm = '') {
+    const offset = (page - 1) * limit;
+    let templates = [];
+    let total = 0;
+
+    if (!searchTerm || !searchTerm.trim()) {
+      const countResult = await db.getOne('SELECT COUNT(*) as total FROM product_templates WHERE active = true');
+      total = parseInt(countResult.total, 10) || 0;
+
+      const rawTemplates = await db.getAll(`
+        SELECT 
+          pt.*,
+          p.name as product_name, 
+          p.serial_number,
+          u.username as created_by_username
+        FROM product_templates pt
+        JOIN products p ON pt.product_id = p.id
+        LEFT JOIN users u ON pt.created_by = u.id
+        WHERE pt.active = true
+        ORDER BY pt.id DESC
+        LIMIT $1 OFFSET $2
+      `, [limit, offset]);
+      templates = rawTemplates.map(t => new ProductTemplate(t));
+    } else {
+      const cleanTerm = searchTerm.trim();
+      const term = `%${cleanTerm}%`;
+
+      const countResult = await db.getOne(`
+        SELECT COUNT(*) as total
+        FROM product_templates pt
+        JOIN products p ON pt.product_id = p.id
+        LEFT JOIN users u ON pt.created_by = u.id
+        WHERE pt.active = true AND (
+          pt.description ILIKE $1 OR 
+          p.name ILIKE $1 OR 
+          p.serial_number ILIKE $1 OR
+          pt.position ILIKE $1 OR
+          pt.texts ILIKE $1 OR
+          u.username ILIKE $1
+        )
+      `, [term]);
+      total = parseInt(countResult.total, 10) || 0;
+
+      const rawTemplates = await db.getAll(`
+        SELECT 
+          pt.*,
+          p.name as product_name, 
+          p.serial_number, 
+          u.username as created_by_username
+        FROM product_templates pt
+        JOIN products p ON pt.product_id = p.id
+        LEFT JOIN users u ON pt.created_by = u.id
+        WHERE pt.active = true AND (
+          pt.description ILIKE $1 OR 
+          p.name ILIKE $1 OR 
+          p.serial_number ILIKE $1 OR
+          pt.position ILIKE $1 OR
+          pt.texts ILIKE $1 OR
+          u.username ILIKE $1
+        )
+        ORDER BY pt.id DESC
+        LIMIT $2 OFFSET $3
+      `, [term, limit, offset]);
+      templates = rawTemplates.map(t => new ProductTemplate(t));
+    }
+
+    const totalPages = Math.ceil(total / limit);
+    return {
+      data: templates,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1
+      },
+      searchTerm
+    };
+  }
 }
 
 module.exports = new ProductTemplateRepository();

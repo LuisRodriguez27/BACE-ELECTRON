@@ -260,6 +260,24 @@ class ProductTemplateService {
       throw new Error('Error al buscar plantillas');
     }
   }
+
+  async getTemplatesPaginated(page = 1, limit = 10, searchTerm = '') {
+    try {
+      if (page < 1) page = 1;
+      if (limit < 1 || limit > 100) limit = 10;
+
+      const result = await productTemplateRepository.findPaginated(page, limit, searchTerm);
+
+      return {
+        data: result.data.map(t => t.toPlainObject()),
+        pagination: result.pagination,
+        searchTerm: result.searchTerm
+      };
+    } catch (error) {
+      console.error('Error al obtener plantillas paginadas:', error);
+      throw new Error('Error al obtener plantillas paginadas');
+    }
+  }
 }
 
 module.exports = new ProductTemplateService();
