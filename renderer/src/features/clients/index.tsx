@@ -305,11 +305,6 @@ const ClientsPage: React.FC = () => {
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">
             Clientes ({pagination.total})
-            {currentSearchTerm && (
-              <span className="text-sm font-normal text-gray-500 ml-2">
-                (buscando: "{currentSearchTerm}")
-              </span>
-            )}
           </h2>
         </div>
         <div className="p-6">
