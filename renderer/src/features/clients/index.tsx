@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
-import { Calculator, CreditCard, Edit3, Loader2, MapPin, MessageCircle, Phone, Plus, Printer, Search, ShoppingBag, Trash2, Users } from 'lucide-react';
+import { Calculator, CreditCard, Edit3, Loader2, MapPin, MessageCircle, MoreVertical, Phone, Plus, Printer, Search, ShoppingBag, Trash2, Users } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { ClientApiService } from './ClientApiService';
@@ -44,6 +44,7 @@ const ClientsPage: React.FC = () => {
   const [showPaymentsModal, setShowPaymentsModal] = useState(false);
   const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
 
   const observerRef = useRef<IntersectionObserver | null>(null);
   const lastClientElementRef = useCallback((node: HTMLDivElement) => {
@@ -192,6 +193,7 @@ const ClientsPage: React.FC = () => {
     setShowOrdersModal(false);
     setShowPaymentsModal(false);
     setSelectedClient(null);
+    setOpenDropdownId(null);
   };
 
   const handlePrintClients = async () => {
@@ -364,7 +366,7 @@ const ClientsPage: React.FC = () => {
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-2 min-w-0">
                         <ClientColorIndicator color={client.color} size="md" />
-                        <h3 className="font-semibold text-gray-900 truncate">{client.name}</h3>
+                        <h3 className="font-semibold text-gray-900 truncate" title={client.name}>{client.name}</h3>
                       </div>
                       <div className="flex items-center gap-1">
                         <Button
@@ -375,15 +377,6 @@ const ClientsPage: React.FC = () => {
                           title="Enviar mensaje de bienvenida por WhatsApp"
                         >
                           <MessageCircle size={14} />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => openBudgetModal(client)}
-                          className="p-1 h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                          title="Ver presupuesto"
-                        >
-                          <Calculator size={14} />
                         </Button>
                         <Button 
                           variant="ghost" 
@@ -403,24 +396,72 @@ const ClientsPage: React.FC = () => {
                         >
                           <CreditCard size={14} />
                         </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => openEditModal(client)}
-                          className="p-1 h-8 w-8"
-                          title="Editar cliente"
-                        >
-                          <Edit3 size={14} />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => openDeleteModal(client)}
-                          className="p-1 h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                          title="Eliminar cliente"
-                        >
-                          <Trash2 size={14} />
-                        </Button>
+
+                        {/* Dropdown for More Actions */}
+                        <div className="relative">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenDropdownId(openDropdownId === client.id ? null : client.id);
+                            }}
+                            className="p-1 h-8 w-8 text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                            title="Más acciones"
+                          >
+                            <MoreVertical size={14} />
+                          </Button>
+
+                          {openDropdownId === client.id && (
+                            <>
+                              {/* Backdrop */}
+                              <div 
+                                className="fixed inset-0 z-30" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenDropdownId(null);
+                                }}
+                              />
+                              
+                              {/* Menu items */}
+                              <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-40 origin-top-right text-left">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    openBudgetModal(client);
+                                    setOpenDropdownId(null);
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                >
+                                  <Calculator size={14} className="text-gray-400" />
+                                  Ver presupuesto
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    openEditModal(client);
+                                    setOpenDropdownId(null);
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                >
+                                  <Edit3 size={14} className="text-gray-400" />
+                                  Editar cliente
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    openDeleteModal(client);
+                                    setOpenDropdownId(null);
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                >
+                                  <Trash2 size={14} className="text-red-400" />
+                                  Eliminar cliente
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                     
