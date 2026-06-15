@@ -34,7 +34,7 @@ const EditSimpleOrderModal: React.FC<EditSimpleOrderModalProps> = ({
     if (isOpen && order) {
       setConcept(order.concept || '');
       setClientName(order.client_name || '');
-      setClientPhone(order.client_phone || '');
+      setClientPhone((order.client_phone || '').replace(/\D/g, '').slice(-10));
       setTotal(order.total || '');
       setError(null);
     }
