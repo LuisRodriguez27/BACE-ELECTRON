@@ -104,6 +104,27 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     toast.success(`Cliente "${newClient.name}" creado y seleccionado automáticamente`);
   };
 
+  const onInvalid = (errors: any) => {
+    const getFirstErrorMessage = (errs: any): string | null => {
+      if (!errs) return null;
+      if (typeof errs === 'object' && 'message' in errs && typeof errs.message === 'string') {
+        return errs.message;
+      }
+      for (const key in errs) {
+        if (errs[key] && typeof errs[key] === 'object') {
+          const msg = getFirstErrorMessage(errs[key]);
+          if (msg) return msg;
+        }
+      }
+      return null;
+    };
+
+    const firstError = getFirstErrorMessage(errors);
+    if (firstError) {
+      toast.error(firstError);
+    }
+  };
+
   const total = calculateOrderTotal(orderItemsHook.orderItems);
 
   if (!isOpen) return null;
@@ -147,7 +168,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         </div>
 
         {/* Content */}
-        <form onSubmit={formMethods.handleSubmit(orderForm.onSubmit)} className="p-6">
+        <form onSubmit={formMethods.handleSubmit(orderForm.onSubmit, onInvalid)} className="p-6">
           {orderForm.error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm text-red-800">{orderForm.error}</p>

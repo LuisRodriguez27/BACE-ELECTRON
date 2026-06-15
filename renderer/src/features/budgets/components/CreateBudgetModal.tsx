@@ -16,7 +16,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { calculateBudgetTotal, type CreateBudgetForm, createBudgetItemFromFormItem, createBudgetSchema, type Budget, type BudgetFormItem } from "../types";
-// import { toast } from 'sonner';
+import { toast } from 'sonner';
 import BudgetPrintPreviewModal from './BudgetPrintPreviewModal';
 import { BudgetApiService } from '../BudgetApiService';
 
@@ -212,6 +212,27 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
   const showDropdown = (index: number) => {
     updateDropdownPosition(index);
     setShowDropdowns(prev => ({ ...prev, [index]: true }));
+  };
+
+  const onInvalid = (errors: any) => {
+    const getFirstErrorMessage = (errs: any): string | null => {
+      if (!errs) return null;
+      if (typeof errs === 'object' && 'message' in errs && typeof errs.message === 'string') {
+        return errs.message;
+      }
+      for (const key in errs) {
+        if (errs[key] && typeof errs[key] === 'object') {
+          const msg = getFirstErrorMessage(errs[key]);
+          if (msg) return msg;
+        }
+      }
+      return null;
+    };
+
+    const firstError = getFirstErrorMessage(errors);
+    if (firstError) {
+      toast.error(firstError);
+    }
   };
 
   // Calcular total automáticamente
@@ -578,7 +599,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
         </div>
 
         {/* Content */}
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6">
+        <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="p-6">
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm text-red-800">{error}</p>
