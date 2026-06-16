@@ -29,8 +29,8 @@ const orderResponsableSchema = z.enum(
 
 // Item de orden - puede ser producto o plantilla
 export const orderItemSchema = z.object({
-  product_id: z.number().int().min(1).nullable().optional(),
-  template_id: z.number().int().min(1).nullable().optional(),
+  product_id: z.number().int().min(1, 'Debe seleccionar un producto o una plantilla').nullable().optional(),
+  template_id: z.number().int().min(1, 'Debe seleccionar un producto o una plantilla').nullable().optional(),
   quantity: z.number().min(0.0001, 'La cantidad debe ser al menos 0.1'),
   unit_price: z.number().min(0, 'El precio debe ser un número positivo'),
   is_delivered: z.boolean().optional(),
