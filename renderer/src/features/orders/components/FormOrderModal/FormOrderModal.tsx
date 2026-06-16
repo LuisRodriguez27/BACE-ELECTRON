@@ -186,7 +186,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
               )}
 
               {/* Información básica */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 {/* Cliente */}
                 <ClientSearchField
                   clientSearch={clientSearch}
@@ -199,6 +199,8 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                 <OrderFormFields
                   register={formMethods.register}
                   errors={formMethods.formState.errors}
+                  setValue={formMethods.setValue}
+                  watch={formMethods.watch}
                   total={total}
                 />
               </div>

@@ -527,7 +527,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                   <div className="bg-gray-50 rounded-lg p-4">
                     <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                       <FileText className="h-5 w-5" />
-                      Notas
+                      Notas (Internas)
                     </h3>
                     {isEditing ? (
                       <textarea
