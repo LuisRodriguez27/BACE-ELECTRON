@@ -2,7 +2,7 @@ import { Button } from '@/components/ui';
 import type { Client } from '@/features/clients/types';
 import { useClientSearch } from '@/features/clients/hooks/useClientSearch';
 import CreateClientModal from '@/features/clients/components/CreateClientModal';
-import CreateTemplateModal from '@/features/products/components/CreateTemplateModal';
+import CreateTemplateModal from '@/features/productTemplates/components/CreateTemplateModal';
 import QuickCreateProductModal from '@/features/products/components/QuickCreateProductModal';
 import type { Product } from '@/features/products/types';
 import type { ProductTemplate } from '@/features/productTemplates/types';
@@ -171,115 +171,115 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         <form onSubmit={formMethods.handleSubmit(orderForm.onSubmit, onInvalid)} className="flex flex-col flex-1 min-h-0 overflow-hidden">
           <div className="px-6 pb-6 overflow-y-auto flex-1 min-h-0">
             <div className="pt-6 space-y-6">
-            {orderForm.error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-800">{orderForm.error}</p>
-            </div>
-          )}
+              {orderForm.error && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-800">{orderForm.error}</p>
+                </div>
+              )}
 
-          {/* Indicador de carga en modo edición */}
-          {orderForm.isEditMode && orderForm.loadingOrder && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
-              <Loader className="animate-spin h-4 w-4 text-blue-600" />
-              <p className="text-sm text-blue-800">Cargando datos de la orden...</p>
-            </div>
-          )}
+              {/* Indicador de carga en modo edición */}
+              {orderForm.isEditMode && orderForm.loadingOrder && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+                  <Loader className="animate-spin h-4 w-4 text-blue-600" />
+                  <p className="text-sm text-blue-800">Cargando datos de la orden...</p>
+                </div>
+              )}
 
-          {/* Información básica */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            {/* Cliente */}
-            <ClientSearchField
-              clientSearch={clientSearch}
-              register={formMethods.register}
-              errors={formMethods.formState.errors}
-              onOpenCreateClientModal={() => orderForm.setShowCreateClientModal(true)}
-            />
+              {/* Información básica */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                {/* Cliente */}
+                <ClientSearchField
+                  clientSearch={clientSearch}
+                  register={formMethods.register}
+                  errors={formMethods.formState.errors}
+                  onOpenCreateClientModal={() => orderForm.setShowCreateClientModal(true)}
+                />
 
-            {/* Form fields */}
-            <OrderFormFields
-              register={formMethods.register}
-              errors={formMethods.formState.errors}
-              total={total}
-            />
-          </div>
-          </div>
-
-          {/* Sección de Items (Productos y Plantillas) */}
-          <div className="mt-6">
-            <div className="flex items-center justify-between mb-4 sticky top-0 bg-white z-20 py-3 -mx-6 px-6 border-b">
-              <div className="flex items-center gap-2">
-                <Package className="h-5 w-5 text-gray-600" />
-                <h3 className="text-lg font-medium text-gray-900">Productos y Plantillas</h3>
-                <span className="text-sm text-gray-500">({orderItemsHook.orderItems.length} items)</span>
-                {orderItemsHook.orderItems.length > 0 && (
-                  <div className="flex items-center gap-2 ml-4 px-3 py-1 bg-green-50 rounded-full">
-                    <DollarSign className="h-4 w-4 text-green-600" />
-                    <span className="text-sm font-semibold text-green-700">
-                      Subtotal: ${total.toFixed(2)}
-                    </span>
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  onClick={() => orderForm.setShowCreateProductModal(true)}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <Plus size={16} />
-                  Crear Producto
-                </Button>
-                <Button
-                  type="button"
-                  onClick={orderItemsHook.addOrderItem}
-                  className="flex items-center gap-2"
-                  size="sm"
-                  disabled={orderItemsHook.loadingProducts || orderItemsHook.loadingTemplates}
-                >
-                  <Plus size={16} />
-                  Agregar Item
-                </Button>
+                {/* Form fields */}
+                <OrderFormFields
+                  register={formMethods.register}
+                  errors={formMethods.formState.errors}
+                  total={total}
+                />
               </div>
             </div>
 
-            {(orderItemsHook.loadingProducts || orderItemsHook.loadingTemplates) ? (
-              <div className="flex items-center justify-center p-8 border border-dashed rounded-lg">
-                <Loader className="animate-spin" size={24} />
-                <span className="ml-2 text-gray-500">Cargando productos y plantillas...</span>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {orderItemsHook.orderItems.length === 0 ? (
-                  <div className="text-center p-8 border border-dashed rounded-lg text-gray-500">
-                    <div className="flex items-center justify-center gap-2 mb-4">
-                      <Package className="h-12 w-12 text-gray-300" />
-                      <Layers className="h-12 w-12 text-gray-300" />
+            {/* Sección de Items (Productos y Plantillas) */}
+            <div className="mt-6">
+              <div className="flex items-center justify-between mb-4 sticky top-0 bg-white z-20 py-3 -mx-6 px-6 border-b">
+                <div className="flex items-center gap-2">
+                  <Package className="h-5 w-5 text-gray-600" />
+                  <h3 className="text-lg font-medium text-gray-900">Productos y Plantillas</h3>
+                  <span className="text-sm text-gray-500">({orderItemsHook.orderItems.length} items)</span>
+                  {orderItemsHook.orderItems.length > 0 && (
+                    <div className="flex items-center gap-2 ml-4 px-3 py-1 bg-green-50 rounded-full">
+                      <DollarSign className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-semibold text-green-700">
+                        Subtotal: ${total.toFixed(2)}
+                      </span>
                     </div>
-                    <p className="text-lg font-medium text-gray-700 mb-2">No hay productos o plantillas agregados</p>
-                    <p className="text-sm mb-4">Haz clic en &quot;Agregar Item&quot; para comenzar a {orderForm.isEditMode ? 'editar' : 'crear'} tu orden</p>
-                    <div className="flex flex-col items-center gap-2 text-xs text-gray-400">
-                      <p>💡 <strong>Tip:</strong> Puedes crear productos y plantillas sobre la marcha</p>
-                      <div className="flex items-center gap-4">
-                        <span>🏷️ Filtra por tipo de item</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    onClick={() => orderForm.setShowCreateProductModal(true)}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <Plus size={16} />
+                    Crear Producto
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={orderItemsHook.addOrderItem}
+                    className="flex items-center gap-2"
+                    size="sm"
+                    disabled={orderItemsHook.loadingProducts || orderItemsHook.loadingTemplates}
+                  >
+                    <Plus size={16} />
+                    Agregar Item
+                  </Button>
+                </div>
+              </div>
+
+              {(orderItemsHook.loadingProducts || orderItemsHook.loadingTemplates) ? (
+                <div className="flex items-center justify-center p-8 border border-dashed rounded-lg">
+                  <Loader className="animate-spin" size={24} />
+                  <span className="ml-2 text-gray-500">Cargando productos y plantillas...</span>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {orderItemsHook.orderItems.length === 0 ? (
+                    <div className="text-center p-8 border border-dashed rounded-lg text-gray-500">
+                      <div className="flex items-center justify-center gap-2 mb-4">
+                        <Package className="h-12 w-12 text-gray-300" />
+                        <Layers className="h-12 w-12 text-gray-300" />
+                      </div>
+                      <p className="text-lg font-medium text-gray-700 mb-2">No hay productos o plantillas agregados</p>
+                      <p className="text-sm mb-4">Haz clic en &quot;Agregar Item&quot; para comenzar a {orderForm.isEditMode ? 'editar' : 'crear'} tu orden</p>
+                      <div className="flex flex-col items-center gap-2 text-xs text-gray-400">
+                        <p>💡 <strong>Tip:</strong> Puedes crear productos y plantillas sobre la marcha</p>
+                        <div className="flex items-center gap-4">
+                          <span>🏷️ Filtra por tipo de item</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  orderItemsHook.orderItems.map((item, index) => (
-                    <OrderItemRow
-                      key={index}
-                      index={index}
-                      item={item}
-                      orderItemsHook={orderItemsHook}
-                      onCreateTemplateFromProduct={orderForm.createTemplateFromProduct}
-                    />
-                  ))
-                )}
-              </div>
-            )}
-          </div>
+                  ) : (
+                    orderItemsHook.orderItems.map((item, index) => (
+                      <OrderItemRow
+                        key={index}
+                        index={index}
+                        item={item}
+                        orderItemsHook={orderItemsHook}
+                        onCreateTemplateFromProduct={orderForm.createTemplateFromProduct}
+                      />
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Actions */}

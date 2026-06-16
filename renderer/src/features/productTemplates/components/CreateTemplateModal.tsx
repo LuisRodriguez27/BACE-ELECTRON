@@ -1,7 +1,7 @@
 import { Button, Input, Label } from "@/components/ui";
 import { ProductTemplatesApiService } from "@/features/productTemplates/ProductTemplatesApiService";
 import { createProductTemplateSchema, type CreateProductTemplateForm, type ProductTemplate } from "@/features/productTemplates/types";
-import type { Product } from "../types";
+import type { Product } from "../../products/types";
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CircleDollarSign, FileText, Loader, MapPin, Package, Palette, Percent, Ruler, X } from "lucide-react";
 import React, { useState } from "react";
