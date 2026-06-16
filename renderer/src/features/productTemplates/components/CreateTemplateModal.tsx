@@ -146,7 +146,7 @@ const CreateTemplateModal: React.FC<CreateTemplateModalProps> = ({
             {/* Nombre de la Plantilla */}
             <div>
               <Label htmlFor="description" className="text-sm font-medium text-gray-700">
-                Nombre de la Plantilla
+                Nombre de la Plantilla *
               </Label>
               <div className="mt-1 relative">
                 <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
