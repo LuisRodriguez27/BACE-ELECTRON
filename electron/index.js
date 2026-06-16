@@ -301,6 +301,7 @@ ipcMain.handle('stats:getWeeks', async (event, year) => await statsService.getAv
 
 // Manejo de eventos IPC para ordenes rapidas
 ipcMain.handle('simpleOrders:getAll', async () => await simpleOrderService.getAllSimpleOrders());
+ipcMain.handle('simpleOrders:getPaginated', async (event, page, limit, searchTerm) => await simpleOrderService.getSimpleOrdersPaginated(page, limit, searchTerm));
 ipcMain.handle('simpleOrders:getById', async (event, id) => await simpleOrderService.getSimpleOrderById(id));
 ipcMain.handle('simpleOrders:create', async (event, data) => await simpleOrderService.createSimpleOrder(data));
 ipcMain.handle('simpleOrders:update', async (event, id, data) => await simpleOrderService.updateSimpleOrder(id, data));

@@ -118,6 +118,87 @@ class SimpleOrderRepository {
     `, [id]);
     return result.changes > 0;
   }
+
+  async findPaginated(page = 1, limit = 10, searchTerm = '') {
+    const offset = (page - 1) * limit;
+    
+    let searchCondition = '';
+    let searchParams = [];
+    let paramIndex = 1;
+    
+    if (searchTerm && searchTerm.trim()) {
+      const term = `%${searchTerm.trim()}%`;
+      searchCondition = `
+        AND (
+          CAST(o.id AS TEXT) ILIKE $${paramIndex}
+          OR o.concept ILIKE $${paramIndex}
+          OR o.client_name ILIKE $${paramIndex}
+          OR o.client_phone ILIKE $${paramIndex}
+        )
+      `;
+      searchParams = [term];
+      paramIndex = 2;
+    }
+    
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM simple_orders o
+      WHERE o.active = true ${searchCondition}
+    `;
+    const countResult = await db.getOne(countQuery, searchParams);
+    const total = parseInt(countResult.total, 10) || 0;
+    
+    const dataQuery = `
+      SELECT o.*, u.username as user_username
+      FROM simple_orders o
+      LEFT JOIN users u ON o.user_id = u.id
+      WHERE o.active = true ${searchCondition}
+      ORDER BY o.date DESC
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+    
+    const rows = await db.getAll(dataQuery, [...searchParams, limit, offset]);
+    
+    const ordersWithPayments = [];
+    for (const row of rows) {
+      const payments = await this.getPayments(row.id);
+      ordersWithPayments.push(new SimpleOrder({ ...row, payments }));
+    }
+    
+    const statsQuery = `
+      WITH order_payments AS (
+        SELECT simple_order_id, COALESCE(SUM(amount), 0) as total_paid
+        FROM simple_order_payments
+        GROUP BY simple_order_id
+      )
+      SELECT 
+        COUNT(*) as total_count,
+        COALESCE(SUM(total), 0) as total_amount,
+        COALESCE(SUM(COALESCE(p.total_paid, 0)), 0) as total_paid,
+        COALESCE(SUM(GREATEST(0, total - COALESCE(p.total_paid, 0))), 0) as total_pending
+      FROM simple_orders o
+      LEFT JOIN order_payments p ON o.id = p.simple_order_id
+      WHERE o.active = true
+    `;
+    const statsResult = await db.getOne(statsQuery);
+    
+    return {
+      data: ordersWithPayments,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1
+      },
+      stats: {
+        totalCount: parseInt(statsResult.total_count, 10) || 0,
+        totalRevenues: parseFloat(statsResult.total_paid) || 0,
+        totalPending: parseFloat(statsResult.total_pending) || 0
+      }
+    };
+  }
 }
 
 module.exports = new SimpleOrderRepository();

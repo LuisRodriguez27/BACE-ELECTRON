@@ -203,6 +203,25 @@ class SimpleOrderService {
       throw new Error('Hubo un error al eliminar el pago.');
     }
   }
+
+  async getSimpleOrdersPaginated(page = 1, limit = 10, searchTerm = '') {
+    try {
+      const pageNum = parseInt(page, 10) || 1;
+      const limitNum = parseInt(limit, 10) || 10;
+      const cleanSearch = searchTerm ? searchTerm.trim() : '';
+
+      const paginatedResult = await simpleOrderRepository.findPaginated(pageNum, limitNum, cleanSearch);
+      
+      return {
+        data: paginatedResult.data.map(order => order.toPlainObject()),
+        pagination: paginatedResult.pagination,
+        stats: paginatedResult.stats
+      };
+    } catch (error) {
+      console.error('Error in getSimpleOrdersPaginated:', error);
+      throw new Error('Hubo un error al obtener las órdenes rápidas paginadas.');
+    }
+  }
 }
 
 module.exports = new SimpleOrderService();

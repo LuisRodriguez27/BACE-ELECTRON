@@ -150,6 +150,7 @@ declare global {
 
       // Órdenes Rápidas (Simple Orders)
       getAllSimpleOrders: () => Promise<SimpleOrder[]>;
+      getSimpleOrdersPaginated: (page: number, limit: number, searchTerm: string) => Promise<PaginatedResult<SimpleOrder> & { stats: { totalCount: number, totalRevenues: number, totalPending: number } }>;
       getSimpleOrderById: (id: number) => Promise<SimpleOrder>;
       createSimpleOrder: (data: CreateSimpleOrderForm) => Promise<SimpleOrder>;
       updateSimpleOrder: (id: number, data: Partial<CreateSimpleOrderForm>) => Promise<SimpleOrder>;

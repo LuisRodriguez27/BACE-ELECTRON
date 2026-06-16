@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, DollarSign, Plus, Search, ShoppingCart, Printer } from 'lucide-react';
 import { toast } from 'sonner';
@@ -19,8 +19,33 @@ import { Eye, Pencil, MoreVertical } from 'lucide-react';
 const SimpleOrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<SimpleOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentSearchTerm, setCurrentSearchTerm] = useState('');
+  const [searchDebounceTimer, setSearchDebounceTimer] = useState<number | null>(null);
+
+  const [pagination, setPagination] = useState<{
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  }>({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false
+  });
+
+  const [globalStats, setGlobalStats] = useState({
+    totalCount: 0,
+    totalRevenues: 0,
+    totalPending: 0
+  });
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -33,30 +58,83 @@ const SimpleOrdersPage: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<'all'|'pending'|'paid'>('all');
   const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
 
-  const fetchOrders = async () => {
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const lastOrderElementRef = useCallback((node: HTMLTableRowElement) => {
+    if (loadingMore) return;
+    if (observerRef.current) observerRef.current.disconnect();
+    observerRef.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && pagination.hasNext) {
+        loadMoreOrders();
+      }
+    });
+    if (node) observerRef.current.observe(node);
+  }, [loadingMore, pagination.hasNext]);
+
+  const loadOrders = async (page: number = 1, reset: boolean = true, searchQuery: string = '') => {
     try {
-      setLoading(true);
-      const data = await SimpleOrdersApiService.getAll();
-      setOrders(data);
+      if (page === 1) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+      
+      const response = await SimpleOrdersApiService.getPaginated(page, 20, searchQuery);
+      
+      if (reset) {
+        setOrders(response.data);
+      } else {
+        setOrders(prev => [...prev, ...response.data]);
+      }
+      
+      setPagination(response.pagination);
+      setGlobalStats(response.stats);
+      setCurrentSearchTerm(searchQuery);
+      setError(null);
     } catch (err: any) {
       console.error('Error fetching simple orders:', err);
       setError(err.message || 'Error al cargar órdenes rápidas');
+      toast.error('Error al cargar las órdenes rápidas');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMoreOrders = () => {
+    if (!loadingMore && pagination.hasNext) {
+      loadOrders(pagination.page + 1, false, currentSearchTerm);
     }
   };
 
   useEffect(() => {
-    fetchOrders();
+    loadOrders(1, true, '');
   }, []);
 
+  // Manejar búsqueda con debounce
+  useEffect(() => {
+    if (searchDebounceTimer) {
+      clearTimeout(searchDebounceTimer);
+    }
+
+    const timer = window.setTimeout(() => {
+      if (searchTerm !== currentSearchTerm) {
+        loadOrders(1, true, searchTerm);
+      }
+    }, 400);
+
+    setSearchDebounceTimer(timer);
+
+    return () => {
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [searchTerm]);
+
   const handleOrderCreated = () => {
-    fetchOrders();
+    loadOrders(1, true, searchTerm);
   };
 
   const handlePaymentCreated = (_payment: SimpleOrderPayment | number | any) => {
-    // We can just refetch all logic for simplicity instead of manual state mutation
-    fetchOrders();
+    loadOrders(1, true, searchTerm);
   };
 
   const handleAddPayment = (orderId: number) => {
@@ -126,49 +204,16 @@ const SimpleOrdersPage: React.FC = () => {
     return formatDateMX(dateString, 'DD MMM YYYY, h:mm A');
   };
 
-  // Filter
+  // Filter only by status on the client-side, since search is already handled by backend
   const filteredOrders = orders.filter(order => {
     // Status Filter
     if (filterStatus === 'pending' && order.balance <= 0) return false;
     if (filterStatus === 'paid' && order.balance > 0) return false;
-
-    // Search Filter
-    if (!searchTerm.trim()) return true;
-    const s = searchTerm.toLowerCase();
-    return (
-      order.id.toString().includes(s) ||
-      order.concept.toLowerCase().includes(s) ||
-      (order.client_name && order.client_name.toLowerCase().includes(s)) ||
-      (order.client_phone && order.client_phone.toLowerCase().includes(s)) ||
-      (order.user?.username && order.user.username.toLowerCase().includes(s))
-    );
+    return true;
   });
 
-  const totalIngresos = orders.reduce((sum, o) => sum + o.totalPaid, 0);
-  const totalPendientes = orders.reduce((sum, o) => sum + Math.max(0, o.balance), 0);
-
-  if (loading) {
-    return (
-      <div className="p-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
-          <div className="h-32 bg-gray-200 rounded mb-4"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800">{error}</p>
-          <Button onClick={fetchOrders} className="mt-2" size="sm">Reintentar</Button>
-        </div>
-      </div>
-    );
-  }
+  const totalIngresos = globalStats.totalRevenues;
+  const totalPendientes = globalStats.totalPending;
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -189,6 +234,16 @@ const SimpleOrdersPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Error Banner */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex justify-between items-center">
+          <p className="text-red-800 text-sm font-medium">{error}</p>
+          <Button onClick={() => loadOrders(1, true, searchTerm)} size="sm" variant="destructive">
+            Reintentar
+          </Button>
+        </div>
+      )}
+
       {/* Stats summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-white p-4 rounded-lg shadow border border-gray-100 flex items-center gap-4">
@@ -197,7 +252,7 @@ const SimpleOrdersPage: React.FC = () => {
           </div>
           <div>
             <p className="text-sm text-gray-500">Total Órdenes</p>
-            <p className="text-xl font-bold text-gray-900">{orders.length}</p>
+            <p className="text-xl font-bold text-gray-900">{globalStats.totalCount}</p>
           </div>
         </div>
         <div className="bg-white p-4 rounded-lg shadow border border-gray-100 flex items-center gap-4">
@@ -274,165 +329,207 @@ const SimpleOrdersPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="text-sm divide-y divide-gray-100">
-              {filteredOrders.length === 0 && (
+              {/* Inline Skeleton Rows for loading first page */}
+              {loading && orders.length === 0 && (
+                <>
+                  {[...Array(5)].map((_, idx) => (
+                    <tr key={`skeleton-${idx}`} className="animate-pulse">
+                      <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-8"></div></td>
+                      <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-32"></div></td>
+                      <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-40"></div></td>
+                      <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-28"></div></td>
+                      <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-20"></div></td>
+                      <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-16 float-right"></div></td>
+                      <td className="py-4 px-4"><div className="h-4 bg-gray-200 rounded w-16 float-right"></div></td>
+                      <td className="py-4 px-4 text-right"><div className="h-6 bg-gray-200 rounded-full w-20 inline-block"></div></td>
+                      <td className="py-4 px-4 text-center"><div className="h-8 bg-gray-200 rounded w-24 inline-block"></div></td>
+                    </tr>
+                  ))}
+                </>
+              )}
+
+              {filteredOrders.length === 0 && !loading && (
                 <tr>
                   <td colSpan={9} className="py-8 text-center text-gray-500">
                     No se encontraron órdenes rápidas.
                   </td>
                 </tr>
               )}
-              {filteredOrders.map(order => (
-                <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="py-3 px-4 text-gray-900 font-medium">#{order.id}</td>
-                  <td className="py-3 px-4 text-gray-500 w-44">{formatDateTime(order.date)}</td>
-                  <td className="py-3 px-4 text-gray-900 truncate max-w-[150px]" title={order.concept}>{order.concept}</td>
-                  <td className="py-3 px-4 text-gray-500">
-                    <div>{order.client_name || '-'}</div>
-                    {order.client_phone && (
-                      <div className="text-xs text-gray-400 font-normal">{order.client_phone}</div>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 text-gray-500">{order.user?.username || 'N/A'}</td>
-                  <td className="py-3 px-4 text-gray-900 font-medium text-right">${order.total.toFixed(2)}</td>
-                  <td className={`py-3 px-4 font-medium text-right ${order.balance > 0 && order.totalPaid > 0 ? 'text-orange-600' : order.balance <= 0 ? 'text-green-600' : 'text-gray-500'}`}>
-                    ${order.totalPaid.toFixed(2)}
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    {getPaymentBadge(order)}
-                  </td>
-                  <td className="py-3 px-4 text-center relative">
-                    {/* Botones completos en pantallas muy grandes */}
-                    <div className="hidden 2xl:flex justify-center gap-2">
-                      <button 
-                        onClick={() => {
-                          setSelectedOrderId(order.id);
-                          setShowEditModal(true);
-                        }}
-                        className="p-1.5 rounded text-gray-400 hover:text-blue-600 bg-gray-50 hover:bg-blue-50"
-                        title="Editar Orden"
-                      >
-                        <Pencil size={16} />
-                      </button>
-                      <button 
-                        onClick={() => {
-                          setSelectedOrderId(order.id);
-                          setShowPrintModal(true);
-                        }}
-                        className="p-1.5 rounded text-gray-400 hover:text-purple-600 bg-gray-50 hover:bg-purple-50"
-                        title="Imprimir Orden"
-                      >
-                        <Printer size={16} />
-                      </button>
-                      <button 
-                        onClick={() => {
-                          setSelectedOrderId(order.id);
-                          setShowPaymentsListModal(true);
-                        }}
-                        className="p-1.5 rounded text-gray-400 hover:text-blue-600 bg-gray-50 hover:bg-blue-50"
-                        title="Ver Historial de Pagos"
-                      >
-                        <Eye size={16} />
-                      </button>
-                      <button 
-                        onClick={() => handleAddPayment(order.id)}
-                        disabled={order.balance <= 0}
-                        className={`p-1.5 rounded ${order.balance <= 0 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-green-600 bg-gray-50 hover:bg-green-50'}`}
-                        title="Agregar Pago"
-                      >
-                        <Plus size={16} />
-                      </button>
-                    </div>
-
-                    {/* Botón de tres puntos en pantallas medianas/pequeñas (como 1366px) */}
-                    <div className="2xl:hidden flex justify-center">
-                      <div className="relative">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenDropdownId(openDropdownId === order.id ? null : order.id);
+              {filteredOrders.map((order, index) => {
+                const isLast = index === filteredOrders.length - 1;
+                return (
+                  <tr 
+                    key={order.id} 
+                    ref={isLast ? lastOrderElementRef : null} 
+                    className="hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="py-3 px-4 text-gray-900 font-medium">#{order.id}</td>
+                    <td className="py-3 px-4 text-gray-500 w-44">{formatDateTime(order.date)}</td>
+                    <td className="py-3 px-4 text-gray-900 truncate max-w-[150px]" title={order.concept}>{order.concept}</td>
+                    <td className="py-3 px-4 text-gray-500">
+                      <div>{order.client_name || '-'}</div>
+                      {order.client_phone && (
+                        <div className="text-xs text-gray-400 font-normal">{order.client_phone}</div>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-gray-500">{order.user?.username || 'N/A'}</td>
+                    <td className="py-3 px-4 text-gray-900 font-medium text-right">${order.total.toFixed(2)}</td>
+                    <td className={`py-3 px-4 font-medium text-right ${order.balance > 0 && order.totalPaid > 0 ? 'text-orange-600' : order.balance <= 0 ? 'text-green-600' : 'text-gray-500'}`}>
+                      ${order.totalPaid.toFixed(2)}
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      {getPaymentBadge(order)}
+                    </td>
+                    <td className="py-3 px-4 text-center relative">
+                      {/* Botones completos en pantallas muy grandes */}
+                      <div className="hidden 2xl:flex justify-center gap-2">
+                        <button 
+                          onClick={() => {
+                            setSelectedOrderId(order.id);
+                            setShowEditModal(true);
                           }}
-                          className="p-1.5 rounded text-gray-400 hover:text-gray-700 bg-gray-50 hover:bg-gray-100"
-                          title="Acciones"
+                          className="p-1.5 rounded text-gray-400 hover:text-blue-600 bg-gray-50 hover:bg-blue-50"
+                          title="Editar Orden"
                         >
-                          <MoreVertical size={16} />
+                          <Pencil size={16} />
                         </button>
-                        
-                        {openDropdownId === order.id && (
-                          <>
-                            {/* Backdrop invisible para cerrar al hacer clic fuera */}
-                            <div 
-                              className="fixed inset-0 z-30" 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOpenDropdownId(null);
-                              }}
-                            />
-                            
-                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-40 origin-top-right text-left">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setSelectedOrderId(order.id);
-                                  setShowEditModal(true);
-                                  setOpenDropdownId(null);
-                                }}
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                              >
-                                <Pencil size={14} className="text-gray-400" />
-                                Editar Orden
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setSelectedOrderId(order.id);
-                                  setShowPrintModal(true);
-                                  setOpenDropdownId(null);
-                                }}
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                              >
-                                <Printer size={14} className="text-gray-400" />
-                                Imprimir Orden
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setSelectedOrderId(order.id);
-                                  setShowPaymentsListModal(true);
-                                  setOpenDropdownId(null);
-                                }}
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                              >
-                                <Eye size={14} className="text-gray-400" />
-                                Ver Pagos
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  handleAddPayment(order.id);
-                                  setOpenDropdownId(null);
-                                }}
-                                disabled={order.balance <= 0}
-                                className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${
-                                  order.balance <= 0 
-                                    ? 'text-gray-300 cursor-not-allowed' 
-                                    : 'text-gray-700 hover:bg-gray-100'
-                                }`}
-                              >
-                                <Plus size={14} className={order.balance <= 0 ? 'text-gray-200' : 'text-gray-400'} />
-                                Agregar Pago
-                              </button>
-                            </div>
-                          </>
-                        )}
+                        <button 
+                          onClick={() => {
+                            setSelectedOrderId(order.id);
+                            setShowPrintModal(true);
+                          }}
+                          className="p-1.5 rounded text-gray-400 hover:text-purple-600 bg-gray-50 hover:bg-purple-50"
+                          title="Imprimir Orden"
+                        >
+                          <Printer size={16} />
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setSelectedOrderId(order.id);
+                            setShowPaymentsListModal(true);
+                          }}
+                          className="p-1.5 rounded text-gray-400 hover:text-blue-600 bg-gray-50 hover:bg-blue-50"
+                          title="Ver Historial de Pagos"
+                        >
+                          <Eye size={16} />
+                        </button>
+                        <button 
+                          onClick={() => handleAddPayment(order.id)}
+                          disabled={order.balance <= 0}
+                          className={`p-1.5 rounded ${order.balance <= 0 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-green-600 bg-gray-50 hover:bg-green-50'}`}
+                          title="Agregar Pago"
+                        >
+                          <Plus size={16} />
+                        </button>
                       </div>
-                    </div>
+
+                      {/* Botón de tres puntos en pantallas medianas/pequeñas (como 1366px) */}
+                      <div className="2xl:hidden flex justify-center">
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenDropdownId(openDropdownId === order.id ? null : order.id);
+                            }}
+                            className="p-1.5 rounded text-gray-400 hover:text-gray-700 bg-gray-50 hover:bg-gray-100"
+                            title="Acciones"
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+                          
+                          {openDropdownId === order.id && (
+                            <>
+                              {/* Backdrop invisible para cerrar al hacer clic fuera */}
+                              <div 
+                                className="fixed inset-0 z-30" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenDropdownId(null);
+                                }}
+                              />
+                              
+                              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-40 origin-top-right text-left">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedOrderId(order.id);
+                                    setShowEditModal(true);
+                                    setOpenDropdownId(null);
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                >
+                                  <Pencil size={14} className="text-gray-400" />
+                                  Editar Orden
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedOrderId(order.id);
+                                    setShowPrintModal(true);
+                                    setOpenDropdownId(null);
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                >
+                                  <Printer size={14} className="text-gray-400" />
+                                  Imprimir Orden
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedOrderId(order.id);
+                                    setShowPaymentsListModal(true);
+                                    setOpenDropdownId(null);
+                                  }}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                >
+                                  <Eye size={14} className="text-gray-400" />
+                                  Ver Pagos
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    handleAddPayment(order.id);
+                                    setOpenDropdownId(null);
+                                  }}
+                                  disabled={order.balance <= 0}
+                                  className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${
+                                    order.balance <= 0 
+                                      ? 'text-gray-300 cursor-not-allowed' 
+                                      : 'text-gray-700 hover:bg-gray-100'
+                                  }`}
+                                >
+                                  <Plus size={14} className={order.balance <= 0 ? 'text-gray-200' : 'text-gray-400'} />
+                                  Agregar Pago
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {loadingMore && (
+                <tr className="animate-pulse bg-gray-50">
+                  <td colSpan={9} className="py-4 text-center text-gray-500 font-medium">
+                    Cargando más órdenes...
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* End of list message */}
+      {!loading && !loadingMore && orders.length > 0 && (
+        <div className="text-center text-xs text-gray-400 my-4">
+          {searchTerm.trim()
+            ? `Se encontraron ${pagination.total} resultado${pagination.total !== 1 ? 's' : ''} para "${searchTerm}"`
+            : `Has visto todas las órdenes rápidas (${pagination.total})`}
+        </div>
+      )}
 
       {showCreateModal && (
         <CreateSimpleOrderModal
