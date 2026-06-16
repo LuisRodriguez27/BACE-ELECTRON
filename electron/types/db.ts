@@ -3,6 +3,8 @@
  * Representa el wrapper sobre el Pool de PostgreSQL.
  */
 
+import type { QueryResultRow } from 'pg';
+
 export interface DbExecuteResult {
   /** Número de filas afectadas por la consulta (UPDATE, DELETE, INSERT). */
   changes: number | null;
@@ -14,12 +16,12 @@ export interface Db {
   /**
    * Ejecuta una consulta y devuelve la primera fila, o null si no hay resultados.
    */
-  getOne<T = Record<string, unknown>>(sql: string, params?: unknown[]): Promise<T | null>;
+  getOne<T extends QueryResultRow = Record<string, unknown>>(sql: string, params?: unknown[]): Promise<T | null>;
 
   /**
    * Ejecuta una consulta y devuelve todas las filas como array.
    */
-  getAll<T = Record<string, unknown>>(sql: string, params?: unknown[]): Promise<T[]>;
+  getAll<T extends QueryResultRow = Record<string, unknown>>(sql: string, params?: unknown[]): Promise<T[]>;
 
   /**
    * Ejecuta INSERT, UPDATE o DELETE.
