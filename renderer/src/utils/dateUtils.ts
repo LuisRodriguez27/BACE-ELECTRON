@@ -170,7 +170,8 @@ export const parseDeliveryDateTimeMX = (isoString: string | Date | null | undefi
         date,
         hour12: String(hour12).padStart(2, '0'),
         minute: String(d.minute()).padStart(2, '0'),
-        ampm: d.hour() >= 12 ? ('PM' as const) : ('AM' as const)
+        ampm: d.hour() >= 12 ? ('PM' as const) : ('AM' as const),
+        time24: d.format('HH:mm')
     };
 };
 
@@ -185,11 +186,19 @@ export const getDefaultDeliveryDateTimeMX = () => {
     if (hour12 === 0) hour12 = 12;
     const rawMinutes = d.minute();
     const roundedMinutes = String(Math.round(rawMinutes / 5) * 5 % 60).padStart(2, '0');
+    
+    // Calculate 24h hour, considering minute rollover if rawMinutes rounded up to 60
+    let hour24 = d.hour();
+    if (Math.round(rawMinutes / 5) * 5 === 60) {
+      hour24 = (hour24 + 1) % 24;
+    }
+    
     return {
         date,
         hour12: String(hour12).padStart(2, '0'),
         minute: roundedMinutes,
-        ampm: d.hour() >= 12 ? ('PM' as const) : ('AM' as const)
+        ampm: d.hour() >= 12 ? ('PM' as const) : ('AM' as const),
+        time24: `${String(hour24).padStart(2, '0')}:${roundedMinutes}`
     };
 };
 

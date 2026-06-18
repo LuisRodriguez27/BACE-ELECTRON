@@ -38,9 +38,7 @@ const CreatePrintLogModal: React.FC<CreatePrintLogModalProps> = ({
 
   // Local states for compound date/time inputs
   const [deliveryDate, setDeliveryDate] = useState('');
-  const [deliveryHour, setDeliveryHour] = useState('12');
-  const [deliveryMinute, setDeliveryMinute] = useState('00');
-  const [deliveryAmPm, setDeliveryAmPm] = useState<'AM' | 'PM'>('AM');
+  const [deliveryTime, setDeliveryTime] = useState('12:00');
 
   const {
     register,
@@ -63,22 +61,9 @@ const CreatePrintLogModal: React.FC<CreatePrintLogModalProps> = ({
     }
   });
 
-  const get24Hour = (hour12Str: string, amPm: 'AM' | 'PM'): string => {
-    let h = parseInt(hour12Str, 10);
-    if (isNaN(h)) h = 12;
-    if (amPm === 'PM' && h !== 12) {
-      h += 12;
-    } else if (amPm === 'AM' && h === 12) {
-      h = 0;
-    }
-    return String(h).padStart(2, '0');
-  };
-
-  const updateCompoundDateTime = (dateStr: string, hour12Str: string, minuteStr: string, amPm: 'AM' | 'PM') => {
-    if (dateStr && hour12Str && minuteStr && amPm) {
-      const hour24 = get24Hour(hour12Str, amPm);
-      const paddedMinute = minuteStr.padStart(2, '0');
-      setValue('hora_entrega', toUTCISO(`${dateStr}T${hour24}:${paddedMinute}:00`));
+  const updateCompoundDateTime = (dateStr: string, timeStr: string) => {
+    if (dateStr && timeStr) {
+      setValue('hora_entrega', toUTCISO(`${dateStr}T${timeStr}:00`));
     } else {
       setValue('hora_entrega', '');
     }
@@ -120,9 +105,7 @@ const CreatePrintLogModal: React.FC<CreatePrintLogModalProps> = ({
         // Desglosar la hora de entrega
         const parsed = parseDeliveryDateTimeMX(logToEdit.hora_entrega);
         setDeliveryDate(parsed.date);
-        setDeliveryHour(parsed.hour12);
-        setDeliveryMinute(parsed.minute);
-        setDeliveryAmPm(parsed.ampm);
+        setDeliveryTime(parsed.time24);
       } else {
         // Inicializar en modo creación
         setValue('order_id', null);
@@ -136,12 +119,9 @@ const CreatePrintLogModal: React.FC<CreatePrintLogModalProps> = ({
         // Set default delivery time to current time + 1 hour in America/Mexico_City
         const parsed = getDefaultDeliveryDateTimeMX();
         setDeliveryDate(parsed.date);
-        setDeliveryHour(parsed.hour12);
-        setDeliveryMinute(parsed.minute);
-        setDeliveryAmPm(parsed.ampm);
+        setDeliveryTime(parsed.time24);
 
-        const hour24 = get24Hour(parsed.hour12, parsed.ampm);
-        setValue('hora_entrega', toUTCISO(`${parsed.date}T${hour24}:${parsed.minute}:00`));
+        setValue('hora_entrega', toUTCISO(`${parsed.date}T${parsed.time24}:00`));
       }
     }
   }, [isOpen, setValue, logToEdit]);
@@ -310,7 +290,7 @@ const CreatePrintLogModal: React.FC<CreatePrintLogModalProps> = ({
                     onChange={(e) => {
                       const val = e.target.value;
                       setDeliveryDate(val);
-                      updateCompoundDateTime(val, deliveryHour, deliveryMinute, deliveryAmPm);
+                      updateCompoundDateTime(val, deliveryTime);
                     }}
                   />
                 </div>
@@ -324,68 +304,19 @@ const CreatePrintLogModal: React.FC<CreatePrintLogModalProps> = ({
                 <Label htmlFor="hora_input" className="text-sm font-medium text-gray-700">
                   Hora de Entrega *
                 </Label>
-                <div className="mt-1 flex items-center gap-2">
-                  <div className="relative flex items-center bg-white border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent w-full">
-                    <Clock size={16} className="text-gray-400 mr-2 shrink-0" />
-                    <input
-                      id="hora_input"
-                      type="text"
-                      placeholder="HH"
-                      value={deliveryHour}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, '').slice(0, 2);
-                        const numVal = parseInt(val, 10);
-                        if (!val || (numVal >= 1 && numVal <= 12)) {
-                          setDeliveryHour(val);
-                          updateCompoundDateTime(deliveryDate, val, deliveryMinute, deliveryAmPm);
-                        }
-                      }}
-                      onBlur={() => {
-                        let finalFormatted = '12';
-                        if (deliveryHour) {
-                          let hourNum = parseInt(deliveryHour, 10);
-                          if (hourNum < 1 || hourNum > 12) hourNum = 12;
-                          finalFormatted = String(hourNum).padStart(2, '0');
-                        }
-                        setDeliveryHour(finalFormatted);
-                        updateCompoundDateTime(deliveryDate, finalFormatted, deliveryMinute, deliveryAmPm);
-                      }}
-                      className="w-8 text-center bg-transparent border-none outline-none text-gray-900 font-semibold focus:ring-0 p-0"
-                    />
-                    <span className="text-gray-400 font-bold mx-1 shrink-0">:</span>
-                    <input
-                      type="text"
-                      placeholder="MM"
-                      value={deliveryMinute}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, '').slice(0, 2);
-                        const numVal = parseInt(val, 10);
-                        if (!val || (numVal >= 0 && numVal <= 59)) {
-                          setDeliveryMinute(val);
-                          updateCompoundDateTime(deliveryDate, deliveryHour, val, deliveryAmPm);
-                        }
-                      }}
-                      onBlur={() => {
-                        const formatted = deliveryMinute ? deliveryMinute.padStart(2, '0') : '00';
-                        setDeliveryMinute(formatted);
-                        updateCompoundDateTime(deliveryDate, deliveryHour, formatted, deliveryAmPm);
-                      }}
-                      className="w-8 text-center bg-transparent border-none outline-none text-gray-900 font-semibold focus:ring-0 p-0"
-                    />
-                    <select
-                      id="ampm_select"
-                      value={deliveryAmPm}
-                      onChange={(e) => {
-                        const val = e.target.value as 'AM' | 'PM';
-                        setDeliveryAmPm(val);
-                        updateCompoundDateTime(deliveryDate, deliveryHour, deliveryMinute, val);
-                      }}
-                      className="ml-2 px-1.5 py-0.5 border border-gray-300 rounded bg-white text-gray-900 font-semibold text-xs focus:ring-1 focus:ring-blue-500 focus:border-transparent outline-none cursor-pointer shrink-0"
-                    >
-                      <option value="AM">AM</option>
-                      <option value="PM">PM</option>
-                    </select>
-                  </div>
+                <div className="mt-1 relative">
+                  <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                  <Input
+                    id="hora_input"
+                    type="time"
+                    className="pl-10 cursor-pointer"
+                    value={deliveryTime}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setDeliveryTime(val);
+                      updateCompoundDateTime(deliveryDate, val);
+                    }}
+                  />
                 </div>
                 <input type="hidden" {...register('hora_entrega')} />
               </div>
