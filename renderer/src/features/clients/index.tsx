@@ -192,6 +192,7 @@ const ClientsPage: React.FC = () => {
     setShowDeleteModal(false);
     setShowOrdersModal(false);
     setShowPaymentsModal(false);
+    setShowBudgetModal(false);
     setSelectedClient(null);
     setOpenDropdownId(null);
   };
