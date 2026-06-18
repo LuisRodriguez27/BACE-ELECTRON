@@ -140,3 +140,4 @@ vite.config.ts.timestamp-*.env
 
 # TypeScript compiled output (backend)
 dist-electron/
+electron/dist-electron/

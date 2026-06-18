@@ -2,16 +2,17 @@
   "name": "bace",
   "version": "6.2.7",
   "description": "Aplicación BACE Electron",
-  "main": "dist-electron/index.js",
+  "main": "electron/dist-electron/index.js",
   "author": "Luis Rodriguez",
   "license": "ISC",
   "scripts": {
     "postinstall": "",
     "build:electron": "tsc",
+    "build:renderer": "cd renderer && pnpm run build",
+    "build": "pnpm run build:electron && pnpm run build:renderer",
     "watch:electron": "tsc -w",
-    "dev:electron": "electron ./dist-electron --no-sandbox",
-    "dev": "concurrently -k --success first \"tsc && tsc -w\" \"pnpm run dev:electron\" \"cd renderer && pnpm run dev\"",
-    "build": "tsc && cd renderer && pnpm run build",
+    "dev:electron": "electron ./electron/dist-electron --no-sandbox",
+    "dev": "tsc && concurrently -k --success first \"tsc -w\" \"pnpm run dev:electron\" \"cd renderer && pnpm run dev\"",
     "dist": "pnpm run build && electron-builder",
     "dist:win": "pnpm run build && electron-builder --win",
     "dist:git": "pnpm run build && electron-builder --win -p always"
@@ -55,7 +56,7 @@
       "buildResources": "build"
     },
     "files": [
-      "dist-electron/**/*",
+      "electron/dist-electron/**/*",
       "renderer/dist/**/*",
       "node_modules/**/*",
       ".env",

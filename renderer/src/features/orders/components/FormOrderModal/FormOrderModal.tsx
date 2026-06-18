@@ -49,6 +49,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       user_id: currentUserId,
       date: todayDateInputMX(),
       status: 'Revision',
+      responsable: 'Mostrador',
       items: []
     }
   });
