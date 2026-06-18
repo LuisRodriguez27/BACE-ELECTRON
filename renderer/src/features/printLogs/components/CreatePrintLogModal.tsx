@@ -91,12 +91,12 @@ const CreatePrintLogModal: React.FC<CreatePrintLogModalProps> = ({
         try {
           setIsLoadingOrders(true);
           const orders = await window.api.getPendingOrdersForLogbook();
-          // Map to match our format
+          // Map to match our format and sort descending by id (last to first)
           const formattedOrders = orders.map((o: any) => ({
             id: o.id,
             client_name: o.client_name,
             total: o.total
-          }));
+          })).sort((a: any, b: any) => b.id - a.id);
           setPendingOrders(formattedOrders);
         } catch (err) {
           console.error('Error fetching pending orders for logbook:', err);
