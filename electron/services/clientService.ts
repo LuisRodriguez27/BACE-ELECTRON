@@ -35,8 +35,9 @@ class ClientService {
     }
   }
 
-  async createClient({ name, phone, address, description, color }: { name: string; phone: string; address?: string; description?: string; color?: string }) {
+  async createClient(data: ClientData) {
     try {
+      const { name, phone, address, description, color } = data;
       if (!name || !phone) throw new Error('Nombre y teléfono son requeridos');
       if (name.trim().length < 3) throw new Error('El nombre debe tener al menos 3 caracteres');
       if (phone.trim().length < 10) throw new Error('El teléfono debe tener al menos 10 dígitos');
@@ -57,8 +58,9 @@ class ClientService {
     }
   }
 
-  async updateClient(id: number, { name, phone, address, description, color }: { name: string; phone: string; address?: string; description?: string; color?: string }) {
+  async updateClient(id: number, data: ClientData) {
     try {
+      const { name, phone, address, description, color } = data;
       if (!id || id <= 0) throw new Error('ID de cliente inválido');
       if (!name || !phone) throw new Error('Nombre y teléfono son requeridos');
       if (name.trim().length < 3) throw new Error('El nombre debe tener al menos 3 caracteres');

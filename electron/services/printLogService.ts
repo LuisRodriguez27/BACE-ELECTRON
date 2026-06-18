@@ -149,8 +149,9 @@ class PrintLogService {
     }
   }
 
-  async updatePrintLogCheckboxes(id: number, { completado }: { completado: boolean | undefined }) {
+  async updatePrintLogCheckboxes(id: number, data: PrintLogCheckboxData) {
     try {
+      const { completado } = data;
       const logId = parseInt(String(id), 10);
       if (isNaN(logId)) throw new Error('ID de bitácora inválido');
       const existing = await printLogRepository.getById(logId);

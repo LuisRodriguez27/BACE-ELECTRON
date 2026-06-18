@@ -35,3 +35,9 @@ export const assignPermissionSchema = z.object({
 });
 
 export type AssignPermissionForm = z.infer<typeof assignPermissionSchema>;
+
+export interface AssignPermissionData {
+  userId: number;
+  permissionId: number;
+}
+

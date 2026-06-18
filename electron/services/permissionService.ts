@@ -2,6 +2,7 @@ import permissionRepository from '../repositories/permissionRepository';
 import userRepository from '../repositories/userRepository';
 import Permission from '../domain/permission';
 import db from '../db';
+import type { AssignPermissionData, CreatePermissionData, UpdatePermissionData } from '../types/permission';
 
 class PermissionService {
   async getAllPermissions() {
@@ -39,8 +40,9 @@ class PermissionService {
     }
   }
 
-  async createPermission({ name, description }: { name: string; description?: string | null }) {
+  async createPermission(data: CreatePermissionData) {
     try {
+      const { name, description } = data;
       if (!name || typeof name !== 'string') throw new Error('El nombre del permiso es requerido');
       const trimmedName = name.trim();
       if (!Permission.isValidPermissionName(trimmedName)) throw new Error('Nombre de permiso inválido. Debe contener solo letras, números y guiones bajos (2-50 caracteres)');
@@ -53,8 +55,9 @@ class PermissionService {
     }
   }
 
-  async updatePermission(id: number, { name, description, active }: { name?: string; description?: string | null; active?: boolean }) {
+  async updatePermission(id: number, data: UpdatePermissionData) {
     try {
+      const { name, description, active } = data;
       if (!id || isNaN(Number(id))) throw new Error('ID de permiso inválido');
       const permissionId = id;
       const existingPermission = await permissionRepository.findById(permissionId);
@@ -93,8 +96,9 @@ class PermissionService {
     }
   }
 
-  async assignPermissionToUser({ userId, permissionId }: { userId: number; permissionId: number }) {
+  async assignPermissionToUser(data: AssignPermissionData) {
     try {
+      const { userId, permissionId } = data;
       if (!userId || userId <= 0) throw new Error('ID de usuario inválido');
       if (!permissionId || permissionId <= 0) throw new Error('ID de permiso inválido');
 
@@ -122,8 +126,9 @@ class PermissionService {
     }
   }
 
-  async removePermissionFromUser({ userId, permissionId }: { userId: number; permissionId: number }) {
+  async removePermissionFromUser(data: AssignPermissionData) {
     try {
+      const { userId, permissionId } = data;
       if (!userId || userId <= 0) throw new Error('ID de usuario inválido');
       if (!permissionId || permissionId <= 0) throw new Error('ID de permiso inválido');
 

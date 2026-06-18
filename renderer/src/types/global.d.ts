@@ -1,6 +1,6 @@
 import { Client, CreateClientForm, EditClientForm } from "../features/clients/types";
 import { User, CreateUserForm, EditUserForm } from "../features/users/types";
-import { Permission, CreatePermissionForm, EditPermissionForm } from "../features/permissions/types";
+import { Permission, CreatePermissionForm, EditPermissionForm, AssignPermissionData } from "../features/permissions/types";
 import { Product, CreateProductForm, EditProductForm, SimilarNameResult } from "../features/products/types";
 import { ProductTemplate, CreateProductTemplateForm, EditProductTemplateForm } from "../features/productTemplates/types";
 import { Order, CreateOrderForm, EditOrderForm, OrderProduct, CreateOrderProductForm, EditOrderProductForm } from "../features/orders/types";
@@ -62,8 +62,8 @@ declare global {
       updatePermission: (id: number, data: EditPermissionForm) => Promise<Permission>;
       deletePermission: (id: number) => Promise<void>;
       // Corregidos los tipos de parámetros - deben ser objetos, no strings
-      assignPermissionToUser: (data: { userId: number; permissionId: number }) => Promise<User>;
-      removePermissionFromUser: (data: { userId: number; permissionId: number }) => Promise<User>;
+      assignPermissionToUser: (data: AssignPermissionData) => Promise<User>;
+      removePermissionFromUser: (data: AssignPermissionData) => Promise<User>;
 
       // Clientes
       getAllClients: () => Promise<Client[]>;

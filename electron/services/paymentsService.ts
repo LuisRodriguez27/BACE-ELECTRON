@@ -3,6 +3,7 @@ import orderRepository from '../repositories/orderRepository';
 import cashSessionRepository from '../repositories/cashSessionRepository';
 import clientRepository from '../repositories/clientRepository';
 import db from '../db';
+import type { CreatePaymentData, UpdatePaymentData } from '../types/payment';
 
 class PaymentsService {
   async getAllPayments() {
@@ -52,8 +53,9 @@ class PaymentsService {
     }
   }
 
-  async createPayment({ orderId, amount, date, descripcion, info, phone, clientName }: { orderId?: number | null; amount: number; date: string; descripcion?: string | null; info?: string | null; phone?: string | null; clientName?: string | null }) {
+  async createPayment(data: CreatePaymentData) {
     try {
+      const { orderId, amount, date, descripcion, info, phone, clientName } = data;
       const activeSession = await cashSessionRepository.getActive();
       if (!activeSession) throw new Error('No hay una sesión de caja abierta. Abre la caja antes de registrar pagos.');
       if (!amount || isNaN(amount) || amount <= 0) throw new Error('Monto inválido. Debe ser un número mayor a 0');
@@ -111,8 +113,9 @@ class PaymentsService {
     }
   }
 
-  async updatePayment(id: number, { amount, descripcion, info, phone, clientName }: { amount?: number; descripcion?: string | null; info?: string | null; phone?: string | null; clientName?: string | null }) {
+  async updatePayment(id: number, data: UpdatePaymentData) {
     try {
+      const { amount, descripcion, info, phone, clientName } = data;
       if (!id || id <= 0) throw new Error('ID de pago inválido');
       const existingPayment = await paymentsRepository.findById(id);
       if (!existingPayment) throw new Error('Pago no encontrado');

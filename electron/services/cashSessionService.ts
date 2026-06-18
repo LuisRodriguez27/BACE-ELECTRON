@@ -1,5 +1,6 @@
 import cashSessionRepository from '../repositories/cashSessionRepository';
 import authService from './authService';
+import type { OpenSessionData, CloseSessionData } from '../types/cashSession';
 
 class CashSessionService {
   async getAll(page = 1, limit = 20) {
@@ -76,7 +77,7 @@ class CashSessionService {
     }
   }
 
-  async open(data: { opening_balance?: number | string; notes?: string | null }) {
+  async open(data: OpenSessionData) {
     try {
       const opening_balance = parseFloat(String(data?.opening_balance));
       if (isNaN(opening_balance) || opening_balance < 0) throw new Error('El balance de apertura debe ser un número mayor o igual a 0');
@@ -88,7 +89,7 @@ class CashSessionService {
     }
   }
 
-  async close(id: number, data: { closing_balance?: number | string; notes?: string | null }) {
+  async close(id: number, data: CloseSessionData) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de sesión inválido');
       const closing_balance = parseFloat(String(data?.closing_balance));
@@ -101,7 +102,7 @@ class CashSessionService {
     }
   }
 
-  async update(id: number, data: { opening_balance?: number | string; notes?: string | null }) {
+  async update(id: number, data: OpenSessionData) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de sesión inválido');
       const payload: Record<string, unknown> = {};
