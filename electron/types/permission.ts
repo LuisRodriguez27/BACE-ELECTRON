@@ -32,6 +32,6 @@ export interface UpdatePermissionData {
 }
 
 export interface AssignPermissionData {
-  userid: number;
-  permissionid: number;
+  userId: number;
+  permissionId: number;
 }

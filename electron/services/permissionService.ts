@@ -1,6 +1,7 @@
 import permissionRepository from '../repositories/permissionRepository';
 import userRepository from '../repositories/userRepository';
 import Permission from '../domain/permission';
+import db from '../db';
 
 class PermissionService {
   async getAllPermissions() {
@@ -25,12 +26,12 @@ class PermissionService {
     }
   }
 
-  async getPermissionsByUserId(userid: number) {
+  async getPermissionsByUserId(userId: number) {
     try {
       if (!userId || isNaN(Number(userId))) throw new Error('ID de usuario inválido');
-      const user = await userRepository.findById(parseInt(String(userId)));
+      const user = await userRepository.findById(userId);
       if (!user) throw new Error('El usuario especificado no existe');
-      const permissions = await permissionRepository.findByUserId(parseInt(String(userId)));
+      const permissions = await permissionRepository.findByUserId(userId);
       return permissions.map((p: { toPlainObject: () => unknown }) => p.toPlainObject());
     } catch (error) {
       console.error('Error al obtener permisos del usuario:', error);
@@ -92,59 +93,61 @@ class PermissionService {
     }
   }
 
-  async assignPermissionToUser({ userId, permissionId }: { userid: number; permissionid: number }) {
+  async assignPermissionToUser({ userId, permissionId }: { userId: number; permissionId: number }) {
     try {
-      if (!userId || isNaN(Number(userId))) throw new Error('ID de usuario inválido');
-      if (!permissionId || isNaN(Number(permissionId))) throw new Error('ID de permiso inválido');
+      if (!userId || userId <= 0) throw new Error('ID de usuario inválido');
+      if (!permissionId || permissionId <= 0) throw new Error('ID de permiso inválido');
 
-      const userIdInt = parseInt(String(userId));
-      const permissionIdInt = parseInt(String(permissionId));
+      const transaction = db.transaction(async () => {
+        const user = await userRepository.findById(userId);
+        if (!user) throw new Error('El usuario especificado no existe');
+        const permission = await permissionRepository.findById(permissionId);
+        if (!permission) throw new Error('El permiso especificado no existe');
+        if (!user.isActive()) throw new Error('No se puede asignar permisos a un usuario inactivo');
+        if (!permission.isActive()) throw new Error('No se puede asignar un permiso inactivo');
+        if (await permissionRepository.userHasPermission(userId, permissionId)) throw new Error('El usuario ya tiene asignado este permiso');
 
-      const user = await userRepository.findById(userIdInt);
-      if (!user) throw new Error('El usuario especificado no existe');
-      const permission = await permissionRepository.findById(permissionIdInt);
-      if (!permission) throw new Error('El permiso especificado no existe');
-      if (!user.isActive()) throw new Error('No se puede asignar permisos a un usuario inactivo');
-      if (!permission.isActive()) throw new Error('No se puede asignar un permiso inactivo');
-      if (await permissionRepository.userHasPermission(userIdInt, permissionIdInt)) throw new Error('El usuario ya tiene asignado este permiso');
+        const assigned = await permissionRepository.assignToUser(userId, permissionId);
+        if (!assigned) throw new Error('Error al asignar permiso al usuario');
 
-      const assigned = await permissionRepository.assignToUser(userIdInt, permissionIdInt);
-      if (!assigned) throw new Error('Error al asignar permiso al usuario');
+        const updatedUser = await userRepository.findById(userId);
+        if (!updatedUser) throw new Error('Error al obtener usuario actualizado');
+        return updatedUser.toPlainObject();
+      });
 
-      const updatedUser = await userRepository.findById(userIdInt);
-      if (!updatedUser) throw new Error('Error al obtener usuario actualizado');
-      return updatedUser.toPlainObject();
+      return await transaction();
     } catch (error) {
       console.error('Error al asignar permiso a usuario:', error);
       throw error;
     }
   }
 
-  async removePermissionFromUser({ userId, permissionId }: { userid: number; permissionid: number }) {
+  async removePermissionFromUser({ userId, permissionId }: { userId: number; permissionId: number }) {
     try {
-      if (!userId || isNaN(Number(userId))) throw new Error('ID de usuario inválido');
-      if (!permissionId || isNaN(Number(permissionId))) throw new Error('ID de permiso inválido');
+      if (!userId || userId <= 0) throw new Error('ID de usuario inválido');
+      if (!permissionId || permissionId <= 0) throw new Error('ID de permiso inválido');
 
-      const userIdInt = parseInt(String(userId));
-      const permissionIdInt = parseInt(String(permissionId));
+      const transaction = db.transaction(async () => {
+        const user = await userRepository.findById(userId);
+        if (!user) throw new Error('El usuario especificado no existe');
+        const permission = await permissionRepository.findById(permissionId);
+        if (!permission) throw new Error('El permiso especificado no existe');
+        if (!(await permissionRepository.userHasPermission(userId, permissionId))) throw new Error('El usuario no tiene asignado este permiso');
 
-      const user = await userRepository.findById(userIdInt);
-      if (!user) throw new Error('El usuario especificado no existe');
-      const permission = await permissionRepository.findById(permissionIdInt);
-      if (!permission) throw new Error('El permiso especificado no existe');
-      if (!(await permissionRepository.userHasPermission(userIdInt, permissionIdInt))) throw new Error('El usuario no tiene asignado este permiso');
+        if (permission.isCriticalPermission()) {
+          const usersWithPermission = permission.getAssignedUsers();
+          if (usersWithPermission.length <= 1) throw new Error('No se puede remover el último usuario con un permiso crítico');
+        }
 
-      if (permission.isCriticalPermission()) {
-        const usersWithPermission = permission.getAssignedUsers();
-        if (usersWithPermission.length <= 1) throw new Error('No se puede remover el último usuario con un permiso crítico');
-      }
+        const removed = await permissionRepository.removeFromUser(userId, permissionId);
+        if (!removed) throw new Error('Error al remover permiso del usuario');
 
-      const removed = await permissionRepository.removeFromUser(userIdInt, permissionIdInt);
-      if (!removed) throw new Error('Error al remover permiso del usuario');
+        const updatedUser = await userRepository.findById(userId);
+        if (!updatedUser) throw new Error('Error al obtener usuario actualizado');
+        return updatedUser.toPlainObject();
+      });
 
-      const updatedUser = await userRepository.findById(userIdInt);
-      if (!updatedUser) throw new Error('Error al obtener usuario actualizado');
-      return updatedUser.toPlainObject();
+      return await transaction();
     } catch (error) {
       console.error('Error al remover permiso de usuario:', error);
       throw error;

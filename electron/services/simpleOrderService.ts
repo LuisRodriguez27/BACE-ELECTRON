@@ -3,12 +3,13 @@ import cashSessionRepository from '../repositories/cashSessionRepository';
 import clientRepository from '../repositories/clientRepository';
 import SimpleOrder from '../domain/simpleOrder';
 import type { SimpleOrderData, AddSimplePaymentData } from '../types/simpleOrder';
+import db from '../db';
 
 class SimpleOrderService {
   async getAllSimpleOrders() {
     try {
       const orders = await simpleOrderRepository.getAll();
-      return orders.map((o: { toPlainObject: () => unknown }) => o.toPlainObject());
+      return orders.map((o) => o.toPlainObject());
     } catch (error) {
       console.error('Error in getAllSimpleOrders:', error);
       throw new Error('Hubo un error al obtener las ordenes rápidas.');
@@ -44,28 +45,32 @@ class SimpleOrderService {
 
       let resolvedName: string | null = order.client_name as string | null;
       let resolvedPhone: string | null = order.client_phone as string | null;
-      let wasClientCreated = false;
 
-      if (resolvedPhone && resolvedPhone.trim()) {
-        const cleanPhone = resolvedPhone.trim();
-        const existingClient = await clientRepository.findByPhone(cleanPhone);
-        if (existingClient) {
-          if (!resolvedName || !resolvedName.trim()) resolvedName = existingClient.name as string;
-        } else if (resolvedName && resolvedName.trim()) {
-          await clientRepository.create({ name: resolvedName.trim(), phone: cleanPhone });
-          wasClientCreated = true;
+      const transaction = db.transaction(async () => {
+        let wasClientCreated = false;
+        if (resolvedPhone && resolvedPhone.trim()) {
+          const cleanPhone = resolvedPhone.trim();
+          const existingClient = await clientRepository.findByPhone(cleanPhone);
+          if (existingClient) {
+            if (!resolvedName || !resolvedName.trim()) resolvedName = existingClient.name as string;
+          } else if (resolvedName && resolvedName.trim()) {
+            await clientRepository.create({ name: resolvedName.trim(), phone: cleanPhone });
+            wasClientCreated = true;
+          }
         }
-      }
 
-      const newId = await simpleOrderRepository.create({ user_id: order.user_id, date: order.date || new Date().toISOString(), concept: order.concept, total: order.total, active: order.active, client_name: resolvedName?.trim() || null, client_phone: resolvedPhone?.trim() || null });
-      const newOrder = await simpleOrderRepository.getById(newId);
-      if (!newOrder) throw new Error('Error al obtener la orden creada');
-      const resObj = newOrder.toPlainObject() as Record<string, unknown>;
-      if (wasClientCreated) resObj.clientCreated = true;
-      return resObj;
+        const newId = await simpleOrderRepository.create({ user_id: order.user_id, date: order.date || new Date().toISOString(), concept: order.concept, total: order.total, active: order.active, client_name: resolvedName?.trim() || null, client_phone: resolvedPhone?.trim() || null });
+        const newOrder = await simpleOrderRepository.getById(newId);
+        if (!newOrder) throw new Error('Error al obtener la orden creada');
+        const resObj = newOrder.toPlainObject() as Record<string, unknown>;
+        if (wasClientCreated) resObj.clientCreated = true;
+        return resObj;
+      });
+
+      return await transaction();
     } catch (error) {
       console.error('Error in createSimpleOrder:', error);
-      throw new Error('Hubo un error al crear la orden rápida.');
+      throw error;
     }
   }
 
@@ -76,49 +81,56 @@ class SimpleOrderService {
 
       let resolvedName: string | null = orderData.client_name !== undefined ? (orderData.client_name as string | null) : (existingOrder.client_name as string | null);
       let resolvedPhone: string | null = orderData.client_phone !== undefined ? (orderData.client_phone as string | null) : (existingOrder.client_phone as string | null);
-      let wasClientCreated = false;
 
-      if (resolvedPhone && resolvedPhone.trim()) {
-        const cleanPhone = resolvedPhone.trim();
-        const existingClient = await clientRepository.findByPhone(cleanPhone);
-        if (existingClient) {
-          if (!resolvedName || !resolvedName.trim()) resolvedName = existingClient.name as string;
-        } else if (resolvedName && resolvedName.trim()) {
-          await clientRepository.create({ name: resolvedName.trim(), phone: cleanPhone });
-          wasClientCreated = true;
+      const transaction = db.transaction(async () => {
+        let wasClientCreated = false;
+        if (resolvedPhone && resolvedPhone.trim()) {
+          const cleanPhone = resolvedPhone.trim();
+          const existingClient = await clientRepository.findByPhone(cleanPhone);
+          if (existingClient) {
+            if (!resolvedName || !resolvedName.trim()) resolvedName = existingClient.name as string;
+          } else if (resolvedName && resolvedName.trim()) {
+            await clientRepository.create({ name: resolvedName.trim(), phone: cleanPhone });
+            wasClientCreated = true;
+          }
         }
-      }
 
-      const updatedData = {
-        user_id: (orderData.user_id ?? existingOrder.user_id) as number,
-        date: (orderData.date ?? existingOrder.date) as string,
-        concept: (orderData.concept ?? existingOrder.concept) as string,
-        total: (orderData.total ?? existingOrder.total) as number,
-        active: orderData.active ?? existingOrder.active,
-        client_name: resolvedName?.trim() || null,
-        client_phone: resolvedPhone?.trim() || null
-      };
-      const success = await simpleOrderRepository.update(id, updatedData);
-      if (!success) throw new Error('No se pudo actualizar la orden rápida, posiblemente no exista.');
+        const updatedData = {
+          user_id: (orderData.user_id ?? existingOrder.user_id) as number,
+          date: (orderData.date ?? existingOrder.date) as string,
+          concept: (orderData.concept ?? existingOrder.concept) as string,
+          total: (orderData.total ?? existingOrder.total) as number,
+          active: orderData.active ?? existingOrder.active,
+          client_name: resolvedName?.trim() || null,
+          client_phone: resolvedPhone?.trim() || null
+        };
+        const success = await simpleOrderRepository.update(id, updatedData);
+        if (!success) throw new Error('No se pudo actualizar la orden rápida, posiblemente no exista.');
 
-      const updatedOrder = await simpleOrderRepository.getById(id);
-      if (!updatedOrder) throw new Error('Error al obtener la orden actualizada');
-      const resObj = updatedOrder.toPlainObject() as Record<string, unknown>;
-      if (wasClientCreated) resObj.clientCreated = true;
-      return resObj;
+        const updatedOrder = await simpleOrderRepository.getById(id);
+        if (!updatedOrder) throw new Error('Error al obtener la orden actualizada');
+        const resObj = updatedOrder.toPlainObject() as Record<string, unknown>;
+        if (wasClientCreated) resObj.clientCreated = true;
+        return resObj;
+      });
+
+      return await transaction();
     } catch (error) {
       console.error(`Error in updateSimpleOrder (${id}):`, error);
-      throw new Error('Hubo un error al actualizar la orden rápida.');
+      throw error;
     }
   }
 
   async deleteSimpleOrder(id: number) {
     try {
-      const success = await simpleOrderRepository.delete(id);
-      if (!success) throw new Error('No se pudo eliminar la orden rápida, posiblemente no exista.');
+      const transaction = db.transaction(async () => {
+        const success = await simpleOrderRepository.delete(id);
+        if (!success) throw new Error('No se pudo eliminar la orden rápida, posiblemente no exista.');
+      });
+      await transaction();
     } catch (error) {
       console.error(`Error in deleteSimpleOrder (${id}):`, error);
-      throw new Error('Hubo un error al eliminar la orden rápida.');
+      throw error;
     }
   }
 
@@ -129,8 +141,12 @@ class SimpleOrderService {
       if (!activeSession) throw new Error('No hay una sesión de caja abierta. Abre la caja antes de registrar pagos.');
       if (!simple_order_id || !user_id || typeof amount !== 'number' || amount <= 0) throw new Error('Datos de pago inválidos. Se requiere el ID de la orden, el empleado y un monto mayor a 0.');
 
-      const newId = await simpleOrderRepository.addPayment({ simple_order_id, user_id, amount, date: date || new Date().toISOString(), descripcion });
-      return await simpleOrderRepository.getPaymentById(newId);
+      const transaction = db.transaction(async () => {
+        const newId = await simpleOrderRepository.addPayment({ simple_order_id, user_id, amount, date: date || new Date().toISOString(), descripcion });
+        return await simpleOrderRepository.getPaymentById(newId);
+      });
+
+      return await transaction();
     } catch (error) {
       console.error('Error in addPayment:', error);
       throw error;
@@ -148,32 +164,39 @@ class SimpleOrderService {
 
   async updatePayment(id: number, paymentData: Record<string, unknown>) {
     try {
-      const success = await simpleOrderRepository.updatePayment(id, paymentData as { amount: number; date: string; descripcion?: string | null });
-      if (!success) throw new Error('No se pudo actualizar el pago, posiblemente no exista.');
-      return await simpleOrderRepository.getPaymentById(id);
+      const transaction = db.transaction(async () => {
+        const success = await simpleOrderRepository.updatePayment(id, paymentData as { amount: number; date: string; descripcion?: string | null });
+        if (!success) throw new Error('No se pudo actualizar el pago, posiblemente no exista.');
+        return await simpleOrderRepository.getPaymentById(id);
+      });
+
+      return await transaction();
     } catch (error) {
       console.error(`Error in updatePayment (${id}):`, error);
-      throw new Error('Hubo un error al actualizar el pago.');
+      throw error;
     }
   }
 
   async deletePayment(id: number) {
     try {
-      const success = await simpleOrderRepository.deletePayment(id);
-      if (!success) throw new Error('No se pudo eliminar el pago, posiblemente no exista.');
+      const transaction = db.transaction(async () => {
+        const success = await simpleOrderRepository.deletePayment(id);
+        if (!success) throw new Error('No se pudo eliminar el pago, posiblemente no exista.');
+      });
+      await transaction();
     } catch (error) {
       console.error(`Error in deletePayment (${id}):`, error);
-      throw new Error('Hubo un error al eliminar el pago.');
+      throw error;
     }
   }
 
-  async getSimpleOrdersPaginated(page: number | string = 1, limit: number | string = 10, searchTerm = '') {
+  async getSimpleOrdersPaginated(page = 1, limit = 10, searchTerm = '') {
     try {
-      const pageNum = parseInt(String(page), 10) || 1;
-      const limitNum = parseInt(String(limit), 10) || 10;
+      if (page < 1) page = 1;
+      if (limit < 1 || limit > 100) limit = 10;
       const cleanSearch = searchTerm ? searchTerm.trim() : '';
-      const paginatedResult = await simpleOrderRepository.findPaginated(pageNum, limitNum, cleanSearch);
-      return { data: paginatedResult.data.map((o: { toPlainObject: () => unknown }) => o.toPlainObject()), pagination: paginatedResult.pagination, stats: paginatedResult.stats };
+      const paginatedResult = await simpleOrderRepository.findPaginated(page, limit, cleanSearch);
+      return { data: paginatedResult.data.map((o) => o.toPlainObject()), pagination: paginatedResult.pagination, stats: paginatedResult.stats };
     } catch (error) {
       console.error('Error in getSimpleOrdersPaginated:', error);
       throw new Error('Hubo un error al obtener las órdenes rápidas paginadas.');

@@ -25,10 +25,10 @@ class ProductTemplateService {
     }
   }
 
-  async getTemplatesByProductId(productid: number) {
+  async getTemplatesByProductId(productId: number) {
     try {
       if (!productId || isNaN(Number(productId))) throw new Error('ID de producto inválido');
-      const templates = await productTemplateRepository.findByProductId(parseInt(String(productId)));
+      const templates = await productTemplateRepository.findByProductId(productId);
       return templates.map((t: { toPlainObject: () => unknown }) => t.toPlainObject());
     } catch (error) {
       console.error('Error al obtener plantillas del producto:', error);

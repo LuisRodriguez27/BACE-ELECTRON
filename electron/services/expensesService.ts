@@ -14,10 +14,10 @@ class ExpensesService {
     }
   }
 
-  async getByCashSession(cashSessionid: number) {
+  async getByCashSession(cashSessionId: number) {
     try {
       if (!cashSessionId || isNaN(Number(cashSessionId))) throw new Error('ID de sesión de caja inválido');
-      const expenses = await expensesRepository.getByCashSession(parseInt(String(cashSessionId)));
+      const expenses = await expensesRepository.getByCashSession(cashSessionId);
       return expenses.map((e: { toPlainObject: () => unknown }) => e.toPlainObject());
     } catch (error) {
       console.error('Error al obtener gastos de la sesión:', error);

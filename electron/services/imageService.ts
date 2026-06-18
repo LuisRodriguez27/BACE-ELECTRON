@@ -28,7 +28,7 @@ class ImageService {
     return process.env.BASE_PATH || 'C:\\NAS\\Imagenes';
   }
 
-  async uploadImage(productid: number, buffer: Buffer, originalName: string): Promise<UploadResult> {
+  async uploadImage(productId: number, buffer: Buffer, originalName: string): Promise<UploadResult> {
     try {
       if (!buffer || buffer.length === 0) throw new Error('El archivo está vacío o es inválido.');
       const mimeType = mime.lookup(originalName) as string | false;

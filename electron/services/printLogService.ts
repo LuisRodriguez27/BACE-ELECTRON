@@ -57,7 +57,7 @@ class PrintLogService {
     }
   }
 
-  async getPrintLogsByOrderId(orderid: number) {
+  async getPrintLogsByOrderId(orderId: number) {
     try {
       const oId = parseInt(String(orderId), 10);
       if (isNaN(oId)) throw new Error('ID de orden inválido');

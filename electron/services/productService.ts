@@ -131,10 +131,10 @@ class ProductService {
     }
   }
 
-  async getProductWithTemplates(productid: number) {
+  async getProductWithTemplates(productId: number) {
     try {
-      if (!productId || isNaN(Number(productId))) throw new Error('ID de producto inválido');
-      const productWithTemplates = await productRepository.findWithTemplates(parseInt(String(productId)));
+      if (!productId) throw new Error('ID de producto inválido');
+      const productWithTemplates = await productRepository.findWithTemplates(productId);
       if (!productWithTemplates) throw new Error('Producto no encontrado');
       return productWithTemplates;
     } catch (error) {
