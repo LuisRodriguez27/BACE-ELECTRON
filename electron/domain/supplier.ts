@@ -32,4 +32,4 @@ class Supplier {
   }
 }
 
-module.exports = Supplier;
+export default Supplier;

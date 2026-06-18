@@ -1,6 +1,6 @@
 import db from '../db';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const PrintLog = require('../domain/printLog');
+import PrintLog from '../domain/printLog';
+import type { PrintLogRow } from '../types/printLog';
 
 class PrintLogRepository {
   private _selectQuery = `
@@ -11,7 +11,7 @@ class PrintLogRepository {
   `;
 
   async getActive(todayLocalStr: string) {
-    const rows = await db.getAll(`${this._selectQuery} WHERE pl.active = TRUE AND (TO_CHAR(pl.created_at AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') >= $1 OR (TO_CHAR(pl.created_at AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') < $1 AND pl.completado = FALSE)) ORDER BY pl.created_at ASC, pl.hora_entrega ASC`, [todayLocalStr]);
+    const rows = await db.getAll<PrintLogRow>(`${this._selectQuery} WHERE pl.active = TRUE AND (TO_CHAR(pl.created_at AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') >= $1 OR (TO_CHAR(pl.created_at AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') < $1 AND pl.completado = FALSE)) ORDER BY pl.created_at ASC, pl.hora_entrega ASC`, [todayLocalStr]);
     return rows.map((r) => new PrintLog(r));
   }
 
@@ -35,19 +35,19 @@ class PrintLogRepository {
 
     const countResult = await db.getOne<{ total: string }>(`SELECT COUNT(*) as total FROM print_logs pl LEFT JOIN orders o ON pl.order_id = o.id LEFT JOIN clients c ON o.client_id = c.id WHERE pl.active = TRUE ${searchCondition}`, searchParams);
     const total = parseInt(countResult!.total, 10);
-    const rows = await db.getAll(`${this._selectQuery} WHERE pl.active = TRUE ${searchCondition} ORDER BY pl.created_at DESC, pl.hora_entrega DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`, [...searchParams, limit, offset]);
+    const rows = await db.getAll<PrintLogRow>(`${this._selectQuery} WHERE pl.active = TRUE ${searchCondition} ORDER BY pl.created_at DESC, pl.hora_entrega DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`, [...searchParams, limit, offset]);
 
     return { data: rows.map((r) => new PrintLog(r)), pagination: { page, limit, total, totalPages: Math.ceil(total / limit), hasNext: page < Math.ceil(total / limit), hasPrev: page > 1 }, searchTerm, searchDate };
   }
 
   async getById(id: number) {
-    const row = await db.getOne(`${this._selectQuery} WHERE pl.id = $1 AND pl.active = TRUE`, [id]);
+    const row = await db.getOne<PrintLogRow>(`${this._selectQuery} WHERE pl.id = $1 AND pl.active = TRUE`, [id]);
     if (!row) return null;
     return new PrintLog(row);
   }
 
   async getByOrderId(orderId: number) {
-    const rows = await db.getAll(`${this._selectQuery} WHERE pl.order_id = $1 AND pl.active = TRUE ORDER BY pl.hora_entrega DESC`, [orderId]);
+    const rows = await db.getAll<PrintLogRow>(`${this._selectQuery} WHERE pl.order_id = $1 AND pl.active = TRUE ORDER BY pl.hora_entrega DESC`, [orderId]);
     return rows.map((r) => new PrintLog(r));
   }
 
@@ -118,7 +118,7 @@ class PrintLogRepository {
   }
 
   async getByDay(dateLocalStr: string) {
-    const rows = await db.getAll(`${this._selectQuery} WHERE pl.active = TRUE AND TO_CHAR(pl.created_at AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') = $1 ORDER BY pl.hora_entrega ASC`, [dateLocalStr]);
+    const rows = await db.getAll<PrintLogRow>(`${this._selectQuery} WHERE pl.active = TRUE AND TO_CHAR(pl.created_at AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') = $1 ORDER BY pl.hora_entrega ASC`, [dateLocalStr]);
     return rows.map((r) => new PrintLog(r));
   }
 
@@ -128,4 +128,4 @@ class PrintLogRepository {
   }
 }
 
-module.exports = new PrintLogRepository();
+export default new PrintLogRepository();

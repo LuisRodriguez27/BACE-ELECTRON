@@ -1,25 +1,27 @@
 import db from '../db';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Supplier = require('../domain/supplier');
+import Supplier from '../domain/supplier';
+import type { SupplierRow } from '../types/supplier';
 
 class SupplierRepository {
   async findAll() {
-    const suppliers = await db.getAll('SELECT * FROM suppliers WHERE is_active = true ORDER BY id DESC');
+    const suppliers = await db.getAll<SupplierRow>('SELECT * FROM suppliers WHERE is_active = true ORDER BY id DESC');
     return suppliers.map((s) => new Supplier(s));
   }
 
   async findById(id: number) {
-    const supplier = await db.getOne('SELECT * FROM suppliers WHERE id = $1 AND is_active = true', [id]);
+    const supplier = await db.getOne<SupplierRow>('SELECT * FROM suppliers WHERE id = $1 AND is_active = true', [id]);
     if (!supplier) return null;
     return new Supplier(supplier);
   }
 
-  async create(supplierData: { name: string; phone?: string | null; email?: string | null; description?: string | null; columns?: unknown[] | string | null }) {
+  async create(supplierData: { name: string; phone?: string | null; email?: string | null; description?: string | null; columns?: unknown[] | string | null }): Promise<Supplier> {
     const columnsJson = supplierData.columns
       ? (typeof supplierData.columns === 'string' ? supplierData.columns : JSON.stringify(supplierData.columns))
       : '[]';
     const result = await db.execute(`INSERT INTO suppliers (name, phone, email, description, columns, is_active) VALUES ($1, $2, $3, $4, $5, true)`, [supplierData.name.trim(), supplierData.phone ? String(supplierData.phone).trim() : null, supplierData.email ? String(supplierData.email).trim() : null, supplierData.description ? String(supplierData.description).trim() : null, columnsJson]);
-    return new Supplier({ id: result.lastInsertRowid, ...supplierData, is_active: true });
+    const supplier = await this.findById(result.lastInsertRowid!);
+    if (!supplier) throw new Error('Error al crear el proveedor');
+    return supplier;
   }
 
   async update(id: number, supplierData: { name: string; phone?: string | null; email?: string | null; description?: string | null; columns?: unknown[] | string | null }): Promise<boolean> {
@@ -44,9 +46,9 @@ class SupplierRepository {
 
   async searchByTerm(searchTerm: string) {
     const term = `%${searchTerm}%`;
-    const suppliers = await db.getAll(`SELECT * FROM suppliers WHERE is_active = true AND (CAST(id AS TEXT) ILIKE $1 OR name ILIKE $1 OR phone ILIKE $1 OR email ILIKE $1 OR description ILIKE $1 OR columns ILIKE $1) ORDER BY name`, [term]);
+    const suppliers = await db.getAll<SupplierRow>(`SELECT * FROM suppliers WHERE is_active = true AND (CAST(id AS TEXT) ILIKE $1 OR name ILIKE $1 OR phone ILIKE $1 OR email ILIKE $1 OR description ILIKE $1 OR columns ILIKE $1) ORDER BY name`, [term]);
     return suppliers.map((s) => new Supplier(s));
   }
 }
 
-module.exports = new SupplierRepository();
+export default new SupplierRepository();

@@ -1,8 +1,7 @@
 import db from '../db';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const SupplierOrder = require('../domain/supplierOrder');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const SupplierOrderItem = require('../domain/supplierOrderItem');
+import SupplierOrder from '../domain/supplierOrder';
+import SupplierOrderItem from '../domain/supplierOrderItem';
+import type { SupplierOrderRow, SupplierOrderItemRow } from '../types/supplierOrder';
 
 const BASE_SELECT = `
   SELECT so.*, s.name AS supplier_name, s.phone AS supplier_phone, o.total AS order_total, u.username AS username
@@ -14,7 +13,7 @@ const BASE_SELECT = `
 
 class SupplierOrderRepository {
   async getOrderItems(supplierOrderId: number) {
-    const rows = await db.getAll(`SELECT * FROM supplier_order_items WHERE supplier_order_id = $1 AND active = true ORDER BY id ASC`, [supplierOrderId]);
+    const rows = await db.getAll<SupplierOrderItemRow>(`SELECT * FROM supplier_order_items WHERE supplier_order_id = $1 AND active = true ORDER BY id ASC`, [supplierOrderId]);
     return rows.map((r) => new SupplierOrderItem(r));
   }
 
@@ -26,32 +25,32 @@ class SupplierOrderRepository {
   }
 
   async findAll() {
-    const rows = await db.getAll(`${BASE_SELECT} WHERE so.active = true ORDER BY so.date DESC`);
+    const rows = await db.getAll<SupplierOrderRow>(`${BASE_SELECT} WHERE so.active = true ORDER BY so.date DESC`);
     return await Promise.all(rows.map(async (r) => {
-      const items = await this.getOrderItems(r.id as number);
+      const items = await this.getOrderItems(r.id);
       return new SupplierOrder({ ...r, supplierOrderItems: items });
     }));
   }
 
   async findById(id: number) {
-    const row = await db.getOne(`${BASE_SELECT} WHERE so.id = $1 AND so.active = true`, [id]);
+    const row = await db.getOne<SupplierOrderRow>(`${BASE_SELECT} WHERE so.id = $1 AND so.active = true`, [id]);
     if (!row) return null;
     const items = await this.getOrderItems(id);
     return new SupplierOrder({ ...row, supplierOrderItems: items });
   }
 
   async findBySupplierId(supplierId: number) {
-    const rows = await db.getAll(`${BASE_SELECT} WHERE so.supplier_id = $1 AND so.active = true ORDER BY so.date DESC`, [supplierId]);
+    const rows = await db.getAll<SupplierOrderRow>(`${BASE_SELECT} WHERE so.supplier_id = $1 AND so.active = true ORDER BY so.date DESC`, [supplierId]);
     return await Promise.all(rows.map(async (r) => {
-      const items = await this.getOrderItems(r.id as number);
+      const items = await this.getOrderItems(r.id);
       return new SupplierOrder({ ...r, supplierOrderItems: items });
     }));
   }
 
   async findByOrderId(orderId: number) {
-    const rows = await db.getAll(`${BASE_SELECT} WHERE so.order_id = $1 AND so.active = true ORDER BY so.date DESC`, [orderId]);
+    const rows = await db.getAll<SupplierOrderRow>(`${BASE_SELECT} WHERE so.order_id = $1 AND so.active = true ORDER BY so.date DESC`, [orderId]);
     return await Promise.all(rows.map(async (r) => {
-      const items = await this.getOrderItems(r.id as number);
+      const items = await this.getOrderItems(r.id);
       return new SupplierOrder({ ...r, supplierOrderItems: items });
     }));
   }
@@ -98,4 +97,4 @@ class SupplierOrderRepository {
   }
 }
 
-module.exports = new SupplierOrderRepository();
+export default new SupplierOrderRepository();

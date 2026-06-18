@@ -1,22 +1,8 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const simpleOrderRepository = require('../repositories/simpleOrderRepository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const cashSessionRepository = require('../repositories/cashSessionRepository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const clientRepository = require('../repositories/clientRepository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const SimpleOrder = require('../domain/simpleOrder');
-
-interface SimpleOrderData {
-  user_id?: number;
-  date?: string;
-  concept?: string;
-  total?: number;
-  active?: boolean;
-  client_name?: string | null;
-  client_phone?: string | null;
-  [key: string]: unknown;
-}
+import simpleOrderRepository from '../repositories/simpleOrderRepository';
+import cashSessionRepository from '../repositories/cashSessionRepository';
+import clientRepository from '../repositories/clientRepository';
+import SimpleOrder from '../domain/simpleOrder';
+import type { SimpleOrderData, AddSimplePaymentData } from '../types/simpleOrder';
 
 class SimpleOrderService {
   async getAllSimpleOrders() {
@@ -42,7 +28,18 @@ class SimpleOrderService {
 
   async createSimpleOrder(orderData: SimpleOrderData) {
     try {
-      const order = new SimpleOrder(orderData);
+      const order = new SimpleOrder({
+        id: 0,
+        user_id: orderData.user_id || 0,
+        date: orderData.date || new Date().toISOString(),
+        concept: orderData.concept || '',
+        total: orderData.total || 0,
+        active: orderData.active ?? true,
+        user_username: null,
+        client_name: orderData.client_name || '',
+        client_phone: orderData.client_phone || '',
+        payments: []
+      });
       if (!order.isValid()) throw new Error('Los datos de la orden rápida son inválidos. Verifica que el empleado, concepto y total sean correctos.');
 
       let resolvedName: string | null = order.client_name as string | null;
@@ -62,6 +59,7 @@ class SimpleOrderService {
 
       const newId = await simpleOrderRepository.create({ user_id: order.user_id, date: order.date || new Date().toISOString(), concept: order.concept, total: order.total, active: order.active, client_name: resolvedName?.trim() || null, client_phone: resolvedPhone?.trim() || null });
       const newOrder = await simpleOrderRepository.getById(newId);
+      if (!newOrder) throw new Error('Error al obtener la orden creada');
       const resObj = newOrder.toPlainObject() as Record<string, unknown>;
       if (wasClientCreated) resObj.clientCreated = true;
       return resObj;
@@ -91,11 +89,20 @@ class SimpleOrderService {
         }
       }
 
-      const updatedData = { ...orderData, client_name: resolvedName?.trim() || null, client_phone: resolvedPhone?.trim() || null };
+      const updatedData = {
+        user_id: (orderData.user_id ?? existingOrder.user_id) as number,
+        date: (orderData.date ?? existingOrder.date) as string,
+        concept: (orderData.concept ?? existingOrder.concept) as string,
+        total: (orderData.total ?? existingOrder.total) as number,
+        active: orderData.active ?? existingOrder.active,
+        client_name: resolvedName?.trim() || null,
+        client_phone: resolvedPhone?.trim() || null
+      };
       const success = await simpleOrderRepository.update(id, updatedData);
       if (!success) throw new Error('No se pudo actualizar la orden rápida, posiblemente no exista.');
 
       const updatedOrder = await simpleOrderRepository.getById(id);
+      if (!updatedOrder) throw new Error('Error al obtener la orden actualizada');
       const resObj = updatedOrder.toPlainObject() as Record<string, unknown>;
       if (wasClientCreated) resObj.clientCreated = true;
       return resObj;
@@ -115,7 +122,7 @@ class SimpleOrderService {
     }
   }
 
-  async addPayment(paymentData: { simple_order_id: number; user_id: number; amount: number; date?: string; descripcion?: string | null }) {
+  async addPayment(paymentData: AddSimplePaymentData) {
     try {
       const { simple_order_id, user_id, amount, date, descripcion } = paymentData;
       const activeSession = await cashSessionRepository.getActive();
@@ -141,7 +148,7 @@ class SimpleOrderService {
 
   async updatePayment(id: number, paymentData: Record<string, unknown>) {
     try {
-      const success = await simpleOrderRepository.updatePayment(id, paymentData);
+      const success = await simpleOrderRepository.updatePayment(id, paymentData as { amount: number; date: string; descripcion?: string | null });
       if (!success) throw new Error('No se pudo actualizar el pago, posiblemente no exista.');
       return await simpleOrderRepository.getPaymentById(id);
     } catch (error) {

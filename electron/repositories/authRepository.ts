@@ -1,9 +1,7 @@
 import db from '../db';
 import * as bcryptjs from 'bcryptjs';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const User = require('../domain/user');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Session = require('../domain/auth');
+import User from '../domain/user';
+import Session from '../domain/auth';
 
 const saltRounds = 10;
 
@@ -50,11 +48,11 @@ class AuthRepository {
 
   async getSessionWithPermissions() {
     if (!this.currentSession.isAuthenticated()) return null;
-    const permissions = await this.getUserPermissions(this.currentSession.getUserId());
+    const permissions = await this.getUserPermissions(this.currentSession.getUserId()!);
     const permissionNames = permissions.map(p => p.name as string);
     this.currentSession.permissions = permissionNames;
     return this.currentSession;
   }
 }
 
-module.exports = new AuthRepository();
+export default new AuthRepository();

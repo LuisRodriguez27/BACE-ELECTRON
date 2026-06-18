@@ -1,10 +1,5 @@
-import type { UserRow, PermissionRow } from '../types/domain';
-
-interface UserPermission extends PermissionRow {
-  permission_name: string;
-  user_id: number;
-  permission_id: number;
-}
+import type { UserRow } from '../types/user';
+import type { UserPermission } from '../types/user';
 
 class User {
   id: number;
@@ -43,4 +38,4 @@ class User {
   }
 }
 
-module.exports = User;
+export default User;

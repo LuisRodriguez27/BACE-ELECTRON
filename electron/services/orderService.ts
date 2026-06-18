@@ -1,38 +1,10 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const orderRepository = require('../repositories/orderRepository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const clientRepository = require('../repositories/clientRepository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const userRepository = require('../repositories/userRepository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const productRepository = require('../repositories/productRepository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const productTemplateRepository = require('../repositories/productTemplateRepository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Order = require('../domain/order');
-
-interface OrderItem {
-  product_id?: number | string | null;
-  template_id?: number | string | null;
-  quantity: number | string;
-  unit_price: number | string;
-  is_delivered?: boolean | string;
-  is_paid?: boolean | string;
-}
-
-interface OrderData {
-  client_id?: number | string;
-  user_id?: number | string;
-  date?: string;
-  estimated_delivery_date?: string | null;
-  status?: string;
-  responsable?: string;
-  notes?: string | null;
-  description?: string | null;
-  edited_by?: number | string | null;
-  items?: OrderItem[];
-  products?: Array<{ product_id?: number | string | null; template_id?: number | string | null; quantity: number | string; unit_price?: number | string }>;
-}
+import orderRepository from '../repositories/orderRepository';
+import clientRepository from '../repositories/clientRepository';
+import userRepository from '../repositories/userRepository';
+import productRepository from '../repositories/productRepository';
+import productTemplateRepository from '../repositories/productTemplateRepository';
+import Order from '../domain/order';
+import type { OrderItem, OrderData } from '../types/order';
 
 class OrderService {
   async getAllOrders() {
@@ -160,6 +132,7 @@ class OrderService {
       };
 
       const order = await orderRepository.create(orderToCreate);
+      if (!order) throw new Error('Error al crear orden');
       return order.toPlainObject();
     } catch (error) {
       console.error('Error al crear orden:', error);

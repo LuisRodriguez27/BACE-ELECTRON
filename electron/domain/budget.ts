@@ -85,4 +85,4 @@ class Budget {
   }
 }
 
-module.exports = Budget;
+export default Budget;

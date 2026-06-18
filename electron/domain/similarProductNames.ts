@@ -24,4 +24,4 @@ class SimilarProductNames {
   }
 }
 
-module.exports = SimilarProductNames;
+export default SimilarProductNames;

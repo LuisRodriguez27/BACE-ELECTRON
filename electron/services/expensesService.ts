@@ -1,13 +1,5 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const expensesRepository = require('../repositories/expensesRepository');
-
-interface ExpenseUpdateData {
-  amount?: number | string;
-  description?: string;
-  date?: string;
-  edited_by?: number | string;
-  supplier_order_id?: number | null;
-}
+import expensesRepository from '../repositories/expensesRepository';
+import type { CreateExpenseData, UpdateExpenseData } from '../types/expense';
 
 class ExpensesService {
   async getAll(page = 1, limit = 20) {
@@ -45,7 +37,7 @@ class ExpensesService {
     }
   }
 
-  async create(data: { cash_session_id: number | string; user_id: number | string; amount: number | string; description: string; date: string; supplier_order_id?: number | null }) {
+  async create(data: CreateExpenseData) {
     try {
       const { cash_session_id, user_id, amount, description, date } = data;
       if (!cash_session_id || isNaN(Number(cash_session_id))) throw new Error('ID de sesión de caja inválido');
@@ -58,6 +50,7 @@ class ExpensesService {
       if (isNaN(new Date(date).getTime())) throw new Error('Fecha del gasto inválida');
 
       const expense = await expensesRepository.create({ cash_session_id: parseInt(String(cash_session_id)), user_id: parseInt(String(user_id)), amount: parsedAmount, description: description.trim(), date, supplier_order_id: data.supplier_order_id || null });
+      if (!expense) throw new Error('Error al crear gasto');
       return expense.toPlainObject();
     } catch (error) {
       console.error('Error al crear gasto:', error);
@@ -65,7 +58,7 @@ class ExpensesService {
     }
   }
 
-  async update(id: number | string, data: ExpenseUpdateData) {
+  async update(id: number | string, data: UpdateExpenseData) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de gasto inválido');
 

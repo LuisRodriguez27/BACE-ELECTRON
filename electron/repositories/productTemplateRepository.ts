@@ -1,6 +1,6 @@
 import db from '../db';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const ProductTemplate = require('../domain/productTemplate');
+import ProductTemplate from '../domain/productTemplate';
+import type { ProductTemplateRow } from '../types/productTemplate';
 
 class ProductTemplateRepository {
   private _selectQuery = `
@@ -11,18 +11,18 @@ class ProductTemplateRepository {
   `;
 
   async findAll() {
-    const templates = await db.getAll(`${this._selectQuery} WHERE pt.active = true ORDER BY pt.id DESC`);
+    const templates = await db.getAll<ProductTemplateRow>(`${this._selectQuery} WHERE pt.active = true ORDER BY pt.id DESC`);
     return templates.map((t) => new ProductTemplate(t));
   }
 
   async findById(id: number) {
-    const template = await db.getOne(`${this._selectQuery} WHERE pt.id = $1 AND pt.active = true`, [id]);
+    const template = await db.getOne<ProductTemplateRow>(`${this._selectQuery} WHERE pt.id = $1 AND pt.active = true`, [id]);
     if (!template) return null;
     return new ProductTemplate(template);
   }
 
   async findByProductId(productId: number) {
-    const templates = await db.getAll(`${this._selectQuery} WHERE pt.product_id = $1 AND pt.active = true ORDER BY pt.id DESC`, [productId]);
+    const templates = await db.getAll<ProductTemplateRow>(`${this._selectQuery} WHERE pt.product_id = $1 AND pt.active = true ORDER BY pt.id DESC`, [productId]);
     return templates.map((t) => new ProductTemplate(t));
   }
 
@@ -48,7 +48,7 @@ class ProductTemplateRepository {
 
   async searchByTerm(searchTerm: string) {
     const term = `%${searchTerm}%`;
-    const templates = await db.getAll(`${this._selectQuery} WHERE pt.active = true AND (pt.description ILIKE $1 OR p.name ILIKE $1 OR p.serial_number ILIKE $1 OR pt.position ILIKE $1 OR pt.texts ILIKE $1 OR u.username ILIKE $1) ORDER BY pt.id DESC`, [term]);
+    const templates = await db.getAll<ProductTemplateRow>(`${this._selectQuery} WHERE pt.active = true AND (pt.description ILIKE $1 OR p.name ILIKE $1 OR p.serial_number ILIKE $1 OR pt.position ILIKE $1 OR pt.texts ILIKE $1 OR u.username ILIKE $1) ORDER BY pt.id DESC`, [term]);
     return templates.map((t) => new ProductTemplate(t));
   }
 
@@ -60,14 +60,14 @@ class ProductTemplateRepository {
     if (!searchTerm || !searchTerm.trim()) {
       const countResult = await db.getOne<{ total: string }>('SELECT COUNT(*) as total FROM product_templates WHERE active = true');
       total = parseInt(countResult!.total, 10) || 0;
-      const raw = await db.getAll(`${this._selectQuery} WHERE pt.active = true ORDER BY pt.id DESC LIMIT $1 OFFSET $2`, [limit, offset]);
+      const raw = await db.getAll<ProductTemplateRow>(`${this._selectQuery} WHERE pt.active = true ORDER BY pt.id DESC LIMIT $1 OFFSET $2`, [limit, offset]);
       templates = raw.map((t) => new ProductTemplate(t));
     } else {
       const term = `%${searchTerm.trim()}%`;
       const searchWhere = `pt.active = true AND (pt.description ILIKE $1 OR p.name ILIKE $1 OR p.serial_number ILIKE $1 OR pt.position ILIKE $1 OR pt.texts ILIKE $1 OR u.username ILIKE $1)`;
       const countResult = await db.getOne<{ total: string }>(`SELECT COUNT(*) as total FROM product_templates pt JOIN products p ON pt.product_id = p.id LEFT JOIN users u ON pt.created_by = u.id WHERE ${searchWhere}`, [term]);
       total = parseInt(countResult!.total, 10) || 0;
-      const raw = await db.getAll(`${this._selectQuery} WHERE ${searchWhere} ORDER BY pt.id DESC LIMIT $2 OFFSET $3`, [term, limit, offset]);
+      const raw = await db.getAll<ProductTemplateRow>(`${this._selectQuery} WHERE ${searchWhere} ORDER BY pt.id DESC LIMIT $2 OFFSET $3`, [term, limit, offset]);
       templates = raw.map((t) => new ProductTemplate(t));
     }
 
@@ -76,4 +76,4 @@ class ProductTemplateRepository {
   }
 }
 
-module.exports = new ProductTemplateRepository();
+export default new ProductTemplateRepository();

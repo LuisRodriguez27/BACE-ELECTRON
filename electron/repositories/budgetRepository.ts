@@ -1,6 +1,6 @@
 import db from '../db';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Budget = require('../domain/budget');
+import Budget from '../domain/budget';
+import type { BudgetItem, BudgetRow, BudgetProductRow } from '../types/budget';
 
 const BUDGET_SELECT = `
   SELECT b.id, b.client_id, b.user_id, b.edited_by, b.date,
@@ -13,33 +13,26 @@ const BUDGET_SELECT = `
   LEFT JOIN users ue ON b.edited_by = ue.id
 `;
 
-interface BudgetItem {
-  product_id?: number | null;
-  template_id?: number | null;
-  quantity: number;
-  unit_price: number;
-}
-
 class BudgetRepository {
   async findAll() {
-    const budgets = await db.getAll(`${BUDGET_SELECT} WHERE b.active = true AND b.converted_to_order = 0 ORDER BY b.id DESC`);
+    const budgets = await db.getAll<BudgetRow>(`${BUDGET_SELECT} WHERE b.active = true AND b.converted_to_order = 0 ORDER BY b.id DESC`);
     return await Promise.all(budgets.map(async (budget) => {
-      const budgetProducts = await this.getBudgetProducts(budget.id as number);
+      const budgetProducts = await this.getBudgetProducts(budget.id);
       return new Budget({ ...budget, budgetProducts });
     }));
   }
 
   async findById(id: number) {
-    const budgetData = await db.getOne(`${BUDGET_SELECT} WHERE b.id = $1 AND b.active = true`, [id]);
+    const budgetData = await db.getOne<BudgetRow>(`${BUDGET_SELECT} WHERE b.id = $1 AND b.active = true`, [id]);
     if (!budgetData) return null;
-    const budgetProducts = await this.getBudgetProducts(budgetData.id as number);
+    const budgetProducts = await this.getBudgetProducts(budgetData.id);
     return new Budget({ ...budgetData, budgetProducts });
   }
 
   async findByClientId(clientId: number) {
-    const budgets = await db.getAll(`${BUDGET_SELECT} WHERE b.client_id = $1 AND b.active = true ORDER BY b.id DESC`, [clientId]);
+    const budgets = await db.getAll<BudgetRow>(`${BUDGET_SELECT} WHERE b.client_id = $1 AND b.active = true ORDER BY b.id DESC`, [clientId]);
     return await Promise.all(budgets.map(async (budget) => {
-      const budgetProducts = await this.getBudgetProducts(budget.id as number);
+      const budgetProducts = await this.getBudgetProducts(budget.id);
       return new Budget({ ...budget, budgetProducts });
     }));
   }
@@ -59,10 +52,10 @@ class BudgetRepository {
 
     const countResult = await db.getOne<{ total: string }>(`SELECT COUNT(*) as total FROM budgets b JOIN clients c ON b.client_id = c.id WHERE b.active = true AND b.converted_to_order = 0 ${searchCondition}`, searchParams);
     const total = parseInt(countResult!.total, 10);
-    const budgets = await db.getAll(`${BUDGET_SELECT} WHERE b.active = true AND b.converted_to_order = 0 ${searchCondition} ORDER BY b.id DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`, [...searchParams, limit, offset]);
+    const budgets = await db.getAll<BudgetRow>(`${BUDGET_SELECT} WHERE b.active = true AND b.converted_to_order = 0 ${searchCondition} ORDER BY b.id DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`, [...searchParams, limit, offset]);
 
     const budgetsWithProducts = await Promise.all(budgets.map(async (budget) => {
-      const budgetProducts = await this.getBudgetProducts(budget.id as number);
+      const budgetProducts = await this.getBudgetProducts(budget.id);
       return new Budget({ ...budget, budgetProducts });
     }));
 
@@ -121,8 +114,10 @@ class BudgetRepository {
       const hasTemplate = item.template_id !== null && item.template_id !== undefined;
       if (!hasProduct && !hasTemplate) throw new Error('Cada item debe tener al menos un product_id o template_id.');
       if (hasProduct && hasTemplate) throw new Error('Un item no puede tener tanto product_id como template_id');
-      if (!item.quantity || item.quantity <= 0) throw new Error('Cada item debe tener una cantidad válida mayor a 0');
-      if (!item.unit_price || item.unit_price <= 0) throw new Error('Cada item debe tener un precio unitario válido mayor a 0');
+      const quantity = Number(item.quantity);
+      const unitPrice = Number(item.unit_price);
+      if (isNaN(quantity) || quantity <= 0) throw new Error('Cada item debe tener una cantidad válida mayor a 0');
+      if (isNaN(unitPrice) || unitPrice <= 0) throw new Error('Cada item debe tener un precio unitario válido mayor a 0');
     }
   }
 
@@ -161,8 +156,8 @@ class BudgetRepository {
     return await transaction();
   }
 
-  async getBudgetProducts(budgetId: number) {
-    return await db.getAll(`
+  async getBudgetProducts(budgetId: number): Promise<BudgetProductRow[]> {
+    return await db.getAll<BudgetProductRow>(`
       SELECT bp.*,
              p.name as product_name, p.serial_number, p.price as product_price, p.description as product_description,
              pt.width as template_width, pt.height as template_height, pt.colors as template_colors,
@@ -191,4 +186,4 @@ class BudgetRepository {
   }
 }
 
-module.exports = new BudgetRepository();
+export default new BudgetRepository();

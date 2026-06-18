@@ -1,27 +1,11 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const supplierOrderRepository = require('../repositories/supplierOrderRepository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const supplierRepository = require('../repositories/supplierRepository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const userRepository = require('../repositories/userRepository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const expensesRepository = require('../repositories/expensesRepository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const cashSessionRepository = require('../repositories/cashSessionRepository');
+import supplierOrderRepository from '../repositories/supplierOrderRepository';
+import supplierRepository from '../repositories/supplierRepository';
+import userRepository from '../repositories/userRepository';
+import expensesRepository from '../repositories/expensesRepository';
+import cashSessionRepository from '../repositories/cashSessionRepository';
+import type { SupplierOrderData } from '../types/supplierOrder';
 
 const VALID_STATUSES = ['pendiente', 'pagado', 'cancelado'];
-
-interface SupplierOrderData {
-  supplier_id?: number | string;
-  order_id?: number | string | null;
-  user_id?: number | string | null;
-  status?: string | null;
-  notes?: string | null;
-  date?: string;
-  items?: unknown[] | null;
-  total?: number | string | null;
-  [key: string]: unknown;
-}
 
 class SupplierOrderService {
   async getAllSupplierOrders() {
@@ -97,11 +81,12 @@ class SupplierOrderService {
         if (!activeSession) throw new Error('No hay una sesión de caja abierta. Abre la caja antes de registrar órdenes con total.');
       }
 
-      const order = await supplierOrderRepository.create({ supplier_id: parseInt(String(supplier_id)), order_id: order_id ? parseInt(String(order_id)) : null, user_id: user_id ? parseInt(String(user_id)) : null, status: normalizedStatus, notes: notes ? String(notes).trim() : null, date, total: parsedTotal, items });
+      const order = await supplierOrderRepository.create({ supplier_id: parseInt(String(supplier_id)), order_id: order_id ? parseInt(String(order_id)) : null, user_id: user_id ? parseInt(String(user_id)) : null, status: normalizedStatus, notes: notes ? String(notes).trim() : null, date, total: parsedTotal, items: items ?? [] });
+      if (!order) throw new Error('Error al crear orden de proveedor');
 
       if (parsedTotal > 0 && activeSession) {
         const supplierName = supplier ? (supplier.name as string) : 'Desconocido';
-        await expensesRepository.create({ cash_session_id: activeSession.id, user_id: user_id ? parseInt(String(user_id)) : 1, amount: parsedTotal, description: `Pago Orden Proveedor #${order.id} - Proveedor: ${supplierName}`, date: date || new Date().toISOString(), supplier_order_id: order.id });
+        await expensesRepository.create({ cash_session_id: activeSession.id as number, user_id: user_id ? parseInt(String(user_id)) : 1, amount: parsedTotal, description: `Pago Orden Proveedor #${order.id} - Proveedor: ${supplierName}`, date: date || new Date().toISOString(), supplier_order_id: order.id });
       }
 
       return order.toPlainObject();
@@ -177,6 +162,7 @@ class SupplierOrderService {
       }
 
       const updated = await supplierOrderRepository.update(orderId, payload);
+      if (!updated) throw new Error('Error al obtener la orden actualizada');
       return updated.toPlainObject();
     } catch (error) {
       console.error('Error al actualizar orden de proveedor:', error);

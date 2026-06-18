@@ -1,17 +1,6 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const productRepository = require('../repositories/productRepository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const SimilarProductNames = require('../domain/similarProductNames');
-
-interface ProductData {
-  name: string;
-  serial_number?: string | null;
-  price: number | string;
-  promo_price?: number | string | null;
-  discount_price?: number | string | null;
-  description?: string | null;
-  images?: string[] | null;
-}
+import productRepository from '../repositories/productRepository';
+import SimilarProductNames from '../domain/similarProductNames';
+import type { ProductData } from '../types/product';
 
 class ProductService {
   async getAllProducts() {

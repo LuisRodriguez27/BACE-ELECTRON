@@ -32,4 +32,4 @@ class SimpleOrderPayment {
   }
 }
 
-module.exports = SimpleOrderPayment;
+export default SimpleOrderPayment;

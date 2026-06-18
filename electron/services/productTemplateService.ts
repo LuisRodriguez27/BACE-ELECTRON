@@ -1,21 +1,6 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const productTemplateRepository = require('../repositories/productTemplateRepository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const productRepository = require('../repositories/productRepository');
-
-interface TemplateData {
-  product_id: number | string;
-  final_price: number | string;
-  promo_price?: number | string | null;
-  discount_price?: number | string | null;
-  width?: number | string | null;
-  height?: number | string | null;
-  colors?: string | null;
-  position?: string | null;
-  texts?: string | null;
-  description?: string | null;
-  created_by?: number | string | null;
-}
+import productTemplateRepository from '../repositories/productTemplateRepository';
+import productRepository from '../repositories/productRepository';
+import type { TemplateData } from '../types/productTemplate';
 
 class ProductTemplateService {
   async getAllTemplates() {
@@ -70,12 +55,13 @@ class ProductTemplateService {
 
       const template = await productTemplateRepository.create({
         product_id: parseInt(String(product_id)), final_price: numericFinalPrice,
-        promo_price: promo_price !== undefined ? promo_price : null,
-        discount_price: discount_price !== undefined ? discount_price : null,
+        promo_price: promo_price !== undefined ? (promo_price !== null ? parseFloat(String(promo_price)) : null) : null,
+        discount_price: discount_price !== undefined ? (discount_price !== null ? parseFloat(String(discount_price)) : null) : null,
         width: width ? parseFloat(String(width)) : null, height: height ? parseFloat(String(height)) : null,
         colors: processedColors, position: position?.trim() || null, texts: processedTexts,
         description: description?.trim() || null, created_by: created_by ? parseInt(String(created_by)) : null
       });
+      if (!template) throw new Error('Error al crear plantilla');
       return template.toPlainObject();
     } catch (error) {
       console.error('Error al crear plantilla:', error);
@@ -106,8 +92,8 @@ class ProductTemplateService {
 
       const updated = await productTemplateRepository.update(templateId, {
         product_id: parseInt(String(product_id)), final_price: numericFinalPrice,
-        promo_price: promo_price !== undefined ? promo_price : null,
-        discount_price: discount_price !== undefined ? discount_price : null,
+        promo_price: promo_price !== undefined ? (promo_price !== null ? parseFloat(String(promo_price)) : null) : null,
+        discount_price: discount_price !== undefined ? (discount_price !== null ? parseFloat(String(discount_price)) : null) : null,
         width: width ? parseFloat(String(width)) : null, height: height ? parseFloat(String(height)) : null,
         colors: processedColors, position: position?.trim() || null, texts: processedTexts, description: description?.trim() || null
       });

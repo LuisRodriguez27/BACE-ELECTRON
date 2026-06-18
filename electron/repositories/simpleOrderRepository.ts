@@ -1,12 +1,11 @@
 import db from '../db';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const SimpleOrder = require('../domain/simpleOrder');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const cashSessionRepository = require('./cashSessionRepository');
+import SimpleOrder from '../domain/simpleOrder';
+import cashSessionRepository from './cashSessionRepository';
+import type { SimpleOrderRow, SimpleOrderPaymentRow } from '../types/simpleOrder';
 
 class SimpleOrderRepository {
   async getAll() {
-    const rows = await db.getAll(`SELECT o.*, u.username as user_username FROM simple_orders o LEFT JOIN users u ON o.user_id = u.id WHERE o.active = true ORDER BY o.date DESC`);
+    const rows = await db.getAll<SimpleOrderRow>(`SELECT o.*, u.username as user_username FROM simple_orders o LEFT JOIN users u ON o.user_id = u.id WHERE o.active = true ORDER BY o.date DESC`);
     const ordersWithPayments = [];
     for (const row of rows) {
       const payments = await this.getPayments(row.id as number);
@@ -16,7 +15,7 @@ class SimpleOrderRepository {
   }
 
   async getById(id: number) {
-    const row = await db.getOne(`SELECT o.*, u.username as user_username FROM simple_orders o LEFT JOIN users u ON o.user_id = u.id WHERE o.id = $1`, [id]);
+    const row = await db.getOne<SimpleOrderRow>(`SELECT o.*, u.username as user_username FROM simple_orders o LEFT JOIN users u ON o.user_id = u.id WHERE o.id = $1`, [id]);
     if (!row) return null;
     const payments = await this.getPayments(id);
     return new SimpleOrder({ ...row, payments });
@@ -39,12 +38,12 @@ class SimpleOrderRepository {
     return (result.changes ?? 0) > 0;
   }
 
-  async getPayments(orderId: number) {
-    return await db.getAll(`SELECT p.*, u.username as user_username FROM simple_order_payments p LEFT JOIN users u ON p.user_id = u.id WHERE p.simple_order_id = $1 ORDER BY p.date ASC`, [orderId]);
+  async getPayments(orderId: number): Promise<SimpleOrderPaymentRow[]> {
+    return await db.getAll<SimpleOrderPaymentRow>(`SELECT p.*, u.username as user_username FROM simple_order_payments p LEFT JOIN users u ON p.user_id = u.id WHERE p.simple_order_id = $1 ORDER BY p.date ASC`, [orderId]);
   }
 
-  async getPaymentById(id: number) {
-    return await db.getOne(`SELECT p.*, u.username as user_username FROM simple_order_payments p LEFT JOIN users u ON p.user_id = u.id WHERE p.id = $1`, [id]);
+  async getPaymentById(id: number): Promise<SimpleOrderPaymentRow | null> {
+    return await db.getOne<SimpleOrderPaymentRow>(`SELECT p.*, u.username as user_username FROM simple_order_payments p LEFT JOIN users u ON p.user_id = u.id WHERE p.id = $1`, [id]);
   }
 
   async addPayment(paymentData: { simple_order_id: number; user_id: number; amount: number; date: string; descripcion?: string | null }): Promise<number> {
@@ -80,7 +79,7 @@ class SimpleOrderRepository {
 
     const countResult = await db.getOne<{ total: string }>(`SELECT COUNT(*) as total FROM simple_orders o WHERE o.active = true ${searchCondition}`, searchParams);
     const total = parseInt(countResult!.total, 10) || 0;
-    const rows = await db.getAll(`SELECT o.*, u.username as user_username FROM simple_orders o LEFT JOIN users u ON o.user_id = u.id WHERE o.active = true ${searchCondition} ORDER BY o.date DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`, [...searchParams, limit, offset]);
+    const rows = await db.getAll<SimpleOrderRow>(`SELECT o.*, u.username as user_username FROM simple_orders o LEFT JOIN users u ON o.user_id = u.id WHERE o.active = true ${searchCondition} ORDER BY o.date DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`, [...searchParams, limit, offset]);
 
     const ordersWithPayments = [];
     for (const row of rows) {
@@ -102,4 +101,4 @@ class SimpleOrderRepository {
   }
 }
 
-module.exports = new SimpleOrderRepository();
+export default new SimpleOrderRepository();

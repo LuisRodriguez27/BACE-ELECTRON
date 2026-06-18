@@ -1,22 +1,22 @@
 import db from '../db';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Permission = require('../domain/permission');
+import Permission from '../domain/permission';
+import type { PermissionRow, PermissionUser } from '../types/permission';
 
 class PermissionRepository {
   async findAll() {
-    const permissions = await db.getAll(`SELECT * FROM permissions WHERE active = true ORDER BY name ASC`);
+    const permissions = await db.getAll<PermissionRow>(`SELECT * FROM permissions WHERE active = true ORDER BY name ASC`);
     return permissions.map((p) => new Permission({ ...p, users: [] }));
   }
 
   async findById(id: number) {
-    const permissionData = await db.getOne(`SELECT id, name, description, active FROM permissions WHERE id = $1 AND active = true`, [id]);
+    const permissionData = await db.getOne<PermissionRow>(`SELECT id, name, description, active FROM permissions WHERE id = $1 AND active = true`, [id]);
     if (!permissionData) return null;
     const users = await this.getUsersByPermissionId(id);
     return new Permission({ ...permissionData, users });
   }
 
   async findByUserId(userId: number) {
-    const permissions = await db.getAll(`
+    const permissions = await db.getAll<PermissionRow>(`
       SELECT p.id, p.name, p.description, p.active
       FROM permissions p 
       JOIN user_permissions up ON p.id = up.permission_id 
@@ -28,7 +28,7 @@ class PermissionRepository {
 
   async getUsersByPermissionId(permissionId: number) {
     try {
-      return await db.getAll(`
+      return await db.getAll<PermissionUser>(`
         SELECT u.id, u.username FROM users u
         JOIN user_permissions up ON u.id = up.user_id
         WHERE up.permission_id = $1 AND up.active = true AND u.active = true
@@ -94,4 +94,4 @@ class PermissionRepository {
   }
 }
 
-module.exports = new PermissionRepository();
+export default new PermissionRepository();

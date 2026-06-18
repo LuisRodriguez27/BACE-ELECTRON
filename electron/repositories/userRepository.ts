@@ -1,12 +1,16 @@
 import db from '../db';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const User = require('../domain/user');
+import * as bcryptjs from 'bcryptjs';
+import User from '../domain/user';
+import type { UserPermission } from '../types/user';
+import type { UserRow } from '../types/user';
 
-class UserRepository {
+const saltRounds = 10;
+
+export class UserRepository {
   async findAll() {
-    const users = await db.getAll('SELECT id, username, active FROM users WHERE active = true');
+    const users = await db.getAll<UserRow>('SELECT id, username, active FROM users WHERE active = true');
     return await Promise.all(users.map(async (user) => {
-      const userPermissions = await db.getAll(`
+      const userPermissions = await db.getAll<UserPermission>(`
         SELECT p.id as permission_id, p.name as permission_name, up.active
         FROM user_permissions up
         JOIN permissions p ON up.permission_id = p.id
@@ -17,9 +21,9 @@ class UserRepository {
   }
 
   async findById(id: number) {
-    const user = await db.getOne('SELECT id, username, active FROM users WHERE id = $1 AND active = true', [id]);
+    const user = await db.getOne<UserRow>('SELECT id, username, active FROM users WHERE id = $1 AND active = true', [id]);
     if (!user) return null;
-    const userPermissions = await db.getAll(`
+    const userPermissions = await db.getAll<UserPermission>(`
       SELECT p.id as permission_id, p.name as permission_name, up.active
       FROM user_permissions up
       JOIN permissions p ON up.permission_id = p.id
@@ -31,7 +35,7 @@ class UserRepository {
   async findByUsername(username: string) {
     const user = await db.getOne('SELECT id, username, password, active FROM users WHERE username = $1 AND active = true', [username]);
     if (!user) return null;
-    const userPermissions = await db.getAll(`
+    const userPermissions = await db.getAll<UserPermission>(`
       SELECT p.id as permission_id, p.name as permission_name, up.active
       FROM user_permissions up
       JOIN permissions p ON up.permission_id = p.id
@@ -42,7 +46,7 @@ class UserRepository {
 
   async create(userData: { username: string; hashedPassword: string }) {
     const result = await db.execute('INSERT INTO users (username, password) VALUES ($1, $2)', [userData.username, userData.hashedPassword]);
-    return new User({ id: result.lastInsertRowid, username: userData.username, active: true, userPermissions: [] });
+    return new User({ id: result.lastInsertRowid as number, username: userData.username, password: userData.hashedPassword, active: true, userPermissions: [] });
   }
 
   async update(id: number, userData: { username: string; hashedPassword?: string }): Promise<boolean> {
@@ -80,13 +84,12 @@ class UserRepository {
   }
 
   static hashPassword(password: string): string {
-    return require('bcryptjs').hashSync(password, saltRounds);
+    return bcryptjs.hashSync(password, saltRounds);
   }
 
   static verifyPassword(password: string, hashedPassword: string): boolean {
-    return require('bcryptjs').compareSync(password, hashedPassword);
+    return bcryptjs.compareSync(password, hashedPassword);
   }
 }
 
-const saltRounds = 10;
-module.exports = new UserRepository();
+export default new UserRepository();

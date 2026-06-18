@@ -1,13 +1,13 @@
 import db from '../db';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Expenses = require('../domain/expenses');
+import Expenses from '../domain/expenses';
+import type { ExpensesRow } from '../types/expense';
 
 class ExpensesRepository {
   async getAll(page = 1, limit = 20) {
     const offset = (page - 1) * limit;
     const [countRow, rows] = await Promise.all([
       db.getOne<{ total: string }>(`SELECT COUNT(*) AS total FROM expenses WHERE active = TRUE`),
-      db.getAll(`SELECT e.*, u.username AS user_username, ue.username AS edited_by_username FROM expenses e LEFT JOIN users u ON e.user_id = u.id LEFT JOIN users ue ON e.edited_by = ue.id WHERE e.active = TRUE ORDER BY e.date DESC LIMIT $1 OFFSET $2`, [limit, offset]),
+      db.getAll<ExpensesRow>(`SELECT e.*, u.username AS user_username, ue.username AS edited_by_username FROM expenses e LEFT JOIN users u ON e.user_id = u.id LEFT JOIN users ue ON e.edited_by = ue.id WHERE e.active = TRUE ORDER BY e.date DESC LIMIT $1 OFFSET $2`, [limit, offset]),
     ]);
     const total = parseInt(countRow!.total, 10);
     return {
@@ -17,12 +17,12 @@ class ExpensesRepository {
   }
 
   async getByCashSession(cashSessionId: number) {
-    const rows = await db.getAll(`SELECT e.*, u.username AS user_username, ue.username AS edited_by_username FROM expenses e LEFT JOIN users u ON e.user_id = u.id LEFT JOIN users ue ON e.edited_by = ue.id WHERE e.cash_session_id = $1 AND e.active = TRUE ORDER BY e.date ASC`, [cashSessionId]);
+    const rows = await db.getAll<ExpensesRow>(`SELECT e.*, u.username AS user_username, ue.username AS edited_by_username FROM expenses e LEFT JOIN users u ON e.user_id = u.id LEFT JOIN users ue ON e.edited_by = ue.id WHERE e.cash_session_id = $1 AND e.active = TRUE ORDER BY e.date ASC`, [cashSessionId]);
     return rows.map((r) => new Expenses(r));
   }
 
   async getById(id: number) {
-    const row = await db.getOne(`SELECT e.*, u.username AS user_username, ue.username AS edited_by_username FROM expenses e LEFT JOIN users u ON e.user_id = u.id LEFT JOIN users ue ON e.edited_by = ue.id WHERE e.id = $1`, [id]);
+    const row = await db.getOne<ExpensesRow>(`SELECT e.*, u.username AS user_username, ue.username AS edited_by_username FROM expenses e LEFT JOIN users u ON e.user_id = u.id LEFT JOIN users ue ON e.edited_by = ue.id WHERE e.id = $1`, [id]);
     if (!row) return null;
     return new Expenses(row);
   }
@@ -53,10 +53,10 @@ class ExpensesRepository {
   }
 
   async findBySupplierOrderId(supplierOrderId: number) {
-    const row = await db.getOne(`SELECT * FROM expenses WHERE supplier_order_id = $1 AND active = TRUE`, [supplierOrderId]);
+    const row = await db.getOne<ExpensesRow>(`SELECT * FROM expenses WHERE supplier_order_id = $1 AND active = TRUE`, [supplierOrderId]);
     if (!row) return null;
     return new Expenses(row);
   }
 }
 
-module.exports = new ExpensesRepository();
+export default new ExpensesRepository();

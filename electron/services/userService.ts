@@ -1,5 +1,5 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const userRepository = require('../repositories/userRepository');
+import userRepository, { UserRepository } from '../repositories/userRepository';
+import type { CreateUserData, UpdateUserData, VerifyPasswordData } from '../types/user';
 
 class UserService {
   async getAllUsers() {
@@ -31,7 +31,7 @@ class UserService {
       if (password.length < 6) throw new Error('La contraseña debe tener al menos 6 caracteres');
       if (await userRepository.existsByUsername(username.trim())) throw new Error('Este nombre de usuario ya está en uso');
 
-      const hashedPassword = userRepository.constructor.hashPassword(password);
+      const hashedPassword = UserRepository.hashPassword(password);
       const user = await userRepository.create({ username: username.trim(), hashedPassword });
       return user.toPlainObject();
     } catch (error) {
@@ -51,16 +51,17 @@ class UserService {
       if (!existingUser) throw new Error('Usuario no encontrado');
       if (await userRepository.existsByUsername(username.trim(), userId)) throw new Error('El username ya está en uso por otro usuario');
 
-      let hashedPassword: string | null = null;
+      let hashedPassword: string | undefined = undefined;
       if (password) {
         if (password.length < 6) throw new Error('La contraseña debe tener al menos 6 caracteres');
-        hashedPassword = userRepository.constructor.hashPassword(password);
+        hashedPassword = UserRepository.hashPassword(password);
       }
 
       const updated = await userRepository.update(userId, { username: username.trim(), hashedPassword });
       if (!updated) throw new Error('Error al actualizar usuario');
 
       const updatedUser = await userRepository.findById(userId);
+      if (!updatedUser) throw new Error('Error al actualizar usuario');
       return updatedUser.toPlainObject();
     } catch (error) {
       console.error('Error al actualizar usuario:', error);
@@ -91,7 +92,7 @@ class UserService {
       if (!username || !password) return false;
       const hashedPassword = await userRepository.getPasswordHash(username);
       if (!hashedPassword) return false;
-      return userRepository.constructor.verifyPassword(password, hashedPassword);
+      return UserRepository.verifyPassword(password, hashedPassword);
     } catch (error) {
       console.error('Error al verificar contraseña:', error);
       return false;

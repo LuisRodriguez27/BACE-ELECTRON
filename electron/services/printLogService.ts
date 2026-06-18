@@ -1,19 +1,5 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const printLogRepository = require('../repositories/printLogRepository');
-
-interface PrintLogData {
-  order_id?: number | string | null;
-  descripcion?: string;
-  hora_entrega?: string;
-  responsable?: string;
-  observaciones?: string | null;
-  envio?: string;
-  pago?: number | string | null;
-  completado?: boolean | string | number;
-  status?: string;
-  created_at?: string | null;
-  [key: string]: unknown;
-}
+import printLogRepository from '../repositories/printLogRepository';
+import type { PrintLogData, PrintLogCheckboxData } from '../types/printLog';
 
 type DatePart = { type: string; value: string };
 
@@ -107,6 +93,7 @@ class PrintLogService {
         status: status || 'Pendiente',
         created_at: created_at || null
       });
+      if (!log) throw new Error('Error al crear registro de bitácora');
       return log.toPlainObject();
     } catch (error) {
       console.error('Error al crear registro de bitácora:', error);
@@ -139,12 +126,22 @@ class PrintLogService {
         if (!validStatuses.includes(printLogData.status as string)) throw new Error('Estado de bitácora inválido');
       }
 
-      const updatedData = { ...printLogData };
-      if (updatedData.order_id !== undefined) updatedData.order_id = updatedData.order_id ? parseInt(String(updatedData.order_id), 10) : null;
-      if (updatedData.pago !== undefined) updatedData.pago = updatedData.pago !== null && updatedData.pago !== '' ? parseFloat(String(updatedData.pago)) : null;
-      if (updatedData.completado !== undefined) updatedData.completado = updatedData.completado === true || updatedData.completado === 'true' || updatedData.completado === 1;
-
-      const log = await printLogRepository.update(logId, updatedData);
+      const repoPayload: { order_id?: number | null; descripcion?: string; hora_entrega?: string; responsable?: string; observaciones?: string | null; envio?: string; pago?: number | null; completado?: boolean; status?: string; created_at?: string | null } = {
+        order_id: printLogData.order_id !== undefined ? (printLogData.order_id !== null && printLogData.order_id !== '' ? parseInt(String(printLogData.order_id), 10) : null) : undefined,
+        descripcion: printLogData.descripcion as string | undefined,
+        hora_entrega: printLogData.hora_entrega as string | undefined,
+        responsable: printLogData.responsable as string | undefined,
+        observaciones: printLogData.observaciones as string | null | undefined,
+        envio: printLogData.envio as string | undefined,
+        pago: printLogData.pago !== undefined ? (printLogData.pago !== null && printLogData.pago !== '' ? parseFloat(String(printLogData.pago)) : null) : undefined,
+        completado: printLogData.completado !== undefined ? (printLogData.completado === true || printLogData.completado === 'true' || printLogData.completado === 1) : undefined,
+        status: printLogData.status as string | undefined,
+        created_at: printLogData.created_at as string | null | undefined
+      };
+      // Remove undefined keys
+      (Object.keys(repoPayload) as (keyof typeof repoPayload)[]).forEach(k => repoPayload[k] === undefined && delete repoPayload[k]);
+      const log = await printLogRepository.update(logId, repoPayload);
+      if (!log) throw new Error('Error al actualizar registro de bitácora');
       return log.toPlainObject();
     } catch (error) {
       console.error('Error al actualizar registro de bitácora:', error);
@@ -160,6 +157,7 @@ class PrintLogService {
       if (!existing) throw new Error('Registro de bitácora no encontrado');
       if (completado === undefined) throw new Error('Debe proporcionar el estado del checkbox a actualizar');
       const log = await printLogRepository.updateCheckboxes(logId, completado);
+      if (!log) throw new Error('Error al actualizar checkboxes de bitácora');
       return log.toPlainObject();
     } catch (error) {
       console.error('Error al actualizar checkboxes de bitácora:', error);

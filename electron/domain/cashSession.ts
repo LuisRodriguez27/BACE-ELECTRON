@@ -1,10 +1,7 @@
-import type { CashSessionRow, CashSessionStatus } from '../types/domain';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const SimpleOrderPayment = require('./simpleOrderPayment');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Payment = require('./payments');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Expenses = require('./expenses');
+import type { CashSessionRow, CashSessionStatus, SimpleOrderPaymentRow, PaymentRow, ExpensesRow } from '../types/domain';
+import SimpleOrderPayment from './simpleOrderPayment';
+import Payment from './payments';
+import Expenses from './expenses';
 
 class CashSession {
   id: number;
@@ -19,7 +16,7 @@ class CashSession {
   order_payments: InstanceType<typeof Payment>[];
   expenses: InstanceType<typeof Expenses>[];
 
-  constructor({ id, opening_date, closing_date, opening_balance, expected_balance, closing_balance, status, notes, payments = [], order_payments = [], expenses = [] }: CashSessionRow & { payments?: unknown[]; order_payments?: unknown[]; expenses?: unknown[] }) {
+  constructor({ id, opening_date, closing_date, opening_balance, expected_balance, closing_balance, status, notes, payments = [], order_payments = [], expenses = [] }: CashSessionRow & { payments?: SimpleOrderPaymentRow[]; order_payments?: PaymentRow[]; expenses?: ExpensesRow[] }) {
     this.id = id;
     this.opening_date = opening_date;
     this.closing_date = closing_date || null;
@@ -50,4 +47,4 @@ class CashSession {
   }
 }
 
-module.exports = CashSession;
+export default CashSession;

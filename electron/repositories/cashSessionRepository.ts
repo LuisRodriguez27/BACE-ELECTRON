@@ -1,35 +1,35 @@
 import db from '../db';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const CashSession = require('../domain/cashSession');
+import CashSession from '../domain/cashSession';
+import type { CashSessionRow, SimpleOrderPaymentRow, PaymentRow, ExpensesRow } from '../types/domain';
 
 class CashSessionRepository {
-  private async _hydrate(sessionRows: Record<string, unknown>[]) {
+  private async _hydrate(sessionRows: CashSessionRow[]): Promise<CashSession[]> {
     if (!sessionRows.length) return [];
-    const ids = sessionRows.map(r => r.id as number);
+    const ids = sessionRows.map(r => r.id);
     const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
 
     const [paymentsRows, orderPaymentsRows, expensesRows] = await Promise.all([
-      db.getAll(`SELECT sop.*, u.username as user_username FROM simple_order_payments sop LEFT JOIN users u ON sop.user_id = u.id WHERE sop.cash_session_id IN (${placeholders}) ORDER BY sop.date ASC`, ids),
-      db.getAll(`SELECT p.* FROM payments p WHERE p.cash_session_id IN (${placeholders}) ORDER BY p.date ASC`, ids),
-      db.getAll(`SELECT e.*, u.username as user_username, ue.username as edited_by_username FROM expenses e LEFT JOIN users u ON e.user_id = u.id LEFT JOIN users ue ON e.edited_by = ue.id WHERE e.cash_session_id IN (${placeholders}) AND e.active = TRUE ORDER BY e.date ASC`, ids),
+      db.getAll<SimpleOrderPaymentRow>(`SELECT sop.*, u.username as user_username FROM simple_order_payments sop LEFT JOIN users u ON sop.user_id = u.id WHERE sop.cash_session_id IN (${placeholders}) ORDER BY sop.date ASC`, ids),
+      db.getAll<PaymentRow>(`SELECT p.* FROM payments p WHERE p.cash_session_id IN (${placeholders}) ORDER BY p.date ASC`, ids),
+      db.getAll<ExpensesRow>(`SELECT e.*, u.username as user_username, ue.username as edited_by_username FROM expenses e LEFT JOIN users u ON e.user_id = u.id LEFT JOIN users ue ON e.edited_by = ue.id WHERE e.cash_session_id IN (${placeholders}) AND e.active = TRUE ORDER BY e.date ASC`, ids),
     ]);
 
-    const groupBy = (rows: Record<string, unknown>[], key: string) =>
-      rows.reduce((map: Record<string | number, Record<string, unknown>[]>, row) => {
-        const k = row[key] as string | number;
+    const groupBy = <T>(rows: T[], key: keyof T) =>
+      rows.reduce((map: Record<string, T[]>, row) => {
+        const k = String(row[key]);
         (map[k] = map[k] || []).push(row);
         return map;
       }, {});
 
-    const paymentsBySession      = groupBy(paymentsRows as Record<string, unknown>[], 'cash_session_id');
-    const orderPaymentsBySession = groupBy(orderPaymentsRows as Record<string, unknown>[], 'cash_session_id');
-    const expensesBySession      = groupBy(expensesRows as Record<string, unknown>[], 'cash_session_id');
+    const paymentsBySession      = groupBy(paymentsRows, 'cash_session_id');
+    const orderPaymentsBySession = groupBy(orderPaymentsRows, 'cash_session_id');
+    const expensesBySession      = groupBy(expensesRows, 'cash_session_id');
 
     return sessionRows.map(row => new CashSession({
       ...row,
-      payments:       paymentsBySession[row.id as number]      || [],
-      order_payments: orderPaymentsBySession[row.id as number] || [],
-      expenses:       expensesBySession[row.id as number]      || [],
+      payments:       paymentsBySession[String(row.id)]      || [],
+      order_payments: orderPaymentsBySession[String(row.id)] || [],
+      expenses:       expensesBySession[String(row.id)]      || [],
     }));
   }
 
@@ -37,17 +37,17 @@ class CashSessionRepository {
     const offset = (page - 1) * limit;
     const [countRow, rows] = await Promise.all([
       db.getOne<{ total: string }>(`SELECT COUNT(*) AS total FROM cash_sessions`),
-      db.getAll(`SELECT c.* FROM cash_sessions c ORDER BY c.id DESC LIMIT $1 OFFSET $2`, [limit, offset]),
+      db.getAll<CashSessionRow>(`SELECT c.* FROM cash_sessions c ORDER BY c.id DESC LIMIT $1 OFFSET $2`, [limit, offset]),
     ]);
-    const sessions = await this._hydrate(rows as Record<string, unknown>[]);
+    const sessions = await this._hydrate(rows);
     const total = parseInt(countRow!.total, 10);
     return { data: sessions, pagination: { page, limit, total, totalPages: Math.ceil(total / limit), hasNext: page < Math.ceil(total / limit), hasPrev: page > 1 } };
   }
 
   async getActive() {
-    const row = await db.getOne(`SELECT c.* FROM cash_sessions c WHERE c.status = 'open' ORDER BY c.id DESC LIMIT 1`);
+    const row = await db.getOne<CashSessionRow>(`SELECT c.* FROM cash_sessions c WHERE c.status = 'open' ORDER BY c.id DESC LIMIT 1`);
     if (!row) return null;
-    const [session] = await this._hydrate([row as Record<string, unknown>]);
+    const [session] = await this._hydrate([row]);
     return session;
   }
 
@@ -55,30 +55,30 @@ class CashSessionRepository {
     const offset = (page - 1) * limit;
     const [countRow, rows] = await Promise.all([
       db.getOne<{ total: string }>(`SELECT COUNT(*) AS total FROM cash_sessions WHERE status = 'closed'`),
-      db.getAll(`SELECT c.* FROM cash_sessions c WHERE c.status = 'closed' ORDER BY c.id DESC LIMIT $1 OFFSET $2`, [limit, offset]),
+      db.getAll<CashSessionRow>(`SELECT c.* FROM cash_sessions c WHERE c.status = 'closed' ORDER BY c.id DESC LIMIT $1 OFFSET $2`, [limit, offset]),
     ]);
-    const sessions = await this._hydrate(rows as Record<string, unknown>[]);
+    const sessions = await this._hydrate(rows);
     const total = parseInt(countRow!.total, 10);
     return { data: sessions, pagination: { page, limit, total, totalPages: Math.ceil(total / limit), hasNext: page < Math.ceil(total / limit), hasPrev: page > 1 } };
   }
 
   async getById(id: number) {
-    const row = await db.getOne(`SELECT c.* FROM cash_sessions c WHERE c.id = $1`, [id]);
+    const row = await db.getOne<CashSessionRow>(`SELECT c.* FROM cash_sessions c WHERE c.id = $1`, [id]);
     if (!row) return null;
-    const [session] = await this._hydrate([row as Record<string, unknown>]);
+    const [session] = await this._hydrate([row]);
     return session;
   }
 
   async getByDateRange(from: string, to: string) {
-    const rows = await db.getAll(`SELECT c.* FROM cash_sessions c WHERE c.opening_date >= $1 AND c.opening_date <= $2 ORDER BY c.id DESC`, [from, to]);
-    return this._hydrate(rows as Record<string, unknown>[]);
+    const rows = await db.getAll<CashSessionRow>(`SELECT c.* FROM cash_sessions c WHERE c.opening_date >= $1 AND c.opening_date <= $2 ORDER BY c.id DESC`, [from, to]);
+    return this._hydrate(rows);
   }
 
   async open({ opening_balance = 0, notes = null }: { opening_balance?: number; notes?: string | null }) {
     const existing = await this.getActive();
     if (existing) throw new Error(`Ya existe una sesión de caja abierta (ID: ${existing.id}). Ciérrala antes de abrir una nueva.`);
-    const row = await db.getOne(`INSERT INTO cash_sessions (opening_date, opening_balance, expected_balance, closing_balance, status, notes) VALUES (NOW(), $1, $1, 0, 'open', $2) RETURNING *`, [parseFloat(String(opening_balance)) || 0, notes || null]);
-    const [session] = await this._hydrate([row as Record<string, unknown>]);
+    const row = await db.getOne<CashSessionRow>(`INSERT INTO cash_sessions (opening_date, opening_balance, expected_balance, closing_balance, status, notes) VALUES (NOW(), $1, $1, 0, 'open', $2) RETURNING *`, [parseFloat(String(opening_balance)) || 0, notes || null]);
+    const [session] = await this._hydrate([row!]);
     return session;
   }
 
@@ -87,8 +87,8 @@ class CashSessionRepository {
     if (!session) throw new Error('Sesión de caja no encontrada.');
     if (!session.isActive()) throw new Error('La sesión ya está cerrada.');
     const expectedBalance = session.getExpectedBalance();
-    const row = await db.getOne(`UPDATE cash_sessions SET status = 'closed', closing_date = NOW(), expected_balance = $1, closing_balance = $2, notes = COALESCE($3, notes) WHERE id = $4 RETURNING *`, [expectedBalance, parseFloat(String(closing_balance ?? expectedBalance)), notes ?? null, id]);
-    const [updated] = await this._hydrate([row as Record<string, unknown>]);
+    const row = await db.getOne<CashSessionRow>(`UPDATE cash_sessions SET status = 'closed', closing_date = NOW(), expected_balance = $1, closing_balance = $2, notes = COALESCE($3, notes) WHERE id = $4 RETURNING *`, [expectedBalance, parseFloat(String(closing_balance ?? expectedBalance)), notes ?? null, id]);
+    const [updated] = await this._hydrate([row!]);
     return updated;
   }
 
@@ -98,8 +98,8 @@ class CashSessionRepository {
     const session = await this.getById(id);
     if (!session) throw new Error('Sesión de caja no encontrada.');
     if (session.isActive()) throw new Error('La sesión de caja ya está abierta.');
-    const row = await db.getOne(`UPDATE cash_sessions SET status = 'open', closing_date = NULL, closing_balance = 0 WHERE id = $1 RETURNING *`, [id]);
-    const [updated] = await this._hydrate([row as Record<string, unknown>]);
+    const row = await db.getOne<CashSessionRow>(`UPDATE cash_sessions SET status = 'open', closing_date = NULL, closing_balance = 0 WHERE id = $1 RETURNING *`, [id]);
+    const [updated] = await this._hydrate([row!]);
     return updated;
   }
 
@@ -114,8 +114,8 @@ class CashSessionRepository {
     if (data.notes !== undefined) { fields.push(`notes = $${idx++}`); values.push(data.notes || null); }
     if (fields.length === 0) return session;
     values.push(id);
-    const row = await db.getOne(`UPDATE cash_sessions SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`, values);
-    const [updated] = await this._hydrate([row as Record<string, unknown>]);
+    const row = await db.getOne<CashSessionRow>(`UPDATE cash_sessions SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`, values);
+    const [updated] = await this._hydrate([row!]);
     return updated;
   }
 
@@ -137,4 +137,4 @@ class CashSessionRepository {
   }
 }
 
-module.exports = new CashSessionRepository();
+export default new CashSessionRepository();

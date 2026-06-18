@@ -1,26 +1,26 @@
 import db from '../db';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Client = require('../domain/client');
+import Client from '../domain/client';
+import type { ClientRow } from '../types/client';
 
 class ClientRepository {
   async findAll() {
-    const clients = await db.getAll('SELECT * FROM clients WHERE active = true ORDER BY id DESC');
+    const clients = await db.getAll<ClientRow>('SELECT * FROM clients WHERE active = true ORDER BY id DESC');
     return clients.map((c) => new Client(c));
   }
 
   async findAllInvested() {
-    const clients = await db.getAll('SELECT * FROM clients WHERE active = true ORDER BY id ASC');
+    const clients = await db.getAll<ClientRow>('SELECT * FROM clients WHERE active = true ORDER BY id ASC');
     return clients.map((c) => new Client(c));
   }
 
   async findById(id: number) {
-    const client = await db.getOne('SELECT * FROM clients WHERE id = $1 AND active = true', [id]);
+    const client = await db.getOne<ClientRow>('SELECT * FROM clients WHERE id = $1 AND active = true', [id]);
     if (!client) return null;
     return new Client(client);
   }
 
   async findByPhone(phone: string) {
-    const client = await db.getOne('SELECT * FROM clients WHERE phone = $1 AND active = true', [phone]);
+    const client = await db.getOne<ClientRow>('SELECT * FROM clients WHERE phone = $1 AND active = true', [phone]);
     if (!client) return null;
     return new Client(client);
   }
@@ -29,7 +29,7 @@ class ClientRepository {
     const result = await db.execute(`
       INSERT INTO clients (name, phone, address, description, color) VALUES ($1, $2, $3, $4, $5)
     `, [clientData.name, clientData.phone, clientData.address || null, clientData.description || null, clientData.color || null]);
-    return new Client({ id: result.lastInsertRowid, name: clientData.name, phone: clientData.phone, address: clientData.address, description: clientData.description, color: clientData.color, active: true });
+    return new Client({ id: result.lastInsertRowid!, name: clientData.name, phone: clientData.phone, address: clientData.address ?? null, description: clientData.description ?? null, color: clientData.color ?? null, active: true });
   }
 
   async update(id: number, clientData: { name: string; phone: string; address?: string | null; description?: string | null; color?: string | null }): Promise<boolean> {
@@ -46,12 +46,12 @@ class ClientRepository {
     let query = 'SELECT id FROM clients WHERE phone = $1 AND active = true';
     const params: unknown[] = [phone];
     if (excludeClientId) { query += ' AND id != $2'; params.push(excludeClientId); }
-    return !!(await db.getOne(query, params));
+    return !!(await db.getOne<{ id: number }>(query, params));
   }
 
   async searchByTerm(searchTerm: string) {
     const term = `%${searchTerm}%`;
-    const clients = await db.getAll(`
+    const clients = await db.getAll<ClientRow>(`
       SELECT * FROM clients WHERE active = true AND (CAST(id AS TEXT) ILIKE $1 OR name ILIKE $1 OR phone ILIKE $1 OR address ILIKE $1 OR description ILIKE $1)
       ORDER BY name
     `, [term]);
@@ -73,7 +73,7 @@ class ClientRepository {
 
     const countResult = await db.getOne<{ total: string }>(`SELECT COUNT(*) as total FROM clients WHERE active = true ${searchCondition}`, searchParams);
     const total = parseInt(countResult!.total, 10);
-    const clients = await db.getAll(`SELECT * FROM clients WHERE active = true ${searchCondition} ORDER BY id DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`, [...searchParams, limit, offset]);
+    const clients = await db.getAll<ClientRow>(`SELECT * FROM clients WHERE active = true ${searchCondition} ORDER BY id DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`, [...searchParams, limit, offset]);
 
     return {
       data: clients.map((c) => new Client(c)),
@@ -83,4 +83,4 @@ class ClientRepository {
   }
 }
 
-module.exports = new ClientRepository();
+export default new ClientRepository();

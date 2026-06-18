@@ -38,4 +38,4 @@ class PrintLog {
   }
 }
 
-module.exports = PrintLog;
+export default PrintLog;

@@ -85,4 +85,4 @@ class ProductTemplate {
   }
 }
 
-module.exports = ProductTemplate;
+export default ProductTemplate;

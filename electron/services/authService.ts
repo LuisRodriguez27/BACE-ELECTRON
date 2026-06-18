@@ -1,5 +1,4 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const authRepository = require('../repositories/authRepository');
+import authRepository from '../repositories/authRepository';
 
 class AuthService {
   async login(username: string, password: string) {
@@ -14,10 +13,10 @@ class AuthService {
       if (!user) throw new Error('Usuario no encontrado');
       if (user.active !== true) throw new Error('Usuario inactivo');
 
-      const isValidPassword = await authRepository.validatePassword(password, user.password);
+      const isValidPassword = await authRepository.validatePassword(password, user.password as string);
       if (!isValidPassword) throw new Error('Contraseña incorrecta');
 
-      const session = await authRepository.createSession(user);
+      const session = await authRepository.createSession(user as { id: number; username: string; active: boolean });
       return { success: true, message: 'Login exitoso', user: session.getUserInfo(), session: session.toPlainObject() };
     } catch (error) {
       console.error('Error en login:', error);

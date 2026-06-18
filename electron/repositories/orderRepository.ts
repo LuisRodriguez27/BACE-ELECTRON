@@ -1,6 +1,6 @@
 import db from '../db';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Order = require('../domain/order');
+import Order from '../domain/order';
+import type { OrderItem, OrderData, OrderRow, OrderProductRow } from '../types/order';
 
 const ORDER_SELECT = `
   SELECT o.id, o.client_id, o.user_id, o.edited_by, o.date,
@@ -13,64 +13,42 @@ const ORDER_SELECT = `
   LEFT JOIN users ue ON o.edited_by = ue.id
 `;
 
-interface OrderItem {
-  product_id?: number | null;
-  template_id?: number | null;
-  quantity: number;
-  unit_price: number;
-  is_delivered?: boolean | string;
-  is_paid?: boolean | string;
-}
-
-interface OrderData {
-  client_id?: number;
-  user_id?: number;
-  date?: string;
-  estimated_delivery_date?: string | null;
-  status?: string;
-  responsable?: string;
-  notes?: string | null;
-  description?: string | null;
-  edited_by?: number;
-  items?: OrderItem[];
-}
-
 class OrderRepository {
   async findAll() {
-    const orders = await db.getAll(`${ORDER_SELECT} WHERE o.active = true AND o.status NOT IN ('Completado') ORDER BY o.id DESC`);
+    const orders = await db.getAll<OrderRow>(`${ORDER_SELECT} WHERE o.active = true AND o.status NOT IN ('Completado') ORDER BY o.id DESC`);
     return await Promise.all(orders.map(async (order) => {
-      const orderProducts = await this.getOrderProducts(order.id as number);
+      const orderProducts = await this.getOrderProducts(order.id);
       return new Order({ ...order, orderProducts });
     }));
   }
 
   async findById(id: number) {
-    const orderData = await db.getOne(`${ORDER_SELECT} WHERE o.id = $1 AND o.active = true`, [id]);
+    const orderData = await db.getOne<OrderRow>(`${ORDER_SELECT} WHERE o.id = $1 AND o.active = true`, [id]);
     if (!orderData) return null;
     const orderProducts = await this.getOrderProducts(id);
     return new Order({ ...orderData, orderProducts });
   }
 
   async findByClientId(clientId: number) {
-    const orders = await db.getAll(`${ORDER_SELECT} WHERE o.client_id = $1 AND o.active = true ORDER BY o.id DESC`, [clientId]);
+    const orders = await db.getAll<OrderRow>(`${ORDER_SELECT} WHERE o.client_id = $1 AND o.active = true ORDER BY o.id DESC`, [clientId]);
     return await Promise.all(orders.map(async (order) => {
-      const orderProducts = await this.getOrderProducts(order.id as number);
+      const orderProducts = await this.getOrderProducts(order.id);
       return new Order({ ...order, orderProducts });
     }));
   }
 
   async findPendingForLogbook() {
-    const orders = await db.getAll(`${ORDER_SELECT} WHERE o.active = true AND o.status NOT IN ('Completado', 'Cancelado') ORDER BY o.id ASC`);
+    const orders = await db.getAll<OrderRow>(`${ORDER_SELECT} WHERE o.active = true AND o.status NOT IN ('Completado', 'Cancelado') ORDER BY o.id ASC`);
     return await Promise.all(orders.map(async (order) => {
-      const orderProducts = await this.getOrderProducts(order.id as number);
+      const orderProducts = await this.getOrderProducts(order.id);
       return new Order({ ...order, orderProducts });
     }));
   }
 
   async findCompleted() {
-    const orders = await db.getAll(`${ORDER_SELECT} WHERE o.active = true AND o.status = 'Completado' ORDER BY o.id DESC`);
+    const orders = await db.getAll<OrderRow>(`${ORDER_SELECT} WHERE o.active = true AND o.status = 'Completado' ORDER BY o.id DESC`);
     return await Promise.all(orders.map(async (order) => {
-      const orderProducts = await this.getOrderProducts(order.id as number);
+      const orderProducts = await this.getOrderProducts(order.id);
       return new Order({ ...order, orderProducts });
     }));
   }
@@ -90,10 +68,10 @@ class OrderRepository {
 
     const countResult = await db.getOne<{ total: string }>(`SELECT COUNT(*) as total FROM orders o JOIN clients c ON o.client_id = c.id WHERE o.active = true AND o.status = 'Completado' ${searchCondition}`, searchParams);
     const total = parseInt(countResult!.total, 10);
-    const orders = await db.getAll(`${ORDER_SELECT} WHERE o.active = true AND o.status = 'Completado' ${searchCondition} ORDER BY o.id DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`, [...searchParams, limit, offset]);
+    const orders = await db.getAll<OrderRow>(`${ORDER_SELECT} WHERE o.active = true AND o.status = 'Completado' ${searchCondition} ORDER BY o.id DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`, [...searchParams, limit, offset]);
 
     const ordersWithProducts = await Promise.all(orders.map(async (order) => {
-      const orderProducts = await this.getOrderProducts(order.id as number);
+      const orderProducts = await this.getOrderProducts(order.id);
       return new Order({ ...order, orderProducts });
     }));
 
@@ -124,8 +102,10 @@ class OrderRepository {
       const hasTemplate = item.template_id !== null && item.template_id !== undefined;
       if (!hasProduct && !hasTemplate) throw new Error('Cada item debe tener un product_id o template_id');
       if (hasProduct && hasTemplate) throw new Error('Un item no puede tener tanto product_id como template_id');
-      if (!item.quantity || item.quantity <= 0) throw new Error('Cada item debe tener una cantidad válida mayor a 0');
-      if (!item.unit_price || item.unit_price <= 0) throw new Error('Cada item debe tener un precio unitario válido mayor a 0');
+      const quantity = Number(item.quantity);
+      const unitPrice = Number(item.unit_price);
+      if (isNaN(quantity) || quantity <= 0) throw new Error('Cada item debe tener una cantidad válida mayor a 0');
+      if (isNaN(unitPrice) || unitPrice <= 0) throw new Error('Cada item debe tener un precio unitario válido mayor a 0');
     }
   }
 
@@ -178,8 +158,8 @@ class OrderRepository {
     return (result.changes ?? 0) > 0;
   }
 
-  async getOrderProducts(orderId: number) {
-    return await db.getAll(`
+  async getOrderProducts(orderId: number): Promise<OrderProductRow[]> {
+    return await db.getAll<OrderProductRow>(`
       SELECT op.*,
              p.name as product_name, p.serial_number, p.price as product_price, p.description as product_description,
              pt.width as template_width, pt.height as template_height, pt.colors as template_colors,
@@ -204,7 +184,7 @@ class OrderRepository {
 
   async canEditOrder(orderId: number): Promise<boolean> {
     const order = await this.findById(orderId);
-    return order && order.canEdit();
+    return !!(order && order.canEdit());
   }
 
   async getOrderSummary(orderId: number) {
@@ -223,4 +203,4 @@ class OrderRepository {
   }
 }
 
-module.exports = new OrderRepository();
+export default new OrderRepository();

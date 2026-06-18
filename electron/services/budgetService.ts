@@ -1,29 +1,10 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const budgetRepository = require('../repositories/budgetRepository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const clientRepository = require('../repositories/clientRepository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const userRepository = require('../repositories/userRepository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const productRepository = require('../repositories/productRepository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const productTemplateRepository = require('../repositories/productTemplateRepository');
-
-interface BudgetItem {
-  product_id?: number | string | null;
-  template_id?: number | string | null;
-  quantity: number | string;
-  unit_price: number | string;
-}
-
-interface BudgetData {
-  client_id?: number | string;
-  user_id?: number | string;
-  date?: string;
-  edited_by?: number | string | null;
-  items?: BudgetItem[];
-  products?: Array<{ product_id?: number | string | null; template_id?: number | string | null; quantity: number | string; unit_price: number | string }>;
-}
+import budgetRepository from '../repositories/budgetRepository';
+import clientRepository from '../repositories/clientRepository';
+import userRepository from '../repositories/userRepository';
+import productRepository from '../repositories/productRepository';
+import productTemplateRepository from '../repositories/productTemplateRepository';
+import orderRepository from '../repositories/orderRepository';
+import type { BudgetItem, BudgetData } from '../types/budget';
 
 class BudgetService {
   async getAllBudgets() {
@@ -51,7 +32,7 @@ class BudgetService {
   async getBudgetById(id: number | string) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de presupuesto inválido.');
-      const budget = await budgetRepository.findById(id);
+      const budget = await budgetRepository.findById(parseInt(String(id)));
       if (!budget) throw new Error('Presupuesto no encontrado.');
       return budget.toPlainObject();
     } catch (error) {
@@ -111,6 +92,7 @@ class BudgetService {
 
       const budgetToCreate = { client_id: parseInt(String(client_id)), user_id: parseInt(String(user_id)), date: orderDate.toISOString(), items: items.map(item => ({ product_id: item.product_id ? parseInt(String(item.product_id)) : null, template_id: item.template_id ? parseInt(String(item.template_id)) : null, quantity: parseFloat(String(item.quantity)), unit_price: parseFloat(String(item.unit_price)) })) };
       const budget = await budgetRepository.create(budgetToCreate);
+      if (!budget) throw new Error('Error al crear presupuesto');
       return budget.toPlainObject();
     } catch (error) {
       console.error('Error al crear el presupuesto:', error);
@@ -165,6 +147,7 @@ class BudgetService {
       }
 
       const updatedBudget = await budgetRepository.update(budgetId, updatePayload);
+      if (!updatedBudget) throw new Error('Error al actualizar presupuesto');
       return updatedBudget.toPlainObject();
     } catch (error) {
       console.error('Error al actualizar presupuesto:', error);
@@ -227,9 +210,8 @@ class BudgetService {
 
       const orderId = await budgetRepository.transformToOrder(parsedBudgetId, parsedUserId);
 
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const orderRepository = require('../repositories/orderRepository');
       const order = await orderRepository.findById(orderId);
+      if (!order) throw new Error('Error al obtener la orden creada');
       return order.toPlainObject();
     } catch (error) {
       console.error('Error al transformar presupuesto a orden:', error);

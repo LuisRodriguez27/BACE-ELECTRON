@@ -1,9 +1,6 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const permissionRepository = require('../repositories/permissionRepository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const userRepository = require('../repositories/userRepository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Permission = require('../domain/permission');
+import permissionRepository from '../repositories/permissionRepository';
+import userRepository from '../repositories/userRepository';
+import Permission from '../domain/permission';
 
 class PermissionService {
   async getAllPermissions() {
@@ -115,6 +112,7 @@ class PermissionService {
       if (!assigned) throw new Error('Error al asignar permiso al usuario');
 
       const updatedUser = await userRepository.findById(userIdInt);
+      if (!updatedUser) throw new Error('Error al obtener usuario actualizado');
       return updatedUser.toPlainObject();
     } catch (error) {
       console.error('Error al asignar permiso a usuario:', error);
@@ -145,6 +143,7 @@ class PermissionService {
       if (!removed) throw new Error('Error al remover permiso del usuario');
 
       const updatedUser = await userRepository.findById(userIdInt);
+      if (!updatedUser) throw new Error('Error al obtener usuario actualizado');
       return updatedUser.toPlainObject();
     } catch (error) {
       console.error('Error al remover permiso de usuario:', error);

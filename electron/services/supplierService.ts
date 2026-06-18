@@ -1,5 +1,5 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const supplierRepository = require('../repositories/supplierRepository');
+import supplierRepository from '../repositories/supplierRepository';
+import type { SupplierData } from '../types/supplier';
 
 class SupplierService {
   async getAllSuppliers() {
@@ -53,6 +53,7 @@ class SupplierService {
       if (!updated) throw new Error('Error al actualizar proveedor');
 
       const updatedSupplier = await supplierRepository.findById(supplierId);
+      if (!updatedSupplier) throw new Error('Error al obtener proveedor actualizado');
       return updatedSupplier.toPlainObject();
     } catch (error) {
       console.error('Error al actualizar proveedor:', error);

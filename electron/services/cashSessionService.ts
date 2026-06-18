@@ -1,7 +1,5 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const cashSessionRepository = require('../repositories/cashSessionRepository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const authService = require('./authService');
+import cashSessionRepository from '../repositories/cashSessionRepository';
+import authService from './authService';
 
 class CashSessionService {
   async getAll(page = 1, limit = 20) {

@@ -40,4 +40,4 @@ class SupplierOrder {
   }
 }
 
-module.exports = SupplierOrder;
+export default SupplierOrder;

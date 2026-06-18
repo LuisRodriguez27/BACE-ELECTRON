@@ -225,4 +225,4 @@ class StatsRepository {
   }
 }
 
-module.exports = new StatsRepository();
+export default new StatsRepository();

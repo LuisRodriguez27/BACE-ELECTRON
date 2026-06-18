@@ -1,8 +1,37 @@
 import db from '../db';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Payment = require('../domain/payments');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const cashSessionRepository = require('./cashSessionRepository');
+import Payment from '../domain/payments';
+import cashSessionRepository from './cashSessionRepository';
+import type { PaymentRow } from '../types/payment';
+import type { OrderStatus } from '../types/order';
+
+interface PaymentUnionRow {
+  id: number;
+  order_id: number | null;
+  simple_order_id?: number | null;
+  cash_session_id: number | null;
+  amount: number;
+  date: string;
+  descripcion: string | null;
+  info: string | null;
+  phone: string | null;
+  client_name: string | null;
+  is_simple_order?: boolean;
+  o_id: number | null;
+  o_client_id: number | null;
+  o_status: OrderStatus | null;
+  o_total: number | null;
+  o_client_name: string | null;
+  o_description: string | null;
+  o_notes: string | null;
+  o_client_phone: string | null;
+}
+
+interface PaymentFilters {
+  freeOnly?: boolean;
+  orderFilter?: 'free' | 'simple' | string;
+  searchType?: 'payment_id' | 'order_id' | 'amount' | 'method' | 'info';
+  searchTerm?: string;
+}
 
 class PaymentsRepository {
   private _getBaseQuery(): string {
@@ -22,41 +51,55 @@ class PaymentsRepository {
     `;
   }
 
-  private _mapRow(row: Record<string, unknown>) {
+  private _mapRow(row: PaymentUnionRow): Payment {
     return new Payment({
-      id: row.id, order_id: row.order_id, amount: parseFloat(String(row.amount)), date: row.date, descripcion: row.descripcion, info: row.info, phone: row.phone, client_name: row.client_name,
-      is_simple_order: Boolean(row.is_simple_order), simple_order_id: row.simple_order_id,
+      id: row.id,
+      order_id: row.order_id,
+      amount: parseFloat(String(row.amount)),
+      date: row.date,
+      descripcion: row.descripcion,
+      info: row.info,
+      phone: row.phone,
+      client_name: row.client_name,
+      is_simple_order: Boolean(row.is_simple_order),
+      simple_order_id: row.simple_order_id || null,
+      cash_session_id: row.cash_session_id,
       order: (row.o_id || row.is_simple_order) ? {
-        id: row.o_id || row.simple_order_id, client_id: row.o_client_id, status: row.o_status, total: parseFloat(String(row.o_total || 0)),
-        client_name: row.o_client_name, client_phone: row.o_client_phone, description: row.o_description, notes: row.o_notes,
+        id: row.o_id || row.simple_order_id || 0,
+        client_id: row.o_client_id || 0,
+        status: (row.o_status as OrderStatus) || 'Revision',
+        total: parseFloat(String(row.o_total || 0)),
+        client_name: row.o_client_name,
+        description: row.o_description,
+        notes: row.o_notes,
       } : null,
     });
   }
 
-  async findAll() {
-    const rows = await db.getAll(`SELECT * FROM (${this._getBaseQuery()}) p ORDER BY p.date DESC`);
-    return rows.map(r => this._mapRow(r as Record<string, unknown>));
+  async findAll(): Promise<Payment[]> {
+    const rows = await db.getAll<PaymentUnionRow>(`SELECT * FROM (${this._getBaseQuery()}) p ORDER BY p.date DESC`);
+    return rows.map(r => this._mapRow(r));
   }
 
-  async findByOrderId(orderId: number) {
-    const rows = await db.getAll(`SELECT p.*, o.id as o_id, o.client_id as o_client_id, o.status as o_status, o.total as o_total, c.name as o_client_name, c.phone as o_client_phone, o.description as o_description, o.notes as o_notes FROM payments p LEFT JOIN orders o ON p.order_id = o.id LEFT JOIN clients c ON o.client_id = c.id WHERE p.order_id = $1 ORDER BY p.date DESC`, [orderId]);
-    return rows.map(r => new Payment({ id: r.id, order_id: r.order_id, amount: r.amount, date: r.date, descripcion: r.descripcion, info: r.info, phone: r.phone, client_name: r.client_name, order: r.o_id ? { id: r.o_id, client_id: r.o_client_id, status: r.o_status, total: r.o_total, client_name: r.o_client_name, client_phone: r.o_client_phone, description: r.o_description, notes: r.o_notes } : null }));
+  async findByOrderId(orderId: number): Promise<Payment[]> {
+    const rows = await db.getAll<PaymentUnionRow>(`SELECT p.*, o.id as o_id, o.client_id as o_client_id, o.status as o_status, o.total as o_total, c.name as o_client_name, c.phone as o_client_phone, o.description as o_description, o.notes as o_notes FROM payments p LEFT JOIN orders o ON p.order_id = o.id LEFT JOIN clients c ON o.client_id = c.id WHERE p.order_id = $1 ORDER BY p.date DESC`, [orderId]);
+    return rows.map(r => this._mapRow(r));
   }
 
-  async findById(id: number) {
-    const row = await db.getOne(`SELECT p.*, o.id as o_id, o.client_id as o_client_id, o.status as o_status, o.total as o_total, c.name as o_client_name, c.phone as o_client_phone, o.description as o_description, o.notes as o_notes FROM payments p LEFT JOIN orders o ON p.order_id = o.id LEFT JOIN clients c ON o.client_id = c.id WHERE p.id = $1`, [id]);
+  async findById(id: number): Promise<Payment | null> {
+    const row = await db.getOne<PaymentUnionRow>(`SELECT p.*, o.id as o_id, o.client_id as o_client_id, o.status as o_status, o.total as o_total, c.name as o_client_name, c.phone as o_client_phone, o.description as o_description, o.notes as o_notes FROM payments p LEFT JOIN orders o ON p.order_id = o.id LEFT JOIN clients c ON o.client_id = c.id WHERE p.id = $1`, [id]);
     if (!row) return null;
-    return new Payment({ id: row.id, order_id: row.order_id, amount: row.amount, date: row.date, descripcion: row.descripcion, info: row.info, phone: row.phone, client_name: row.client_name, order: row.o_id ? { id: row.o_id, client_id: row.o_client_id, status: row.o_status, total: row.o_total, client_name: row.o_client_name, client_phone: row.o_client_phone, description: row.o_description, notes: row.o_notes } : null });
+    return this._mapRow(row);
   }
 
-  async create({ order_id, amount, date, descripcion, info, phone, client_name }: { order_id?: number | null; amount: number; date: string; descripcion: string; info?: string | null; phone?: string | null; client_name?: string | null }) {
+  async create({ order_id, amount, date, descripcion, info, phone, client_name }: { order_id?: number | null; amount: number; date: string; descripcion?: string | null; info?: string | null; phone?: string | null; client_name?: string | null }): Promise<Payment | null> {
     const activeSession = await cashSessionRepository.getActive();
     const cash_session_id = activeSession?.id ?? null;
     const result = await db.execute('INSERT INTO payments (order_id, cash_session_id, amount, date, descripcion, info, phone, client_name) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)', [order_id || null, cash_session_id, amount, date, descripcion, info || null, phone || null, client_name || null]);
     return await this.findById(result.lastInsertRowid!);
   }
 
-  async update(id: number, { amount, descripcion, info, phone, client_name }: { amount: number; descripcion: string; info?: string | null; phone?: string | null; client_name?: string | null }): Promise<boolean> {
+  async update(id: number, { amount, descripcion, info, phone, client_name }: { amount: number; descripcion?: string | null; info?: string | null; phone?: string | null; client_name?: string | null }): Promise<boolean> {
     const result = await db.execute('UPDATE payments SET amount = $1, descripcion = $2, info = $3, phone = $4, client_name = $5 WHERE id = $6', [amount, descripcion, info || null, phone || null, client_name || null, id]);
     return (result.changes ?? 0) > 0;
   }
@@ -66,9 +109,9 @@ class PaymentsRepository {
     return (result.changes ?? 0) > 0;
   }
 
-  async findByClientId(clientId: number) {
-    const rows = await db.getAll(`SELECT p.*, o.id as o_id, o.client_id as o_client_id, o.status as o_status, o.total as o_total, c.name as o_client_name, c.phone as o_client_phone, o.description as o_description, o.notes as o_notes FROM payments p LEFT JOIN orders o ON p.order_id = o.id LEFT JOIN clients c ON o.client_id = c.id WHERE o.client_id = $1 ORDER BY p.date DESC`, [clientId]);
-    return rows.map(r => new Payment({ id: r.id, order_id: r.order_id, amount: r.amount, date: r.date, descripcion: r.descripcion, info: r.info, phone: r.phone, client_name: r.client_name, order: r.o_id ? { id: r.o_id, client_id: r.o_client_id, status: r.o_status, total: r.o_total, client_name: r.o_client_name, client_phone: r.o_client_phone, description: r.o_description, notes: r.o_notes } : null }));
+  async findByClientId(clientId: number): Promise<Payment[]> {
+    const rows = await db.getAll<PaymentUnionRow>(`SELECT p.*, o.id as o_id, o.client_id as o_client_id, o.status as o_status, o.total as o_total, c.name as o_client_name, c.phone as o_client_phone, o.description as o_description, o.notes as o_notes FROM payments p LEFT JOIN orders o ON p.order_id = o.id LEFT JOIN clients c ON o.client_id = c.id WHERE o.client_id = $1 ORDER BY p.date DESC`, [clientId]);
+    return rows.map(r => this._mapRow(r));
   }
 
   async getTotalPaymentsByOrderId(orderId: number): Promise<number> {
@@ -76,7 +119,7 @@ class PaymentsRepository {
     return result ? parseFloat(result.total) || 0 : 0;
   }
 
-  async findPaginated(page = 1, limit = 20, filters: Record<string, unknown> = {}) {
+  async findPaginated(page = 1, limit = 20, filters: PaymentFilters = {}) {
     const offset = (page - 1) * limit;
     const conditions: string[] = [];
     const whereParams: unknown[] = [];
@@ -102,12 +145,12 @@ class PaymentsRepository {
 
     const [countRow, rows] = await Promise.all([
       db.getOne<{ total: string }>(`SELECT COUNT(*) AS total FROM (${baseQuery}) p ${where}`, whereParams),
-      db.getAll(`SELECT * FROM (${baseQuery}) p ${where} ORDER BY p.date DESC, p.is_simple_order DESC, p.id DESC LIMIT $${limitIdx} OFFSET $${offsetIdx}`, queryParams),
+      db.getAll<PaymentUnionRow>(`SELECT * FROM (${baseQuery}) p ${where} ORDER BY p.date DESC, p.is_simple_order DESC, p.id DESC LIMIT $${limitIdx} OFFSET $${offsetIdx}`, queryParams),
     ]);
 
     const total = parseInt(countRow!.total, 10);
-    return { data: rows.map(r => this._mapRow(r as Record<string, unknown>)), pagination: { page, limit, total, totalPages: Math.ceil(total / limit), hasNext: page < Math.ceil(total / limit), hasPrev: page > 1 } };
+    return { data: rows.map(r => this._mapRow(r)), pagination: { page, limit, total, totalPages: Math.ceil(total / limit), hasNext: page < Math.ceil(total / limit), hasPrev: page > 1 } };
   }
 }
 
-module.exports = new PaymentsRepository();
+export default new PaymentsRepository();

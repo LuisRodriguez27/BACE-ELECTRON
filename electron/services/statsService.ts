@@ -1,7 +1,6 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const statsRepository = require('../repositories/statsRepository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const productRepository = require('../repositories/productRepository');
+import statsRepository from '../repositories/statsRepository';
+import productRepository from '../repositories/productRepository';
+import type { SalesStatsParams } from '../types/stats';
 
 function getISOWeek(date: Date): number {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -9,18 +8,6 @@ function getISOWeek(date: Date): number {
   d.setUTCDate(d.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
   return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-}
-
-interface SalesStatsParams {
-  period?: string;
-  productId?: number | null;
-  customStartDate?: string;
-  customEndDate?: string;
-  month?: number;
-  year?: number;
-  dates?: string[];
-  paymentMethod?: string | null;
-  source?: string;
 }
 
 class StatsService {

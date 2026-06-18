@@ -1,5 +1,5 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const clientRepository = require('../repositories/clientRepository');
+import clientRepository from '../repositories/clientRepository';
+import type { ClientData } from '../types/client';
 
 class ClientService {
   async getAllClients() {

@@ -1,11 +1,7 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const paymentsRepository = require('../repositories/paymentsRepository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const orderRepository = require('../repositories/orderRepository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const cashSessionRepository = require('../repositories/cashSessionRepository');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const clientRepository = require('../repositories/clientRepository');
+import paymentsRepository from '../repositories/paymentsRepository';
+import orderRepository from '../repositories/orderRepository';
+import cashSessionRepository from '../repositories/cashSessionRepository';
+import clientRepository from '../repositories/clientRepository';
 
 class PaymentsService {
   async getAllPayments() {
@@ -77,7 +73,8 @@ class PaymentsService {
           throw new Error(`El pago excede el monto pendiente. Monto restante: ${new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(remaining)}`);
         }
 
-        const payment = await paymentsRepository.create({ order_id: parseInt(String(orderId)), amount: parseFloat(String(amount)), date: paymentDate.toISOString(), descripcion: descripcion?.trim() || null, info: null });
+        const payment = await paymentsRepository.create({ order_id: parseInt(String(orderId)), amount: parseFloat(String(amount)), date: paymentDate.toISOString(), descripcion: descripcion?.trim() ?? null, info: null });
+        if (!payment) throw new Error('Error al registrar pago');
         return payment.toPlainObject();
       } else {
         if (!info || !info.trim()) throw new Error('El campo "info" es requerido para pagos sin orden');
@@ -97,7 +94,8 @@ class PaymentsService {
           }
         }
 
-        const payment = await paymentsRepository.create({ order_id: null, amount: parseFloat(String(amount)), date: paymentDate.toISOString(), descripcion: descripcion?.trim() || null, info: info.trim(), phone: resolvedPhone?.trim() || null, client_name: resolvedName?.trim() || null });
+        const payment = await paymentsRepository.create({ order_id: null, amount: parseFloat(String(amount)), date: paymentDate.toISOString(), descripcion: descripcion?.trim() ?? null, info: info.trim(), phone: resolvedPhone?.trim() ?? null, client_name: resolvedName?.trim() ?? null });
+        if (!payment) throw new Error('Error al registrar pago');
         const resObj = payment.toPlainObject() as Record<string, unknown>;
         if (wasClientCreated) resObj.clientCreated = true;
         return resObj;
@@ -118,10 +116,10 @@ class PaymentsService {
 
       if (amount !== undefined) {
         if (isNaN(Number(amount)) || parseFloat(String(amount)) <= 0) throw new Error('Monto inválido. Debe ser un número mayor a 0');
-        const currentPaymentsTotal = await paymentsRepository.getTotalPaymentsByOrderId(existingPayment.order_id);
+        const currentPaymentsTotal = await paymentsRepository.getTotalPaymentsByOrderId(existingPayment.order_id as number);
         const newTotal = currentPaymentsTotal - existingPayment.amount + parseFloat(String(amount));
-        if (existingPayment.hasOrder() && newTotal > existingPayment.order.total) {
-          const remaining = existingPayment.order.total - (currentPaymentsTotal - existingPayment.amount);
+        if (existingPayment.hasOrder() && existingPayment.order && newTotal > (existingPayment.order.total as number)) {
+          const remaining = (existingPayment.order.total as number) - (currentPaymentsTotal - existingPayment.amount);
           throw new Error(`El pago actualizado excede el monto pendiente. Monto máximo: ${new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(remaining)}`);
         }
       }
@@ -151,6 +149,7 @@ class PaymentsService {
       if (!updated) throw new Error('Error al actualizar pago');
 
       const updatedPayment = await paymentsRepository.findById(paymentId);
+      if (!updatedPayment) throw new Error('Error al obtener pago actualizado');
       const resObj = updatedPayment.toPlainObject() as Record<string, unknown>;
       if (wasClientCreated) resObj.clientCreated = true;
       return resObj;

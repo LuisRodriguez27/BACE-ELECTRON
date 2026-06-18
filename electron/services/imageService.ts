@@ -1,10 +1,8 @@
-require('dotenv').config();
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const fs = require('fs-extra');
+import 'dotenv/config';
+import * as fs from 'fs-extra';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const mime = require('mime-types');
+import * as mime from 'mime-types';
 
 interface UploadResult { success: boolean; relativePath?: string; }
 interface DeleteResult { success: boolean; message: string; }

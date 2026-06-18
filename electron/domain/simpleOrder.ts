@@ -1,6 +1,5 @@
-import type { SimpleOrderRow } from '../types/domain';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const SimpleOrderPayment = require('./simpleOrderPayment');
+import type { SimpleOrderRow, SimpleOrderPaymentRow } from '../types/domain';
+import SimpleOrderPayment from './simpleOrderPayment';
 
 class SimpleOrder {
   id: number;
@@ -14,7 +13,7 @@ class SimpleOrder {
   client_phone: string;
   payments: InstanceType<typeof SimpleOrderPayment>[];
 
-  constructor({ id, user_id, date, concept, total, active = true, user_username, client_name, client_phone, payments = [] }: SimpleOrderRow & { payments?: unknown[] }) {
+  constructor({ id, user_id, date, concept, total, active = true, user_username, client_name, client_phone, payments = [] }: SimpleOrderRow & { payments?: SimpleOrderPaymentRow[] }) {
     this.id = id;
     this.user_id = user_id;
     this.date = date;
@@ -39,7 +38,7 @@ class SimpleOrder {
     return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2 }).format(this.total);
   }
 
-  getTotalPaid(): number { return this.payments.reduce((sum: number, p: InstanceType<typeof SimpleOrderPayment>) => sum + parseFloat(p.amount), 0); }
+  getTotalPaid(): number { return this.payments.reduce((sum: number, p: InstanceType<typeof SimpleOrderPayment>) => sum + p.amount, 0); }
   getBalance(): number { return this.total - this.getTotalPaid(); }
 
   isValid(): boolean {
@@ -51,4 +50,4 @@ class SimpleOrder {
   }
 }
 
-module.exports = SimpleOrder;
+export default SimpleOrder;
