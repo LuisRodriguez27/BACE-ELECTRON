@@ -804,5 +804,3 @@ export async function runMigrations(db: Db, client: PoolClient): Promise<void> {
   }
 }
 
-// Compatibilidad CommonJS
-module.exports = { runMigrations };

@@ -211,5 +211,4 @@ class SupplierOrderService {
   }
 }
 
-module.exports = new SupplierOrderService();
-export {};
+export default new SupplierOrderService();

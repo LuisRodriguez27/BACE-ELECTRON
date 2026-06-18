@@ -234,5 +234,4 @@ class ProductService {
   }
 }
 
-module.exports = new ProductService();
-export {};
+export default new ProductService();

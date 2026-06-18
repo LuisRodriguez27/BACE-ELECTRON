@@ -93,5 +93,4 @@ class ImageService {
   }
 }
 
-module.exports = new ImageService();
-export {};
+export default new ImageService();

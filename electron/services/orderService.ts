@@ -278,5 +278,4 @@ class OrderService {
   }
 }
 
-module.exports = new OrderService();
-export {};
+export default new OrderService();

@@ -6,59 +6,34 @@ import * as log from 'electron-log';
 import * as http from 'http';
 import 'dotenv/config';
 
-// Inicializador de DB — se llama explícitamente en app.whenReady()
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { initDb } = require('./db');
+import { initDb } from './db';
+import userService from './services/userService';
+import permissionService from './services/permissionService';
+import clientService from './services/clientService';
+import productService from './services/productService';
+import productTemplatesService from './services/productTemplateService';
+import orderService from './services/orderService';
+import paymentService from './services/paymentsService';
+import authService from './services/authService';
+import budgetService from './services/budgetService';
+import statsService from './services/statsService';
+import simpleOrderService from './services/simpleOrderService';
+import cashSessionService from './services/cashSessionService';
+import expensesService from './services/expensesService';
+import imageService from './services/imageService';
+import supplierService from './services/supplierService';
+import supplierOrderService from './services/supplierOrderService';
+import printLogService from './services/printLogService';
 
-// Importar servicios (CommonJS interop)
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const userService = require('./services/userService');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const permissionService = require('./services/permissionService');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const clientService = require('./services/clientService');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const productService = require('./services/productService');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const productTemplatesService = require('./services/productTemplateService');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const orderService = require('./services/orderService');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const paymentService = require('./services/paymentsService');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const authService = require('./services/authService');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const budgetService = require('./services/budgetService');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const statsService = require('./services/statsService');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const simpleOrderService = require('./services/simpleOrderService');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const cashSessionService = require('./services/cashSessionService');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const expensesService = require('./services/expensesService');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const imageService = require('./services/imageService');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const supplierService = require('./services/supplierService');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const supplierOrderService = require('./services/supplierOrderService');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const printLogService = require('./services/printLogService');
-
-// Configuración de logs
 autoUpdater.logger = log;
 (autoUpdater.logger as typeof log).transports.file.level = 'info';
 
-// Deshabilitar aceleración de hardware para evitar problemas de renderizado
 app.disableHardwareAcceleration();
 
 let whatsappWindow: BrowserWindow | null = null;
 let isQuitting: boolean = false;
 let downloadedUpdatePath: string | null = null;
 
-// User Agent de Chrome real — necesario porque WhatsApp Web bloquea
-// deliberadamente cualquier request que contenga "Electron" en el UA.
 const WHATSAPP_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
@@ -77,7 +52,6 @@ function initWhatsApp(): void {
     }
   });
 
-  // Agregar menú de contexto (clic derecho) para soportar guardar/copiar imágenes, pegar texto, etc.
   whatsappWindow.webContents.on('context-menu', (_event, params) => {
     const template: Electron.MenuItemConstructorOptions[] = [];
 
@@ -165,11 +139,10 @@ function createWindow(): void {
     backgroundColor: '#ffffff',
     autoHideMenuBar: true,
     webPreferences: {
-      // En el output compilado (dist-electron/) el preload queda como preload.js
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
-      webSecurity: false // Solo para desarrollo
+      webSecurity: false
     },
   });
 
@@ -195,9 +168,7 @@ function createWindow(): void {
   }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
 // Handlers IPC — Usuarios
-// ──────────────────────────────────────────────────────────────────────────────
 ipcMain.handle('users:getAll', async () => await userService.getAllUsers());
 ipcMain.handle('users:getById', async (_event, id: number) => await userService.getUserById(id));
 ipcMain.handle('users:create', async (_event, data: unknown) => await userService.createUser(data));
@@ -207,9 +178,7 @@ ipcMain.handle('users:verifyPassword', async (_event, data: unknown) => await us
 ipcMain.handle('users:checkUsername', async (_event, username: string, excludeUserId?: number) =>
   await userService.checkUsernameExists(username, excludeUserId));
 
-// ──────────────────────────────────────────────────────────────────────────────
 // Handlers IPC — Autenticación
-// ──────────────────────────────────────────────────────────────────────────────
 ipcMain.handle('auth:login', async (_event, { username, password }: { username: string; password: string }) =>
   await authService.login(username, password));
 ipcMain.handle('auth:logout', async () => await authService.logout());
@@ -218,9 +187,7 @@ ipcMain.handle('auth:isAuthenticated', async () => await authService.isAuthentic
 ipcMain.handle('auth:getUserWithPermissions', async () => await authService.getUserWithPermissions());
 ipcMain.handle('auth:requireAuth', async () => await authService.requireAuth());
 
-// ──────────────────────────────────────────────────────────────────────────────
 // Handlers IPC — Permisos
-// ──────────────────────────────────────────────────────────────────────────────
 ipcMain.handle('permissions:getAll', async () => await permissionService.getAllPermissions());
 ipcMain.handle('permissions:getById', async (_event, id: number) => await permissionService.getPermissionById(id));
 ipcMain.handle('permissions:getByUserId', async (_event, userId: number) => await permissionService.getPermissionsByUserId(userId));
@@ -230,9 +197,7 @@ ipcMain.handle('permissions:delete', async (_event, id: number) => await permiss
 ipcMain.handle('permissions:assignToUser', async (_event, data: unknown) => await permissionService.assignPermissionToUser(data));
 ipcMain.handle('permissions:removeFromUser', async (_event, data: unknown) => await permissionService.removePermissionFromUser(data));
 
-// ──────────────────────────────────────────────────────────────────────────────
 // Handlers IPC — Clientes
-// ──────────────────────────────────────────────────────────────────────────────
 ipcMain.handle('clients:getAll', async () => await clientService.getAllClients());
 ipcMain.handle('clients:getAllInvested', async () => await clientService.getAllInvestedClients());
 ipcMain.handle('clients:getById', async (_event, id: number) => await clientService.getClientById(id));
@@ -243,9 +208,7 @@ ipcMain.handle('clients:search', async (_event, searchTerm: string) => await cli
 ipcMain.handle('clients:getPaginated', async (_event, page: number, limit: number, searchTerm: string) =>
   await clientService.getClientsPaginated(page, limit, searchTerm));
 
-// ──────────────────────────────────────────────────────────────────────────────
 // Handlers IPC — Productos
-// ──────────────────────────────────────────────────────────────────────────────
 ipcMain.handle('products:getAll', async () => await productService.getAllProducts());
 ipcMain.handle('products:getById', async (_event, id: number) => await productService.getProductById(id));
 ipcMain.handle('products:create', async (_event, data: unknown) => await productService.createProduct(data));
@@ -259,9 +222,7 @@ ipcMain.handle('products:getPaginated', async (_event, page: number, limit: numb
   await productService.getProductsPaginated(page, limit, searchTerm));
 ipcMain.handle('products:findSimilarNames', async () => await productService.getProductsWithSimilarNames());
 
-// ──────────────────────────────────────────────────────────────────────────────
 // Handlers IPC — Plantillas de productos
-// ──────────────────────────────────────────────────────────────────────────────
 ipcMain.handle('templates:getAll', async () => await productTemplatesService.getAllTemplates());
 ipcMain.handle('templates:getById', async (_event, id: number) => await productTemplatesService.getTemplateById(id));
 ipcMain.handle('templates:getByProductId', async (_event, productId: number) => await productTemplatesService.getTemplatesByProductId(productId));
@@ -272,9 +233,7 @@ ipcMain.handle('templates:search', async (_event, searchTerm: string) => await p
 ipcMain.handle('templates:getPaginated', async (_event, page: number, limit: number, searchTerm: string) =>
   await productTemplatesService.getTemplatesPaginated(page, limit, searchTerm));
 
-// ──────────────────────────────────────────────────────────────────────────────
 // Handlers IPC — Órdenes
-// ──────────────────────────────────────────────────────────────────────────────
 ipcMain.handle('orders:getAll', async () => await orderService.getAllOrders());
 ipcMain.handle('orders:getPendingForLogbook', async () => await orderService.getPendingOrdersForLogbook());
 ipcMain.handle('orders:getById', async (_event, id: number) => await orderService.getOrderById(id));
@@ -290,9 +249,7 @@ ipcMain.handle('sales:search', async (_event, page: number, limit: number, searc
   await orderService.getSalesPaginated(page, limit, searchTerm));
 ipcMain.handle('orders:getProducts', async (_event, orderId: number) => await orderService.getOrderProducts(orderId));
 
-// ──────────────────────────────────────────────────────────────────────────────
 // Handlers IPC — Pagos
-// ──────────────────────────────────────────────────────────────────────────────
 ipcMain.handle('payments:getAll', async () => await paymentService.getAllPayments());
 ipcMain.handle('payments:getPaginated', async (_event, page: number, limit: number, filters: unknown) =>
   await paymentService.getPaymentsPaginated(page, limit, filters));
@@ -303,9 +260,7 @@ ipcMain.handle('payments:update', async (_event, id: number, data: unknown) => a
 ipcMain.handle('payments:delete', async (_event, id: number) => await paymentService.deletePayment(id));
 ipcMain.handle('payments:getByClientId', async (_event, clientId: number) => await paymentService.getPaymentsByClientId(clientId));
 
-// ──────────────────────────────────────────────────────────────────────────────
 // Handlers IPC — Presupuestos
-// ──────────────────────────────────────────────────────────────────────────────
 ipcMain.handle('budgets:getAll', async () => await budgetService.getAllBudgets());
 ipcMain.handle('budgets:getPaginated', async (_event, page: number, limit: number, searchTerm: string) =>
   await budgetService.getBudgetsPaginated(page, limit, searchTerm));
@@ -322,17 +277,13 @@ ipcMain.handle('budgets:transformToOrder', async (_event, budgetId: number, user
   await budgetService.transformToOrder(budgetId, userId));
 ipcMain.handle('budgets:getNextId', async () => await budgetService.getNextId());
 
-// ──────────────────────────────────────────────────────────────────────────────
 // Handlers IPC — Stats
-// ──────────────────────────────────────────────────────────────────────────────
 ipcMain.handle('stats:getSales', async (_event, params: unknown) => await statsService.getSalesStats(params));
 ipcMain.handle('stats:getProducts', async () => await statsService.getProducts());
 ipcMain.handle('stats:getYears', async () => await statsService.getAvailableYears());
 ipcMain.handle('stats:getWeeks', async (_event, year: number) => await statsService.getAvailableWeeks(year));
 
-// ──────────────────────────────────────────────────────────────────────────────
 // Handlers IPC — Órdenes rápidas (Simple Orders)
-// ──────────────────────────────────────────────────────────────────────────────
 ipcMain.handle('simpleOrders:getAll', async () => await simpleOrderService.getAllSimpleOrders());
 ipcMain.handle('simpleOrders:getPaginated', async (_event, page: number, limit: number, searchTerm: string) =>
   await simpleOrderService.getSimpleOrdersPaginated(page, limit, searchTerm));
@@ -345,9 +296,7 @@ ipcMain.handle('simpleOrders:getPayments', async (_event, id: number) => await s
 ipcMain.handle('simpleOrders:updatePayment', async (_event, id: number, data: unknown) => await simpleOrderService.updatePayment(id, data));
 ipcMain.handle('simpleOrders:deletePayment', async (_event, id: number) => await simpleOrderService.deletePayment(id));
 
-// ──────────────────────────────────────────────────────────────────────────────
 // Handlers IPC — Sesiones de caja
-// ──────────────────────────────────────────────────────────────────────────────
 ipcMain.handle('cashSessions:getAll', async (_event, page: number, limit: number) => await cashSessionService.getAll(page, limit));
 ipcMain.handle('cashSessions:getClosed', async (_event, page: number, limit: number) => await cashSessionService.getClosed(page, limit));
 ipcMain.handle('cashSessions:getActive', async () => await cashSessionService.getActive());
@@ -359,9 +308,7 @@ ipcMain.handle('cashSessions:close', async (_event, id: number, data: unknown) =
 ipcMain.handle('cashSessions:update', async (_event, id: number, data: unknown) => await cashSessionService.update(id, data));
 ipcMain.handle('cashSessions:reopen', async (_event, id: number) => await cashSessionService.reopen(id));
 
-// ──────────────────────────────────────────────────────────────────────────────
 // Handlers IPC — Gastos
-// ──────────────────────────────────────────────────────────────────────────────
 ipcMain.handle('expenses:getAll', async (_event, page: number, limit: number) => await expensesService.getAll(page, limit));
 ipcMain.handle('expenses:getByCashSession', async (_event, cashSessionId: number) => await expensesService.getByCashSession(cashSessionId));
 ipcMain.handle('expenses:getById', async (_event, id: number) => await expensesService.getById(id));
@@ -369,9 +316,7 @@ ipcMain.handle('expenses:create', async (_event, data: unknown) => await expense
 ipcMain.handle('expenses:update', async (_event, id: number, data: unknown) => await expensesService.update(id, data));
 ipcMain.handle('expenses:delete', async (_event, id: number) => await expensesService.delete(id));
 
-// ──────────────────────────────────────────────────────────────────────────────
 // Handlers IPC — Proveedores
-// ──────────────────────────────────────────────────────────────────────────────
 ipcMain.handle('suppliers:getAll', async () => await supplierService.getAllSuppliers());
 ipcMain.handle('suppliers:getById', async (_event, id: number) => await supplierService.getSupplierById(id));
 ipcMain.handle('suppliers:create', async (_event, data: unknown) => await supplierService.createSupplier(data));
@@ -379,9 +324,7 @@ ipcMain.handle('suppliers:update', async (_event, id: number, data: unknown) => 
 ipcMain.handle('suppliers:delete', async (_event, id: number) => await supplierService.deleteSupplier(id));
 ipcMain.handle('suppliers:search', async (_event, searchTerm: string) => await supplierService.searchSuppliers(searchTerm));
 
-// ──────────────────────────────────────────────────────────────────────────────
 // Handlers IPC — Órdenes de proveedor
-// ──────────────────────────────────────────────────────────────────────────────
 ipcMain.handle('supplierOrders:getAll', async () => await supplierOrderService.getAllSupplierOrders());
 ipcMain.handle('supplierOrders:getById', async (_event, id: number) => await supplierOrderService.getSupplierOrderById(id));
 ipcMain.handle('supplierOrders:getBySupplierId', async (_event, supplierId: number) => await supplierOrderService.getSupplierOrdersBySupplierId(supplierId));
@@ -391,9 +334,7 @@ ipcMain.handle('supplierOrders:update', async (_event, id: number, data: unknown
 ipcMain.handle('supplierOrders:delete', async (_event, id: number) => await supplierOrderService.deleteSupplierOrder(id));
 ipcMain.handle('supplierOrders:getPreviousItems', async (_event, supplierId: number) => await supplierOrderService.getPreviousItemsBySupplier(supplierId));
 
-// ──────────────────────────────────────────────────────────────────────────────
 // Handlers IPC — Bitácora de impresión
-// ──────────────────────────────────────────────────────────────────────────────
 ipcMain.handle('printLogs:getActive', async () => await printLogService.getActivePrintLogs());
 ipcMain.handle('printLogs:getPaginated', async (_event, page: number, limit: number, searchTerm: string, searchDate: string | null) =>
   await printLogService.getPrintLogsPaginated(page, limit, searchTerm, searchDate));
@@ -407,17 +348,13 @@ ipcMain.handle('printLogs:update', async (_event, id: number, data: unknown) => 
 ipcMain.handle('printLogs:updateCheckboxes', async (_event, id: number, data: unknown) => await printLogService.updatePrintLogCheckboxes(id, data));
 ipcMain.handle('printLogs:delete', async (_event, id: number) => await printLogService.deletePrintLog(id));
 
-// ──────────────────────────────────────────────────────────────────────────────
-// Handlers IPC — Imágenes NAS
-// ──────────────────────────────────────────────────────────────────────────────
+// Handlers IPC — Imágenes
 ipcMain.handle('upload-image', async (_event, productId: number, buffer: Buffer, originalName: string) =>
   await imageService.uploadImage(productId, buffer, originalName));
 ipcMain.handle('delete-image', async (_event, relativePath: string) =>
   await imageService.deleteImage(relativePath));
 
-// ──────────────────────────────────────────────────────────────────────────────
 // Handlers IPC — WhatsApp
-// ──────────────────────────────────────────────────────────────────────────────
 ipcMain.handle('whatsapp:open', () => {
   if (!whatsappWindow) initWhatsApp();
   whatsappWindow?.show();
@@ -456,9 +393,7 @@ ipcMain.handle('shell:openExternal', async (_event, url: string) => {
   }
 });
 
-// ──────────────────────────────────────────────────────────────────────────────
 // Handlers IPC — Auto-updater (install)
-// ──────────────────────────────────────────────────────────────────────────────
 ipcMain.handle('updater:install', async () => {
   // Cambiar a isSilent: false para que muestre la interfaz del instalador.
   // Si está en true y requiere permisos de administrador (UAC), fallará silenciosamente.
@@ -486,9 +421,7 @@ ipcMain.handle('updater:install', async () => {
   }
 });
 
-// ──────────────────────────────────────────────────────────────────────────────
 // App lifecycle — whenReady
-// ──────────────────────────────────────────────────────────────────────────────
 app.whenReady().then(async () => {
   // ← Inicializar la DB explícitamente (ya no se llama automáticamente al importar)
   await initDb();
@@ -582,9 +515,7 @@ app.whenReady().then(async () => {
   }
 });
 
-// ──────────────────────────────────────────────────────────────────────────────
 // App lifecycle — eventos de cierre
-// ──────────────────────────────────────────────────────────────────────────────
 app.on('before-quit', () => {
   isQuitting = true;
   authService.logout();

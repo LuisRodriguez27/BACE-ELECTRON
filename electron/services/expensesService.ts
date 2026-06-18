@@ -111,5 +111,4 @@ class ExpensesService {
   }
 }
 
-module.exports = new ExpensesService();
-export {};
+export default new ExpensesService();

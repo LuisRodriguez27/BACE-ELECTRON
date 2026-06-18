@@ -153,5 +153,4 @@ class PermissionService {
   }
 }
 
-module.exports = new PermissionService();
-export {};
+export default new PermissionService();

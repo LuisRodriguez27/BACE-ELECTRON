@@ -120,5 +120,4 @@ class ClientService {
   }
 }
 
-module.exports = new ClientService();
-export {};
+export default new ClientService();

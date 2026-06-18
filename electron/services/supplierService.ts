@@ -86,5 +86,4 @@ class SupplierService {
   }
 }
 
-module.exports = new SupplierService();
-export {};
+export default new SupplierService();

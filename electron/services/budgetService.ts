@@ -247,5 +247,4 @@ class BudgetService {
   }
 }
 
-module.exports = new BudgetService();
-export {};
+export default new BudgetService();

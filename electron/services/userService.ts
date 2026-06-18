@@ -109,5 +109,4 @@ class UserService {
   }
 }
 
-module.exports = new UserService();
-export {};
+export default new UserService();

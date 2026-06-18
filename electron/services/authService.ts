@@ -125,5 +125,4 @@ class AuthService {
   }
 }
 
-module.exports = new AuthService();
-export {};
+export default new AuthService();

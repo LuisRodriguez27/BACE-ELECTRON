@@ -174,5 +174,4 @@ class SimpleOrderService {
   }
 }
 
-module.exports = new SimpleOrderService();
-export {};
+export default new SimpleOrderService();

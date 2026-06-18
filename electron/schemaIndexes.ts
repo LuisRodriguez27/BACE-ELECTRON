@@ -69,5 +69,4 @@ const schemaIndexes: string = `
 
 `;
 
-module.exports = schemaIndexes;
-export {};
+export default schemaIndexes;

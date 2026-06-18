@@ -163,5 +163,4 @@ class ProductTemplateService {
   }
 }
 
-module.exports = new ProductTemplateService();
-export {};
+export default new ProductTemplateService();

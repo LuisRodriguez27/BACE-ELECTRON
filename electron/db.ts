@@ -5,11 +5,8 @@ import { app } from 'electron';
 import { runMigrations } from './migrations';
 import type { Db, DbExecuteResult } from './types/db';
 
-// schemaTables y schemaIndexes exportan un string con el SQL del esquema
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const schemaTables: string = require('./schemaTables');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const schemaIndexes: string = require('./schemaIndexes');
+import schemaTables from './schemaTables';
+import schemaIndexes from './schemaIndexes';
 
 // Forzar que los campos DECIMAL (OID 1700), float4 (700) y float8 (701) devuelvan Number.
 // ADVERTENCIA: Usar parseFloat con DECIMAL puede causar pérdida de precisión en centavos.
@@ -19,10 +16,6 @@ types.setTypeParser(1700, (val: string) => parseFloat(val));
 types.setTypeParser(700,  (val: string) => parseFloat(val));
 types.setTypeParser(701,  (val: string) => parseFloat(val));
 
-// Cargar .env desde la raíz del proyecto.
-// Funciona tanto desde electron/ (dev sin compilar) como desde dist-electron/ (compilado).
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const isDev = !app.isPackaged;
 
@@ -117,13 +110,6 @@ const db: Db = {
   },
 };
 
-// ─── Inicialización de la base de datos ────────────────────────────────────
-//
-// IMPORTANTE: initDb() ya NO se llama automáticamente al importar este módulo.
-// Debe llamarse explícitamente desde electron/index.ts dentro de app.whenReady().
-// Esto evita que herramientas de análisis o tests disparen una conexión a Postgres
-// al importar el módulo.
-//
 export async function initDb(): Promise<void> {
   let client: PoolClient | undefined;
   try {
@@ -143,8 +129,3 @@ export async function initDb(): Promise<void> {
 
 export default db;
 
-// Compatibilidad CommonJS: los archivos .js que usen require('./db') seguirán
-// funcionando durante la migración incremental (allowJs: true en tsconfig).
-module.exports = db;
-module.exports.default = db;
-module.exports.initDb = initDb;

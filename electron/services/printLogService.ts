@@ -205,5 +205,4 @@ class PrintLogService {
   }
 }
 
-module.exports = new PrintLogService();
-export {};
+export default new PrintLogService();

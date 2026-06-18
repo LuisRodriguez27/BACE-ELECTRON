@@ -88,5 +88,4 @@ class StatsService {
   }
 }
 
-module.exports = new StatsService();
-export {};
+export default new StatsService();

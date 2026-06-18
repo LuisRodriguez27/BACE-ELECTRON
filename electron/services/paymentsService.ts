@@ -187,5 +187,4 @@ class PaymentsService {
   }
 }
 
-module.exports = new PaymentsService();
-export {};
+export default new PaymentsService();

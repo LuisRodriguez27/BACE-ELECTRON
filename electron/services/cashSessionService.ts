@@ -136,5 +136,4 @@ class CashSessionService {
   }
 }
 
-module.exports = new CashSessionService();
-export {};
+export default new CashSessionService();

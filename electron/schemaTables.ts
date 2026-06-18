@@ -213,5 +213,4 @@ const schemaTables: string = `
 
 `;
 
-module.exports = schemaTables;
-export {};
+export default schemaTables;
