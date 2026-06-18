@@ -1,6 +1,6 @@
 import db from '../db';
 import Supplier from '../domain/supplier';
-import type { SupplierRow } from '../types/supplier';
+import type { SupplierRow, SupplierData } from '../types/supplier';
 
 class SupplierRepository {
   async findAll() {
@@ -14,7 +14,7 @@ class SupplierRepository {
     return new Supplier(supplier);
   }
 
-  async create(supplierData: { name: string; phone?: string | null; email?: string | null; description?: string | null; columns?: unknown[] | string | null }): Promise<Supplier> {
+  async create(supplierData: SupplierData): Promise<Supplier> {
     const columnsJson = supplierData.columns
       ? (typeof supplierData.columns === 'string' ? supplierData.columns : JSON.stringify(supplierData.columns))
       : '[]';
@@ -24,7 +24,7 @@ class SupplierRepository {
     return supplier;
   }
 
-  async update(id: number, supplierData: { name: string; phone?: string | null; email?: string | null; description?: string | null; columns?: unknown[] | string | null }): Promise<boolean> {
+  async update(id: number, supplierData: SupplierData): Promise<boolean> {
     const columnsJson = supplierData.columns
       ? (typeof supplierData.columns === 'string' ? supplierData.columns : JSON.stringify(supplierData.columns))
       : '[]';
@@ -39,7 +39,7 @@ class SupplierRepository {
 
   async existsByName(name: string, excludeSupplierId: number | null = null): Promise<boolean> {
     let query = 'SELECT id FROM suppliers WHERE name = $1 AND is_active = true';
-    const params: unknown[] = [name];
+    const params: (string | number)[] = [name];
     if (excludeSupplierId) { query += ' AND id != $2'; params.push(excludeSupplierId); }
     return !!(await db.getOne(query, params));
   }

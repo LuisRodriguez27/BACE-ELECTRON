@@ -8,7 +8,7 @@ class PermissionService {
   async getAllPermissions() {
     try {
       const permissions = await permissionRepository.findAll();
-      return permissions.map((p: { toPlainObject: () => unknown }) => p.toPlainObject());
+      return permissions.map((p) => p.toPlainObject());
     } catch (error) {
       console.error('Error al obtener permisos:', error);
       throw new Error('Error al obtener permisos');
@@ -33,7 +33,7 @@ class PermissionService {
       const user = await userRepository.findById(userId);
       if (!user) throw new Error('El usuario especificado no existe');
       const permissions = await permissionRepository.findByUserId(userId);
-      return permissions.map((p: { toPlainObject: () => unknown }) => p.toPlainObject());
+      return permissions.map((p) => p.toPlainObject());
     } catch (error) {
       console.error('Error al obtener permisos del usuario:', error);
       throw error;

@@ -7,7 +7,7 @@ class ExpensesService {
       if (page < 1) page = 1;
       if (limit < 1 || limit > 100) limit = 20;
       const result = await expensesRepository.getAll(page, limit);
-      return { data: result.data.map((e: { toPlainObject: () => unknown }) => e.toPlainObject()), pagination: result.pagination };
+      return { data: result.data.map((e) => e.toPlainObject()), pagination: result.pagination };
     } catch (error) {
       console.error('Error al obtener gastos:', error);
       throw new Error('Error al obtener gastos');
@@ -18,7 +18,7 @@ class ExpensesService {
     try {
       if (!cashSessionId || isNaN(Number(cashSessionId))) throw new Error('ID de sesión de caja inválido');
       const expenses = await expensesRepository.getByCashSession(cashSessionId);
-      return expenses.map((e: { toPlainObject: () => unknown }) => e.toPlainObject());
+      return expenses.map((e) => e.toPlainObject());
     } catch (error) {
       console.error('Error al obtener gastos de la sesión:', error);
       throw error;
@@ -62,7 +62,7 @@ class ExpensesService {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de gasto inválido');
 
-      const payload: Record<string, unknown> = {};
+      const payload: { amount?: number; description?: string; date?: string; edited_by?: number; supplier_order_id?: number | null } = {};
       if (data.amount !== undefined) {
         const val = parseFloat(String(data.amount));
         if (isNaN(val) || val <= 0) throw new Error('El monto debe ser mayor a 0');

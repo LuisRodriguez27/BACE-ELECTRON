@@ -40,7 +40,6 @@ export interface SimpleOrderData {
   active?: boolean;
   client_name?: string | null;
   client_phone?: string | null;
-  [key: string]: unknown;
 }
 
 export interface AddSimplePaymentData {
@@ -50,3 +49,10 @@ export interface AddSimplePaymentData {
   date?: string;
   descripcion?: string | null;
 }
+
+export interface UpdateSimplePaymentData {
+  amount: number;
+  date: string;
+  descripcion?: string | null;
+}
+

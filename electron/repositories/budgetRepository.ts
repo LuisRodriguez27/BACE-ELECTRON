@@ -1,6 +1,6 @@
 import db from '../db';
 import Budget from '../domain/budget';
-import type { BudgetItem, BudgetRow, BudgetProductRow } from '../types/budget';
+import type { BudgetItem, BudgetRow, BudgetProductRow, BudgetData } from '../types/budget';
 
 const BUDGET_SELECT = `
   SELECT b.id, b.client_id, b.user_id, b.edited_by, b.date,
@@ -62,26 +62,26 @@ class BudgetRepository {
     return { data: budgetsWithProducts, pagination: { page, limit, total, totalPages: Math.ceil(total / limit), hasNext: page < Math.ceil(total / limit), hasPrev: page > 1 }, searchTerm };
   }
 
-  async create(budgetData: { client_id: number; user_id: number; date: string; total?: number; items: BudgetItem[] }) {
-    if (!budgetData.items || !Array.isArray(budgetData.items) || budgetData.items.length === 0) {
-      throw new Error('El presupuesto debe tener al menos un producto o plantilla.');
-    }
-    await this.validateBudgetItems(budgetData.items);
-
-    const result = await db.execute(`INSERT INTO budgets (client_id, user_id, date, total, converted_to_order) VALUES ($1, $2, $3, $4, 0)`, [budgetData.client_id, budgetData.user_id, budgetData.date, budgetData.total || 0]);
+  async create(budgetData: BudgetData) {
+    const date = budgetData.date ? new Date(budgetData.date).toISOString() : new Date().toISOString();
+    const result = await db.execute(`INSERT INTO budgets (client_id, user_id, date, total, converted_to_order, active) VALUES ($1, $2, $3, 0, false, true)`, [budgetData.client_id, budgetData.user_id, date]);
     const budgetId = result.lastInsertRowid!;
-    await this.addItemsToBudget(budgetId, budgetData.items);
-    await this.recalculateTotal(budgetId);
+
+    if (budgetData.items && Array.isArray(budgetData.items)) {
+      await this.validateBudgetItems(budgetData.items);
+      await this.addItemsToBudget(budgetId, budgetData.items);
+      await this.recalculateTotal(budgetId);
+    }
 
     return await this.findById(budgetId);
   }
 
-  async update(id: number, budgetData: { date?: string; client_id?: number; edited_by?: number; items?: BudgetItem[] }) {
+  async update(id: number, budgetData: BudgetData) {
     const existingBudget = await this.findById(id);
     if (!existingBudget) throw new Error('El presupuesto no existe');
     if (existingBudget.converted_to_order) throw new Error('No se puede editar un presupuesto que ya ha sido convertido a orden');
 
-    const fieldsToUpdate: Record<string, unknown> = {};
+    const fieldsToUpdate: Partial<BudgetRow> = {};
     if (budgetData.date !== undefined) fieldsToUpdate.date = budgetData.date;
     if (budgetData.client_id !== undefined) fieldsToUpdate.client_id = budgetData.client_id;
     if (budgetData.edited_by !== undefined) fieldsToUpdate.edited_by = budgetData.edited_by;

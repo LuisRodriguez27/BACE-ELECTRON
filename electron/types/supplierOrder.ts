@@ -31,11 +31,8 @@ export interface SupplierOrderRow {
 export interface SupplierOrderItemRow {
   id: number;
   supplier_order_id: number;
-  description: string;
-  quantity: number;
-  unit_price: number;
-  total_price: number;
-  [key: string]: unknown;
+  item_data: string | Record<string, any>;
+  active?: boolean | number;
 }
 
 // ─── Input / DTO types ─────────────────────────────────────────────────────
@@ -47,7 +44,6 @@ export interface SupplierOrderData {
   status?: string | null;
   notes?: string | null;
   date?: string;
-  items?: unknown[] | null;
+  items?: Record<string, any>[] | null;
   total?: number | null;
-  [key: string]: unknown;
 }

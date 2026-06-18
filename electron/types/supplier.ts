@@ -5,13 +5,6 @@
 
 // ─── Row types ─────────────────────────────────────────────────────────────
 
-/** Columna personalizada del proveedor (almacenada como JSON en DB). */
-export interface SupplierColumn {
-  name: string;
-  type?: string;
-  [key: string]: unknown;
-}
-
 export interface SupplierRow {
   id: number;
   name: string;
@@ -19,7 +12,7 @@ export interface SupplierRow {
   email: string | null;
   description: string | null;
   /** Almacenado como JSON string en la DB, parseado en el constructor. */
-  columns: string | SupplierColumn[];
+  columns: string | string[];
   is_active: boolean;
 }
 
@@ -30,5 +23,5 @@ export interface SupplierData {
   phone?: string | null;
   email?: string | null;
   description?: string | null;
-  columns?: unknown[] | string | null;
+  columns?: string[] | string | null;
 }

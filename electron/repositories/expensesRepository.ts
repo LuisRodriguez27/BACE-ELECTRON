@@ -34,7 +34,7 @@ class ExpensesRepository {
 
   async update(id: number, { amount, description, date, edited_by, supplier_order_id }: { amount?: number; description?: string; date?: string; edited_by?: number; supplier_order_id?: number | null }) {
     const fields: string[] = [];
-    const values: unknown[] = [];
+    const values: (string | number | null)[] = [];
     let idx = 1;
     if (amount !== undefined) { fields.push(`amount = $${idx++}`); values.push(parseFloat(String(amount))); }
     if (description !== undefined) { fields.push(`description = $${idx++}`); values.push(description.trim()); }

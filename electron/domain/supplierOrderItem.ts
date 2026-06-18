@@ -4,7 +4,7 @@ class SupplierOrderItem {
   id: number;
   supplier_order_id: number;
   active: boolean;
-  item_data: Record<string, unknown>;
+  item_data: Record<string, any>;
 
   constructor({ id, supplier_order_id, item_data, active = true }: SupplierOrderItemRow) {
     this.id = id;
@@ -12,7 +12,7 @@ class SupplierOrderItem {
     this.active = Boolean(active);
 
     try {
-      this.item_data = typeof item_data === 'string' ? JSON.parse(item_data as string) : ((item_data as Record<string, unknown>) || {});
+      this.item_data = typeof item_data === 'string' ? JSON.parse(item_data as string) : ((item_data as Record<string, any>) || {});
     } catch (_e) {
       this.item_data = {};
     }

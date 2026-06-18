@@ -121,19 +121,19 @@ class OrderRepository {
     if (!existingOrder) throw new Error('La orden no existe');
     if (existingOrder.isCancelled()) throw new Error('No se puede editar una orden cancelada');
 
-    const fieldsToUpdate: Record<string, unknown> = {};
+    const fieldsToUpdate: Partial<OrderRow> = {};
     if (orderData.client_id !== undefined) fieldsToUpdate.client_id = orderData.client_id;
     if (orderData.date !== undefined) fieldsToUpdate.date = orderData.date;
     if (orderData.estimated_delivery_date !== undefined) fieldsToUpdate.estimated_delivery_date = orderData.estimated_delivery_date;
-    if (orderData.status !== undefined) fieldsToUpdate.status = orderData.status;
-    if (orderData.responsable !== undefined) fieldsToUpdate.responsable = orderData.responsable;
+    if (orderData.status !== undefined) fieldsToUpdate.status = orderData.status as any;
+    if (orderData.responsable !== undefined) fieldsToUpdate.responsable = orderData.responsable as any;
     if (orderData.notes !== undefined) fieldsToUpdate.notes = orderData.notes;
     if (orderData.description !== undefined) fieldsToUpdate.description = orderData.description;
     if (orderData.edited_by !== undefined) fieldsToUpdate.edited_by = orderData.edited_by;
 
     const fieldEntries = Object.entries(fieldsToUpdate);
     if (fieldEntries.length > 0) {
-      const values = fieldEntries.map(([, value]) => value);
+      const values: (string | number | boolean | null)[] = fieldEntries.map(([, value]) => value as any);
       const setClause = fieldEntries.map(([key], idx) => `${key} = $${idx + 1}`).join(', ');
       values.push(id);
       await db.execute(`UPDATE orders SET ${setClause} WHERE id = $${values.length} AND active = true`, values);

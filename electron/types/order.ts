@@ -84,7 +84,7 @@ export interface OrderData {
   date?: string;
   estimated_delivery_date?: string | null;
   status?: string;
-  responsable?: string;
+  responsable?: string | null;
   notes?: string | null;
   description?: string | null;
   edited_by?: number | null;

@@ -151,7 +151,7 @@ class BudgetService {
         }
       }
 
-      const updatePayload: Record<string, unknown> = {
+      const updatePayload: BudgetData = {
         date: date ? new Date(date).toISOString() : existingBudget.date,
         client_id: client_id ? client_id : existingBudget.client_id,
         edited_by: edited_by ? edited_by : existingBudget.edited_by,

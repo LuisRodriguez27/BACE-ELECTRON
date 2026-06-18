@@ -1,4 +1,4 @@
-import type { SupplierRow, SupplierColumn } from '../types/domain';
+import type { SupplierRow } from '../types/domain';
 
 class Supplier {
   id: number;
@@ -6,7 +6,7 @@ class Supplier {
   phone: string | null;
   email: string | null;
   description: string | null;
-  columns: SupplierColumn[];
+  columns: string[];
   is_active: boolean;
 
   constructor({ id, name, phone, email, description, columns, is_active = true }: SupplierRow) {

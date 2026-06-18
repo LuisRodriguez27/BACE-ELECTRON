@@ -189,7 +189,7 @@ class OrderService {
         }
       }
 
-      const updatePayload: Record<string, unknown> = {
+      const updatePayload: OrderData = {
         client_id: client_id ? client_id : existingOrder.client_id,
         date: date ? new Date(date).toISOString() : existingOrder.date,
         estimated_delivery_date: estimated_delivery_date ? new Date(estimated_delivery_date).toISOString() : existingOrder.estimated_delivery_date,
@@ -207,7 +207,7 @@ class OrderService {
       const transaction = db.transaction(async () => {
         const updatedOrder = await orderRepository.update(id, updatePayload as OrderData);
         if (!updatedOrder) throw new Error('Error al actualizar orden');
-        const result = updatedOrder.toPlainObject() as Record<string, unknown>;
+        const result = updatedOrder.toPlainObject();
         if (!result.id || !result.client_id) { console.error('Orden actualizada inválida:', result); throw new Error('Datos de la orden actualizada inválidos'); }
         return result;
       });

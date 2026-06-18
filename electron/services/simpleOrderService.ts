@@ -2,7 +2,7 @@ import simpleOrderRepository from '../repositories/simpleOrderRepository';
 import cashSessionRepository from '../repositories/cashSessionRepository';
 import clientRepository from '../repositories/clientRepository';
 import SimpleOrder from '../domain/simpleOrder';
-import type { SimpleOrderData, AddSimplePaymentData } from '../types/simpleOrder';
+import type { SimpleOrderData, AddSimplePaymentData, UpdateSimplePaymentData } from '../types/simpleOrder';
 import db from '../db';
 
 class SimpleOrderService {
@@ -62,8 +62,10 @@ class SimpleOrderService {
         const newId = await simpleOrderRepository.create({ user_id: order.user_id, date: order.date || new Date().toISOString(), concept: order.concept, total: order.total, active: order.active, client_name: resolvedName?.trim() || null, client_phone: resolvedPhone?.trim() || null });
         const newOrder = await simpleOrderRepository.getById(newId);
         if (!newOrder) throw new Error('Error al obtener la orden creada');
-        const resObj = newOrder.toPlainObject() as Record<string, unknown>;
-        if (wasClientCreated) resObj.clientCreated = true;
+        const resObj = {
+          ...newOrder.toPlainObject(),
+          clientCreated: wasClientCreated ? true : undefined,
+        };
         return resObj;
       });
 
@@ -109,8 +111,10 @@ class SimpleOrderService {
 
         const updatedOrder = await simpleOrderRepository.getById(id);
         if (!updatedOrder) throw new Error('Error al obtener la orden actualizada');
-        const resObj = updatedOrder.toPlainObject() as Record<string, unknown>;
-        if (wasClientCreated) resObj.clientCreated = true;
+        const resObj = {
+          ...updatedOrder.toPlainObject(),
+          clientCreated: wasClientCreated ? true : undefined,
+        };
         return resObj;
       });
 
@@ -162,10 +166,10 @@ class SimpleOrderService {
     }
   }
 
-  async updatePayment(id: number, paymentData: Record<string, unknown>) {
+  async updatePayment(id: number, paymentData: UpdateSimplePaymentData) {
     try {
       const transaction = db.transaction(async () => {
-        const success = await simpleOrderRepository.updatePayment(id, paymentData as { amount: number; date: string; descripcion?: string | null });
+        const success = await simpleOrderRepository.updatePayment(id, paymentData);
         if (!success) throw new Error('No se pudo actualizar el pago, posiblemente no exista.');
         return await simpleOrderRepository.getPaymentById(id);
       });

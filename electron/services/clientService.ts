@@ -6,7 +6,7 @@ class ClientService {
   async getAllClients() {
     try {
       const clients = await clientRepository.findAll();
-      return clients.map((c: { toPlainObject: () => unknown }) => c.toPlainObject());
+      return clients.map((c) => c.toPlainObject());
     } catch (error) {
       console.error('Error al obtener clientes:', error);
       throw new Error('Error al obtener clientes');
@@ -16,7 +16,7 @@ class ClientService {
   async getAllInvestedClients() {
     try {
       const clients = await clientRepository.findAllInvested();
-      return clients.map((c: { toPlainObject: () => unknown }) => c.toPlainObject());
+      return clients.map((c) => c.toPlainObject());
     } catch (error) {
       console.error('Error al obtener clientes:', error);
       throw new Error('Error al obtener clientes');
@@ -80,7 +80,7 @@ class ClientService {
         const updatedClient = await clientRepository.findById(id);
         if (!updatedClient) throw new Error('Error: no se pudo recuperar el cliente actualizado');
 
-        const result = updatedClient.toPlainObject() as Record<string, unknown>;
+        const result = updatedClient.toPlainObject();
         if (!result.id || !result.name) { console.error('Cliente actualizado inválido:', result); throw new Error('Datos del cliente actualizado inválidos'); }
         return result;
       });
@@ -114,7 +114,7 @@ class ClientService {
     try {
       if (!searchTerm || searchTerm.trim().length === 0) return this.getAllClients();
       const clients = await clientRepository.searchByTerm(searchTerm.trim());
-      return clients.map((c: { toPlainObject: () => unknown }) => c.toPlainObject());
+      return clients.map((c) => c.toPlainObject());
     } catch (error) {
       console.error('Error al buscar clientes:', error);
       throw new Error('Error al buscar clientes');
@@ -126,7 +126,7 @@ class ClientService {
       if (page < 1) page = 1;
       if (limit < 1 || limit > 100) limit = 10;
       const result = await clientRepository.findPaginated(page, limit, searchTerm);
-      return { data: result.data.map((c: { toPlainObject: () => unknown }) => c.toPlainObject()), pagination: result.pagination, searchTerm: result.searchTerm };
+      return { data: result.data.map((c) => c.toPlainObject()), pagination: result.pagination, searchTerm: result.searchTerm };
     } catch (error) {
       console.error('Error al obtener clientes paginados:', error);
       throw new Error('Error al obtener clientes paginados');

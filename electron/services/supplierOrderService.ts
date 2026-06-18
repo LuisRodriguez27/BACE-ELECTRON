@@ -123,7 +123,7 @@ class SupplierOrderService {
       const existing = await supplierOrderRepository.findById(id);
       if (!existing) throw new Error('Orden de proveedor no encontrada');
 
-      const payload: Record<string, unknown> = {};
+      const payload: SupplierOrderData = {};
 
       if (data.supplier_id !== undefined) {
         if (!data.supplier_id || data.supplier_id <= 0) throw new Error('ID de proveedor inválido');
@@ -159,10 +159,10 @@ class SupplierOrderService {
       if (data.total !== undefined) payload.total = data.total !== null ? data.total : 0;
       if (Object.keys(payload).length === 0) throw new Error('No se proporcionaron campos para actualizar');
 
-      const newTotal = (payload.total as number | undefined) ?? (existing.total as number) ?? 0;
-      const newDate = (payload.date as string | undefined) ?? (existing.date as string);
-      const newUserId = (payload.user_id as number | undefined | null) ?? (existing.user_id as number | undefined);
-      const newSupplierId = (payload.supplier_id as number | undefined) ?? (existing.supplier_id as number);
+      const newTotal = payload.total ?? existing.total ?? 0;
+      const newDate = payload.date ?? existing.date;
+      const newUserId = payload.user_id ?? existing.user_id;
+      const newSupplierId = payload.supplier_id ?? existing.supplier_id;
 
       const transaction = db.transaction(async () => {
         const existingExpense = await expensesRepository.findBySupplierOrderId(id);

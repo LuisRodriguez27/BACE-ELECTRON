@@ -108,7 +108,7 @@ class CashSessionRepository {
     if (!session) throw new Error('Sesión de caja no encontrada.');
     if (!session.isActive()) throw new Error('Solo se puede editar una sesión abierta.');
     const fields: string[] = [];
-    const values: unknown[] = [];
+    const values: (string | number | null)[] = [];
     let idx = 1;
     if (data.opening_balance !== undefined) { fields.push(`opening_balance = $${idx++}`); values.push(parseFloat(String(data.opening_balance)) || 0); }
     if (data.notes !== undefined) { fields.push(`notes = $${idx++}`); values.push(data.notes || null); }

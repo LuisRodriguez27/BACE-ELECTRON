@@ -6,7 +6,7 @@ class ProductTemplateService {
   async getAllTemplates() {
     try {
       const templates = await productTemplateRepository.findAll();
-      return templates.map((t: { toPlainObject: () => unknown }) => t.toPlainObject());
+      return templates.map((t) => t.toPlainObject());
     } catch (error) {
       console.error('Error al obtener plantillas:', error);
       throw new Error('Error al obtener plantillas');
@@ -29,7 +29,7 @@ class ProductTemplateService {
     try {
       if (!productId || isNaN(Number(productId))) throw new Error('ID de producto inválido');
       const templates = await productTemplateRepository.findByProductId(productId);
-      return templates.map((t: { toPlainObject: () => unknown }) => t.toPlainObject());
+      return templates.map((t) => t.toPlainObject());
     } catch (error) {
       console.error('Error al obtener plantillas del producto:', error);
       throw error;
@@ -102,7 +102,7 @@ class ProductTemplateService {
       const updatedTemplate = await productTemplateRepository.findById(templateId);
       if (!updatedTemplate) throw new Error('Error: no se pudo recuperar la plantilla actualizada');
 
-      const result = updatedTemplate.toPlainObject() as Record<string, unknown>;
+      const result = updatedTemplate.toPlainObject();
       if (!result.id || !result.product_id) { console.error('Plantilla actualizada inválida:', result); throw new Error('Datos de la plantilla actualizada inválidos'); }
       return result;
     } catch (error) {
@@ -129,7 +129,7 @@ class ProductTemplateService {
     try {
       if (!searchTerm || searchTerm.trim().length === 0) return this.getAllTemplates();
       const templates = await productTemplateRepository.searchByTerm(searchTerm.trim());
-      return templates.map((t: { toPlainObject: () => unknown }) => t.toPlainObject());
+      return templates.map((t) => t.toPlainObject());
     } catch (error) {
       console.error('Error al buscar plantillas:', error);
       throw new Error('Error al buscar plantillas');
@@ -141,7 +141,7 @@ class ProductTemplateService {
       if (page < 1) page = 1;
       if (limit < 1 || limit > 100) limit = 10;
       const result = await productTemplateRepository.findPaginated(page, limit, searchTerm);
-      return { data: result.data.map((t: { toPlainObject: () => unknown }) => t.toPlainObject()), pagination: result.pagination, searchTerm: result.searchTerm };
+      return { data: result.data.map((t) => t.toPlainObject()), pagination: result.pagination, searchTerm: result.searchTerm };
     } catch (error) {
       console.error('Error al obtener plantillas paginadas:', error);
       throw new Error('Error al obtener plantillas paginadas');

@@ -14,7 +14,7 @@ class PrintLogService {
       const todayLocalStr = `${getDatePart(dateParts, 'year')}-${getDatePart(dateParts, 'month')}-${getDatePart(dateParts, 'day')}`;
 
       const logs = await printLogRepository.getActive(todayLocalStr);
-      const groups: Record<string, unknown[]> = {};
+      const groups: Record<string, any[]> = {};
 
       for (const log of logs) {
         if (!log.created_at) continue;
@@ -37,7 +37,7 @@ class PrintLogService {
       if (page < 1) page = 1;
       if (limit < 1 || limit > 100) limit = 10;
       const result = await printLogRepository.findAllPaginated(page, limit, searchTerm, searchDate);
-      return { data: result.data.map((log: { toPlainObject: () => unknown }) => log.toPlainObject()), pagination: result.pagination, searchTerm: result.searchTerm, searchDate: result.searchDate };
+      return { data: result.data.map((log) => log.toPlainObject()), pagination: result.pagination, searchTerm: result.searchTerm, searchDate: result.searchDate };
     } catch (error) {
       console.error('Error al obtener el historial paginado de bitácoras:', error);
       throw new Error('Error al obtener el historial paginado de bitácoras');
@@ -62,7 +62,7 @@ class PrintLogService {
       const oId = parseInt(String(orderId), 10);
       if (isNaN(oId)) throw new Error('ID de orden inválido');
       const logs = await printLogRepository.getByOrderId(oId);
-      return logs.map((log: { toPlainObject: () => unknown }) => log.toPlainObject());
+      return logs.map((log) => log.toPlainObject());
     } catch (error) {
       console.error('Error al obtener bitácoras por orden:', error);
       throw error;
@@ -181,7 +181,7 @@ class PrintLogService {
     try {
       if (!dateLocalStr) throw new Error('Fecha inválida');
       const logs = await printLogRepository.getByDay(dateLocalStr);
-      return logs.map((log: { toPlainObject: () => unknown }) => log.toPlainObject());
+      return logs.map((log) => log.toPlainObject());
     } catch (error) {
       console.error('Error al obtener bitácoras por día:', error);
       throw error;

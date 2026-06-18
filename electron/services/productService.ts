@@ -6,7 +6,7 @@ class ProductService {
   async getAllProducts() {
     try {
       const products = await productRepository.findAll();
-      return products.map((p: { toPlainObject: () => unknown }) => p.toPlainObject());
+      return products.map((p) => p.toPlainObject());
     } catch (error) {
       console.error('Error al obtener productos:', error);
       throw new Error('Error al obtener productos');
@@ -78,7 +78,7 @@ class ProductService {
       const updatedProduct = await productRepository.findById(productId);
       if (!updatedProduct) throw new Error('Error: no se pudo recuperar el producto actualizado');
 
-      const result = updatedProduct.toPlainObject() as Record<string, unknown>;
+      const result = updatedProduct.toPlainObject();
       if (!result.id || !result.name) { console.error('Producto actualizado inválido:', result); throw new Error('Datos del producto actualizado inválidos'); }
       return result;
     } catch (error) {
@@ -105,7 +105,7 @@ class ProductService {
     try {
       if (!searchTerm || searchTerm.trim().length === 0) return this.getAllProducts();
       const products = await productRepository.searchByTerm(searchTerm.trim());
-      return products.map((p: { toPlainObject: () => unknown }) => p.toPlainObject());
+      return products.map((p) => p.toPlainObject());
     } catch (error) {
       console.error('Error al buscar productos:', error);
       throw new Error('Error al buscar productos');
@@ -158,7 +158,7 @@ class ProductService {
       if (minPrice < 0 || maxPrice < 0) throw new Error('Los precios deben ser mayores o iguales a cero');
       if (minPrice > maxPrice) throw new Error('El precio mínimo no puede ser mayor al precio máximo');
       const products = await productRepository.findByPriceRange(minPrice, maxPrice);
-      return products.map((p: { toPlainObject: () => unknown }) => p.toPlainObject());
+      return products.map((p) => p.toPlainObject());
     } catch (error) {
       console.error('Error al obtener productos por rango de precio:', error);
       throw error;
@@ -169,7 +169,7 @@ class ProductService {
     try {
       if (isNaN(limit) || limit < 1) limit = 10;
       const products = await productRepository.findMostUsed(limit);
-      return products.map((p: { toPlainObject: () => unknown }) => p.toPlainObject());
+      return products.map((p) => p.toPlainObject());
     } catch (error) {
       console.error('Error al obtener productos más utilizados:', error);
       throw new Error('Error al obtener productos más utilizados');
@@ -179,7 +179,7 @@ class ProductService {
   async getProductsWithSimilarNames() {
     try {
       const products = await productRepository.findAll();
-      const plainProducts = products.map((p: { toPlainObject: () => unknown }) => p.toPlainObject()) as Array<{ id: number; name: string; serial_number: string }>;
+      const plainProducts = products.map((p) => p.toPlainObject()) as Array<{ id: number; name: string; serial_number: string }>;
 
       const wordGroups: Record<string, Array<{ id: number; name: string; serial_number: string }>> = {};
       const sanitizeWord = (word: string) => word.toLowerCase().replace(/[.,:;()\-]/g, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');

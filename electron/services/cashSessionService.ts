@@ -8,7 +8,7 @@ class CashSessionService {
       if (page < 1) page = 1;
       if (limit < 1 || limit > 100) limit = 20;
       const result = await cashSessionRepository.getAll(page, limit);
-      return { data: result.data.map((s: { toPlainObject: () => unknown }) => s.toPlainObject()), pagination: result.pagination };
+      return { data: result.data.map((s) => s.toPlainObject()), pagination: result.pagination };
     } catch (error) {
       console.error('Error al obtener sesiones de caja:', error);
       throw new Error('Error al obtener sesiones de caja');
@@ -20,7 +20,7 @@ class CashSessionService {
       if (page < 1) page = 1;
       if (limit < 1 || limit > 100) limit = 20;
       const result = await cashSessionRepository.getClosed(page, limit);
-      return { data: result.data.map((s: { toPlainObject: () => unknown }) => s.toPlainObject()), pagination: result.pagination };
+      return { data: result.data.map((s) => s.toPlainObject()), pagination: result.pagination };
     } catch (error) {
       console.error('Error al obtener sesiones cerradas:', error);
       throw new Error('Error al obtener sesiones cerradas');
@@ -58,7 +58,7 @@ class CashSessionService {
       if (isNaN(toDate.getTime())) throw new Error('Fecha de fin inválida');
       if (fromDate > toDate) throw new Error('La fecha de inicio no puede ser posterior a la fecha de fin');
       const sessions = await cashSessionRepository.getByDateRange(fromDate.toISOString(), toDate.toISOString());
-      return sessions.map((s: { toPlainObject: () => unknown }) => s.toPlainObject());
+      return sessions.map((s) => s.toPlainObject());
     } catch (error) {
       console.error('Error al obtener sesiones por rango de fechas:', error);
       throw error;
@@ -105,7 +105,7 @@ class CashSessionService {
   async update(id: number, data: OpenSessionData) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de sesión inválido');
-      const payload: Record<string, unknown> = {};
+      const payload: { opening_balance?: number; notes?: string | null } = {};
       if (data.opening_balance !== undefined) {
         const val = parseFloat(String(data.opening_balance));
         if (isNaN(val) || val < 0) throw new Error('El balance de apertura debe ser un número mayor o igual a 0');

@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron';
 import simpleOrderService from '../services/simpleOrderService';
-import type { SimpleOrderData, AddSimplePaymentData } from '../types/simpleOrder';
+import type { SimpleOrderData, AddSimplePaymentData, UpdateSimplePaymentData } from '../types/simpleOrder';
 
 export function registerSimpleOrderIpc(): void {
   ipcMain.handle('simpleOrders:getAll', async () => await simpleOrderService.getAllSimpleOrders());
@@ -12,6 +12,6 @@ export function registerSimpleOrderIpc(): void {
   ipcMain.handle('simpleOrders:delete', async (_event, id: number) => await simpleOrderService.deleteSimpleOrder(id));
   ipcMain.handle('simpleOrders:addPayment', async (_event, data: AddSimplePaymentData) => await simpleOrderService.addPayment(data));
   ipcMain.handle('simpleOrders:getPayments', async (_event, id: number) => await simpleOrderService.getPayments(id));
-  ipcMain.handle('simpleOrders:updatePayment', async (_event, id: number, data: Record<string, unknown>) => await simpleOrderService.updatePayment(id, data));
+  ipcMain.handle('simpleOrders:updatePayment', async (_event, id: number, data: UpdateSimplePaymentData) => await simpleOrderService.updatePayment(id, data));
   ipcMain.handle('simpleOrders:deletePayment', async (_event, id: number) => await simpleOrderService.deletePayment(id));
 }

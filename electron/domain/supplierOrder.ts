@@ -1,4 +1,5 @@
 import type { SupplierOrderRow, SupplierOrderStatus } from '../types/domain';
+import SupplierOrderItem from './supplierOrderItem';
 
 class SupplierOrder {
   id: number;
@@ -14,9 +15,9 @@ class SupplierOrder {
   supplier_phone: string | null;
   order_total: number | null;
   username: string | null;
-  supplierOrderItems: unknown[];
+  supplierOrderItems: SupplierOrderItem[];
 
-  constructor({ id, supplier_id, order_id, user_id, status, notes, date, active = true, supplier_name, supplier_phone, order_total, username, supplierOrderItems = [], total }: SupplierOrderRow & { supplierOrderItems?: unknown[] }) {
+  constructor({ id, supplier_id, order_id, user_id, status, notes, date, active = true, supplier_name, supplier_phone, order_total, username, supplierOrderItems = [], total }: SupplierOrderRow & { supplierOrderItems?: SupplierOrderItem[] }) {
     this.id = id;
     this.supplier_id = supplier_id;
     this.order_id = order_id || null;

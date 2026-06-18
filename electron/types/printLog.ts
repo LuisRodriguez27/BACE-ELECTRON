@@ -41,7 +41,6 @@ export interface PrintLogData {
   completado?: boolean | string | number;
   status?: string;
   created_at?: string | null;
-  [key: string]: unknown;
 }
 
 export interface PrintLogCheckboxData {

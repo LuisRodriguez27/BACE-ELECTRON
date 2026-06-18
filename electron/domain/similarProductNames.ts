@@ -1,13 +1,13 @@
 interface SimilarProductNamesData {
   word: string;
   count: number;
-  products: unknown[];
+  products: Array<{ id: number; name: string; serial_number: string | null }>;
 }
 
 class SimilarProductNames {
   word: string;
   count: number;
-  products: unknown[];
+  products: Array<{ id: number; name: string; serial_number: string | null }>;
 
   constructor({ word, count, products }: SimilarProductNamesData) {
     this.word = word;
@@ -17,7 +17,7 @@ class SimilarProductNames {
 
   getWord(): string { return this.word; }
   getCount(): number { return this.count; }
-  getProducts(): unknown[] { return this.products; }
+  getProducts(): Array<{ id: number; name: string; serial_number: string | null }> { return this.products; }
 
   toPlainObject() {
     return { word: this.word, count: this.count, products: this.products };

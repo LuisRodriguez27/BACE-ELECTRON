@@ -100,8 +100,10 @@ class PaymentsService {
 
           const payment = await paymentsRepository.create({ order_id: null, amount, date: paymentDate.toISOString(), descripcion: descripcion?.trim() ?? null, info: info.trim(), phone: resolvedPhone?.trim() ?? null, client_name: resolvedName?.trim() ?? null });
           if (!payment) throw new Error('Error al registrar pago');
-          const resObj = payment.toPlainObject() as Record<string, unknown>;
-          if (wasClientCreated) resObj.clientCreated = true;
+          const resObj = {
+            ...payment.toPlainObject(),
+            clientCreated: wasClientCreated ? true : undefined,
+          };
           return resObj;
         }
       });
@@ -158,8 +160,10 @@ class PaymentsService {
 
         const updatedPayment = await paymentsRepository.findById(id);
         if (!updatedPayment) throw new Error('Error al obtener pago actualizado');
-        const resObj = updatedPayment.toPlainObject() as Record<string, unknown>;
-        if (wasClientCreated) resObj.clientCreated = true;
+        const resObj = {
+          ...updatedPayment.toPlainObject(),
+          clientCreated: wasClientCreated ? true : undefined,
+        };
         return resObj;
       });
 
