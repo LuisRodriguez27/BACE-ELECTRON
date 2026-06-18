@@ -8,11 +8,18 @@ class CashSessionRepository {
     const ids = sessionRows.map(r => r.id);
     const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
 
-    const [paymentsRows, orderPaymentsRows, expensesRows] = await Promise.all([
-      db.getAll<SimpleOrderPaymentRow>(`SELECT sop.*, u.username as user_username FROM simple_order_payments sop LEFT JOIN users u ON sop.user_id = u.id WHERE sop.cash_session_id IN (${placeholders}) ORDER BY sop.date ASC`, ids),
-      db.getAll<PaymentRow>(`SELECT p.* FROM payments p WHERE p.cash_session_id IN (${placeholders}) ORDER BY p.date ASC`, ids),
-      db.getAll<ExpensesRow>(`SELECT e.*, u.username as user_username, ue.username as edited_by_username FROM expenses e LEFT JOIN users u ON e.user_id = u.id LEFT JOIN users ue ON e.edited_by = ue.id WHERE e.cash_session_id IN (${placeholders}) AND e.active = TRUE ORDER BY e.date ASC`, ids),
-    ]);
+    const paymentsRows = await db.getAll<SimpleOrderPaymentRow>(
+      `SELECT sop.*, u.username as user_username FROM simple_order_payments sop LEFT JOIN users u ON sop.user_id = u.id WHERE sop.cash_session_id IN (${placeholders}) ORDER BY sop.date ASC`,
+      ids
+    );
+    const orderPaymentsRows = await db.getAll<PaymentRow>(
+      `SELECT p.* FROM payments p WHERE p.cash_session_id IN (${placeholders}) ORDER BY p.date ASC`,
+      ids
+    );
+    const expensesRows = await db.getAll<ExpensesRow>(
+      `SELECT e.*, u.username as user_username, ue.username as edited_by_username FROM expenses e LEFT JOIN users u ON e.user_id = u.id LEFT JOIN users ue ON e.edited_by = ue.id WHERE e.cash_session_id IN (${placeholders}) AND e.active = TRUE ORDER BY e.date ASC`,
+      ids
+    );
 
     const groupBy = <T>(rows: T[], key: keyof T) =>
       rows.reduce((map: Record<string, T[]>, row) => {
