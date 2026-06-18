@@ -25,7 +25,7 @@ class ClientService {
   async getClientById(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de cliente inválido');
-      const client = await clientRepository.findById(parseInt(String(id)));
+      const client = await clientRepository.findById(id);
       if (!client) throw new Error('Cliente no encontrado');
       return client.toPlainObject();
     } catch (error) {
@@ -59,7 +59,7 @@ class ClientService {
       if (name.trim().length < 3) throw new Error('El nombre debe tener al menos 3 caracteres');
       if (phone.trim().length < 10) throw new Error('El teléfono debe tener al menos 10 dígitos');
 
-      const clientId = parseInt(String(id));
+      const clientId = id;
       const existingClient = await clientRepository.findById(clientId);
       if (!existingClient) throw new Error('Cliente no encontrado');
 
@@ -85,7 +85,7 @@ class ClientService {
   async deleteClient(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de cliente inválido');
-      const clientId = parseInt(String(id));
+      const clientId = id;
       const existingClient = await clientRepository.findById(clientId);
       if (!existingClient) throw new Error('Cliente no encontrado');
       const deleted = await clientRepository.delete(clientId);

@@ -16,7 +16,7 @@ class ProductTemplateService {
   async getTemplateById(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de plantilla inválido');
-      const template = await productTemplateRepository.findById(parseInt(String(id)));
+      const template = await productTemplateRepository.findById(id);
       if (!template) throw new Error('Plantilla no encontrada');
       return template.toPlainObject();
     } catch (error) {
@@ -75,7 +75,7 @@ class ProductTemplateService {
       if (!product_id || isNaN(Number(product_id))) throw new Error('ID de producto inválido');
       if (final_price === undefined || final_price === null || isNaN(Number(final_price))) throw new Error('El precio final es requerido y debe ser un número válido');
 
-      const templateId = parseInt(String(id));
+      const templateId = id;
       const existingTemplate = await productTemplateRepository.findById(templateId);
       if (!existingTemplate) throw new Error('Plantilla no encontrada');
 
@@ -114,7 +114,7 @@ class ProductTemplateService {
   async deleteTemplate(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de plantilla inválido');
-      const templateId = parseInt(String(id));
+      const templateId = id;
       const existingTemplate = await productTemplateRepository.findById(templateId);
       if (!existingTemplate) throw new Error('Plantilla no encontrada');
       const deleted = await productTemplateRepository.delete(templateId);

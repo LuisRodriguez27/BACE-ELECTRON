@@ -15,7 +15,7 @@ class UserService {
   async getUserById(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de usuario inválido');
-      const user = await userRepository.findById(parseInt(String(id)));
+      const user = await userRepository.findById(id);
       if (!user) throw new Error('Usuario no encontrado');
       return user.toPlainObject();
     } catch (error) {
@@ -46,7 +46,7 @@ class UserService {
       if (!username) throw new Error('Username es requerido');
       if (username.trim().length < 3) throw new Error('El username debe tener al menos 3 caracteres');
 
-      const userId = parseInt(String(id));
+      const userId = id;
       const existingUser = await userRepository.findById(userId);
       if (!existingUser) throw new Error('Usuario no encontrado');
       if (await userRepository.existsByUsername(username.trim(), userId)) throw new Error('El username ya está en uso por otro usuario');
@@ -72,7 +72,7 @@ class UserService {
   async deleteUser(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de usuario inválido');
-      const userId = parseInt(String(id));
+      const userId = id;
       const existingUser = await userRepository.findById(userId);
       if (!existingUser) throw new Error('Usuario no encontrado');
 

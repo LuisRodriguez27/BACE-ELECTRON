@@ -16,7 +16,7 @@ class PermissionService {
   async getPermissionById(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de permiso inválido');
-      const permission = await permissionRepository.findById(parseInt(String(id)));
+      const permission = await permissionRepository.findById(id);
       if (!permission) throw new Error('Permiso no encontrado');
       return permission.toPlainObject();
     } catch (error) {
@@ -55,7 +55,7 @@ class PermissionService {
   async updatePermission(id: number, { name, description, active }: { name?: string; description?: string | null; active?: boolean }) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de permiso inválido');
-      const permissionId = parseInt(String(id));
+      const permissionId = id;
       const existingPermission = await permissionRepository.findById(permissionId);
       if (!existingPermission) throw new Error('Permiso no encontrado');
       if (!existingPermission.canEdit() && active !== false) throw new Error('No se puede editar este permiso');
@@ -78,7 +78,7 @@ class PermissionService {
   async deletePermission(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de permiso inválido');
-      const permissionId = parseInt(String(id));
+      const permissionId = id;
       const existingPermission = await permissionRepository.findById(permissionId);
       if (!existingPermission) throw new Error('Permiso no encontrado');
       if (!existingPermission.canDelete()) throw new Error('No se puede eliminar este permiso. Puede ser un permiso crítico o tener usuarios asignados');

@@ -16,7 +16,7 @@ class ProductService {
   async getProductById(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de producto inválido');
-      const product = await productRepository.findById(parseInt(String(id)));
+      const product = await productRepository.findById(id);
       if (!product) throw new Error('Producto no encontrado');
       return product.toPlainObject();
     } catch (error) {
@@ -56,7 +56,7 @@ class ProductService {
       if (!name) throw new Error('El nombre del producto es requerido');
       if (name.trim().length < 1) throw new Error('El nombre del producto no puede estar vacío');
 
-      const productId = parseInt(String(id));
+      const productId = id;
       const existingProduct = await productRepository.findById(productId);
       if (!existingProduct) throw new Error('Producto no encontrado');
       if (price === undefined || price === null || isNaN(Number(price))) throw new Error('El precio es requerido y debe ser un número válido');
@@ -90,7 +90,7 @@ class ProductService {
   async deleteProduct(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de producto inválido');
-      const productId = parseInt(String(id));
+      const productId = id;
       const existingProduct = await productRepository.findById(productId);
       if (!existingProduct) throw new Error('Producto no encontrado');
       const deleted = await productRepository.delete(productId);

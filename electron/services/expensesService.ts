@@ -28,7 +28,7 @@ class ExpensesService {
   async getById(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de gasto inválido');
-      const expense = await expensesRepository.getById(parseInt(String(id)));
+      const expense = await expensesRepository.getById(id);
       if (!expense) throw new Error('Gasto no encontrado');
       return expense.toPlainObject();
     } catch (error) {
@@ -83,7 +83,7 @@ class ExpensesService {
       if (data.supplier_order_id !== undefined) payload.supplier_order_id = data.supplier_order_id;
       if (Object.keys(payload).length === 0) throw new Error('No se proporcionaron campos válidos para actualizar');
 
-      const expense = await expensesRepository.update(parseInt(String(id)), payload);
+      const expense = await expensesRepository.update(id, payload);
       if (!expense) throw new Error('Gasto no encontrado o ya inactivo');
       return expense.toPlainObject();
     } catch (error) {
@@ -95,7 +95,7 @@ class ExpensesService {
   async delete(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de gasto inválido');
-      const deleted = await expensesRepository.delete(parseInt(String(id)));
+      const deleted = await expensesRepository.delete(id);
       if (!deleted) throw new Error('Gasto no encontrado o ya eliminado');
     } catch (error) {
       console.error('Error al eliminar gasto:', error);

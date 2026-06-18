@@ -39,7 +39,7 @@ class CashSessionService {
   async getById(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de sesión inválido');
-      const session = await cashSessionRepository.getById(parseInt(String(id)));
+      const session = await cashSessionRepository.getById(id);
       if (!session) throw new Error('Sesión de caja no encontrada');
       return session.toPlainObject();
     } catch (error) {
@@ -67,7 +67,7 @@ class CashSessionService {
   async getSummary(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de sesión inválido');
-      const summary = await cashSessionRepository.getSummary(parseInt(String(id)));
+      const summary = await cashSessionRepository.getSummary(id);
       if (!summary) throw new Error('Sesión de caja no encontrada');
       return summary;
     } catch (error) {
@@ -93,7 +93,7 @@ class CashSessionService {
       if (!id || isNaN(Number(id))) throw new Error('ID de sesión inválido');
       const closing_balance = parseFloat(String(data?.closing_balance));
       if (isNaN(closing_balance)) throw new Error('El balance de cierre debe ser un número válido');
-      const session = await cashSessionRepository.close(parseInt(String(id)), { closing_balance, notes: data?.notes?.trim() || null });
+      const session = await cashSessionRepository.close(id, { closing_balance, notes: data?.notes?.trim() || null });
       return session.toPlainObject();
     } catch (error) {
       console.error('Error al cerrar sesión de caja:', error);
@@ -112,7 +112,7 @@ class CashSessionService {
       }
       if (data.notes !== undefined) payload.notes = data.notes?.trim() || null;
       if (Object.keys(payload).length === 0) throw new Error('No se proporcionaron campos válidos para actualizar');
-      const session = await cashSessionRepository.update(parseInt(String(id)), payload);
+      const session = await cashSessionRepository.update(id, payload);
       return session.toPlainObject();
     } catch (error) {
       console.error('Error al actualizar sesión de caja:', error);
@@ -125,7 +125,7 @@ class CashSessionService {
       if (!id || isNaN(Number(id))) throw new Error('ID de sesión inválido');
       const authorized = await authService.hasPermission('Reabrir Caja');
       if (!authorized) throw new Error('No tienes permiso para reabrir la caja');
-      const session = await cashSessionRepository.reopen(parseInt(String(id)));
+      const session = await cashSessionRepository.reopen(id);
       return session.toPlainObject();
     } catch (error) {
       console.error('Error al reabrir sesión de caja:', error);

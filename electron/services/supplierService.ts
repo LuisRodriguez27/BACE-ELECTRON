@@ -15,7 +15,7 @@ class SupplierService {
   async getSupplierById(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de proveedor inválido');
-      const supplier = await supplierRepository.findById(parseInt(String(id)));
+      const supplier = await supplierRepository.findById(id);
       if (!supplier) throw new Error('Proveedor no encontrado');
       return supplier.toPlainObject();
     } catch (error) {
@@ -44,7 +44,7 @@ class SupplierService {
       if (!name || !name.trim()) throw new Error('El nombre del proveedor es requerido');
       if (name.trim().length < 3) throw new Error('El nombre del proveedor debe tener al menos 3 caracteres');
 
-      const supplierId = parseInt(String(id));
+      const supplierId = id;
       const existing = await supplierRepository.findById(supplierId);
       if (!existing) throw new Error('Proveedor no encontrado');
       if (await supplierRepository.existsByName(name.trim(), supplierId)) throw new Error('Ya existe otro proveedor con este nombre');
@@ -64,7 +64,7 @@ class SupplierService {
   async deleteSupplier(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de proveedor inválido');
-      const supplierId = parseInt(String(id));
+      const supplierId = id;
       const existing = await supplierRepository.findById(supplierId);
       if (!existing) throw new Error('Proveedor no encontrado');
       const deleted = await supplierRepository.delete(supplierId);
