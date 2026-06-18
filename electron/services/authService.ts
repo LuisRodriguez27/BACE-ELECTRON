@@ -1,8 +1,10 @@
 import authRepository from '../repositories/authRepository';
+import { VerifyPasswordData } from '../types/user';
 
 class AuthService {
-  async login(username: string, password: string) {
+  async login(data: VerifyPasswordData) {
     try {
+      const { username, password } = data;
       if (!username || typeof username !== 'string') throw new Error('El nombre de usuario es requerido');
       if (!password || typeof password !== 'string') throw new Error('La contraseña es requerida');
       const trimmedUsername = username.trim();
