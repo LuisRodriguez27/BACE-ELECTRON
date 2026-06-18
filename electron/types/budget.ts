@@ -12,7 +12,7 @@ export interface BudgetRow {
   edited_by: number | null;
   date: string;
   total: number;
-  converted_to_order: boolean | number;
+  converted_to_order: boolean;
   active: boolean;
   /** Joined desde clients */
   client_name: string | null;

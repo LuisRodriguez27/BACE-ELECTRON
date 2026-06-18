@@ -23,7 +23,7 @@ class Budget {
     this.edited_by = edited_by || null;
     this.date = date;
     this.total = parseFloat(String(total)) || 0;
-    this.converted_to_order = converted_to_order === 1 || converted_to_order === true;
+    this.converted_to_order = !!converted_to_order;
     this.active = active;
     this.client_name = client_name || null;
     this.client_phone = client_phone || null;

@@ -66,7 +66,7 @@ const schemaTables: string = `
     edited_by             INTEGER       REFERENCES users(id),
     date                  TIMESTAMPTZ   NOT NULL,
     total                 DECIMAL(10,2) DEFAULT 0,
-    converted_to_order    INTEGER       NOT NULL DEFAULT 0,
+    converted_to_order    BOOLEAN       NOT NULL DEFAULT FALSE,
     converted_to_order_id INTEGER,
     active                BOOLEAN       NOT NULL DEFAULT TRUE
   );

@@ -721,9 +721,25 @@ const MIGRATIONS: Migration[] = [
         WHERE LOWER(status) = 'entregado'
       `);
     }
-  }
+  },
 
-  // AGREGA NUEVAS MIGRACIONES AQUÍ
+  // v28: Convertir budgets.converted_to_order de INTEGER → BOOLEAN
+  {
+    version: 28,
+    name: 'convert_converted_to_order_to_boolean',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ data_type: string }>(
+        `SELECT data_type FROM information_schema.columns
+         WHERE table_name = 'budgets' AND column_name = 'converted_to_order'`
+      );
+      return rows.length > 0 && rows[0].data_type === 'boolean';
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`ALTER TABLE budgets ALTER COLUMN converted_to_order DROP DEFAULT`);
+      await client.query(`ALTER TABLE budgets ALTER COLUMN converted_to_order TYPE BOOLEAN USING (converted_to_order = 1)`);
+      await client.query(`ALTER TABLE budgets ALTER COLUMN converted_to_order SET DEFAULT FALSE`);
+    }
+  }
 ];
 
 // ─── RUNNER PRINCIPAL ───────────────────────────────────────────────────────

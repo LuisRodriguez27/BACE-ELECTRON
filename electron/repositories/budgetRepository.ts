@@ -15,7 +15,7 @@ const BUDGET_SELECT = `
 
 class BudgetRepository {
   async findAll() {
-    const budgets = await db.getAll<BudgetRow>(`${BUDGET_SELECT} WHERE b.active = true AND b.converted_to_order = 0 ORDER BY b.id DESC`);
+    const budgets = await db.getAll<BudgetRow>(`${BUDGET_SELECT} WHERE b.active = true AND b.converted_to_order = false ORDER BY b.id DESC`);
     return await Promise.all(budgets.map(async (budget) => {
       const budgetProducts = await this.getBudgetProducts(budget.id);
       return new Budget({ ...budget, budgetProducts });
@@ -50,9 +50,9 @@ class BudgetRepository {
       paramIndex = 2;
     }
 
-    const countResult = await db.getOne<{ total: string }>(`SELECT COUNT(*) as total FROM budgets b JOIN clients c ON b.client_id = c.id WHERE b.active = true AND b.converted_to_order = 0 ${searchCondition}`, searchParams);
+    const countResult = await db.getOne<{ total: string }>(`SELECT COUNT(*) as total FROM budgets b JOIN clients c ON b.client_id = c.id WHERE b.active = true AND b.converted_to_order = false ${searchCondition}`, searchParams);
     const total = parseInt(countResult!.total, 10);
-    const budgets = await db.getAll<BudgetRow>(`${BUDGET_SELECT} WHERE b.active = true AND b.converted_to_order = 0 ${searchCondition} ORDER BY b.id DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`, [...searchParams, limit, offset]);
+    const budgets = await db.getAll<BudgetRow>(`${BUDGET_SELECT} WHERE b.active = true AND b.converted_to_order = false ${searchCondition} ORDER BY b.id DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`, [...searchParams, limit, offset]);
 
     const budgetsWithProducts = await Promise.all(budgets.map(async (budget) => {
       const budgetProducts = await this.getBudgetProducts(budget.id);
@@ -144,7 +144,7 @@ class BudgetRepository {
     for (const item of budgetProducts) {
       await db.execute(`INSERT INTO order_products (order_id, product_id, template_id, quantity, unit_price, total_price) VALUES ($1, $2, $3, $4, $5, $6)`, [orderId, item.product_id || null, item.template_id || null, item.quantity, item.unit_price, item.total_price]);
     }
-    await db.execute(`UPDATE budgets SET converted_to_order = 1, converted_to_order_id = $1 WHERE id = $2`, [orderId, budgetId]);
+    await db.execute(`UPDATE budgets SET converted_to_order = true, converted_to_order_id = $1 WHERE id = $2`, [orderId, budgetId]);
     return orderId;
   }
 
