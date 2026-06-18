@@ -38,23 +38,23 @@ export interface BudgetProductRow {
 // ─── Input / DTO types ─────────────────────────────────────────────────────
 
 export interface BudgetItem {
-  product_id?: number | string | null;
-  template_id?: number | string | null;
-  quantity: number | string;
-  unit_price: number | string;
+  product_id?: number | null;
+  template_id?: number | null;
+  quantity: number;
+  unit_price: number;
 }
 
 export interface BudgetData {
-  client_id?: number | string;
-  user_id?: number | string;
+  client_id?: number;
+  user_id?: number;
   date?: string;
-  edited_by?: number | string | null;
+  edited_by?: number | null;
   items?: BudgetItem[];
   /** @deprecated Usar `items` en su lugar */
   products?: Array<{
-    product_id?: number | string | null;
-    template_id?: number | string | null;
-    quantity: number | string;
-    unit_price: number | string;
+    product_id?: number | null;
+    template_id?: number | null;
+    quantity: number;
+    unit_price: number;
   }>;
 }

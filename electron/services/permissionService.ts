@@ -13,7 +13,7 @@ class PermissionService {
     }
   }
 
-  async getPermissionById(id: number | string) {
+  async getPermissionById(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de permiso inválido');
       const permission = await permissionRepository.findById(parseInt(String(id)));
@@ -25,7 +25,7 @@ class PermissionService {
     }
   }
 
-  async getPermissionsByUserId(userId: number | string) {
+  async getPermissionsByUserId(userid: number) {
     try {
       if (!userId || isNaN(Number(userId))) throw new Error('ID de usuario inválido');
       const user = await userRepository.findById(parseInt(String(userId)));
@@ -52,7 +52,7 @@ class PermissionService {
     }
   }
 
-  async updatePermission(id: number | string, { name, description, active }: { name?: string; description?: string | null; active?: boolean }) {
+  async updatePermission(id: number, { name, description, active }: { name?: string; description?: string | null; active?: boolean }) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de permiso inválido');
       const permissionId = parseInt(String(id));
@@ -75,7 +75,7 @@ class PermissionService {
     }
   }
 
-  async deletePermission(id: number | string) {
+  async deletePermission(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de permiso inválido');
       const permissionId = parseInt(String(id));
@@ -92,7 +92,7 @@ class PermissionService {
     }
   }
 
-  async assignPermissionToUser({ userId, permissionId }: { userId: number | string; permissionId: number | string }) {
+  async assignPermissionToUser({ userId, permissionId }: { userid: number; permissionid: number }) {
     try {
       if (!userId || isNaN(Number(userId))) throw new Error('ID de usuario inválido');
       if (!permissionId || isNaN(Number(permissionId))) throw new Error('ID de permiso inválido');
@@ -120,7 +120,7 @@ class PermissionService {
     }
   }
 
-  async removePermissionFromUser({ userId, permissionId }: { userId: number | string; permissionId: number | string }) {
+  async removePermissionFromUser({ userId, permissionId }: { userid: number; permissionid: number }) {
     try {
       if (!userId || isNaN(Number(userId))) throw new Error('ID de usuario inválido');
       if (!permissionId || isNaN(Number(permissionId))) throw new Error('ID de permiso inválido');

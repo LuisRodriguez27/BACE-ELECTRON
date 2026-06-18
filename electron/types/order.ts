@@ -70,30 +70,30 @@ export interface OrderProductRow {
 // ─── Input / DTO types ─────────────────────────────────────────────────────
 
 export interface OrderItem {
-  product_id?: number | string | null;
-  template_id?: number | string | null;
-  quantity: number | string;
-  unit_price: number | string;
-  is_delivered?: boolean | string;
-  is_paid?: boolean | string;
+  product_id?: number | null;
+  template_id?: number | null;
+  quantity: number;
+  unit_price: number;
+  is_delivered?: boolean;
+  is_paid?: boolean;
 }
 
 export interface OrderData {
-  client_id?: number | string;
-  user_id?: number | string;
+  client_id?: number;
+  user_id?: number;
   date?: string;
   estimated_delivery_date?: string | null;
   status?: string;
   responsable?: string;
   notes?: string | null;
   description?: string | null;
-  edited_by?: number | string | null;
+  edited_by?: number | null;
   items?: OrderItem[];
   /** @deprecated Usar `items` en su lugar */
   products?: Array<{
-    product_id?: number | string | null;
-    template_id?: number | string | null;
-    quantity: number | string;
-    unit_price?: number | string;
+    product_id?: number | null;
+    template_id?: number | null;
+    quantity: number;
+    unit_price?: number;
   }>;
 }

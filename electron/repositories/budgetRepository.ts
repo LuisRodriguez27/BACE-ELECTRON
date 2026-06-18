@@ -68,15 +68,11 @@ class BudgetRepository {
     }
     await this.validateBudgetItems(budgetData.items);
 
-    const transaction = db.transaction(async () => {
-      const result = await db.execute(`INSERT INTO budgets (client_id, user_id, date, total, converted_to_order) VALUES ($1, $2, $3, $4, 0)`, [budgetData.client_id, budgetData.user_id, budgetData.date, budgetData.total || 0]);
-      const budgetId = result.lastInsertRowid!;
-      await this.addItemsToBudget(budgetId, budgetData.items);
-      await this.recalculateTotal(budgetId);
-      return budgetId;
-    });
+    const result = await db.execute(`INSERT INTO budgets (client_id, user_id, date, total, converted_to_order) VALUES ($1, $2, $3, $4, 0)`, [budgetData.client_id, budgetData.user_id, budgetData.date, budgetData.total || 0]);
+    const budgetId = result.lastInsertRowid!;
+    await this.addItemsToBudget(budgetId, budgetData.items);
+    await this.recalculateTotal(budgetId);
 
-    const budgetId = await transaction();
     return await this.findById(budgetId);
   }
 
@@ -143,17 +139,13 @@ class BudgetRepository {
     const budgetProducts = await this.getBudgetProducts(budgetId);
     if (!budgetProducts || budgetProducts.length === 0) throw new Error('El presupuesto no tiene productos');
 
-    const transaction = db.transaction(async () => {
-      const orderResult = await db.execute(`INSERT INTO orders (client_id, user_id, date, status, total, notes, created_from_budget_id) VALUES ($1, $2, $3, 'Revision', $4, $5, $6)`, [budget.client_id, userId, new Date().toISOString(), budget.total, `Convertido desde presupuesto #${budgetId}`, budgetId]);
-      const orderId = orderResult.lastInsertRowid!;
-      for (const item of budgetProducts) {
-        await db.execute(`INSERT INTO order_products (order_id, product_id, template_id, quantity, unit_price, total_price) VALUES ($1, $2, $3, $4, $5, $6)`, [orderId, item.product_id || null, item.template_id || null, item.quantity, item.unit_price, item.total_price]);
-      }
-      await db.execute(`UPDATE budgets SET converted_to_order = 1, converted_to_order_id = $1 WHERE id = $2`, [orderId, budgetId]);
-      return orderId;
-    });
-
-    return await transaction();
+    const orderResult = await db.execute(`INSERT INTO orders (client_id, user_id, date, status, total, notes, created_from_budget_id) VALUES ($1, $2, $3, 'Revision', $4, $5, $6)`, [budget.client_id, userId, new Date().toISOString(), budget.total, `Convertido desde presupuesto #${budgetId}`, budgetId]);
+    const orderId = orderResult.lastInsertRowid!;
+    for (const item of budgetProducts) {
+      await db.execute(`INSERT INTO order_products (order_id, product_id, template_id, quantity, unit_price, total_price) VALUES ($1, $2, $3, $4, $5, $6)`, [orderId, item.product_id || null, item.template_id || null, item.quantity, item.unit_price, item.total_price]);
+    }
+    await db.execute(`UPDATE budgets SET converted_to_order = 1, converted_to_order_id = $1 WHERE id = $2`, [orderId, budgetId]);
+    return orderId;
   }
 
   async getBudgetProducts(budgetId: number): Promise<BudgetProductRow[]> {

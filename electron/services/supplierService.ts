@@ -12,7 +12,7 @@ class SupplierService {
     }
   }
 
-  async getSupplierById(id: number | string) {
+  async getSupplierById(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de proveedor inválido');
       const supplier = await supplierRepository.findById(parseInt(String(id)));
@@ -38,7 +38,7 @@ class SupplierService {
     }
   }
 
-  async updateSupplier(id: number | string, { name, phone, email, description, columns }: { name: string; phone?: string | null; email?: string | null; description?: string | null; columns?: unknown[] | string | null }) {
+  async updateSupplier(id: number, { name, phone, email, description, columns }: { name: string; phone?: string | null; email?: string | null; description?: string | null; columns?: unknown[] | string | null }) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de proveedor inválido');
       if (!name || !name.trim()) throw new Error('El nombre del proveedor es requerido');
@@ -61,7 +61,7 @@ class SupplierService {
     }
   }
 
-  async deleteSupplier(id: number | string) {
+  async deleteSupplier(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de proveedor inválido');
       const supplierId = parseInt(String(id));

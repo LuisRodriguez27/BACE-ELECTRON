@@ -13,7 +13,7 @@ class ProductService {
     }
   }
 
-  async getProductById(id: number | string) {
+  async getProductById(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de producto inválido');
       const product = await productRepository.findById(parseInt(String(id)));
@@ -50,7 +50,7 @@ class ProductService {
     }
   }
 
-  async updateProduct(id: number | string, { name, serial_number, price, promo_price, discount_price, description, images }: ProductData) {
+  async updateProduct(id: number, { name, serial_number, price, promo_price, discount_price, description, images }: ProductData) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de producto inválido');
       if (!name) throw new Error('El nombre del producto es requerido');
@@ -87,7 +87,7 @@ class ProductService {
     }
   }
 
-  async deleteProduct(id: number | string) {
+  async deleteProduct(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de producto inválido');
       const productId = parseInt(String(id));
@@ -131,7 +131,7 @@ class ProductService {
     }
   }
 
-  async getProductWithTemplates(productId: number | string) {
+  async getProductWithTemplates(productid: number) {
     try {
       if (!productId || isNaN(Number(productId))) throw new Error('ID de producto inválido');
       const productWithTemplates = await productRepository.findWithTemplates(parseInt(String(productId)));

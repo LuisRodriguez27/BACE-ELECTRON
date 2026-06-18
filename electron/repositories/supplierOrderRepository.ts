@@ -56,33 +56,25 @@ class SupplierOrderRepository {
   }
 
   async create(orderData: { supplier_id: number; order_id?: number | null; user_id?: number | null; status?: string | null; notes?: string | null; date?: string; total?: number; items?: unknown[] }) {
-    const transaction = db.transaction(async () => {
-      const result = await db.execute(`INSERT INTO supplier_orders (supplier_id, order_id, user_id, status, notes, date, total, active) VALUES ($1, $2, $3, $4, $5, $6, $7, true)`, [orderData.supplier_id, orderData.order_id || null, orderData.user_id || null, orderData.status || null, orderData.notes || null, orderData.date || new Date().toISOString(), orderData.total || 0]);
-      const supplierOrderId = result.lastInsertRowid!;
-      if (orderData.items && Array.isArray(orderData.items)) await this.addItemsToOrder(supplierOrderId, orderData.items);
-      return supplierOrderId;
-    });
-    const supplierOrderId = await transaction();
+    const result = await db.execute(`INSERT INTO supplier_orders (supplier_id, order_id, user_id, status, notes, date, total, active) VALUES ($1, $2, $3, $4, $5, $6, $7, true)`, [orderData.supplier_id, orderData.order_id || null, orderData.user_id || null, orderData.status || null, orderData.notes || null, orderData.date || new Date().toISOString(), orderData.total || 0]);
+    const supplierOrderId = result.lastInsertRowid!;
+    if (orderData.items && Array.isArray(orderData.items)) await this.addItemsToOrder(supplierOrderId, orderData.items);
     return this.findById(supplierOrderId);
   }
 
   async update(id: number, orderData: { supplier_id?: number; order_id?: number | null; user_id?: number | null; status?: string | null; notes?: string | null; date?: string; total?: number; items?: unknown[] }) {
-    const transaction = db.transaction(async () => {
-      const fields: string[] = [];
-      const values: unknown[] = [];
-      let idx = 1;
-      if (orderData.supplier_id !== undefined) { fields.push(`supplier_id = $${idx++}`); values.push(orderData.supplier_id); }
-      if (orderData.order_id !== undefined) { fields.push(`order_id = $${idx++}`); values.push(orderData.order_id); }
-      if (orderData.user_id !== undefined) { fields.push(`user_id = $${idx++}`); values.push(orderData.user_id); }
-      if (orderData.status !== undefined) { fields.push(`status = $${idx++}`); values.push(orderData.status); }
-      if (orderData.notes !== undefined) { fields.push(`notes = $${idx++}`); values.push(orderData.notes); }
-      if (orderData.date !== undefined) { fields.push(`date = $${idx++}`); values.push(orderData.date); }
-      if (orderData.total !== undefined) { fields.push(`total = $${idx++}`); values.push(orderData.total); }
-      if (fields.length > 0) { values.push(id); await db.execute(`UPDATE supplier_orders SET ${fields.join(', ')} WHERE id = $${idx} AND active = true`, values); }
-      if (orderData.items && Array.isArray(orderData.items)) { await db.execute('DELETE FROM supplier_order_items WHERE supplier_order_id = $1', [id]); await this.addItemsToOrder(id, orderData.items); }
-      return id;
-    });
-    await transaction();
+    const fields: string[] = [];
+    const values: unknown[] = [];
+    let idx = 1;
+    if (orderData.supplier_id !== undefined) { fields.push(`supplier_id = $${idx++}`); values.push(orderData.supplier_id); }
+    if (orderData.order_id !== undefined) { fields.push(`order_id = $${idx++}`); values.push(orderData.order_id); }
+    if (orderData.user_id !== undefined) { fields.push(`user_id = $${idx++}`); values.push(orderData.user_id); }
+    if (orderData.status !== undefined) { fields.push(`status = $${idx++}`); values.push(orderData.status); }
+    if (orderData.notes !== undefined) { fields.push(`notes = $${idx++}`); values.push(orderData.notes); }
+    if (orderData.date !== undefined) { fields.push(`date = $${idx++}`); values.push(orderData.date); }
+    if (orderData.total !== undefined) { fields.push(`total = $${idx++}`); values.push(orderData.total); }
+    if (fields.length > 0) { values.push(id); await db.execute(`UPDATE supplier_orders SET ${fields.join(', ')} WHERE id = $${idx} AND active = true`, values); }
+    if (orderData.items && Array.isArray(orderData.items)) { await db.execute('DELETE FROM supplier_order_items WHERE supplier_order_id = $1', [id]); await this.addItemsToOrder(id, orderData.items); }
     return this.findById(id);
   }
 

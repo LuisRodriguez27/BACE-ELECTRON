@@ -34,8 +34,8 @@ export interface PaymentRow {
 // ─── Input / DTO types ─────────────────────────────────────────────────────
 
 export interface CreatePaymentData {
-  orderId?: number | string | null;
-  amount: number | string;
+  orderId?: number | null;
+  amount: number;
   date: string;
   descripcion?: string | null;
   info?: string | null;
@@ -44,7 +44,7 @@ export interface CreatePaymentData {
 }
 
 export interface UpdatePaymentData {
-  amount?: number | string;
+  amount?: number;
   descripcion?: string | null;
   info?: string | null;
   phone?: string | null;

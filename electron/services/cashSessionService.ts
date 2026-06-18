@@ -36,7 +36,7 @@ class CashSessionService {
     }
   }
 
-  async getById(id: number | string) {
+  async getById(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de sesión inválido');
       const session = await cashSessionRepository.getById(parseInt(String(id)));
@@ -64,7 +64,7 @@ class CashSessionService {
     }
   }
 
-  async getSummary(id: number | string) {
+  async getSummary(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de sesión inválido');
       const summary = await cashSessionRepository.getSummary(parseInt(String(id)));
@@ -88,7 +88,7 @@ class CashSessionService {
     }
   }
 
-  async close(id: number | string, data: { closing_balance?: number | string; notes?: string | null }) {
+  async close(id: number, data: { closing_balance?: number | string; notes?: string | null }) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de sesión inválido');
       const closing_balance = parseFloat(String(data?.closing_balance));
@@ -101,7 +101,7 @@ class CashSessionService {
     }
   }
 
-  async update(id: number | string, data: { opening_balance?: number | string; notes?: string | null }) {
+  async update(id: number, data: { opening_balance?: number | string; notes?: string | null }) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de sesión inválido');
       const payload: Record<string, unknown> = {};
@@ -120,7 +120,7 @@ class CashSessionService {
     }
   }
 
-  async reopen(id: number | string) {
+  async reopen(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de sesión inválido');
       const authorized = await authService.hasPermission('Reabrir Caja');

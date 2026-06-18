@@ -44,7 +44,7 @@ class PrintLogService {
     }
   }
 
-  async getPrintLogById(id: number | string) {
+  async getPrintLogById(id: number) {
     try {
       const logId = parseInt(String(id), 10);
       if (isNaN(logId)) throw new Error('ID de bitácora inválido');
@@ -57,7 +57,7 @@ class PrintLogService {
     }
   }
 
-  async getPrintLogsByOrderId(orderId: number | string) {
+  async getPrintLogsByOrderId(orderid: number) {
     try {
       const oId = parseInt(String(orderId), 10);
       if (isNaN(oId)) throw new Error('ID de orden inválido');
@@ -101,7 +101,7 @@ class PrintLogService {
     }
   }
 
-  async updatePrintLog(id: number | string, printLogData: PrintLogData) {
+  async updatePrintLog(id: number, printLogData: PrintLogData) {
     try {
       const logId = parseInt(String(id), 10);
       if (isNaN(logId)) throw new Error('ID de bitácora inválido');
@@ -149,7 +149,7 @@ class PrintLogService {
     }
   }
 
-  async updatePrintLogCheckboxes(id: number | string, { completado }: { completado: boolean | undefined }) {
+  async updatePrintLogCheckboxes(id: number, { completado }: { completado: boolean | undefined }) {
     try {
       const logId = parseInt(String(id), 10);
       if (isNaN(logId)) throw new Error('ID de bitácora inválido');
@@ -187,7 +187,7 @@ class PrintLogService {
     }
   }
 
-  async deletePrintLog(id: number | string): Promise<boolean> {
+  async deletePrintLog(id: number): Promise<boolean> {
     try {
       const logId = parseInt(String(id), 10);
       if (isNaN(logId)) throw new Error('ID de bitácora inválido');

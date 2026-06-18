@@ -14,7 +14,7 @@ class ExpensesService {
     }
   }
 
-  async getByCashSession(cashSessionId: number | string) {
+  async getByCashSession(cashSessionid: number) {
     try {
       if (!cashSessionId || isNaN(Number(cashSessionId))) throw new Error('ID de sesión de caja inválido');
       const expenses = await expensesRepository.getByCashSession(parseInt(String(cashSessionId)));
@@ -25,7 +25,7 @@ class ExpensesService {
     }
   }
 
-  async getById(id: number | string) {
+  async getById(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de gasto inválido');
       const expense = await expensesRepository.getById(parseInt(String(id)));
@@ -58,7 +58,7 @@ class ExpensesService {
     }
   }
 
-  async update(id: number | string, data: UpdateExpenseData) {
+  async update(id: number, data: UpdateExpenseData) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de gasto inválido');
 
@@ -92,7 +92,7 @@ class ExpensesService {
     }
   }
 
-  async delete(id: number | string) {
+  async delete(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de gasto inválido');
       const deleted = await expensesRepository.delete(parseInt(String(id)));

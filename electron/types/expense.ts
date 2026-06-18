@@ -20,8 +20,8 @@ export interface ExpensesRow {
 // ─── Input / DTO types ─────────────────────────────────────────────────────
 
 export interface CreateExpenseData {
-  cash_session_id: number | string;
-  user_id: number | string;
+  cash_session_id: number;
+  user_id: number;
   amount: number | string;
   description: string;
   date: string;

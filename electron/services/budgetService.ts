@@ -5,12 +5,13 @@ import productRepository from '../repositories/productRepository';
 import productTemplateRepository from '../repositories/productTemplateRepository';
 import orderRepository from '../repositories/orderRepository';
 import type { BudgetItem, BudgetData } from '../types/budget';
+import db from '../db';
 
 class BudgetService {
   async getAllBudgets() {
     try {
       const budgets = await budgetRepository.findAll();
-      return budgets.map((b: { toPlainObject: () => unknown }) => b.toPlainObject());
+      return budgets.map((b) => b.toPlainObject());
     } catch (error) {
       console.error('Error al obtener presupuestos:', error);
       throw new Error('No se pudieron obtener los presupuestos.');
@@ -22,33 +23,33 @@ class BudgetService {
       if (page < 1) page = 1;
       if (limit < 1 || limit > 100) limit = 10;
       const result = await budgetRepository.findAllPaginated(page, limit, searchTerm);
-      return { data: result.data.map((b: { toPlainObject: () => unknown }) => b.toPlainObject()), pagination: result.pagination, searchTerm: result.searchTerm };
+      return { data: result.data.map((b) => b.toPlainObject()), pagination: result.pagination, searchTerm: result.searchTerm };
     } catch (error) {
       console.error('Error al obtener presupuestos paginados:', error);
       throw new Error('Error al obtener presupuestos paginados');
     }
   }
 
-  async getBudgetById(id: number | string) {
+  async getBudgetById(id: number) {
     try {
-      if (!id || isNaN(Number(id))) throw new Error('ID de presupuesto inválido.');
-      const budget = await budgetRepository.findById(parseInt(String(id)));
+      if (!id || id <= 0) throw new Error('ID de presupuesto inválido.');
+      const budget = await budgetRepository.findById(id);
       if (!budget) throw new Error('Presupuesto no encontrado.');
       return budget.toPlainObject();
     } catch (error) {
       console.error('Error al obtener el presupuesto:', error);
-      throw new Error('No se pudo obtener el presupuesto.');
+      throw error;
     }
   }
 
-  async getBudgetByClientId(clientId: number | string) {
+  async getBudgetByClientId(clientId: number) {
     try {
-      if (!clientId || isNaN(Number(clientId))) throw new Error('ID de cliente inválido.');
-      const budgets = await budgetRepository.findByClientId(parseInt(String(clientId)));
-      return budgets.map((b: { toPlainObject: () => unknown }) => b.toPlainObject());
+      if (!clientId || clientId <= 0) throw new Error('ID de cliente inválido.');
+      const budgets = await budgetRepository.findByClientId(clientId);
+      return budgets.map((b) => b.toPlainObject());
     } catch (error) {
       console.error('Error al obtener presupuestos por cliente:', error);
-      throw new Error('No se pudieron obtener los presupuestos del cliente.');
+      throw error;
     }
   }
 
@@ -61,19 +62,19 @@ class BudgetService {
         items = budgetData.items;
       } else if (budgetData.products) {
         console.warn('Legacy');
-        items = budgetData.products.map(p => ({ product_id: p.product_id, template_id: p.template_id, quantity: p.quantity, unit_price: p.unit_price }));
+        items = budgetData.products.map(p => ({ product_id: p.product_id, template_id: p.template_id, quantity: Number(p.quantity), unit_price: Number(p.unit_price) }));
       } else {
         throw new Error('El presupuesto debe incluir items (productos o plantillas).');
       }
 
-      if (!client_id || isNaN(Number(client_id))) throw new Error('ID de cliente inválido.');
-      if (!user_id || isNaN(Number(user_id))) throw new Error('ID de usuario inválido.');
+      if (!client_id || client_id <= 0) throw new Error('ID de cliente inválido.');
+      if (!user_id || user_id <= 0) throw new Error('ID de usuario inválido.');
       if (!date) throw new Error('La fecha es requerida');
       if (!items || !Array.isArray(items) || items.length === 0) throw new Error('La orden debe contener al menos un producto o plantilla');
 
-      const client = await clientRepository.findById(parseInt(String(client_id)));
+      const client = await clientRepository.findById(client_id);
       if (!client) throw new Error('El cliente especificado no existe');
-      const user = await userRepository.findById(parseInt(String(user_id)));
+      const user = await userRepository.findById(user_id);
       if (!user) throw new Error('El usuario especificado no existe');
 
       const orderDate = new Date(date);
@@ -84,27 +85,41 @@ class BudgetService {
         const hasTemplate = item.template_id != null;
         if (!hasProduct && !hasTemplate) throw new Error(`Item ${index + 1}: Debe especificar un product_id o template_id`);
         if (hasProduct && hasTemplate) throw new Error(`Item ${index + 1}: No puede tener tanto product_id como template_id`);
-        if (!item.quantity || isNaN(Number(item.quantity)) || Number(item.quantity) < 0.0001) throw new Error(`Item ${index + 1}: Cantidad inválida`);
-        if (item.unit_price === undefined || item.unit_price === null || isNaN(Number(item.unit_price)) || Number(item.unit_price) < 0) throw new Error(`Item ${index + 1}: Precio unitario inválido`);
-        if (hasProduct) { const e = await productRepository.findById(parseInt(String(item.product_id))); if (!e) throw new Error(`Item ${index + 1}: El producto especificado no existe`); }
-        if (hasTemplate) { const e = await productTemplateRepository.findById(parseInt(String(item.template_id))); if (!e) throw new Error(`Item ${index + 1}: La plantilla especificada no existe`); }
+        if (!item.quantity || isNaN(item.quantity) || item.quantity < 0.0001) throw new Error(`Item ${index + 1}: Cantidad inválida`);
+        if (item.unit_price === undefined || item.unit_price === null || isNaN(item.unit_price) || item.unit_price < 0) throw new Error(`Item ${index + 1}: Precio unitario inválido`);
+        if (hasProduct) { const e = await productRepository.findById(item.product_id!); if (!e) throw new Error(`Item ${index + 1}: El producto especificado no existe`); }
+        if (hasTemplate) { const e = await productTemplateRepository.findById(item.template_id!); if (!e) throw new Error(`Item ${index + 1}: La plantilla especificada no existe`); }
       }
 
-      const budgetToCreate = { client_id: parseInt(String(client_id)), user_id: parseInt(String(user_id)), date: orderDate.toISOString(), items: items.map(item => ({ product_id: item.product_id ? parseInt(String(item.product_id)) : null, template_id: item.template_id ? parseInt(String(item.template_id)) : null, quantity: parseFloat(String(item.quantity)), unit_price: parseFloat(String(item.unit_price)) })) };
-      const budget = await budgetRepository.create(budgetToCreate);
-      if (!budget) throw new Error('Error al crear presupuesto');
-      return budget.toPlainObject();
+      const budgetToCreate = {
+        client_id,
+        user_id,
+        date: orderDate.toISOString(),
+        items: items.map(item => ({
+          product_id: item.product_id ? item.product_id : null,
+          template_id: item.template_id ? item.template_id : null,
+          quantity: item.quantity,
+          unit_price: item.unit_price
+        }))
+      };
+
+      const transaction = db.transaction(async () => {
+        const budget = await budgetRepository.create(budgetToCreate);
+        if (!budget) throw new Error('Error al crear presupuesto');
+        return budget.toPlainObject();
+      });
+
+      return await transaction();
     } catch (error) {
       console.error('Error al crear el presupuesto:', error);
-      throw new Error('No se pudo crear el presupuesto.');
+      throw error;
     }
   }
 
-  async updateBudget(id: number | string, budgetData: BudgetData) {
+  async updateBudget(id: number, budgetData: BudgetData) {
     try {
-      if (!id || isNaN(Number(id))) throw new Error('ID de presupuesto inválido');
-      const budgetId = parseInt(String(id));
-      const existingBudget = await budgetRepository.findById(budgetId);
+      if (!id || id <= 0) throw new Error('ID de presupuesto inválido');
+      const existingBudget = await budgetRepository.findById(id);
       if (!existingBudget) throw new Error('Presupuesto no encontrado');
       if (!existingBudget.canEdit()) throw new Error('No se puede editar un presupuesto convertido a orden');
 
@@ -112,13 +127,13 @@ class BudgetService {
 
       if (date) { const d = new Date(date); if (isNaN(d.getTime())) throw new Error('Fecha de presupuesto inválida'); }
       if (client_id) {
-        if (isNaN(Number(client_id))) throw new Error('ID de cliente inválido');
-        const client = await clientRepository.findById(parseInt(String(client_id)));
+        if (client_id <= 0) throw new Error('ID de cliente inválido');
+        const client = await clientRepository.findById(client_id);
         if (!client) throw new Error('El cliente especificado no existe');
       }
       if (edited_by) {
-        if (isNaN(Number(edited_by))) throw new Error('ID de usuario editor inválido');
-        const editorUser = await userRepository.findById(parseInt(String(edited_by)));
+        if (edited_by <= 0) throw new Error('ID de usuario editor inválido');
+        const editorUser = await userRepository.findById(edited_by);
         if (!editorUser) throw new Error('El usuario editor especificado no existe');
       }
 
@@ -129,90 +144,97 @@ class BudgetService {
           const hasProduct = item.product_id != null; const hasTemplate = item.template_id != null;
           if (!hasProduct && !hasTemplate) throw new Error(`Item ${index + 1}: Debe especificar un product_id o template_id`);
           if (hasProduct && hasTemplate) throw new Error(`Item ${index + 1}: No puede tener tanto product_id como template_id`);
-          if (!item.quantity || isNaN(Number(item.quantity)) || Number(item.quantity) < 0.0001) throw new Error(`Item ${index + 1}: Cantidad inválida`);
-          if (item.unit_price == null || isNaN(Number(item.unit_price)) || Number(item.unit_price) < 0) throw new Error(`Item ${index + 1}: Precio unitario inválido`);
-          if (hasProduct) { const e = await productRepository.findById(parseInt(String(item.product_id))); if (!e) throw new Error(`Item ${index + 1}: El producto especificado no existe`); }
-          if (hasTemplate) { const e = await productTemplateRepository.findById(parseInt(String(item.template_id))); if (!e) throw new Error(`Item ${index + 1}: La plantilla especificada no existe`); }
+          if (!item.quantity || isNaN(item.quantity) || item.quantity < 0.0001) throw new Error(`Item ${index + 1}: Cantidad inválida`);
+          if (item.unit_price == null || isNaN(item.unit_price) || item.unit_price < 0) throw new Error(`Item ${index + 1}: Precio unitario inválido`);
+          if (hasProduct) { const e = await productRepository.findById(item.product_id!); if (!e) throw new Error(`Item ${index + 1}: El producto especificado no existe`); }
+          if (hasTemplate) { const e = await productTemplateRepository.findById(item.template_id!); if (!e) throw new Error(`Item ${index + 1}: La plantilla especificada no existe`); }
         }
       }
 
       const updatePayload: Record<string, unknown> = {
         date: date ? new Date(date).toISOString() : existingBudget.date,
-        client_id: client_id ? parseInt(String(client_id)) : existingBudget.client_id,
-        edited_by: edited_by ? parseInt(String(edited_by)) : existingBudget.edited_by,
+        client_id: client_id ? client_id : existingBudget.client_id,
+        edited_by: edited_by ? edited_by : existingBudget.edited_by,
       };
 
       if (items) {
-        updatePayload.items = items.map(item => ({ product_id: item.product_id ? parseInt(String(item.product_id)) : null, template_id: item.template_id ? parseInt(String(item.template_id)) : null, quantity: parseFloat(String(item.quantity)), unit_price: parseFloat(String(item.unit_price)) }));
+        updatePayload.items = items.map(item => ({
+          product_id: item.product_id ? item.product_id : null,
+          template_id: item.template_id ? item.template_id : null,
+          quantity: item.quantity,
+          unit_price: item.unit_price
+        }));
       }
 
-      const updatedBudget = await budgetRepository.update(budgetId, updatePayload);
-      if (!updatedBudget) throw new Error('Error al actualizar presupuesto');
-      return updatedBudget.toPlainObject();
+      const transaction = db.transaction(async () => {
+        const updatedBudget = await budgetRepository.update(id, updatePayload);
+        if (!updatedBudget) throw new Error('Error al actualizar presupuesto');
+        return updatedBudget.toPlainObject();
+      });
+
+      return await transaction();
     } catch (error) {
       console.error('Error al actualizar presupuesto:', error);
       throw error;
     }
   }
 
-  async deleteBudget(id: number | string) {
+  async deleteBudget(id: number) {
     try {
-      if (!id || isNaN(Number(id))) throw new Error('ID de presupuesto inválido.');
-      const budgetId = parseInt(String(id));
-      const existingBudget = await budgetRepository.findById(budgetId);
+      if (!id || id <= 0) throw new Error('ID de presupuesto inválido.');
+      const existingBudget = await budgetRepository.findById(id);
       if (!existingBudget) throw new Error('El presupuesto que intenta eliminar no existe.');
-      const deleted = await budgetRepository.delete(budgetId);
+      const deleted = await budgetRepository.delete(id);
       if (!deleted) throw new Error('No se pudo eliminar el presupuesto.');
     } catch (error) {
       console.error('Error al eliminar el presupuesto:', error);
-      throw new Error('No se pudo eliminar el presupuesto.');
+      throw error;
     }
   }
 
-  async getBudgetProducts(budgetId: number | string) {
+  async getBudgetProducts(budgetId: number) {
     try {
-      if (!budgetId || isNaN(Number(budgetId))) throw new Error('ID de presupuesto inválido.');
-      return await budgetRepository.getBudgetProducts(parseInt(String(budgetId)));
+      if (!budgetId || budgetId <= 0) throw new Error('ID de presupuesto inválido.');
+      return await budgetRepository.getBudgetProducts(budgetId);
     } catch (error) {
       console.error('Error al obtener los productos del presupuesto:', error);
-      throw new Error('No se pudieron obtener los productos del presupuesto.');
+      throw error;
     }
   }
 
-  async recalculateBudgetTotal(id: number | string) {
+  async recalculateBudgetTotal(id: number) {
     try {
-      if (!id || isNaN(Number(id))) throw new Error('ID de presupuesto inválido.');
-      const budgetId = parseInt(String(id));
-      const existingBudget = await budgetRepository.findById(budgetId);
+      if (!id || id <= 0) throw new Error('ID de presupuesto inválido.');
+      const existingBudget = await budgetRepository.findById(id);
       if (!existingBudget) throw new Error('El presupuesto que intenta recalcular no existe.');
-      const newTotal = await budgetRepository.recalculateTotal(budgetId);
-      return { budgetId, newTotal, formattedTotal: new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2 }).format(newTotal as number) };
+      const newTotal = await budgetRepository.recalculateTotal(id);
+      return { budgetId: id, newTotal, formattedTotal: new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2 }).format(newTotal) };
     } catch (error) {
       console.error('Error al recalcular el total del presupuesto:', error);
-      throw new Error('No se pudo recalcular el total del presupuesto.');
+      throw error;
     }
   }
 
-  async transformToOrder(budgetId: number | string, userId: number | string) {
+  async transformToOrder(budgetId: number, userId: number) {
     try {
-      if (!budgetId || isNaN(Number(budgetId))) throw new Error('ID de presupuesto inválido.');
-      if (!userId || isNaN(Number(userId))) throw new Error('ID de usuario inválido.');
+      if (!budgetId || budgetId <= 0) throw new Error('ID de presupuesto inválido.');
+      if (!userId || userId <= 0) throw new Error('ID de usuario inválido.');
 
-      const parsedBudgetId = parseInt(String(budgetId));
-      const parsedUserId = parseInt(String(userId));
-
-      const existingBudget = await budgetRepository.findById(parsedBudgetId);
+      const existingBudget = await budgetRepository.findById(budgetId);
       if (!existingBudget) throw new Error('El presupuesto no existe.');
       if (existingBudget.converted_to_order) throw new Error('Este presupuesto ya fue convertido a orden.');
 
-      const user = await userRepository.findById(parsedUserId);
+      const user = await userRepository.findById(userId);
       if (!user) throw new Error('El usuario especificado no existe.');
 
-      const orderId = await budgetRepository.transformToOrder(parsedBudgetId, parsedUserId);
+      const transaction = db.transaction(async () => {
+        const orderId = await budgetRepository.transformToOrder(budgetId, userId);
+        const order = await orderRepository.findById(orderId);
+        if (!order) throw new Error('Error al obtener la orden creada');
+        return order.toPlainObject();
+      });
 
-      const order = await orderRepository.findById(orderId);
-      if (!order) throw new Error('Error al obtener la orden creada');
-      return order.toPlainObject();
+      return await transaction();
     } catch (error) {
       console.error('Error al transformar presupuesto a orden:', error);
       throw error;

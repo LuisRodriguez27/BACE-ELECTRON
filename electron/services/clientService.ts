@@ -22,7 +22,7 @@ class ClientService {
     }
   }
 
-  async getClientById(id: number | string) {
+  async getClientById(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de cliente inválido');
       const client = await clientRepository.findById(parseInt(String(id)));
@@ -52,7 +52,7 @@ class ClientService {
     }
   }
 
-  async updateClient(id: number | string, { name, phone, address, description, color }: { name: string; phone: string; address?: string; description?: string; color?: string }) {
+  async updateClient(id: number, { name, phone, address, description, color }: { name: string; phone: string; address?: string; description?: string; color?: string }) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de cliente inválido');
       if (!name || !phone) throw new Error('Nombre y teléfono son requeridos');
@@ -82,7 +82,7 @@ class ClientService {
     }
   }
 
-  async deleteClient(id: number | string) {
+  async deleteClient(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de cliente inválido');
       const clientId = parseInt(String(id));

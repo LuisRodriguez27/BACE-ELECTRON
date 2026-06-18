@@ -84,15 +84,11 @@ class OrderRepository {
     }
     await this.validateOrderItems(orderData.items);
 
-    const transaction = db.transaction(async () => {
-      const orderResult = await db.execute(`INSERT INTO orders (client_id, user_id, date, estimated_delivery_date, status, responsable, total, notes, description) VALUES ($1, $2, $3, $4, $5, $6, 0, $7, $8)`, [orderData.client_id, orderData.user_id, orderData.date, orderData.estimated_delivery_date || null, orderData.status || 'Revision', orderData.responsable || 'Mostrador', orderData.notes || null, orderData.description || null]);
-      const orderId = orderResult.lastInsertRowid!;
-      await this.addItemsToOrder(orderId, orderData.items);
-      await this.recalculateTotal(orderId);
-      return orderId;
-    });
+    const orderResult = await db.execute(`INSERT INTO orders (client_id, user_id, date, estimated_delivery_date, status, responsable, total, notes, description) VALUES ($1, $2, $3, $4, $5, $6, 0, $7, $8)`, [orderData.client_id, orderData.user_id, orderData.date, orderData.estimated_delivery_date || null, orderData.status || 'Revision', orderData.responsable || 'Mostrador', orderData.notes || null, orderData.description || null]);
+    const orderId = orderResult.lastInsertRowid!;
+    await this.addItemsToOrder(orderId, orderData.items);
+    await this.recalculateTotal(orderId);
 
-    const orderId = await transaction();
     return await this.findById(orderId);
   }
 
@@ -114,8 +110,8 @@ class OrderRepository {
       const quantity = parseFloat(String(item.quantity));
       const unitPrice = parseFloat(String(item.unit_price));
       const totalPrice = quantity * unitPrice;
-      const isDelivered = item.is_delivered === true || item.is_delivered === 'true';
-      const isPaid = item.is_paid === true || item.is_paid === 'true';
+      const isDelivered = item.is_delivered === true;
+      const isPaid = item.is_paid === true;
       await db.execute(`INSERT INTO order_products (order_id, product_id, template_id, quantity, unit_price, total_price, is_delivered, is_paid) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, [orderId, item.product_id || null, item.template_id || null, quantity, unitPrice, totalPrice, isDelivered, isPaid]);
     }
   }

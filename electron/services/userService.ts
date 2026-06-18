@@ -12,7 +12,7 @@ class UserService {
     }
   }
 
-  async getUserById(id: number | string) {
+  async getUserById(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de usuario inválido');
       const user = await userRepository.findById(parseInt(String(id)));
@@ -40,7 +40,7 @@ class UserService {
     }
   }
 
-  async updateUser(id: number | string, { username, password }: { username: string; password?: string | null }) {
+  async updateUser(id: number, { username, password }: { username: string; password?: string | null }) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de usuario inválido');
       if (!username) throw new Error('Username es requerido');
@@ -69,7 +69,7 @@ class UserService {
     }
   }
 
-  async deleteUser(id: number | string) {
+  async deleteUser(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de usuario inválido');
       const userId = parseInt(String(id));

@@ -28,7 +28,7 @@ export interface ProductTemplateRow {
 // ─── Input / DTO types ─────────────────────────────────────────────────────
 
 export interface TemplateData {
-  product_id: number | string;
+  product_id: number;
   final_price: number | string;
   promo_price?: number | string | null;
   discount_price?: number | string | null;

@@ -26,7 +26,7 @@ interface PaymentUnionRow {
   o_client_phone: string | null;
 }
 
-interface PaymentFilters {
+export interface PaymentFilters {
   freeOnly?: boolean;
   orderFilter?: 'free' | 'simple' | string;
   searchType?: 'payment_id' | 'order_id' | 'amount' | 'method' | 'info';

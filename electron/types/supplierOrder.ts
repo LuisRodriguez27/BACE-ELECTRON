@@ -41,13 +41,13 @@ export interface SupplierOrderItemRow {
 // ─── Input / DTO types ─────────────────────────────────────────────────────
 
 export interface SupplierOrderData {
-  supplier_id?: number | string;
-  order_id?: number | string | null;
-  user_id?: number | string | null;
+  supplier_id?: number;
+  order_id?: number | null;
+  user_id?: number | null;
   status?: string | null;
   notes?: string | null;
   date?: string;
   items?: unknown[] | null;
-  total?: number | string | null;
+  total?: number | null;
   [key: string]: unknown;
 }

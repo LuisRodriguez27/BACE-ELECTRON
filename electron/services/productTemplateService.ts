@@ -13,7 +13,7 @@ class ProductTemplateService {
     }
   }
 
-  async getTemplateById(id: number | string) {
+  async getTemplateById(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de plantilla inválido');
       const template = await productTemplateRepository.findById(parseInt(String(id)));
@@ -25,7 +25,7 @@ class ProductTemplateService {
     }
   }
 
-  async getTemplatesByProductId(productId: number | string) {
+  async getTemplatesByProductId(productid: number) {
     try {
       if (!productId || isNaN(Number(productId))) throw new Error('ID de producto inválido');
       const templates = await productTemplateRepository.findByProductId(parseInt(String(productId)));
@@ -69,7 +69,7 @@ class ProductTemplateService {
     }
   }
 
-  async updateTemplate(id: number | string, { product_id, final_price, promo_price, discount_price, width, height, colors, position, texts, description }: Omit<TemplateData, 'created_by'>) {
+  async updateTemplate(id: number, { product_id, final_price, promo_price, discount_price, width, height, colors, position, texts, description }: Omit<TemplateData, 'created_by'>) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de plantilla inválido');
       if (!product_id || isNaN(Number(product_id))) throw new Error('ID de producto inválido');
@@ -111,7 +111,7 @@ class ProductTemplateService {
     }
   }
 
-  async deleteTemplate(id: number | string) {
+  async deleteTemplate(id: number) {
     try {
       if (!id || isNaN(Number(id))) throw new Error('ID de plantilla inválido');
       const templateId = parseInt(String(id));
