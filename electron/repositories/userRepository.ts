@@ -71,7 +71,7 @@ export class UserRepository {
   }
 
   async existsByUsername(username: string, excludeUserId: number | null = null): Promise<boolean> {
-    let query = 'SELECT id FROM users WHERE username = $1';
+    let query = 'SELECT id FROM users WHERE username = $1 AND active = true';
     const params: unknown[] = [username];
     if (excludeUserId) { query += ' AND id != $2'; params.push(excludeUserId); }
     const result = await db.getOne(query, params);

@@ -739,6 +739,23 @@ const MIGRATIONS: Migration[] = [
       await client.query(`ALTER TABLE budgets ALTER COLUMN converted_to_order TYPE BOOLEAN USING (converted_to_order = 1)`);
       await client.query(`ALTER TABLE budgets ALTER COLUMN converted_to_order SET DEFAULT FALSE`);
     }
+  },
+
+  // v29: Quitar constraint único de username en users y agregar índice único parcial para usuarios activos
+  {
+    version: 29,
+    name: 'remove_users_username_unique_constraint_and_add_partial_unique_index',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM pg_indexes
+        WHERE indexname = 'idx_users_username_active'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`ALTER TABLE users DROP CONSTRAINT IF EXISTS users_username_key`);
+      await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_active ON users(username) WHERE active = true`);
+    }
   }
 ];
 

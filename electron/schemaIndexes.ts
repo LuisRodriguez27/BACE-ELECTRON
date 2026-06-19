@@ -1,5 +1,8 @@
 const schemaIndexes: string = `
 
+  -- users
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_active ON users(username) WHERE active = true;
+
   -- user_permissions
   CREATE INDEX IF NOT EXISTS idx_user_permissions_user_id               ON user_permissions(user_id);
   CREATE INDEX IF NOT EXISTS idx_user_permissions_permission_id          ON user_permissions(permission_id);
