@@ -5,7 +5,7 @@ description: "Triggers when interacting with PostgreSQL, managing database queri
 
 # PostgreSQL Database, Transactions, and Soft Deletes
 
-This skill explains how to safely query the PostgreSQL database using the connection pool, coordinate transactions using `AsyncLocalStorage`, and handle logical deletions (soft deletes) in the backend.
+This skill explains how to safely query the PostgreSQL database using the connection pool, coordinate transactions using `AsyncLocalStorage`, handle logical deletions (soft deletes), and manage timezone-agnostic dates in the backend.
 
 ---
 
@@ -46,31 +46,6 @@ const asyncLocalStorage = new AsyncLocalStorage<PoolClient>();
 3. If the callback resolves successfully, a `COMMIT` is executed. If any error is thrown, a `ROLLBACK` is performed automatically.
 4. The database connection is released back to the pool in a `finally` block.
 
-### Example in the Service Layer:
-```typescript
-import db from '../db';
-import orderRepository from '../repositories/orderRepository';
-import paymentRepository from '../repositories/paymentRepository';
-
-class OrderService {
-  async registerOrderAndPayment(orderData: CreateOrderData, paymentAmount: number) {
-    return await db.transaction(async () => {
-      // Both operations run on the exact same database connection under a single transaction block
-      const order = await orderRepository.create(orderData);
-      
-      await paymentRepository.create({
-        order_id: order.id,
-        amount: paymentAmount,
-        date: new Date().toISOString(),
-        descripcion: 'Order advance payment'
-      });
-      
-      return order;
-    })();
-  }
-}
-```
-
 ---
 
 ## 3. Logical Deletion (Soft Delete)
@@ -82,20 +57,18 @@ To preserve transactional history and avoid cascading database issues, the appli
 2. Select queries in repositories always filter using `WHERE active = TRUE`.
 3. The delete operation updates this flag to `FALSE`.
 
-### Example in Repository (`expensesRepository.ts`):
-```typescript
-async delete(id: number): Promise<boolean> {
-  const result = await db.execute(
-    `UPDATE expenses SET active = FALSE WHERE id = $1 AND active = TRUE`, 
-    [id]
-  );
-  return (result.changes ?? 0) > 0;
-}
-```
+---
+
+## 4. Timezone-Agnostic Backend Dates
+
+The backend **does not perform any date or time conversions, formatting, or localization operations**. 
+* Timestamps are stored in the database as `TIMESTAMPTZ` (or parsed ISO UTC strings).
+* When retrieving or inserting dates, the backend treats them strictly as strings matching the ISO 8601 UTC standard (e.g. `2026-06-20T21:35:05Z`).
+* **Rule**: All date conversions, timezone offsets (like converting UTC to local Mexico City time), formatting for screen display, and scheduling math **must be delegated entirely to the frontend**.
 
 ---
 
-## 4. SQL Best Practices
+## 5. SQL Best Practices
 
 * **Parameterized Queries**: Always use placeholders (`$1`, `$2`, etc.) when executing queries with dynamic variables. Never concatenate strings to build SQL queries, ensuring protection against SQL injection attacks.
 * **Decimal Data Parser**: Postgres represents decimal and high-precision numbers as strings in JavaScript to avoid rounding issues. In `db.ts`, type parsers automatically cast `DECIMAL` types to float using `parseFloat`. Ensure that database models or service calculations sanitize numeric inputs using `parseFloat(String(value))` or `parseInt(String(value))` for logical validation consistency.
