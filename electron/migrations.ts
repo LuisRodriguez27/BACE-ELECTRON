@@ -756,6 +756,54 @@ const MIGRATIONS: Migration[] = [
       await client.query(`ALTER TABLE users DROP CONSTRAINT IF EXISTS users_username_key`);
       await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_active ON users(username) WHERE active = true`);
     }
+  },
+
+  // v30: Crear tabla de bitácora de producción y agregar permisos correspondientes
+  {
+    version: 30,
+    name: 'create_production_logs_table',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM information_schema.tables
+        WHERE table_name = 'production_logs'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS production_logs (
+          id           SERIAL        PRIMARY KEY,
+          order_id     INTEGER       REFERENCES orders(id) ON DELETE SET NULL,
+          created_by   INTEGER       REFERENCES users(id),
+          delivery_at  TIMESTAMPTZ   NOT NULL,
+          cantidad     DECIMAL(10,4) NOT NULL,
+          descripcion  TEXT          NOT NULL,
+          responsable  VARCHAR(255)  NOT NULL CHECK (responsable IN ('most', 'maq')),
+          completado   BOOLEAN       NOT NULL DEFAULT FALSE,
+          created_at   TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+          active       BOOLEAN       NOT NULL DEFAULT TRUE
+        );
+      `);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_production_logs_order_id ON production_logs(order_id);`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_production_logs_created_by ON production_logs(created_by);`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_production_logs_active ON production_logs(active);`);
+      await client.query(`
+        INSERT INTO permissions (name, description, active)
+        VALUES
+          ('Ver Bitacora de Produccion', 'Permite ver la bitácora de producción', true),
+          ('Gestionar Bitacora de Produccion', 'Permite crear, editar y eliminar registros de la bitácora de producción', true)
+        ON CONFLICT (name) DO UPDATE SET active = true;
+      `);
+      await client.query(`
+        INSERT INTO user_permissions (user_id, permission_id, active)
+        SELECT u.id, p.id, true
+        FROM users u
+        CROSS JOIN permissions p
+        WHERE u.id = 1
+          AND p.name IN ('Ver Bitacora de Produccion', 'Gestionar Bitacora de Produccion')
+        ON CONFLICT DO NOTHING;
+      `);
+    }
   }
 ];
 

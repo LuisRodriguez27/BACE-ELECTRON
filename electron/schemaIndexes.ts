@@ -70,6 +70,11 @@ const schemaIndexes: string = `
   CREATE INDEX IF NOT EXISTS idx_print_logs_order_id ON print_logs(order_id);
   CREATE INDEX IF NOT EXISTS idx_print_logs_active   ON print_logs(active);
 
+  -- production_logs
+  CREATE INDEX IF NOT EXISTS idx_production_logs_order_id ON production_logs(order_id);
+  CREATE INDEX IF NOT EXISTS idx_production_logs_created_by ON production_logs(created_by);
+  CREATE INDEX IF NOT EXISTS idx_production_logs_active   ON production_logs(active);
+
 `;
 
 export default schemaIndexes;

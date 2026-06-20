@@ -211,6 +211,19 @@ const schemaTables: string = `
     active               BOOLEAN       NOT NULL DEFAULT TRUE
   );
 
+  CREATE TABLE IF NOT EXISTS production_logs (
+    id           SERIAL        PRIMARY KEY,
+    order_id     INTEGER       REFERENCES orders(id) ON DELETE SET NULL,
+    created_by   INTEGER       REFERENCES users(id),
+    delivery_at  TIMESTAMPTZ   NOT NULL,
+    cantidad     DECIMAL(10,4) NOT NULL,
+    descripcion  TEXT          NOT NULL,
+    responsable  VARCHAR(255)  NOT NULL CHECK (responsable IN ('most', 'maq')),
+    completado   BOOLEAN       NOT NULL DEFAULT FALSE,
+    created_at   TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    active       BOOLEAN       NOT NULL DEFAULT TRUE
+  );
+
 `;
 
 export default schemaTables;

@@ -217,6 +217,29 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.invoke('printLogs:updateCheckboxes', id, data),
   deletePrintLog: (id: number): Promise<unknown> => ipcRenderer.invoke('printLogs:delete', id),
 
+  // Bitácora de Producción (Production Logs)
+  getActiveProductionLogs: (): Promise<unknown> => ipcRenderer.invoke('productionLogs:getActive'),
+  getProductionLogsPaginated: (page: number, limit: number, searchTerm: string, searchDate: string | null): Promise<unknown> =>
+    ipcRenderer.invoke('productionLogs:getPaginated', page, limit, searchTerm, searchDate),
+  getProductionLogsHistoryDays: (
+    todayLocalStr: string,
+    page: number,
+    limit: number,
+    searchTerm: string,
+    searchDate: string | null
+  ): Promise<unknown> =>
+    ipcRenderer.invoke('productionLogs:getHistoryDays', todayLocalStr, page, limit, searchTerm, searchDate),
+  getProductionLogsByDay: (dateLocalStr: string): Promise<unknown> =>
+    ipcRenderer.invoke('productionLogs:getByDay', dateLocalStr),
+  getProductionLogById: (id: number): Promise<unknown> => ipcRenderer.invoke('productionLogs:getById', id),
+  getProductionLogsByOrderId: (orderId: number): Promise<unknown> =>
+    ipcRenderer.invoke('productionLogs:getByOrderId', orderId),
+  createProductionLog: (data: unknown): Promise<unknown> => ipcRenderer.invoke('productionLogs:create', data),
+  updateProductionLog: (id: number, data: unknown): Promise<unknown> => ipcRenderer.invoke('productionLogs:update', id, data),
+  updateProductionLogCheckboxes: (id: number, data: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('productionLogs:updateCheckboxes', id, data),
+  deleteProductionLog: (id: number): Promise<unknown> => ipcRenderer.invoke('productionLogs:delete', id),
+
   // Imágenes en NAS
   uploadImage: (productId: number, buffer: unknown, originalName: string): Promise<unknown> =>
     ipcRenderer.invoke('upload-image', productId, buffer, originalName),

@@ -8,6 +8,7 @@ import { Payment, CreatePaymentForm, EditPaymentForm, PaymentFilters, PaginatedP
 import type { LoginCredentials, LoginResponse } from "@/features/auth/types";
 import type { Budget, BudgetProduct, CreateBudgetForm } from "@/features/budgets";
 import { PrintLog, CreatePrintLogForm, EditPrintLogForm, GroupedPrintLogs, PaginatedPrintLogs } from "../features/printLogs/types";
+import { ProductionLog, CreateProductionLogForm, EditProductionLogForm, GroupedProductionLogs, PaginatedProductionLogs } from "../features/productionLogs/types";
 import {
   SimpleOrder,
   CreateSimpleOrderForm,
@@ -211,6 +212,18 @@ declare global {
       updatePrintLog: (id: number, data: EditPrintLogForm) => Promise<PrintLog>;
       updatePrintLogCheckboxes: (id: number, data: { completado?: boolean }) => Promise<PrintLog>;
       deletePrintLog: (id: number) => Promise<void>;
+
+      // Bitácora de Producción
+      getActiveProductionLogs: () => Promise<GroupedProductionLogs[]>;
+      getProductionLogsPaginated: (page: number, limit: number, searchTerm: string, searchDate: string | null) => Promise<PaginatedProductionLogs>;
+      getProductionLogsHistoryDays: (todayLocalStr: string, page: number, limit: number, searchTerm: string, searchDate: string | null) => Promise<any>;
+      getProductionLogsByDay: (dateStr: string) => Promise<ProductionLog[]>;
+      getProductionLogById: (id: number) => Promise<ProductionLog>;
+      getProductionLogsByOrderId: (orderId: number) => Promise<ProductionLog[]>;
+      createProductionLog: (data: CreateProductionLogForm) => Promise<ProductionLog>;
+      updateProductionLog: (id: number, data: EditProductionLogForm) => Promise<ProductionLog>;
+      updateProductionLogCheckboxes: (id: number, data: { completado?: boolean }) => Promise<ProductionLog>;
+      deleteProductionLog: (id: number) => Promise<void>;
 
       // Shell / Utilidades
       openExternal: (url: string) => Promise<void>;

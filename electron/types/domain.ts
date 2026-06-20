@@ -23,4 +23,5 @@ export * from './expense';
 export * from './supplier';
 export * from './supplierOrder';
 export * from './printLog';
+export * from './productionLog';
 export * from './stats';

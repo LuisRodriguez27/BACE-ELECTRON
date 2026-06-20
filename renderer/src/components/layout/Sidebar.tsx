@@ -18,7 +18,8 @@ import {
   Moon,
   Sun,
   Truck,
-  Printer
+  Printer,
+  ClipboardList
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSidebarStore } from '@/store/sidebar'
@@ -88,6 +89,12 @@ const menuItems: MenuItem[] = [
     label: 'Bitácora de Impresión',
     icon: Printer,
     path: '/dashboard/print-logs'
+  },
+  {
+    id: 'production-logs',
+    label: 'Bitácora de Producción',
+    icon: ClipboardList,
+    path: '/dashboard/production-logs'
   },
   {
     id: 'stats',
@@ -171,6 +178,10 @@ const Sidebar: React.FC = () => {
           }
 
           if (item.id === 'print-logs' && !canAccess('Ver Bitacora de Impresion')) {
+            return null
+          }
+
+          if (item.id === 'production-logs' && !canAccess('Ver Bitacora de Produccion')) {
             return null
           }
 
