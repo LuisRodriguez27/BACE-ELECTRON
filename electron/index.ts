@@ -4,7 +4,7 @@ import { spawn } from 'child_process';
 import { autoUpdater } from 'electron-updater';
 import * as log from 'electron-log';
 import * as http from 'http';
-import 'dotenv/config';
+import './env';
 
 import { initDb } from './db';
 import authService from './services/authService';
