@@ -143,7 +143,7 @@ function createWindow(): void {
   win.on('closed', () => { app.quit(); });
 
   if (app.isPackaged) {
-    win.loadFile(path.join(__dirname, '../renderer/dist/index.html'));
+    win.loadFile(path.join(__dirname, '../../renderer/dist/index.html'));
   } else {
     const loadDevServer = () => {
       http.get('http://localhost:5173', () => {
