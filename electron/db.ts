@@ -1,3 +1,4 @@
+import './env';
 import { Pool, PoolClient, types, QueryResultRow } from 'pg';
 import { AsyncLocalStorage } from 'async_hooks';
 import * as path from 'path';
