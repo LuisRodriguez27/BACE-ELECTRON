@@ -19,7 +19,8 @@ import {
   Sun,
   Truck,
   Printer,
-  ClipboardList
+  ClipboardList,
+  ShoppingBasket
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSidebarStore } from '@/store/sidebar'
@@ -95,6 +96,12 @@ const menuItems: MenuItem[] = [
     label: 'Bitácora de Producción',
     icon: ClipboardList,
     path: '/dashboard/production-logs'
+  },
+  {
+    id: 'shopping-list',
+    label: 'Lista de Compras',
+    icon: ShoppingBasket,
+    path: '/dashboard/shopping-list'
   },
   {
     id: 'stats',
@@ -182,6 +189,10 @@ const Sidebar: React.FC = () => {
           }
 
           if (item.id === 'production-logs' && !canAccess('Ver Bitacora de Produccion')) {
+            return null
+          }
+
+          if (item.id === 'shopping-list' && !canAccess('Ver Lista de Compras')) {
             return null
           }
 

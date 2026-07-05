@@ -140,6 +140,7 @@ export interface OrderProduct {
   template_final_price?: number;
   template_created_by_username?: string;
   template_base_product_name?: string;
+  template_product_id?: number | null;
 }
 
 // Tipos para el formulario del frontend
@@ -207,6 +208,10 @@ export const getOrderItemDescription = (orderProduct: OrderProduct): string => {
 
 export const getOrderItemType = (orderProduct: OrderProduct): 'product' | 'template' => {
   return orderProduct.product_id ? 'product' : 'template';
+};
+
+export const getOrderItemFamilyId = (orderProduct: OrderProduct): number | null => {
+  return orderProduct.product_id ?? orderProduct.template_product_id ?? null;
 };
 
 export const calculateOrderTotal = (items: OrderFormItem[]): number => {

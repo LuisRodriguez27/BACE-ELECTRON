@@ -16,6 +16,7 @@ import { registerSupplierOrderIpc } from './supplierOrderIpc';
 import { registerPrintLogIpc } from './printLogIpc';
 import { registerProductionLogIpc } from './productionLogIpc';
 import { registerImageIpc } from './imageIpc';
+import { registerShoppingListIpc } from './shoppingListIpc';
 
 export function registerIpcHandlers(): void {
   registerUserIpc();
@@ -36,5 +37,6 @@ export function registerIpcHandlers(): void {
   registerPrintLogIpc();
   registerProductionLogIpc();
   registerImageIpc();
+  registerShoppingListIpc();
 }
 

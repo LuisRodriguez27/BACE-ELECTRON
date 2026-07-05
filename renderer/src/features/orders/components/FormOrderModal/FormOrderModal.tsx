@@ -212,7 +212,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
               <div className="flex items-center justify-between mb-4 sticky top-0 bg-white z-20 py-3 -mx-6 px-6 border-b">
                 <div className="flex items-center gap-2">
                   <Package className="h-5 w-5 text-gray-600" />
-                  <h3 className="text-lg font-medium text-gray-900">Productos y Plantillas</h3>
+                  <h3 className="text-lg font-medium text-gray-900">Familias y Productos</h3>
                   <span className="text-sm text-gray-500">({orderItemsHook.orderItems.length} items)</span>
                   {orderItemsHook.orderItems.length > 0 && (
                     <div className="flex items-center gap-2 ml-4 px-3 py-1 bg-green-50 rounded-full">
@@ -250,7 +250,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
               {(orderItemsHook.loadingProducts || orderItemsHook.loadingTemplates) ? (
                 <div className="flex items-center justify-center p-8 border border-dashed rounded-lg">
                   <Loader className="animate-spin" size={24} />
-                  <span className="ml-2 text-gray-500">Cargando productos y plantillas...</span>
+                  <span className="ml-2 text-gray-500">Cargando familias y productos...</span>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -260,10 +260,10 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                         <Package className="h-12 w-12 text-gray-300" />
                         <Layers className="h-12 w-12 text-gray-300" />
                       </div>
-                      <p className="text-lg font-medium text-gray-700 mb-2">No hay productos o plantillas agregados</p>
+                      <p className="text-lg font-medium text-gray-700 mb-2">No hay familias o productos agregados</p>
                       <p className="text-sm mb-4">Haz clic en &quot;Agregar Item&quot; para comenzar a {orderForm.isEditMode ? 'editar' : 'crear'} tu orden</p>
                       <div className="flex flex-col items-center gap-2 text-xs text-gray-400">
-                        <p>💡 <strong>Tip:</strong> Puedes crear productos y plantillas sobre la marcha</p>
+                        <p>💡 <strong>Tip:</strong> Puedes crear familias y productos sobre la marcha</p>
                         <div className="flex items-center gap-4">
                           <span>🏷️ Filtra por tipo de item</span>
                         </div>

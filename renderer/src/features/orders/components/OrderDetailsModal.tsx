@@ -17,6 +17,7 @@ import {
   Phone,
   Printer,
   Receipt,
+  ShoppingBasket,
   Tag,
   User,
   X,
@@ -27,7 +28,8 @@ import PrintPreviewModal from './PrintPreviewModal';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 import { OrdersApiService } from '../OrdersApiService';
-import { getOrderItemDisplayName, getOrderItemType, type Order, type OrderProduct } from '../types';
+import { getOrderItemDisplayName, getOrderItemFamilyId, getOrderItemType, type Order, type OrderProduct } from '../types';
+import QuickAddToShoppingListModal from '@/features/shoppingList/components/QuickAddToShoppingListModal';
 import { PaymentsApiService } from '../../payments/PaymentsApiService';
 import { PaymentsList } from '../../payments/components';
 import type { Payment } from '../../payments/types';
@@ -66,6 +68,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   });
   const { user } = useAuth();
   const { checkPermission } = usePermissions();
+  const [shoppingListTarget, setShoppingListTarget] = useState<OrderProduct | null>(null);
   const { isSendingWhatsApp, sendWhatsApp, whatsappDialogElement } = useWhatsAppOrder();
 
   // Cargar datos de la orden al abrir el modal
@@ -279,6 +282,15 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
   const calculateSubtotal = () => {
     return orderProducts.reduce((sum, product) => sum + product.total_price, 0);
+  };
+
+  const handleAddToShoppingListClick = (product: OrderProduct) => {
+    if (!checkPermission('Gestionar Lista de Compras')) return;
+    if (!getOrderItemFamilyId(product)) {
+      toast.error('No se pudo determinar la familia de este producto');
+      return;
+    }
+    setShoppingListTarget(product);
   };
 
   const handlePrint = () => {
@@ -620,7 +632,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 <div className="px-6 py-4 border-b border-gray-200">
                   <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                     <Package className="h-5 w-5" />
-                    Productos y Plantillas
+                    Familias y Productos
                     <span className="text-sm font-normal text-gray-500">
                       ({orderProducts.length} items)
                     </span>
@@ -661,9 +673,9 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                                           : 'bg-purple-100 text-purple-800'
                                         }`}>
                                         {type === 'product' ? (
-                                          <><Package className="h-3 w-3 inline mr-1" />Producto</>
+                                          <><Package className="h-3 w-3 inline mr-1" />Familia</>
                                         ) : (
-                                          <><Layers className="h-3 w-3 inline mr-1" />Plantilla</>
+                                          <><Layers className="h-3 w-3 inline mr-1" />Producto</>
                                         )}
                                       </span>
                                       {product.is_delivered && (
@@ -738,6 +750,15 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                               )}
                             </div>
                           )}
+
+                          <div className="flex justify-end mt-3 pt-3 border-t border-gray-100">
+                            <button
+                              onClick={() => handleAddToShoppingListClick(product)}
+                              className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              <ShoppingBasket size={12} /> Agregar a lista de compras
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -818,6 +839,15 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       />
 
       {whatsappDialogElement}
+
+      {shoppingListTarget && (
+        <QuickAddToShoppingListModal
+          productId={getOrderItemFamilyId(shoppingListTarget)!}
+          productName={getOrderItemDisplayName(shoppingListTarget)}
+          defaultQuantity={shoppingListTarget.quantity}
+          onClose={() => setShoppingListTarget(null)}
+        />
+      )}
     </div>
   );
 };

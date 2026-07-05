@@ -34,6 +34,14 @@ import {
   SupplierOrder,
   CreateSupplierOrderForm
 } from "../features/suppliers/types";
+import type {
+  ShoppingList,
+  ShoppingListItem,
+  OpenShoppingListForm,
+  CloseShoppingListForm,
+  AddShoppingListItemForm,
+  UpdateShoppingListItemForm,
+} from "../features/shoppingList/types";
 
 declare global {
   interface Window {
@@ -224,6 +232,16 @@ declare global {
       updateProductionLog: (id: number, data: EditProductionLogForm) => Promise<ProductionLog>;
       updateProductionLogCheckboxes: (id: number, data: { completado?: boolean }) => Promise<ProductionLog>;
       deleteProductionLog: (id: number) => Promise<void>;
+
+      // Lista de compras
+      getActiveShoppingList: () => Promise<ShoppingList | null>;
+      getShoppingListById: (id: number) => Promise<ShoppingList>;
+      getShoppingListHistory: (page: number, limit: number) => Promise<PaginatedResult<ShoppingList>>;
+      openShoppingList: (data: OpenShoppingListForm) => Promise<ShoppingList>;
+      closeShoppingList: (id: number, data: CloseShoppingListForm) => Promise<ShoppingList>;
+      addShoppingListItem: (data: AddShoppingListItemForm) => Promise<ShoppingListItem>;
+      updateShoppingListItem: (id: number, data: UpdateShoppingListItemForm) => Promise<ShoppingListItem>;
+      removeShoppingListItem: (id: number) => Promise<void>;
 
       // Shell / Utilidades
       openExternal: (url: string) => Promise<void>;

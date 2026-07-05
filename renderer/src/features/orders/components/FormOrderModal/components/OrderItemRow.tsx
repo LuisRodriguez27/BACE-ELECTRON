@@ -106,7 +106,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = ({
         {/* Selector de Producto/Plantilla */}
         <div className="lg:col-span-2">
           <Label className="text-sm font-medium text-gray-700">
-            Producto o Plantilla *
+            Famlia o Producto *
           </Label>
 
           {/* Filtros de categoría */}
@@ -135,7 +135,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = ({
               className="text-xs px-2 py-1 h-7"
             >
               <Package size={12} className="mr-1" />
-              Productos ({products.length})
+              Familias ({products.length})
             </Button>
             <Button
               type="button"
@@ -148,7 +148,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = ({
               className="text-xs px-2 py-1 h-7"
             >
               <Layers size={12} className="mr-1" />
-              Plantillas ({templates.length})
+              Productos ({templates.length})
             </Button>
           </div>
 

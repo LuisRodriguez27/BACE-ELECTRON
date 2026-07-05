@@ -240,6 +240,19 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.invoke('productionLogs:updateCheckboxes', id, data),
   deleteProductionLog: (id: number): Promise<unknown> => ipcRenderer.invoke('productionLogs:delete', id),
 
+  // Lista de compras
+  getActiveShoppingList: (): Promise<unknown> => ipcRenderer.invoke('shoppingList:getActive'),
+  getShoppingListById: (id: number): Promise<unknown> => ipcRenderer.invoke('shoppingList:getById', id),
+  getShoppingListHistory: (page: number, limit: number): Promise<unknown> =>
+    ipcRenderer.invoke('shoppingList:getHistory', page, limit),
+  openShoppingList: (data: unknown): Promise<unknown> => ipcRenderer.invoke('shoppingList:open', data),
+  closeShoppingList: (id: number, data: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('shoppingList:close', id, data),
+  addShoppingListItem: (data: unknown): Promise<unknown> => ipcRenderer.invoke('shoppingList:addItem', data),
+  updateShoppingListItem: (id: number, data: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('shoppingList:updateItem', id, data),
+  removeShoppingListItem: (id: number): Promise<unknown> => ipcRenderer.invoke('shoppingList:removeItem', id),
+
   // Imágenes en NAS
   uploadImage: (productId: number, buffer: unknown, originalName: string): Promise<unknown> =>
     ipcRenderer.invoke('upload-image', productId, buffer, originalName),

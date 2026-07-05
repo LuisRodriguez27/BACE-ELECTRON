@@ -224,6 +224,25 @@ const schemaTables: string = `
     active       BOOLEAN       NOT NULL DEFAULT TRUE
   );
 
+  CREATE TABLE IF NOT EXISTS shopping_lists (
+    id           SERIAL        PRIMARY KEY,
+    opening_date TIMESTAMPTZ   NOT NULL,
+    closing_date TIMESTAMPTZ,
+    status       VARCHAR(50)   NOT NULL DEFAULT 'open',
+    notes        TEXT,
+    created_by   INTEGER       REFERENCES users(id)
+  );
+
+  CREATE TABLE IF NOT EXISTS shopping_list_items (
+    id                SERIAL        PRIMARY KEY,
+    shopping_list_id  INTEGER       NOT NULL REFERENCES shopping_lists(id),
+    product_id        INTEGER       NOT NULL REFERENCES products(id),
+    quantity          DECIMAL(10,2) NOT NULL DEFAULT 0,
+    purchased         BOOLEAN       NOT NULL DEFAULT FALSE,
+    created_by        INTEGER       REFERENCES users(id),
+    active            BOOLEAN       NOT NULL DEFAULT TRUE
+  );
+
 `;
 
 export default schemaTables;

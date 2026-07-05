@@ -804,6 +804,61 @@ const MIGRATIONS: Migration[] = [
         ON CONFLICT DO NOTHING;
       `);
     }
+  },
+
+  // v31: Crear tablas de lista de compras (sesiones tipo caja) y permisos correspondientes
+  {
+    version: 31,
+    name: 'create_shopping_list_tables',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM information_schema.tables
+        WHERE table_name IN ('shopping_lists', 'shopping_list_items')
+      `);
+      return parseInt(rows[0].count) === 2;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS shopping_lists (
+          id           SERIAL        PRIMARY KEY,
+          opening_date TIMESTAMPTZ   NOT NULL,
+          closing_date TIMESTAMPTZ,
+          status       VARCHAR(50)   NOT NULL DEFAULT 'open',
+          notes        TEXT,
+          created_by   INTEGER       REFERENCES users(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS shopping_list_items (
+          id                SERIAL        PRIMARY KEY,
+          shopping_list_id  INTEGER       NOT NULL REFERENCES shopping_lists(id),
+          product_id        INTEGER       NOT NULL REFERENCES products(id),
+          quantity          DECIMAL(10,2) NOT NULL DEFAULT 0,
+          purchased         BOOLEAN       NOT NULL DEFAULT FALSE,
+          created_by        INTEGER       REFERENCES users(id),
+          active            BOOLEAN       NOT NULL DEFAULT TRUE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_shopping_lists_status            ON shopping_lists(status);
+        CREATE INDEX IF NOT EXISTS idx_shopping_list_items_list_id      ON shopping_list_items(shopping_list_id);
+        CREATE INDEX IF NOT EXISTS idx_shopping_list_items_product_id  ON shopping_list_items(product_id);
+      `);
+      await client.query(`
+        INSERT INTO permissions (name, description, active)
+        VALUES
+          ('Ver Lista de Compras', 'Permite ver la lista de compras', true),
+          ('Gestionar Lista de Compras', 'Permite abrir/cerrar la lista de compras y agregar, editar o quitar productos', true)
+        ON CONFLICT (name) DO UPDATE SET active = true;
+      `);
+      await client.query(`
+        INSERT INTO user_permissions (user_id, permission_id, active)
+        SELECT u.id, p.id, true
+        FROM users u
+        CROSS JOIN permissions p
+        WHERE u.id = 1
+          AND p.name IN ('Ver Lista de Compras', 'Gestionar Lista de Compras')
+        ON CONFLICT DO NOTHING;
+      `);
+    }
   }
 ];
 
