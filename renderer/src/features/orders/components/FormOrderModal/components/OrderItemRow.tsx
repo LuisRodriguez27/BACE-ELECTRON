@@ -158,7 +158,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = ({
               <Input
                 id={`item-input-${index}`}
                 type="text"
-                placeholder={`Buscar ${selectedCategory[index] === 'products' ? 'productos' : selectedCategory[index] === 'templates' ? 'plantillas' : 'productos o plantillas'}...`}
+                placeholder={`Buscar ${selectedCategory[index] === 'products' ? 'familias' : selectedCategory[index] === 'templates' ? 'productos' : 'familias o productos'}...`}
                 value={searchTerms[index] || ''}
                 onChange={handleSearchChange}
                 onFocus={() => showDropdown(index)}

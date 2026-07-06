@@ -30,7 +30,9 @@ const ItemSearchDropdown: React.FC<ItemSearchDropdownProps> = ({
       id={`item-dropdown-${index}`}
       className="fixed z-[9999] bg-white border border-gray-300 rounded-md shadow-lg overflow-y-auto"
       style={{
-        top: `${dropdownPosition.top}px`,
+        ...(dropdownPosition.top !== undefined
+          ? { top: `${dropdownPosition.top}px` }
+          : { bottom: `${dropdownPosition.bottom}px` }),
         left: `${dropdownPosition.left}px`,
         width: `${dropdownPosition.width}px`,
         maxHeight: `${dropdownPosition.maxHeight || 200}px`
@@ -40,7 +42,7 @@ const ItemSearchDropdown: React.FC<ItemSearchDropdownProps> = ({
         filteredItems.map((filteredItem) => (
           <div
             key={`${filteredItem.type}-${filteredItem.item.id}`}
-            className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 group"
+            className="px-3 py-1.5 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 group"
           >
             <div className="flex justify-between items-center">
               <div
@@ -57,7 +59,7 @@ const ItemSearchDropdown: React.FC<ItemSearchDropdownProps> = ({
                     <div className="font-medium text-sm text-gray-900">
                       {filteredItem.type === 'product'
                         ? (filteredItem.item as Product).name
-                        : (filteredItem.item as any).name
+                        : (filteredItem.item as ProductTemplate).description
                       }
                     </div>
                     {filteredItem.type === 'product' && (filteredItem.item as Product).serial_number && (
@@ -67,8 +69,8 @@ const ItemSearchDropdown: React.FC<ItemSearchDropdownProps> = ({
                     )}
                     {filteredItem.type === 'template' && (
                       <div className="text-xs text-gray-500">
-                        {(filteredItem.item as ProductTemplate).description && (
-                          <span>{(filteredItem.item as ProductTemplate).description}</span>
+                        {(filteredItem.item as ProductTemplate).product_name && (
+                          <span>Familia: {(filteredItem.item as ProductTemplate).product_name}</span>
                         )}
                         {(filteredItem.item as ProductTemplate).width && (filteredItem.item as ProductTemplate).height && (
                           <span className="ml-2">{(filteredItem.item as ProductTemplate).width}x{(filteredItem.item as ProductTemplate).height}cm</span>

@@ -11,7 +11,8 @@ export interface FilteredItem {
 }
 
 export interface DropdownPosition {
-  top: number;
+  top?: number;
+  bottom?: number;
   left: number;
   width: number;
   maxHeight?: number;
@@ -24,6 +25,7 @@ export interface UseOrderItemsReturn {
   orderItems: OrderFormItem[];
   loadingProducts: boolean;
   loadingTemplates: boolean;
+  searchingProducts: boolean;
 
   // Search & dropdown state
   searchTerms: { [key: number]: string };
@@ -52,6 +54,7 @@ export const useOrderItems = (): UseOrderItemsReturn => {
   const [templates, setTemplates] = useState<ProductTemplate[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
+  const [searchingProducts, setSearchingProducts] = useState(false);
 
   const [orderItems, setOrderItems] = useState<OrderFormItem[]>([]);
   const [searchTerms, setSearchTerms] = useState<{ [key: number]: string }>({});
@@ -74,18 +77,29 @@ export const useOrderItems = (): UseOrderItemsReturn => {
         left = viewportWidth - rect.width - 20 + window.scrollX;
       }
 
-      // Calcular altura máxima disponible hacia abajo
+      // Calcular espacio disponible hacia abajo y hacia arriba, y abrir hacia
+      // donde haya más lugar cuando no alcance por debajo del input
       const spaceBelow = viewportHeight - rect.bottom - 20;
-      const maxHeight = Math.max(150, Math.min(300, spaceBelow));
+      const spaceAbove = rect.top - 20;
+      const openAbove = spaceBelow < 200 && spaceAbove > spaceBelow;
+
+      const maxHeight = Math.max(150, Math.min(450, openAbove ? spaceAbove : spaceBelow));
 
       setDropdownPositions(prev => ({
         ...prev,
-        [index]: {
-          top: rect.bottom + window.scrollY,
-          left: left,
-          width: rect.width,
-          maxHeight: maxHeight
-        }
+        [index]: openAbove
+          ? {
+              bottom: viewportHeight - rect.top + window.scrollY,
+              left: left,
+              width: rect.width,
+              maxHeight: maxHeight
+            }
+          : {
+              top: rect.bottom + window.scrollY,
+              left: left,
+              width: rect.width,
+              maxHeight: maxHeight
+            }
       }));
     }
   }, []);
@@ -108,11 +122,12 @@ export const useOrderItems = (): UseOrderItemsReturn => {
     };
 
     window.addEventListener('resize', handleResize);
-    window.addEventListener('scroll', handleResize);
+    // capture: true para detectar scroll en contenedores anidados (el scroll no burbujea)
+    window.addEventListener('scroll', handleResize, true);
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      window.removeEventListener('scroll', handleResize);
+      window.removeEventListener('scroll', handleResize, true);
     };
   }, [showDropdowns, updateDropdownPosition]);
 
@@ -151,13 +166,13 @@ export const useOrderItems = (): UseOrderItemsReturn => {
 
     const fetchProducts = async () => {
       try {
-        setLoadingProducts(true);
+        setSearchingProducts(true);
         const response = await window.api.getProductsPaginated(1, 50, searchTerm);
         setProducts(response.data.filter(p => p.active === true));
       } catch (err) {
         console.error('Error searching products in orders hook:', err);
       } finally {
-        setLoadingProducts(false);
+        setSearchingProducts(false);
       }
     };
 
@@ -258,7 +273,7 @@ export const useOrderItems = (): UseOrderItemsReturn => {
     if (category === 'all' || category === 'templates') {
       templates.forEach(template => {
         const baseProductName = template.product_name || 'Producto';
-        const templateName = `${baseProductName} (Plantilla)`;
+        const templateName = `${baseProductName} (Producto)`;
 
         const matchesSearch = !searchTerm ||
           templateName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -274,12 +289,32 @@ export const useOrderItems = (): UseOrderItemsReturn => {
       });
     }
 
-    // Ordenar por nombre
-    return items.sort((a, b) => {
-      const nameA = a.type === 'product' ? (a.item as Product).name : (a.item as any).name;
-      const nameB = b.type === 'product' ? (b.item as Product).name : (b.item as any).name;
-      return nameA.localeCompare(nameB);
+    // Agrupar: cada familia (producto) seguida de sus productos (plantillas) asociados
+    const productItems = items.filter((i): i is FilteredItem & { item: Product } => i.type === 'product');
+    const templateItems = items.filter((i): i is FilteredItem & { item: ProductTemplate } => i.type === 'template');
+
+    const sortedProducts = [...productItems].sort((a, b) => a.item.name.localeCompare(b.item.name));
+
+    const grouped: FilteredItem[] = [];
+    const usedTemplateIds = new Set<number>();
+
+    sortedProducts.forEach(productItem => {
+      grouped.push(productItem);
+      const children = templateItems
+        .filter(t => t.item.product_id === productItem.item.id)
+        .sort((a, b) => (a.item as any).name.localeCompare((b.item as any).name));
+      children.forEach(child => {
+        usedTemplateIds.add(child.item.id);
+        grouped.push(child);
+      });
     });
+
+    // Plantillas cuya familia no está en la lista actual (p. ej. filtro solo "templates")
+    const orphanTemplates = templateItems
+      .filter(t => !usedTemplateIds.has(t.item.id))
+      .sort((a, b) => (a.item as any).name.localeCompare((b.item as any).name));
+
+    return [...grouped, ...orphanTemplates];
   }, [searchTerms, selectedCategory, products, templates]);
 
   // Seleccionar item (producto o plantilla)
@@ -298,7 +333,7 @@ export const useOrderItems = (): UseOrderItemsReturn => {
     } else {
       const template = item as ProductTemplate;
       const baseProductName = template.product_name || 'Producto';
-      const templateName = `${baseProductName} (Plantilla)`;
+      const templateName = `${baseProductName} (Producto)`;
 
       updateOrderItem(index, {
         type: 'template',
@@ -334,6 +369,7 @@ export const useOrderItems = (): UseOrderItemsReturn => {
     orderItems,
     loadingProducts,
     loadingTemplates,
+    searchingProducts,
     searchTerms,
     showDropdowns,
     dropdownPositions,

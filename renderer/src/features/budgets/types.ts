@@ -138,7 +138,7 @@ export const getBudgetItemDisplayName = (budgetProduct: BudgetProduct): string =
     return budgetProduct.product_name || `Producto #${budgetProduct.product_id}`;
   } else if (budgetProduct.template_id) {
     const baseName = budgetProduct.template_base_product_name || budgetProduct.product_name || 'Producto';
-    return `${baseName} (Plantilla)`;
+    return `${baseName} (Producto)`;
   }
   return 'Item desconocido';
 };

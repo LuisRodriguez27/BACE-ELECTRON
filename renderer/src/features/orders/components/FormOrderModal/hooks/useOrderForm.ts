@@ -108,7 +108,7 @@ export const useOrderForm = ({
             return {
               type: 'template' as const,
               id: op.template_id!,
-              name: `${baseProductName} (Plantilla)`,
+              name: `${baseProductName} (Producto)`,
               quantity: op.quantity,
               unit_price: op.unit_price,
               description: op.template_description,
