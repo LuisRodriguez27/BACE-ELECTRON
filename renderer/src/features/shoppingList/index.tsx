@@ -261,7 +261,7 @@ const ShoppingListPage: React.FC = () => {
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
                       <tr>
-                        <th className="px-4 py-3 text-left">Familia</th>
+                        <th className="px-4 py-3 text-left">Producto</th>
                         <th className="px-4 py-3 text-right">Cantidad</th>
                         <th className="px-4 py-3 text-center">Comprado</th>
                         {canManage && <th className="px-4 py-3 text-center">Acciones</th>}

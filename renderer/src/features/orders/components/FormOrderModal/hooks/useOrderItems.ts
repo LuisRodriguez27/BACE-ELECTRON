@@ -273,7 +273,7 @@ export const useOrderItems = (): UseOrderItemsReturn => {
     if (category === 'all' || category === 'templates') {
       templates.forEach(template => {
         const baseProductName = template.product_name || 'Producto';
-        const templateName = `${baseProductName} (Producto)`;
+        const templateName = `${baseProductName} (Plantilla)`;
 
         const matchesSearch = !searchTerm ||
           templateName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -289,7 +289,7 @@ export const useOrderItems = (): UseOrderItemsReturn => {
       });
     }
 
-    // Agrupar: cada familia (producto) seguida de sus productos (plantillas) asociados
+    // Agrupar: cada producto seguida de sus plantillas
     const productItems = items.filter((i): i is FilteredItem & { item: Product } => i.type === 'product');
     const templateItems = items.filter((i): i is FilteredItem & { item: ProductTemplate } => i.type === 'template');
 
@@ -309,7 +309,7 @@ export const useOrderItems = (): UseOrderItemsReturn => {
       });
     });
 
-    // Plantillas cuya familia no está en la lista actual (p. ej. filtro solo "templates")
+    // Plantillas cuya producto no está en la lista actual (p. ej. filtro solo "templates")
     const orphanTemplates = templateItems
       .filter(t => !usedTemplateIds.has(t.item.id))
       .sort((a, b) => (a.item as any).name.localeCompare((b.item as any).name));
@@ -333,7 +333,7 @@ export const useOrderItems = (): UseOrderItemsReturn => {
     } else {
       const template = item as ProductTemplate;
       const baseProductName = template.product_name || 'Producto';
-      const templateName = `${baseProductName} (Producto)`;
+      const templateName = `${baseProductName} (Plantilla)`;
 
       updateOrderItem(index, {
         type: 'template',

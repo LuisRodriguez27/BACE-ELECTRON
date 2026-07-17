@@ -135,7 +135,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = ({
               className="text-xs px-2 py-1 h-7"
             >
               <Package size={12} className="mr-1" />
-              Familias ({products.length})
+              Productos ({products.length})
             </Button>
             <Button
               type="button"
@@ -148,7 +148,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = ({
               className="text-xs px-2 py-1 h-7"
             >
               <Layers size={12} className="mr-1" />
-              Productos ({templates.length})
+              Plantillas ({templates.length})
             </Button>
           </div>
 
@@ -158,7 +158,7 @@ const OrderItemRow: React.FC<OrderItemRowProps> = ({
               <Input
                 id={`item-input-${index}`}
                 type="text"
-                placeholder={`Buscar ${selectedCategory[index] === 'products' ? 'familias' : selectedCategory[index] === 'templates' ? 'productos' : 'familias o productos'}...`}
+                placeholder={`Buscar ${selectedCategory[index] === 'products' ? 'productos' : selectedCategory[index] === 'templates' ? 'plantillas' : 'productos o plantillas'}...`}
                 value={searchTerms[index] || ''}
                 onChange={handleSearchChange}
                 onFocus={() => showDropdown(index)}

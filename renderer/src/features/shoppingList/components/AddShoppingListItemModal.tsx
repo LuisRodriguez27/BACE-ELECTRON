@@ -22,7 +22,7 @@ const AddShoppingListItemModal: React.FC<Props> = ({ onClose, onConfirm }) => {
   useEffect(() => {
     ProductsApiService.findAll()
       .then(setProducts)
-      .catch(() => setError('Error al cargar las familias de productos'))
+      .catch(() => setError('Error al cargar los productos'))
       .finally(() => setLoadingProducts(false));
   }, []);
 
@@ -30,7 +30,7 @@ const AddShoppingListItemModal: React.FC<Props> = ({ onClose, onConfirm }) => {
     e.preventDefault();
     const id = parseInt(productId, 10);
     const qty = parseFloat(quantity);
-    if (!id) { setError('Selecciona una familia de producto'); return; }
+    if (!id) { setError('Selecciona un producto de producto'); return; }
     if (isNaN(qty) || qty <= 0) { setError('Ingresa una cantidad válida (> 0)'); return; }
     setLoading(true);
     setError(null);
@@ -55,7 +55,7 @@ const AddShoppingListItemModal: React.FC<Props> = ({ onClose, onConfirm }) => {
 
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Familia de producto</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Productos</label>
             <select
               value={productId}
               onChange={e => setProductId(e.target.value)}
@@ -63,7 +63,7 @@ const AddShoppingListItemModal: React.FC<Props> = ({ onClose, onConfirm }) => {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
               required
             >
-              <option value="">{loadingProducts ? 'Cargando...' : 'Selecciona una familia'}</option>
+              <option value="">{loadingProducts ? 'Cargando...' : 'Selecciona un producto'}</option>
               {products.map(p => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}

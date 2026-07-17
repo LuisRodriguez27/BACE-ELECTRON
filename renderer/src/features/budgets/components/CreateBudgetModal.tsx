@@ -113,7 +113,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
             return {
               type: 'template' as const,
               id: bp.template_id || 0,
-              name: bp.template_base_product_name ? `${bp.template_base_product_name} (Producto)` : (bp.product_name ? `${bp.product_name} (Producto)` : 'Producto'),
+              name: bp.template_base_product_name ? `${bp.template_base_product_name} (Plantilla)` : (bp.product_name ? `${bp.product_name} (Plantilla)` : 'Plantilla'),
               quantity: bp.quantity,
               unit_price: bp.unit_price,
               width: bp.template_width,
@@ -409,7 +409,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
     if (category === 'all' || category === 'templates') {
       templates.forEach(template => {
         const baseProduct = products.find(p => p.id === template.product_id);
-        const templateName = baseProduct ? `${baseProduct.name} (Producto)` : `Producto #${template.id}`;
+        const templateName = baseProduct ? `${baseProduct.name} (Plantilla)` : `Plantilla #${template.id}`;
 
         const matchesSearch = !searchTerm ||
           templateName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -425,7 +425,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
       });
     }
 
-    // Agrupar: cada familia (producto) seguida de sus productos (plantillas) asociados
+    // Agrupar: cada producto seguida de sus plantillas asociadas
     const productItems = items.filter((i): i is { type: 'product', item: Product } => i.type === 'product');
     const templateItems = items.filter((i): i is { type: 'template', item: ProductTemplate } => i.type === 'template');
 
@@ -445,7 +445,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
       });
     });
 
-    // Plantillas cuya familia no está en la lista actual (p. ej. filtro solo "templates")
+    // Plantillas cuyo producto no está en la lista actual (p. ej. filtro solo "templates")
     const orphanTemplates = templateItems
       .filter(t => !usedTemplateIds.has(t.item.id))
       .sort((a, b) => (a.item as any).name.localeCompare((b.item as any).name));
@@ -469,7 +469,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
     } else {
       const template = item as ProductTemplate;
       const baseProduct = products.find(p => p.id === template.product_id);
-      const templateName = baseProduct ? `${baseProduct.name} (Producto)` : `Producto #${template.id}`;
+      const templateName = baseProduct ? `${baseProduct.name} (Plantilla)` : `Plantilla #${template.id}`;
 
       updateBudgetItem(index, {
         type: 'template',
@@ -695,7 +695,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
               <div className="flex items-center justify-between mb-4 sticky top-0 bg-white z-20 py-3 -mx-6 px-6 border-b">
                 <div className="flex items-center gap-2">
                   <Package className="h-5 w-5 text-gray-600" />
-                  <h3 className="text-lg font-medium text-gray-900">Familias y Productos</h3>
+                  <h3 className="text-lg font-medium text-gray-900">Productos y Plantillas</h3>
                   <span className="text-sm text-gray-500">({budgetItems.length} items)</span>
                   {budgetItems.length > 0 && (
                     <div className="flex items-center gap-2 ml-4 px-3 py-1 bg-green-50 rounded-full">
@@ -832,7 +832,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
                                 className="text-xs px-2 py-1 h-7"
                               >
                                 <Package size={12} className="mr-1" />
-                                Familias ({products.length})
+                                Productos ({products.length})
                               </Button>
                               <Button
                                 type="button"
@@ -845,7 +845,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
                                 className="text-xs px-2 py-1 h-7"
                               >
                                 <Layers size={12} className="mr-1" />
-                                Productos ({templates.length})
+                                Plantillas ({templates.length})
                               </Button>
                             </div>
 
@@ -920,7 +920,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
                                                 {filteredItem.type === 'template' && (
                                                   <div className="text-xs text-gray-500">
                                                     {(filteredItem.item as ProductTemplate).product_name && (
-                                                      <span>Familia: {(filteredItem.item as ProductTemplate).product_name}</span>
+                                                      <span>Producto: {(filteredItem.item as ProductTemplate).product_name}</span>
                                                     )}
                                                     {(filteredItem.item as ProductTemplate).width && (filteredItem.item as ProductTemplate).height && (
                                                       <span className="ml-2">{(filteredItem.item as ProductTemplate).width}x{(filteredItem.item as ProductTemplate).height}cm</span>

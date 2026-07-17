@@ -66,7 +66,7 @@ class ShoppingListService {
       const active = await shoppingListRepository.getActive();
       if (!active) throw new Error('No hay una lista de compras abierta. Abre una lista antes de agregar productos.');
 
-      if (!data.product_id || isNaN(Number(data.product_id))) throw new Error('Debes seleccionar una familia de producto válida');
+      if (!data.product_id || isNaN(Number(data.product_id))) throw new Error('Debes seleccionar un producto de producto válida');
       const productId = parseInt(String(data.product_id), 10);
 
       const product = await productRepository.findById(productId);

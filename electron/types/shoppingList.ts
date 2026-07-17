@@ -26,7 +26,7 @@ export interface ShoppingListItemRow {
   purchased: boolean;
   created_by: number | null;
   active: boolean;
-  /** Joined desde products (familia) */
+  /** Joined desde products */
   product_name?: string | null;
 }
 

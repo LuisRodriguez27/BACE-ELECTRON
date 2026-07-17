@@ -28,7 +28,7 @@ import PrintPreviewModal from './PrintPreviewModal';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 import { OrdersApiService } from '../OrdersApiService';
-import { getOrderItemDisplayName, getOrderItemFamilyId, getOrderItemType, type Order, type OrderProduct } from '../types';
+import { getOrderItemDisplayName, getOrderItemProductId, getOrderItemType, type Order, type OrderProduct } from '../types';
 import QuickAddToShoppingListModal from '@/features/shoppingList/components/QuickAddToShoppingListModal';
 import { PaymentsApiService } from '../../payments/PaymentsApiService';
 import { PaymentsList } from '../../payments/components';
@@ -286,8 +286,8 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
   const handleAddToShoppingListClick = (product: OrderProduct) => {
     if (!checkPermission('Gestionar Lista de Compras')) return;
-    if (!getOrderItemFamilyId(product)) {
-      toast.error('No se pudo determinar la familia de este producto');
+    if (!getOrderItemProductId(product)) {
+      toast.error('No se pudo determinar el producto de esta plantilla');
       return;
     }
     setShoppingListTarget(product);
@@ -632,7 +632,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 <div className="px-6 py-4 border-b border-gray-200">
                   <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                     <Package className="h-5 w-5" />
-                    Familias y Productos
+                    Productos y Plantillas
                     <span className="text-sm font-normal text-gray-500">
                       ({orderProducts.length} items)
                     </span>
@@ -669,13 +669,13 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                                         {getOrderItemDisplayName(product)}
                                       </h4>
                                       <span className={`px-2 py-1 text-xs rounded ${type === 'product'
-                                          ? 'bg-blue-100 text-blue-800'
-                                          : 'bg-purple-100 text-purple-800'
+                                        ? 'bg-blue-100 text-blue-800'
+                                        : 'bg-purple-100 text-purple-800'
                                         }`}>
                                         {type === 'product' ? (
-                                          <><Package className="h-3 w-3 inline mr-1" />Familia</>
+                                          <><Package className="h-3 w-3 inline mr-1" />Producto</>
                                         ) : (
-                                          <><Layers className="h-3 w-3 inline mr-1" />Producto</>
+                                          <><Layers className="h-3 w-3 inline mr-1" />Plantilla</>
                                         )}
                                       </span>
                                       {product.is_delivered && (
@@ -842,7 +842,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
       {shoppingListTarget && (
         <QuickAddToShoppingListModal
-          productId={getOrderItemFamilyId(shoppingListTarget)!}
+          productId={getOrderItemProductId(shoppingListTarget)!}
           productName={getOrderItemDisplayName(shoppingListTarget)}
           defaultQuantity={shoppingListTarget.quantity}
           onClose={() => setShoppingListTarget(null)}

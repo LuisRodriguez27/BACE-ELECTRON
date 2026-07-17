@@ -65,7 +65,7 @@ export interface OrderProductRow {
   template_created_by_username: string | null;
   /** Nombre del producto base de la plantilla */
   template_base_product_name: string | null;
-  /** ID del producto base (familia) de la plantilla */
+  /** ID del producto de la plantilla */
   template_product_id: number | null;
 }
 

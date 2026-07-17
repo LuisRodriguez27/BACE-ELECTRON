@@ -50,7 +50,7 @@ const ShoppingListDetailModal: React.FC<Props> = ({ listId, onClose }) => {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
                   <tr>
-                    <th className="px-3 py-2 text-left">Familia</th>
+                    <th className="px-3 py-2 text-left">Producto</th>
                     <th className="px-3 py-2 text-right">Cantidad</th>
                     <th className="px-3 py-2 text-center">Estado</th>
                   </tr>

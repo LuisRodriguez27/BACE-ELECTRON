@@ -210,7 +210,7 @@ export const getOrderItemType = (orderProduct: OrderProduct): 'product' | 'templ
   return orderProduct.product_id ? 'product' : 'template';
 };
 
-export const getOrderItemFamilyId = (orderProduct: OrderProduct): number | null => {
+export const getOrderItemProductId = (orderProduct: OrderProduct): number | null => {
   return orderProduct.product_id ?? orderProduct.template_product_id ?? null;
 };
 
