@@ -7,12 +7,14 @@ import React, { useState, useRef } from 'react';
 import CreatePrintLogModal from './components/CreatePrintLogModal';
 import ActivePrintLogsTable from './components/ActivePrintLogsTable';
 import PrintLogsHistoryTable from './components/PrintLogsHistoryTable';
+import OrderDetailsModal from '../orders/components/OrderDetailsModal';
 import type { PrintLog, PrintLogsTableRef } from './types';
 
 const PrintLogsFeature: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'current' | 'history'>('current');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedLogForEdit, setSelectedLogForEdit] = useState<PrintLog | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
 
   const activeTableRef = useRef<PrintLogsTableRef>(null);
   const historyTableRef = useRef<PrintLogsTableRef>(null);
@@ -41,6 +43,10 @@ const PrintLogsFeature: React.FC = () => {
   const handleEditClick = (log: PrintLog) => {
     setSelectedLogForEdit(log);
     setIsCreateModalOpen(true);
+  };
+
+  const handleOrderClick = (orderId: number) => {
+    setSelectedOrderId(orderId);
   };
 
   return (
@@ -123,11 +129,13 @@ const PrintLogsFeature: React.FC = () => {
           <ActivePrintLogsTable
             ref={activeTableRef}
             onEditClick={handleEditClick}
+            onOrderClick={handleOrderClick}
           />
         ) : (
           <PrintLogsHistoryTable
             ref={historyTableRef}
             onEditClick={handleEditClick}
+            onOrderClick={handleOrderClick}
           />
         )}
       </div>
@@ -142,6 +150,13 @@ const PrintLogsFeature: React.FC = () => {
         onLogCreated={handleLogCreated}
         onLogUpdated={handleLogUpdated}
         logToEdit={selectedLogForEdit}
+      />
+
+      {/* Order Details Modal */}
+      <OrderDetailsModal
+        isOpen={selectedOrderId !== null}
+        onClose={() => setSelectedOrderId(null)}
+        orderId={selectedOrderId}
       />
     </div>
   );
