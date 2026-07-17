@@ -1,15 +1,17 @@
-import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import { createPortal } from 'react-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { 
-  Calendar, 
-  Clock, 
-  Check, 
-  Loader, 
-  Printer, 
-  Send, 
-  Edit3 
+import {
+  Calendar,
+  Clock,
+  Check,
+  ChevronDown,
+  Loader,
+  Printer,
+  Send,
+  Edit3
 } from 'lucide-react';
 import { PrintLogsApiService } from '../PrintLogsApiService';
 import { extractErrorMessage } from '@/utils/errorHandling';
@@ -20,6 +22,110 @@ import { generatePrintLogbookHtml } from '../logbook';
 interface ActivePrintLogsTableProps {
   onEditClick: (log: PrintLog) => void;
 }
+
+const STATUS_OPTIONS: PrintLog['status'][] = ['Pendiente', 'En Proceso', 'Realizado'];
+
+const STATUS_STYLES: Record<PrintLog['status'], string> = {
+  'Pendiente': 'bg-gray-100 text-gray-800 border border-gray-200',
+  'En Proceso': 'bg-blue-100 text-blue-800 border border-blue-200',
+  'Realizado': 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+};
+
+const STATUS_DOT_STYLES: Record<PrintLog['status'], string> = {
+  'Pendiente': 'bg-gray-400',
+  'En Proceso': 'bg-blue-500',
+  'Realizado': 'bg-emerald-500'
+};
+
+interface StatusDropdownProps {
+  status: PrintLog['status'];
+  onChange: (status: PrintLog['status']) => void;
+}
+
+const StatusDropdown = ({ status, onChange }: StatusDropdownProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        buttonRef.current && !buttonRef.current.contains(target) &&
+        menuRef.current && !menuRef.current.contains(target)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    const handleCloseOnScrollOrResize = () => setIsOpen(false);
+
+    document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('scroll', handleCloseOnScrollOrResize, true);
+    window.addEventListener('resize', handleCloseOnScrollOrResize);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleCloseOnScrollOrResize, true);
+      window.removeEventListener('resize', handleCloseOnScrollOrResize);
+    };
+  }, [isOpen]);
+
+  const handleToggle = () => {
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setPosition({ top: rect.bottom + 4, left: rect.left + rect.width / 2 });
+    }
+    setIsOpen(prev => !prev);
+  };
+
+  const handleSelect = (newStatus: PrintLog['status']) => {
+    setIsOpen(false);
+    if (newStatus !== status) {
+      onChange(newStatus);
+    }
+  };
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={handleToggle}
+        className={`px-2.5 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1 whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity ${STATUS_STYLES[status]}`}
+      >
+        {status}
+        <ChevronDown size={12} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && createPortal(
+        <div
+          ref={menuRef}
+          style={{ position: 'fixed', top: position.top, left: position.left, transform: 'translateX(-50%)' }}
+          className="z-50 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[135px]"
+        >
+          {STATUS_OPTIONS.map(option => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => handleSelect(option)}
+              className={`w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 transition-colors flex items-center gap-2 ${
+                option === status ? 'font-semibold text-gray-900' : 'text-gray-700'
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${STATUS_DOT_STYLES[option]}`} />
+              {option}
+            </button>
+          ))}
+        </div>,
+        document.body
+      )}
+    </>
+  );
+};
 
 const ActivePrintLogsTable = forwardRef<PrintLogsTableRef, ActivePrintLogsTableProps>(
   ({ onEditClick }, ref) => {
@@ -67,10 +173,10 @@ const ActivePrintLogsTable = forwardRef<PrintLogsTableRef, ActivePrintLogsTableP
     ) => {
       try {
         // Optimistic UI update
-        setActiveGroups(prev => 
+        setActiveGroups(prev =>
           prev.map(group => ({
             ...group,
-            logs: group.logs.map(log => 
+            logs: group.logs.map(log =>
               log.id === logId ? { ...log, completado: value } : log
             )
           }))
@@ -81,6 +187,30 @@ const ActivePrintLogsTable = forwardRef<PrintLogsTableRef, ActivePrintLogsTableP
         fetchActiveLogs();
       } catch (err) {
         console.error('Error updating checkbox:', err);
+        // Revert in case of failure
+        fetchActiveLogs();
+      }
+    };
+
+    const handleStatusChange = async (
+      logId: number,
+      status: PrintLog['status']
+    ) => {
+      try {
+        // Optimistic UI update
+        setActiveGroups(prev =>
+          prev.map(group => ({
+            ...group,
+            logs: group.logs.map(log =>
+              log.id === logId ? { ...log, status } : log
+            )
+          }))
+        );
+
+        await PrintLogsApiService.update(logId, { status });
+        fetchActiveLogs();
+      } catch (err) {
+        console.error('Error updating status:', err);
         // Revert in case of failure
         fetchActiveLogs();
       }
@@ -168,20 +298,20 @@ const ActivePrintLogsTable = forwardRef<PrintLogsTableRef, ActivePrintLogsTableP
             </CardHeader>
             {/* Desktop View (Table) */}
             <div className="hidden 2xl:block overflow-x-auto">
-              <table className="w-full text-sm text-left text-gray-600 border-collapse">
+              <table className="w-full table-fixed text-sm text-left text-gray-600 border-collapse">
                 <thead className="text-xs text-gray-700 bg-gray-50 border-b border-gray-200 uppercase">
                   <tr>
                     <th className="py-3 px-4 w-16 text-center">ID</th>
                     <th className="py-3 px-4 w-24 text-center">Orden</th>
-                    <th className="py-3 px-4">Descripción</th>
+                    <th className="py-3 px-4 w-56">Descripción</th>
                     <th className="py-3 px-4 w-32">Entrega</th>
-                    <th className="py-3 px-4 w-20 text-center">Maq</th>
-                    <th className="py-3 px-4 w-20 text-center">Most</th>
-                    <th className="py-3 px-4 w-28 text-center">Estado</th>
-                    <th className="py-3 px-4 max-w-xs">Observaciones</th>
-                    <th className="py-3 px-4 w-32">Envío</th>
+                    <th className="py-3 px-4 w-16 text-center">Maq</th>
+                    <th className="py-3 px-4 w-16 text-center">Most</th>
+                    <th className="py-3 px-4 w-32 text-center">Estado</th>
+                    <th className="py-3 px-4 w-48">Observaciones</th>
+                    <th className="py-3 px-4 w-28">Envío</th>
                     <th className="py-3 px-4 w-28">Pago</th>
-                    <th className="py-3 px-4 w-28 text-center">Listo</th>
+                    <th className="py-3 px-4 w-20 text-center">Listo</th>
                     <th className="py-3 px-4 w-16 text-center">Acciones</th>
                   </tr>
                 </thead>
@@ -212,7 +342,7 @@ const ActivePrintLogsTable = forwardRef<PrintLogsTableRef, ActivePrintLogsTableP
                           )}
                         </td>
                         <td className={`py-3 px-4 ${bgCompletado} ${bgCompletado ? '' : 'font-medium text-gray-900'}`}>
-                          <div>
+                          <div className="break-words">
                             {log.descripcion}
                             {log.client_name && (
                               <div className={`text-xs font-normal mt-0.5 ${log.completado ? 'text-emerald-700' : 'text-gray-500'}`}>
@@ -251,32 +381,21 @@ const ActivePrintLogsTable = forwardRef<PrintLogsTableRef, ActivePrintLogsTableP
                           )}
                         </td>
                         <td className={`py-3 px-4 text-center ${bgCompletado}`}>
-                          {log.status === 'Pendiente' && (
-                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold inline-block text-center whitespace-nowrap bg-gray-100 text-gray-800 border border-gray-200">
-                              Pendiente
-                            </span>
-                          )}
-                          {log.status === 'En Proceso' && (
-                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold inline-block text-center whitespace-nowrap bg-blue-100 text-blue-800 border border-blue-200">
-                              En Proceso
-                            </span>
-                          )}
-                          {log.status === 'Realizado' && (
-                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold inline-block text-center whitespace-nowrap bg-emerald-100 text-emerald-800 border border-emerald-200">
-                              Realizado
-                            </span>
-                          )}
+                          <StatusDropdown
+                            status={log.status}
+                            onChange={(status) => handleStatusChange(log.id, status)}
+                          />
                         </td>
-                        <td className={`py-3 px-4 text-xs max-w-xs truncate ${bgCompletado} ${bgCompletado ? '' : 'text-gray-500'}`} title={log.observaciones || ''}>
+                        <td className={`py-3 px-4 text-xs truncate ${bgCompletado} ${bgCompletado ? '' : 'text-gray-500'}`} title={log.observaciones || ''}>
                           {log.observaciones || <span className="text-gray-300">-</span>}
                         </td>
                         <td className={`py-3 px-4 ${bgCompletado} ${bgCompletado ? '' : 'text-gray-600'}`}>
-                          <span className="flex items-center gap-1">
-                            <Send size={12} className={log.completado ? "text-emerald-600" : "text-gray-400"} />
-                            {log.envio}
+                          <span className="flex items-center gap-1 truncate" title={log.envio || ''}>
+                            <Send size={12} className={`shrink-0 ${log.completado ? "text-emerald-600" : "text-gray-400"}`} />
+                            <span className="truncate">{log.envio}</span>
                           </span>
                         </td>
-                        <td className={`py-3 px-4 ${bgCompletado} ${bgCompletado ? '' : 'font-medium text-gray-900'}`}>
+                        <td className={`py-3 px-4 whitespace-nowrap ${bgCompletado} ${bgCompletado ? '' : 'font-medium text-gray-900'}`}>
                           {formatCurrency(log.pago)}
                         </td>
                         <td className="py-3 px-4 text-center">
@@ -319,7 +438,7 @@ const ActivePrintLogsTable = forwardRef<PrintLogsTableRef, ActivePrintLogsTableP
                 return (
                   <div
                     key={log.id}
-                    className={`p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-slate-50/50 transition-colors ${bgCompletado} ${
+                    className={`p-4 flex flex-col lg:flex-row lg:items-start justify-between gap-4 hover:bg-slate-50/50 transition-colors ${bgCompletado} ${
                       isLate ? 'animate-blink-red border-l-4 border-l-red-500' : ''
                     }`}
                   >
@@ -352,53 +471,50 @@ const ActivePrintLogsTable = forwardRef<PrintLogsTableRef, ActivePrintLogsTableP
                     </div>
 
                     {/* Right: Info fields and actions */}
-                    <div className="flex flex-wrap items-center gap-4 sm:gap-6 shrink-0">
+                    <div className="flex flex-wrap items-start gap-4 sm:gap-6 shrink-0">
                       {/* Entrega */}
-                      <div className="text-xs">
+                      <div className="text-xs w-20 shrink-0">
                         <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Entrega</span>
-                        <span className="flex items-center gap-1 font-semibold text-gray-900">
-                          <Clock size={13} className={isLate ? "text-red-500" : (log.completado ? "text-emerald-600" : "text-gray-400")} />
+                        <span className="flex items-center gap-1 font-semibold text-gray-900 whitespace-nowrap">
+                          <Clock size={13} className={`shrink-0 ${isLate ? "text-red-500" : (log.completado ? "text-emerald-600" : "text-gray-400")}`} />
                           {formatTimeStr(log.hora_entrega)}
                         </span>
                       </div>
 
                       {/* Responsable */}
-                      <div className="text-xs">
-                        <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Responsable</span>
+                      <div className="text-xs w-24 shrink-0">
+                        <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Tipo de Cliente</span>
                         <span className="font-semibold text-gray-700">
                           {log.responsable === 'maq' ? 'Maquila' : log.responsable === 'most' ? 'Mostrador' : '-'}
                         </span>
                       </div>
 
                       {/* Estado */}
-                      <div>
+                      <div className="w-28 shrink-0">
                         <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Estado</span>
-                        <span className={`inline-flex px-2.5 py-0.5 text-xs font-semibold rounded-full ${
-                          log.status === 'Pendiente' ? 'bg-gray-100 text-gray-800 border border-gray-200' :
-                          log.status === 'En Proceso' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
-                          'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                        }`}>
-                          {log.status}
-                        </span>
+                        <StatusDropdown
+                          status={log.status}
+                          onChange={(status) => handleStatusChange(log.id, status)}
+                        />
                       </div>
 
                       {/* Envío */}
-                      <div className="text-xs">
+                      <div className="text-xs w-28 shrink-0">
                         <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Envío</span>
-                        <span className="flex items-center gap-1 font-semibold text-gray-700">
-                          <Send size={11} className={log.completado ? "text-emerald-600" : "text-gray-400"} />
-                          {log.envio || '-'}
+                        <span className="flex items-center gap-1 font-semibold text-gray-700" title={log.envio || ''}>
+                          <Send size={11} className={`shrink-0 ${log.completado ? "text-emerald-600" : "text-gray-400"}`} />
+                          <span className="truncate">{log.envio || '-'}</span>
                         </span>
                       </div>
 
                       {/* Pago */}
-                      <div className="text-xs sm:text-right">
+                      <div className="text-xs w-20 shrink-0">
                         <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Pago</span>
-                        <span className="font-bold text-gray-900">{formatCurrency(log.pago)}</span>
+                        <span className="font-bold text-gray-900 whitespace-nowrap">{formatCurrency(log.pago)}</span>
                       </div>
 
                       {/* Checkbox + Edit Actions */}
-                      <div className="flex items-center gap-3 pl-3 border-l border-gray-200">
+                      <div className="flex items-start gap-3 pl-3 border-l border-gray-200 shrink-0">
                         <div className="flex flex-col items-center gap-1">
                           <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider">Listo</span>
                           <Checkbox
