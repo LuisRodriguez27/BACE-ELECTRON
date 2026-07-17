@@ -54,6 +54,7 @@ export interface OrderProductRow {
   serial_number: string | null;
   product_price: number | null;
   product_description: string | null;
+  product_affordable: boolean | null;
   /** Joined desde product_templates */
   template_width: number | null;
   template_height: number | null;
@@ -67,6 +68,8 @@ export interface OrderProductRow {
   template_base_product_name: string | null;
   /** ID del producto de la plantilla */
   template_product_id: number | null;
+  /** affordable del producto base de la plantilla */
+  template_base_product_affordable: boolean | null;
 }
 
 // ─── Input / DTO types ─────────────────────────────────────────────────────

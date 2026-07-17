@@ -15,6 +15,7 @@ export interface ProductRow {
   serial_number: string | null;
   images: string | null;
   active: boolean;
+  affordable: boolean;
 }
 
 // ─── Input / DTO types ─────────────────────────────────────────────────────
@@ -27,4 +28,5 @@ export interface ProductData {
   discount_price?: number | string | null;
   description?: string | null;
   images?: string[] | null;
+  affordable?: boolean;
 }

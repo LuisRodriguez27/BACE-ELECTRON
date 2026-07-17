@@ -1,7 +1,7 @@
 import { Button, Input, Label } from '@/components/ui';
 import { extractErrorMessage } from '@/utils/errorHandling';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CircleDollarSign, FileText, Loader, Percent, ScanBarcode, ShoppingBag, X } from 'lucide-react';
+import { CircleDollarSign, FileText, Loader, Percent, ScanBarcode, ShoppingBag, ShoppingBasket, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { ProductsApiService } from '../ProductsApiService';
@@ -63,6 +63,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       setValue('promo_price', product.promo_price ?? null);
       setValue('discount_price', product.discount_price ?? null);
       setValue('description', product.description || '');
+      setValue('affordable', product.affordable ?? false);
 
       setError(null);
     }
@@ -272,6 +273,20 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
               <p className="mt-1 text-xs text-gray-500">
                 Calculado sobre base original: ${basePrice.toFixed(2)}
               </p>
+            </div>
+
+            {/* Affordable */}
+            <div className="flex items-center h-full">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  {...register('affordable')}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                  <ShoppingBasket size={14} className="text-gray-400" /> Comprable
+                </span>
+              </label>
             </div>
 
             {/* Description */}

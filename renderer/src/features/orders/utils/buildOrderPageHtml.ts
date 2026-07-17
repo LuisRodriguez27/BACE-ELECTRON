@@ -1,14 +1,14 @@
 import { getOrderItemDisplayName, getOrderItemDescription, getOrderItemType } from '../types';
 import { formatDateMX, formatDateOnlyMX } from '@/utils/dateUtils';
 
-const getDay   = (d: string) => formatDateMX(d, 'DD');
+const getDay = (d: string) => formatDateMX(d, 'DD');
 const getMonth = (d: string) => formatDateMX(d, 'MM');
-const getYear  = (d: string) => formatDateMX(d, 'YYYY');
+const getYear = (d: string) => formatDateMX(d, 'YYYY');
 const getHours = (d: string) => formatDateMX(d, 'HH:mm');
 // Para estimated_delivery_date (UTC midnight) – no aplicar offset de timezone
-const getDayUTC   = (d: string) => formatDateOnlyMX(d, 'DD');
+const getDayUTC = (d: string) => formatDateOnlyMX(d, 'DD');
 const getMonthUTC = (d: string) => formatDateOnlyMX(d, 'MM');
-const getYearUTC  = (d: string) => formatDateOnlyMX(d, 'YYYY');
+const getYearUTC = (d: string) => formatDateOnlyMX(d, 'YYYY');
 
 // ── Convierte una URL de imagen local a base64 ─────────────────────────────
 export const imageToBase64 = (url: string): Promise<string> =>
@@ -17,7 +17,7 @@ export const imageToBase64 = (url: string): Promise<string> =>
     img.crossOrigin = 'anonymous';
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      canvas.width  = img.width;
+      canvas.width = img.width;
       canvas.height = img.height;
       canvas.getContext('2d')?.drawImage(img, 0, 0);
       resolve(canvas.toDataURL('image/png'));
@@ -99,12 +99,11 @@ export function buildPageHtml(params: {
         <!-- Cliente -->
         <div style="position: absolute; top: 7.5rem; left: 6.25rem; width: 18rem; font-size: 1.25rem; line-height: 1; font-weight: 700; color: rgb(0, 0, 0); display: flex; align-items: center; gap: 0.5rem;">
             ${orderData.client?.color
-              ? `<div style="width: 1rem; height: 1rem; border-radius: 9999px; background-color: ${
-                  orderData.client.color === 'green'  ? '#22c55e' :
-                  orderData.client.color === 'yellow' ? '#eab308' :
-                  orderData.client.color === 'red'    ? '#ef4444' : 'transparent'
-                }; flex-shrink: 0;"></div>`
-              : ''}
+      ? `<div style="width: 1rem; height: 1rem; border-radius: 9999px; background-color: ${orderData.client.color === 'green' ? '#22c55e' :
+        orderData.client.color === 'yellow' ? '#eab308' :
+          orderData.client.color === 'red' ? '#ef4444' : 'transparent'
+      }; flex-shrink: 0;"></div>`
+      : ''}
             <span style="font-size: calc(1em - 2px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; width: 100%;">
                 ${orderData.client?.name || 'Cliente no especificado'}
             </span>
@@ -132,10 +131,10 @@ export function buildPageHtml(params: {
                         </div>
                         <div>
                           ${getOrderItemDescription(product)
-                            ? `<div style="font-size: 0.875rem; color: rgb(70, 80, 90); margin-top: -0.2rem; line-height: 1;">
+          ? `<div style="font-size: 0.875rem; color: rgb(70, 80, 90); margin-top: -0.2rem; line-height: 1;">
                                 ${getOrderItemDescription(product)}
                                </div>`
-                            : ''}
+          : ''}
                         </div>
                     </div>
                     <div style="grid-column: span 2 / span 2; text-align: right; font-weight: 500;">${product.unit_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
@@ -252,7 +251,7 @@ export const PRINT_STYLES = `
     }
 `;
 
-// ── Builds the complete printable HTML document ───────────────────────────
+// ── Builds the complete affordable HTML document ───────────────────────────
 export function buildPrintHtml(params: {
   orderId: number;
   pagesHtml: string;
@@ -286,9 +285,9 @@ export async function prepareOrderHtml(
   }
   if (chunks.length === 0) chunks.push([]);
 
-  const totalPagos     = paymentsData.reduce((s, p) => s + p.amount, 0);
+  const totalPagos = paymentsData.reduce((s, p) => s + p.amount, 0);
   const saldoPendiente = orderData.total - totalPagos;
-  const isSaldada      = saldoPendiente <= 0.01;
+  const isSaldada = saldoPendiente <= 0.01;
 
   const hasPreferentialPrice = productsData.some(product => {
     const type = getOrderItemType(product);
@@ -297,7 +296,7 @@ export async function prepareOrderHtml(
       Math.abs(Number(product.unit_price) - Number(originalPrice)) > 0.01;
   });
 
-  const base64Image        = await imageToBase64(notaImageUrl);
+  const base64Image = await imageToBase64(notaImageUrl);
   const base64SpecialPrice = isSaldada ? await imageToBase64(specialPriceImageUrl) : null;
 
   const commonParams = { orderData, paymentsData, totalPagos, saldoPendiente, hasPreferentialPrice, base64Image, base64SpecialPrice };

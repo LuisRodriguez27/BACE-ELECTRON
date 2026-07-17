@@ -28,7 +28,7 @@ import PrintPreviewModal from './PrintPreviewModal';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 import { OrdersApiService } from '../OrdersApiService';
-import { getOrderItemDisplayName, getOrderItemProductId, getOrderItemType, type Order, type OrderProduct } from '../types';
+import { getOrderItemDisplayName, getOrderItemProductId, getOrderItemType, isOrderItemAffordable, type Order, type OrderProduct } from '../types';
 import QuickAddToShoppingListModal from '@/features/shoppingList/components/QuickAddToShoppingListModal';
 import { PaymentsApiService } from '../../payments/PaymentsApiService';
 import { PaymentsList } from '../../payments/components';
@@ -751,14 +751,16 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                             </div>
                           )}
 
-                          <div className="flex justify-end mt-3 pt-3 border-t border-gray-100">
-                            <button
-                              onClick={() => handleAddToShoppingListClick(product)}
-                              className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
-                            >
-                              <ShoppingBasket size={12} /> Agregar a lista de compras
-                            </button>
-                          </div>
+                          {isOrderItemAffordable(product) && (
+                            <div className="flex justify-end mt-3 pt-3 border-t border-gray-100">
+                              <button
+                                onClick={() => handleAddToShoppingListClick(product)}
+                                className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                              >
+                                <ShoppingBasket size={12} /> Agregar a lista de compras
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

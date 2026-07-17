@@ -157,11 +157,11 @@ class OrderRepository {
   async getOrderProducts(orderId: number): Promise<OrderProductRow[]> {
     return await db.getAll<OrderProductRow>(`
       SELECT op.*,
-             p.name as product_name, p.serial_number, p.price as product_price, p.description as product_description,
+             p.name as product_name, p.serial_number, p.price as product_price, p.description as product_description, p.affordable as product_affordable,
              pt.width as template_width, pt.height as template_height, pt.colors as template_colors,
              pt.position as template_position, pt.texts as template_texts, pt.description as template_description,
              pt.final_price as template_final_price, u.username as template_created_by_username,
-             p_template.name as template_base_product_name, p_template.id as template_product_id
+             p_template.name as template_base_product_name, p_template.id as template_product_id, p_template.affordable as template_base_product_affordable
       FROM order_products op
       LEFT JOIN products p ON op.product_id = p.id
       LEFT JOIN product_templates pt ON op.template_id = pt.id

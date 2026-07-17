@@ -874,6 +874,25 @@ const MIGRATIONS: Migration[] = [
         ON CONFLICT DO NOTHING;
       `);
     }
+  },
+
+  // v32: Agregar columna affordable a products — solo productos comprables se pueden agregar a la lista de compras
+  {
+    version: 32,
+    name: 'add_affordable_to_products',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name = 'products' AND column_name = 'affordable'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        ALTER TABLE products
+          ADD COLUMN IF NOT EXISTS affordable BOOLEAN NOT NULL DEFAULT FALSE
+      `);
+    }
   }
 ];
 

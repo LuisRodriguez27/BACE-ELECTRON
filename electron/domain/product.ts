@@ -10,8 +10,9 @@ class Product {
   description: string | null;
   images: string[];
   active: boolean;
+  affordable: boolean;
 
-  constructor({ id, name, serial_number, price, promo_price, discount_price, description, images, active = true }: ProductRow) {
+  constructor({ id, name, serial_number, price, promo_price, discount_price, description, images, active = true, affordable = false }: ProductRow) {
     this.id = id;
     this.name = name;
     this.serial_number = serial_number || null;
@@ -30,9 +31,11 @@ class Product {
     }
     this.images = parsedImages;
     this.active = active;
+    this.affordable = affordable === true;
   }
 
   isActive(): boolean { return this.active === true; }
+  isaffordable(): boolean { return this.affordable === true; }
   hasSerialNumber(): boolean { return !!(this.serial_number && this.serial_number.trim().length > 0); }
   hasDescription(): boolean { return !!(this.description && this.description.trim().length > 0); }
   isFree(): boolean { return this.price === 0; }
@@ -60,7 +63,7 @@ class Product {
   }
 
   toPlainObject() {
-    return { id: this.id, name: this.name, serial_number: this.serial_number, price: this.price, promo_price: this.promo_price, discount_price: this.discount_price, description: this.description, images: this.images, active: this.active };
+    return { id: this.id, name: this.name, serial_number: this.serial_number, price: this.price, promo_price: this.promo_price, discount_price: this.discount_price, description: this.description, images: this.images, active: this.active, affordable: this.affordable };
   }
 }
 

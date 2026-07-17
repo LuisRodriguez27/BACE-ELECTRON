@@ -71,6 +71,7 @@ class ShoppingListService {
 
       const product = await productRepository.findById(productId);
       if (!product) throw new Error('El producto especificado no existe');
+      if (!product.isaffordable()) throw new Error('Este producto no está marcado como comprable y no puede agregarse a la lista de compras');
 
       const quantity = parseFloat(String(data.quantity));
       if (isNaN(quantity) || quantity <= 0) throw new Error('La cantidad debe ser un número mayor a cero');

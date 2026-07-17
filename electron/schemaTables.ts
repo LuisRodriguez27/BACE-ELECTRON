@@ -40,7 +40,8 @@ const schemaTables: string = `
     discount_price DECIMAL(10,2),
     images         TEXT,
     description    TEXT,
-    active         BOOLEAN       NOT NULL DEFAULT TRUE
+    active         BOOLEAN       NOT NULL DEFAULT TRUE,
+    affordable      BOOLEAN       NOT NULL DEFAULT FALSE
   );
 
   CREATE TABLE IF NOT EXISTS product_templates (

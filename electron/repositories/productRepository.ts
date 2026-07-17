@@ -20,15 +20,15 @@ class ProductRepository {
     return new Product(product);
   }
 
-  async create(productData: { name: string; serial_number?: string | null; price: number; promo_price?: number | null; discount_price?: number | null; description?: string | null; images?: string[] | null }): Promise<Product> {
-    const result = await db.execute(`INSERT INTO products (name, serial_number, price, promo_price, discount_price, description, images) VALUES ($1, $2, $3, $4, $5, $6, $7)`, [productData.name, productData.serial_number || null, productData.price, productData.promo_price !== undefined ? productData.promo_price : null, productData.discount_price !== undefined ? productData.discount_price : null, productData.description || null, productData.images ? JSON.stringify(productData.images) : '[]']);
+  async create(productData: { name: string; serial_number?: string | null; price: number; promo_price?: number | null; discount_price?: number | null; description?: string | null; images?: string[] | null; affordable?: boolean }): Promise<Product> {
+    const result = await db.execute(`INSERT INTO products (name, serial_number, price, promo_price, discount_price, description, images, affordable) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, [productData.name, productData.serial_number || null, productData.price, productData.promo_price !== undefined ? productData.promo_price : null, productData.discount_price !== undefined ? productData.discount_price : null, productData.description || null, productData.images ? JSON.stringify(productData.images) : '[]', productData.affordable !== undefined ? productData.affordable : false]);
     const product = await this.findById(result.lastInsertRowid!);
     if (!product) throw new Error('Error al crear el producto');
     return product;
   }
 
-  async update(id: number, productData: { name: string; serial_number?: string | null; price: number; promo_price?: number | null; discount_price?: number | null; description?: string | null; images?: string[] | null }): Promise<boolean> {
-    const result = await db.execute(`UPDATE products SET name = $1, serial_number = $2, price = $3, promo_price = $4, discount_price = $5, description = $6, images = $7 WHERE id = $8`, [productData.name, productData.serial_number || null, productData.price, productData.promo_price !== undefined ? productData.promo_price : null, productData.discount_price !== undefined ? productData.discount_price : null, productData.description || null, productData.images ? JSON.stringify(productData.images) : '[]', id]);
+  async update(id: number, productData: { name: string; serial_number?: string | null; price: number; promo_price?: number | null; discount_price?: number | null; description?: string | null; images?: string[] | null; affordable?: boolean }): Promise<boolean> {
+    const result = await db.execute(`UPDATE products SET name = $1, serial_number = $2, price = $3, promo_price = $4, discount_price = $5, description = $6, images = $7, affordable = $8 WHERE id = $9`, [productData.name, productData.serial_number || null, productData.price, productData.promo_price !== undefined ? productData.promo_price : null, productData.discount_price !== undefined ? productData.discount_price : null, productData.description || null, productData.images ? JSON.stringify(productData.images) : '[]', productData.affordable !== undefined ? productData.affordable : false, id]);
     return (result.changes ?? 0) > 0;
   }
 

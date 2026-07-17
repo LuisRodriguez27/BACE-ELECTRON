@@ -2,12 +2,12 @@ import { z } from 'zod';
 
 // Enum para los estados de orden
 export const OrderStatus = {
-	REVISION: 'Revision',
+  REVISION: 'Revision',
   DISENO: 'Diseño',
   PRODUCCION: 'Produccion',
   ENTREGA: 'Entrega',
-	COMPLETADO: 'Completado',
-	CANCELADO: 'Cancelado'
+  COMPLETADO: 'Completado',
+  CANCELADO: 'Cancelado'
 } as const;
 
 export type OrderStatusType = typeof OrderStatus[keyof typeof OrderStatus];
@@ -48,8 +48,8 @@ export const orderItemSchema = z.object({
 export const createOrderSchema = z.object({
   client_id: z.number({ error: 'El cliente es obligatorio' }).int().min(1, 'El cliente es obligatorio'),
   user_id: z.number({ error: 'El usuario es obligatorio' }).int().min(1, 'El usuario es obligatorio'),
-  date: z.string().min(1, 'La fecha es obligatoria'), 
-  estimated_delivery_date: z.string().optional(), 
+  date: z.string().min(1, 'La fecha es obligatoria'),
+  estimated_delivery_date: z.string().optional(),
   status: orderStatusSchema,
   responsable: orderResponsableSchema,
   notes: z.string().optional(),
@@ -129,6 +129,7 @@ export interface OrderProduct {
   serial_number?: string;
   product_price?: number;
   product_description?: string;
+  product_affordable?: boolean | null;
 
   // Datos añadidos por JOIN con templates
   template_width?: number;
@@ -141,6 +142,7 @@ export interface OrderProduct {
   template_created_by_username?: string;
   template_base_product_name?: string;
   template_product_id?: number | null;
+  template_base_product_affordable?: boolean | null;
 }
 
 // Tipos para el formulario del frontend
@@ -212,6 +214,12 @@ export const getOrderItemType = (orderProduct: OrderProduct): 'product' | 'templ
 
 export const getOrderItemProductId = (orderProduct: OrderProduct): number | null => {
   return orderProduct.product_id ?? orderProduct.template_product_id ?? null;
+};
+
+export const isOrderItemAffordable = (orderProduct: OrderProduct): boolean => {
+  return orderProduct.product_id
+    ? !!orderProduct.product_affordable
+    : !!orderProduct.template_base_product_affordable;
 };
 
 export const calculateOrderTotal = (items: OrderFormItem[]): number => {

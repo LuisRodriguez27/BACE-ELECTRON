@@ -21,7 +21,7 @@ const AddShoppingListItemModal: React.FC<Props> = ({ onClose, onConfirm }) => {
 
   useEffect(() => {
     ProductsApiService.findAll()
-      .then(setProducts)
+      .then(all => setProducts(all.filter(p => p.affordable)))
       .catch(() => setError('Error al cargar los productos'))
       .finally(() => setLoadingProducts(false));
   }, []);

@@ -33,7 +33,6 @@ for (const envPath of uniquePaths) {
   try {
     if (fs.existsSync(envPath)) {
       dotenv.config({ path: envPath });
-      log.info(`[ENV] Variables de entorno cargadas con éxito desde: ${envPath}`);
       loaded = true;
       break;
     }
