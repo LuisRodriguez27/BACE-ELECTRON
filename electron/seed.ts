@@ -2,7 +2,9 @@ import * as path from 'path';
 import * as bcrypt from 'bcryptjs';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const db = require('./db'); // asegura la creación de tablas
+const dbModule = require('./db');
+const db = dbModule.default;
+const initDb: () => Promise<void> = dbModule.initDb;
 
 // Configuración
 const saltRounds = 10;
@@ -14,18 +16,22 @@ async function seed(): Promise<void> {
   console.log('Inicializando base de datos...');
 
   // -------------------------
-  // 1. Limpiar datos (en orden por FK)
+  // 0. Crear esquema y correr migraciones
+  // -------------------------
+  await initDb();
+
+  // -------------------------
+  // 1. Limpiar datos y reiniciar los SERIAL a 1 (TRUNCATE resuelve el
+  //    orden de FKs solo con CASCADE, sin necesidad de orden manual)
   // -------------------------
   await db.exec(`
-    DELETE FROM user_permissions;
-    DELETE FROM payments;
-    DELETE FROM order_products;
-    DELETE FROM orders;
-    DELETE FROM product_templates;
-    DELETE FROM products;
-    DELETE FROM clients;
-    DELETE FROM users;
-    DELETE FROM permissions;
+    TRUNCATE TABLE
+      user_permissions, order_products, budget_products, payments,
+      simple_order_payments, expenses, supplier_order_items, print_logs,
+      production_logs, shopping_list_items, cash_sessions, simple_orders,
+      shopping_lists, product_templates, supplier_orders, orders, suppliers,
+      budgets, products, clients, users, permissions
+    RESTART IDENTITY CASCADE;
   `);
 
   // -------------------------
@@ -79,12 +85,14 @@ async function seed(): Promise<void> {
     ['Editar Presupuestos', 'Permite editar los presupuestos registrados', true],
 
     // Pagos
-    ['Ver pagos', 'Permite ver los pagos registrados', true],
+    ['Ver Pagos', 'Permite ver los pagos registrados', true],
     ['Registrar Pagos', 'Permite registrar pagos en órdenes', true],
     ['Eliminar Pagos', 'Permite eliminar o anular pagos', true],
 
     // Estadísticas
     ['Estadisticas', 'Permite visualizar las estadisticas de ventas', true],
+    ['Estadisticas: Filtros', 'Permite filtrar las estadisticas', true],
+    ['Estadisticas: Hoy', 'Permite ver solo las estadisticas de hoy', true],
 
     // Caja
     ['Abrir Caja', 'Abre una caja', true],
@@ -96,6 +104,18 @@ async function seed(): Promise<void> {
     // Proveedores / Mayoristas
     ['Ver Mayoristas', 'Permite ver el módulo de mayoristas/proveedores', true],
     ['Crear Orden Mayorista', 'Permite crear una orden para un mayorista', true],
+
+    // Bitácora de impresión
+    ['Ver Bitacora de Impresion', 'Permite ver la bitácora de impresión', true],
+    ['Gestionar Bitacora de Impresion', 'Permite crear, editar y eliminar registros de la bitácora de impresión', true],
+
+    // Bitácora de producción
+    ['Ver Bitacora de Produccion', 'Permite ver la bitácora de producción', true],
+    ['Gestionar Bitacora de Produccion', 'Permite crear, editar y eliminar registros de la bitácora de producción', true],
+
+    // Lista de compras
+    ['Ver Lista de Compras', 'Permite ver la lista de compras', true],
+    ['Gestionar Lista de Compras', 'Permite abrir/cerrar la lista de compras y agregar, editar o quitar productos', true],
   ];
 
   for (const perm of permissions) {
@@ -287,7 +307,92 @@ async function seed(): Promise<void> {
   }
 
   // -------------------------
-  // 12. Insertar 3 presupuestos de ejemplo
+  // 11. Insertar sesión de caja
+  // -------------------------
+  const cashSessionResult = await db.execute(`
+    INSERT INTO cash_sessions (opening_date, opening_balance, expected_balance, status, notes)
+    VALUES ($1, $2, $3, $4, $5)
+  `, [new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), 500.0, 500.0, 'open', 'Caja de prueba (seed)']);
+  const cashSessionId = cashSessionResult.lastInsertRowid as number;
+
+  // -------------------------
+  // 12. Insertar proveedores y orden de proveedor
+  // -------------------------
+  const suppliersData: [string, string, string, string, string][] = [
+    ['Vinilos del Sureste', '951-222-3344', 'contacto@vinilosdelsureste.com', 'Proveedor de vinil e insumos de impresión', JSON.stringify(['Material', 'Cantidad', 'Precio unitario'])],
+    ['Acrílicos Oaxaca', '951-333-4455', 'ventas@acrilicosoaxaca.com', 'Proveedor de láminas acrílicas', JSON.stringify(['Espesor', 'Medida', 'Color', 'Precio'])],
+  ];
+  const supplierIds: number[] = [];
+  for (const s of suppliersData) {
+    const result = await db.execute(`
+      INSERT INTO suppliers (name, phone, email, description, columns)
+      VALUES ($1, $2, $3, $4, $5)
+    `, s);
+    supplierIds.push(result.lastInsertRowid as number);
+  }
+
+  const supplierOrderResult = await db.execute(`
+    INSERT INTO supplier_orders (supplier_id, user_id, status, notes, date, total)
+    VALUES ($1, $2, $3, $4, $5, $6)
+  `, [supplierIds[0], adminId, 'pendiente', 'Pedido de vinil para el mes', new Date().toISOString(), 1500.0]);
+  const supplierOrderId = supplierOrderResult.lastInsertRowid as number;
+
+  await db.execute(`
+    INSERT INTO supplier_order_items (supplier_order_id, item_data)
+    VALUES ($1, $2)
+  `, [supplierOrderId, JSON.stringify({ Material: 'Vinil blanco brillante', Cantidad: 10, 'Precio unitario': 150.0 })]);
+
+  // -------------------------
+  // 13. Insertar egreso de caja
+  // -------------------------
+  await db.execute(`
+    INSERT INTO expenses (cash_session_id, user_id, amount, description, date, supplier_order_id)
+    VALUES ($1, $2, $3, $4, $5, $6)
+  `, [cashSessionId, adminId, 350.0, 'Pago parcial a proveedor de vinil', new Date().toISOString(), supplierOrderId]);
+
+  // -------------------------
+  // 14. Insertar orden rápida y su pago
+  // -------------------------
+  const simpleOrderResult = await db.execute(`
+    INSERT INTO simple_orders (user_id, date, concept, client_name, client_phone, total)
+    VALUES ($1, $2, $3, $4, $5, $6)
+  `, [adminId, new Date().toISOString(), 'Impresión de volantes urgente', 'Cliente mostrador', '951-000-1111', 80.0]);
+  const simpleOrderId = simpleOrderResult.lastInsertRowid as number;
+
+  await db.execute(`
+    INSERT INTO simple_order_payments (simple_order_id, user_id, cash_session_id, amount, date, descripcion)
+    VALUES ($1, $2, $3, $4, $5, $6)
+  `, [simpleOrderId, adminId, cashSessionId, 80.0, new Date().toISOString(), 'Pago completo']);
+
+  // -------------------------
+  // 15. Insertar bitácoras de impresión y producción
+  // -------------------------
+  await db.execute(`
+    INSERT INTO print_logs (order_id, descripcion, hora_entrega, responsable, envio, pago, completado, status)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+  `, [orderIds[0], 'Impresión de lona 2x1m', new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), 'most', 'Recoge en tienda', 130.0, false, 'Pendiente']);
+
+  await db.execute(`
+    INSERT INTO production_logs (order_id, created_by, delivery_at, cantidad, descripcion, responsable, completado)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
+  `, [orderIds[0], adminId, new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(), 5, 'Corte de vinil para lona', 'maq', false]);
+
+  // -------------------------
+  // 16. Insertar lista de compras
+  // -------------------------
+  const shoppingListResult = await db.execute(`
+    INSERT INTO shopping_lists (opening_date, status, notes, created_by)
+    VALUES ($1, $2, $3, $4)
+  `, [new Date().toISOString(), 'open', 'Lista de compras semanal', adminId]);
+  const shoppingListId = shoppingListResult.lastInsertRowid as number;
+
+  await db.execute(`
+    INSERT INTO shopping_list_items (shopping_list_id, product_id, quantity, purchased, created_by)
+    VALUES ($1, $2, $3, $4, $5)
+  `, [shoppingListId, productIds['TZ-001'], 20, false, adminId]);
+
+  // -------------------------
+  // 17. Insertar 3 presupuestos de ejemplo
   // -------------------------
   // Presupuesto 1 - Panadería
   const budget1 = await db.execute(`

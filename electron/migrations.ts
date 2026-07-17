@@ -671,7 +671,16 @@ const MIGRATIONS: Migration[] = [
       return parseInt(rows[0].count) === 1;
     },
     up: async (client: PoolClient) => {
-      await client.query(`ALTER TABLE print_logs RENAME COLUMN maquila_completada TO completado;`);
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name = 'print_logs' AND column_name = 'completado'
+      `);
+      if (parseInt(rows[0].count) === 1) {
+        // `completado` ya existe (BD creada desde cero con el esquema actual): solo limpiar la columna vieja.
+        await client.query(`ALTER TABLE print_logs DROP COLUMN IF EXISTS maquila_completada;`);
+      } else {
+        await client.query(`ALTER TABLE print_logs RENAME COLUMN maquila_completada TO completado;`);
+      }
       await client.query(`ALTER TABLE print_logs DROP COLUMN IF EXISTS mostrador_completado;`);
     }
   },
@@ -735,9 +744,15 @@ const MIGRATIONS: Migration[] = [
       return rows.length > 0 && rows[0].data_type === 'boolean';
     },
     up: async (client: PoolClient) => {
-      await client.query(`ALTER TABLE budgets ALTER COLUMN converted_to_order DROP DEFAULT`);
-      await client.query(`ALTER TABLE budgets ALTER COLUMN converted_to_order TYPE BOOLEAN USING (converted_to_order = 1)`);
-      await client.query(`ALTER TABLE budgets ALTER COLUMN converted_to_order SET DEFAULT FALSE`);
+      const { rows } = await client.query<{ data_type: string }>(
+        `SELECT data_type FROM information_schema.columns
+         WHERE table_name = 'budgets' AND column_name = 'converted_to_order'`
+      );
+      if (rows.length > 0 && rows[0].data_type !== 'boolean') {
+        await client.query(`ALTER TABLE budgets ALTER COLUMN converted_to_order DROP DEFAULT`);
+        await client.query(`ALTER TABLE budgets ALTER COLUMN converted_to_order TYPE BOOLEAN USING (converted_to_order = 1)`);
+        await client.query(`ALTER TABLE budgets ALTER COLUMN converted_to_order SET DEFAULT FALSE`);
+      }
     }
   },
 

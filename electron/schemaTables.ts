@@ -155,18 +155,6 @@ const schemaTables: string = `
     descripcion      TEXT
   );
 
-  CREATE TABLE IF NOT EXISTS expenses (
-    id              SERIAL        PRIMARY KEY,
-    cash_session_id INTEGER       NOT NULL REFERENCES cash_sessions(id),
-    user_id         INTEGER       NOT NULL REFERENCES users(id),
-    edited_by       INTEGER       REFERENCES users(id),
-    amount          DECIMAL(10,2) NOT NULL,
-    description     TEXT          NOT NULL,
-    date            TIMESTAMPTZ   NOT NULL,
-    active          BOOLEAN       NOT NULL DEFAULT TRUE,
-    supplier_order_id INTEGER     REFERENCES supplier_orders(id)
-  );
-
   CREATE TABLE IF NOT EXISTS suppliers (
     id              SERIAL        PRIMARY KEY,
     name            VARCHAR(150)  NOT NULL,
@@ -187,6 +175,18 @@ const schemaTables: string = `
     date            TIMESTAMPTZ   NOT NULL,
     total           DECIMAL(10,2) DEFAULT 0,
     active          BOOLEAN       DEFAULT TRUE
+  );
+
+  CREATE TABLE IF NOT EXISTS expenses (
+    id              SERIAL        PRIMARY KEY,
+    cash_session_id INTEGER       NOT NULL REFERENCES cash_sessions(id),
+    user_id         INTEGER       NOT NULL REFERENCES users(id),
+    edited_by       INTEGER       REFERENCES users(id),
+    amount          DECIMAL(10,2) NOT NULL,
+    description     TEXT          NOT NULL,
+    date            TIMESTAMPTZ   NOT NULL,
+    active          BOOLEAN       NOT NULL DEFAULT TRUE,
+    supplier_order_id INTEGER     REFERENCES supplier_orders(id)
   );
 
   CREATE TABLE IF NOT EXISTS supplier_order_items (
