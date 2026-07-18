@@ -74,7 +74,7 @@ export const generatePrintLogbookHtml = (logsToPrint: PrintLog[], dateStr: strin
             let statusClass = '';
             if (log.status === 'Pendiente') statusClass = 'bg-pendiente';
             else if (log.status === 'En Proceso') statusClass = 'bg-en-proceso';
-            else if (log.status === 'Realizado') statusClass = 'bg-realizado';
+            else if (log.status === 'Impreso') statusClass = 'bg-realizado';
 
             const isMostrador = log.responsable === 'most';
             const isMaquila = log.responsable === 'maq';

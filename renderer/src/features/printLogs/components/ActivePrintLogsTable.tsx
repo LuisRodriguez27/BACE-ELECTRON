@@ -24,18 +24,18 @@ interface ActivePrintLogsTableProps {
   onOrderClick?: (orderId: number) => void;
 }
 
-const STATUS_OPTIONS: PrintLog['status'][] = ['Pendiente', 'En Proceso', 'Realizado'];
+const STATUS_OPTIONS: PrintLog['status'][] = ['Pendiente', 'En Proceso', 'Impreso'];
 
 const STATUS_STYLES: Record<PrintLog['status'], string> = {
   'Pendiente': 'bg-gray-100 text-gray-800 border border-gray-200',
   'En Proceso': 'bg-blue-100 text-blue-800 border border-blue-200',
-  'Realizado': 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+  'Impreso': 'bg-emerald-100 text-emerald-800 border border-emerald-200'
 };
 
 const STATUS_DOT_STYLES: Record<PrintLog['status'], string> = {
   'Pendiente': 'bg-gray-400',
   'En Proceso': 'bg-blue-500',
-  'Realizado': 'bg-emerald-500'
+  'Impreso': 'bg-emerald-500'
 };
 
 interface StatusDropdownProps {

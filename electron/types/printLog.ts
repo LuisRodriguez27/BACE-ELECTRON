@@ -7,7 +7,7 @@
 
 export type PrintLogResponsable = 'most' | 'maq';
 
-export type PrintLogStatus = 'Pendiente' | 'En Proceso' | 'Realizado';
+export type PrintLogStatus = 'Pendiente' | 'En Proceso' | 'Impreso';
 
 // ─── Row types ─────────────────────────────────────────────────────────────
 

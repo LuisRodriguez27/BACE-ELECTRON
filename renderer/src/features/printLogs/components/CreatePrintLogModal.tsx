@@ -354,7 +354,7 @@ const CreatePrintLogModal: React.FC<CreatePrintLogModalProps> = ({
                   >
                     <option value="Pendiente">Pendiente</option>
                     <option value="En Proceso">En Proceso</option>
-                    <option value="Realizado">Realizado</option>
+                    <option value="Impreso">Impreso</option>
                   </select>
                 </div>
                 {errors.status && (

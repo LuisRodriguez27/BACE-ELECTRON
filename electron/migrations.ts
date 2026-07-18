@@ -893,6 +893,29 @@ const MIGRATIONS: Migration[] = [
           ADD COLUMN IF NOT EXISTS affordable BOOLEAN NOT NULL DEFAULT FALSE
       `);
     }
+  },
+
+  // v33: Renombrar estado 'Realizado' → 'Impreso' en print_logs
+  {
+    version: 33,
+    name: 'rename_print_logs_status_realizado_to_impreso',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM pg_constraint c
+        JOIN pg_class t ON c.conrelid = t.oid
+        WHERE t.relname = 'print_logs' AND c.contype = 'c'
+          AND pg_get_constraintdef(c.oid) LIKE '%Impreso%'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`UPDATE print_logs SET status = 'Impreso' WHERE status = 'Realizado'`);
+      await client.query(`
+        ALTER TABLE print_logs
+          DROP CONSTRAINT IF EXISTS print_logs_status_check,
+          ADD CONSTRAINT print_logs_status_check CHECK (status IN ('Pendiente', 'En Proceso', 'Impreso'));
+      `);
+    }
   }
 ];
 

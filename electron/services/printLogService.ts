@@ -122,7 +122,7 @@ class PrintLogService {
         if (isNaN(parseFloat(String(printLogData.pago)))) throw new Error('El pago debe ser un valor numérico');
       }
       if (printLogData.status !== undefined) {
-        const validStatuses = ['Pendiente', 'En Proceso', 'Realizado'];
+        const validStatuses = ['Pendiente', 'En Proceso', 'Impreso'];
         if (!validStatuses.includes(printLogData.status as string)) throw new Error('Estado de bitácora inválido');
       }
 

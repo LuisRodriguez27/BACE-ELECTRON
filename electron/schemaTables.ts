@@ -207,7 +207,7 @@ const schemaTables: string = `
     envio                VARCHAR(255)  NOT NULL,
     pago                 DECIMAL(10,2),
     completado           BOOLEAN       NOT NULL DEFAULT FALSE,
-    status               VARCHAR(50)   NOT NULL DEFAULT 'Pendiente' CHECK (status IN ('Pendiente', 'En Proceso', 'Realizado')),
+    status               VARCHAR(50)   NOT NULL DEFAULT 'Pendiente' CHECK (status IN ('Pendiente', 'En Proceso', 'Impreso')),
     created_at           TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
     active               BOOLEAN       NOT NULL DEFAULT TRUE
   );

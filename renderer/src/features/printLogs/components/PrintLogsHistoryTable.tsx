@@ -550,9 +550,9 @@ const PrintLogsHistoryTable = forwardRef<PrintLogsTableRef, PrintLogsHistoryTabl
                                     En Proceso
                                   </span>
                                 )}
-                                {log.status === 'Realizado' && (
+                                {log.status === 'Impreso' && (
                                   <span className="px-2.5 py-1 rounded-full text-xs font-semibold inline-block text-center whitespace-nowrap bg-emerald-100 text-emerald-800 border border-emerald-200">
-                                    Realizado
+                                    Impreso
                                   </span>
                                 )}
                               </td>

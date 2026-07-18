@@ -8,7 +8,7 @@ export const createPrintLogSchema = z.object({
   observaciones: z.string().nullable().optional(),
   envio: z.string().min(1, 'El envío es requerido'),
   pago: z.number().min(0, 'El pago debe ser mayor o igual a 0').nullable().optional(),
-  status: z.enum(['Pendiente', 'En Proceso', 'Realizado'] as const)
+  status: z.enum(['Pendiente', 'En Proceso', 'Impreso'] as const)
 });
 
 export const editPrintLogSchema = createPrintLogSchema.partial();
@@ -26,7 +26,7 @@ export interface PrintLog {
   envio: string;
   pago: number | null;
   completado: boolean;
-  status: 'Pendiente' | 'En Proceso' | 'Realizado';
+  status: 'Pendiente' | 'En Proceso' | 'Impreso';
   created_at: string;
   active: boolean;
   client_name?: string | null;
