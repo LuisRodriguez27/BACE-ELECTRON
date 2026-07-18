@@ -92,6 +92,12 @@ const OrdersPage: React.FC = () => {
   };
 
   const handleOrderUpdated = (updatedOrder: Order) => {
+    // La orden ya no cumple el criterio de OrdersApiService.findAll() (excluye 'Completado'),
+    // así que debe quitarse de la lista en vez de solo actualizarse in-place.
+    if (updatedOrder.status === 'Completado') {
+      setOrders(prevOrders => prevOrders.filter(order => order.id !== updatedOrder.id));
+      return;
+    }
     setOrders(prevOrders =>
       prevOrders.map(order =>
         order.id === updatedOrder.id ? updatedOrder : order
