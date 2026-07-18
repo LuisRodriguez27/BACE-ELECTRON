@@ -13,10 +13,10 @@ interface OrderFormFieldsProps {
 }
 
 const statusOptions = [
-  { value: 'Revision', label: 'Revisión', activeClass: 'bg-gray-150 text-gray-800 border-gray-400 font-semibold shadow-sm' },
-  { value: 'Diseño', label: 'Diseño', activeClass: 'bg-blue-50 text-blue-700 border-blue-300 font-semibold shadow-sm ring-1 ring-blue-100' },
-  { value: 'Produccion', label: 'Producción', activeClass: 'bg-amber-50 text-amber-700 border-amber-300 font-semibold shadow-sm ring-1 ring-amber-100' },
-  { value: 'Entrega', label: 'Entrega', activeClass: 'bg-purple-50 text-purple-700 border-purple-300 font-semibold shadow-sm ring-1 ring-purple-100' },
+  { value: 'Revision', label: 'Revisión', activeClass: 'bg-yellow-50 text-yellow-700 border-yellow-300 font-semibold shadow-sm ring-1 ring-yellow-100' },
+  { value: 'Diseño', label: 'Diseño', activeClass: 'bg-purple-50 text-purple-700 border-purple-300 font-semibold shadow-sm ring-1 ring-purple-100' },
+  { value: 'Produccion', label: 'Producción', activeClass: 'bg-blue-50 text-blue-700 border-blue-300 font-semibold shadow-sm ring-1 ring-blue-100' },
+  { value: 'Entrega', label: 'Entrega', activeClass: 'bg-cyan-50 text-cyan-700 border-cyan-300 font-semibold shadow-sm ring-1 ring-cyan-100' },
   { value: 'Completado', label: 'Completado', activeClass: 'bg-green-50 text-green-700 border-green-300 font-semibold shadow-sm ring-1 ring-green-100' },
   { value: 'Cancelado', label: 'Cancelado', activeClass: 'bg-red-50 text-red-700 border-red-300 font-semibold shadow-sm ring-1 ring-red-100' },
 ] as const;
