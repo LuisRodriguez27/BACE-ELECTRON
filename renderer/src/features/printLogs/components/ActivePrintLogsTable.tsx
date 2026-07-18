@@ -22,6 +22,7 @@ import { generatePrintLogbookHtml } from '../logbook';
 interface ActivePrintLogsTableProps {
   onEditClick: (log: PrintLog) => void;
   onOrderClick?: (orderId: number) => void;
+  sortOrder?: 'asc' | 'desc';
 }
 
 const STATUS_OPTIONS: PrintLog['status'][] = ['Pendiente', 'En Proceso', 'Impreso'];
@@ -129,7 +130,7 @@ const StatusDropdown = ({ status, onChange }: StatusDropdownProps) => {
 };
 
 const ActivePrintLogsTable = forwardRef<PrintLogsTableRef, ActivePrintLogsTableProps>(
-  ({ onEditClick, onOrderClick }, ref) => {
+  ({ onEditClick, onOrderClick, sortOrder = 'asc' }, ref) => {
     const [activeGroups, setActiveGroups] = useState<GroupedPrintLogs[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -265,6 +266,8 @@ const ActivePrintLogsTable = forwardRef<PrintLogsTableRef, ActivePrintLogsTableP
       );
     }
 
+    const orderedGroups = sortOrder === 'asc' ? activeGroups : [...activeGroups].reverse();
+
     return (
       <div className="space-y-8">
         {error && (
@@ -274,7 +277,7 @@ const ActivePrintLogsTable = forwardRef<PrintLogsTableRef, ActivePrintLogsTableP
           </div>
         )}
 
-        {activeGroups.map(group => (
+        {orderedGroups.map(group => (
           <Card key={group.date} className="overflow-hidden shadow-sm border border-gray-200 bg-white">
             <CardHeader className="bg-gray-50 py-4 px-6 border-b border-gray-200 flex flex-row items-center justify-between">
               <CardTitle className="text-base font-bold text-gray-800 flex items-center gap-2">

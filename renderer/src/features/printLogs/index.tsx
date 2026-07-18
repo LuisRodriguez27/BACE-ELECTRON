@@ -1,7 +1,8 @@
 import { Button } from '@/components/ui/button';
-import { 
-  Plus, 
-  RefreshCw 
+import {
+  Plus,
+  RefreshCw,
+  ArrowUpDown
 } from 'lucide-react';
 import React, { useState, useRef } from 'react';
 import CreatePrintLogModal from './components/CreatePrintLogModal';
@@ -12,6 +13,7 @@ import type { PrintLog, PrintLogsTableRef } from './types';
 
 const PrintLogsFeature: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'current' | 'history'>('current');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedLogForEdit, setSelectedLogForEdit] = useState<PrintLog | null>(null);
   const { openOrder, orderDetailsModal } = useOrderDetailsModal();
@@ -96,27 +98,41 @@ const PrintLogsFeature: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
-        <button
-          onClick={() => setActiveTab('current')}
-          className={`px-5 py-3 text-sm font-semibold border-b-2 transition-colors duration-200 ${
-            activeTab === 'current'
-              ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200'
-          }`}
-        >
-          Bitácora Actual
-        </button>
-        <button
-          onClick={() => setActiveTab('history')}
-          className={`px-5 py-3 text-sm font-semibold border-b-2 transition-colors duration-200 ${
-            activeTab === 'history'
-              ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200'
-          }`}
-        >
-          Historial de Impresiones
-        </button>
+      <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 mb-6">
+        <div className="flex">
+          <button
+            onClick={() => setActiveTab('current')}
+            className={`px-5 py-3 text-sm font-semibold border-b-2 transition-colors duration-200 ${
+              activeTab === 'current'
+                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200'
+            }`}
+          >
+            Bitácora Actual
+          </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`px-5 py-3 text-sm font-semibold border-b-2 transition-colors duration-200 ${
+              activeTab === 'history'
+                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200'
+            }`}
+          >
+            Historial de Impresiones
+          </button>
+        </div>
+        {activeTab === 'current' && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 px-3 mb-2 flex items-center gap-1.5 text-xs shrink-0"
+            onClick={() => setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'))}
+            title="Invertir orden de los días"
+          >
+            <ArrowUpDown size={12} />
+            {sortOrder === 'asc' ? 'Más antiguo primero' : 'Más reciente primero'}
+          </Button>
+        )}
       </div>
 
       {/* Tab content */}
@@ -126,6 +142,7 @@ const PrintLogsFeature: React.FC = () => {
             ref={activeTableRef}
             onEditClick={handleEditClick}
             onOrderClick={openOrder}
+            sortOrder={sortOrder}
           />
         ) : (
           <PrintLogsHistoryTable
