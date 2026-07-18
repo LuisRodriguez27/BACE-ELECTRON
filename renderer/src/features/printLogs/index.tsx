@@ -67,7 +67,7 @@ const PrintLogsFeature: React.FC = () => {
       `}</style>
       
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="sticky top-0 z-20 bg-[var(--app-bg)] flex justify-between items-center mb-6 pb-2">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             Bitácora de Impresión
