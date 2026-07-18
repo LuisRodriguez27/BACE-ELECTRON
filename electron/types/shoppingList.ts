@@ -26,6 +26,7 @@ export interface ShoppingListItemRow {
   purchased: boolean;
   created_by: number | null;
   active: boolean;
+  order_id: number | null;
   /** Joined desde products */
   product_name?: string | null;
 }
@@ -45,6 +46,7 @@ export interface AddShoppingListItemData {
   product_id: number | string;
   quantity: number | string;
   created_by?: number | string | null;
+  order_id?: number | string | null;
 }
 
 export interface UpdateShoppingListItemData {

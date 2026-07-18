@@ -8,11 +8,12 @@ import type { ShoppingList } from '../types';
 interface Props {
   listId: number;
   onClose: () => void;
+  onOrderClick?: (orderId: number) => void;
 }
 
 const fmtDate = (d: string | null) => (d ? formatDateMX(d, 'DD MMM YYYY, h:mm A') : '—');
 
-const ShoppingListDetailModal: React.FC<Props> = ({ listId, onClose }) => {
+const ShoppingListDetailModal: React.FC<Props> = ({ listId, onClose, onOrderClick }) => {
   const [list, setList] = useState<ShoppingList | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -52,16 +53,35 @@ const ShoppingListDetailModal: React.FC<Props> = ({ listId, onClose }) => {
                   <tr>
                     <th className="px-3 py-2 text-left">Producto</th>
                     <th className="px-3 py-2 text-right">Cantidad</th>
+                    <th className="px-3 py-2 text-center">Orden</th>
                     <th className="px-3 py-2 text-center">Estado</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {list.items.length === 0 ? (
-                    <tr><td colSpan={3} className="px-3 py-6 text-center text-gray-400">Sin productos registrados.</td></tr>
+                    <tr><td colSpan={4} className="px-3 py-6 text-center text-gray-400">Sin productos registrados.</td></tr>
                   ) : list.items.map(item => (
                     <tr key={item.id}>
                       <td className="px-3 py-2 text-gray-700">{item.product_name || `Producto #${item.product_id}`}</td>
                       <td className="px-3 py-2 text-right font-medium text-gray-900">{item.quantity}</td>
+                      <td className="px-3 py-2 text-center">
+                        {item.order_id ? (
+                          onOrderClick ? (
+                            <button
+                              type="button"
+                              onClick={() => onOrderClick(item.order_id!)}
+                              className="inline-block px-2 py-1 font-semibold rounded text-xs bg-blue-50 text-blue-700 cursor-pointer hover:underline transition-opacity hover:opacity-80"
+                              title="Ver orden"
+                            >
+                              #{item.order_id}
+                            </button>
+                          ) : (
+                            <span className="text-xs text-gray-600">#{item.order_id}</span>
+                          )
+                        ) : (
+                          <span className="text-gray-300 text-xs">-</span>
+                        )}
+                      </td>
                       <td className="px-3 py-2 text-center">
                         {item.purchased ? (
                           <span className="inline-flex items-center gap-1 text-green-700"><CheckCircle2 size={14} /> Comprado</span>

@@ -916,6 +916,26 @@ const MIGRATIONS: Migration[] = [
           ADD CONSTRAINT print_logs_status_check CHECK (status IN ('Pendiente', 'En Proceso', 'Impreso'));
       `);
     }
+  },
+
+  // v34: Agregar columna order_id a shopping_list_items — para referenciar opcionalmente
+  // la orden de la que proviene el producto agregado a la lista de compras.
+  {
+    version: 34,
+    name: 'add_order_id_to_shopping_list_items',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name = 'shopping_list_items' AND column_name = 'order_id'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        ALTER TABLE shopping_list_items
+          ADD COLUMN IF NOT EXISTS order_id INTEGER REFERENCES orders(id) ON DELETE SET NULL
+      `);
+    }
   }
 ];
 

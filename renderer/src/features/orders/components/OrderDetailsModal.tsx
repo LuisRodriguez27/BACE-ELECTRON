@@ -842,11 +842,12 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
       {whatsappDialogElement}
 
-      {shoppingListTarget && (
+      {shoppingListTarget && order && (
         <QuickAddToShoppingListModal
           productId={getOrderItemProductId(shoppingListTarget)!}
           productName={getOrderItemDisplayName(shoppingListTarget)}
           defaultQuantity={shoppingListTarget.quantity}
+          orderId={order.id}
           onClose={() => setShoppingListTarget(null)}
         />
       )}

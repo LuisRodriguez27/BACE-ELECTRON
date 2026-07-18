@@ -18,6 +18,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { formatDateMX } from '@/utils/dateUtils';
 import { usePermissions } from '@/hooks/use-permissions';
 import { extractErrorMessage } from '@/utils/errorHandling';
+import { useOrderDetailsModal } from '@/hooks/use-order-details-modal';
 
 import { ShoppingListApiService } from './ShoppingListApiService';
 import type { ShoppingList, Pagination, OpenShoppingListForm, CloseShoppingListForm, AddShoppingListItemForm } from './types';
@@ -34,6 +35,7 @@ const ShoppingListPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { checkPermission, canAccess } = usePermissions();
+  const { openOrder, orderDetailsModal } = useOrderDetailsModal();
 
   const [showOpen, setShowOpen] = useState(false);
   const [showClose, setShowClose] = useState(false);
@@ -263,6 +265,7 @@ const ShoppingListPage: React.FC = () => {
                       <tr>
                         <th className="px-4 py-3 text-left">Producto</th>
                         <th className="px-4 py-3 text-right">Cantidad</th>
+                        <th className="px-4 py-3 text-center">Orden</th>
                         <th className="px-4 py-3 text-center">Comprado</th>
                         {canManage && <th className="px-4 py-3 text-center">Acciones</th>}
                       </tr>
@@ -272,6 +275,20 @@ const ShoppingListPage: React.FC = () => {
                         <tr key={item.id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 text-gray-700">{item.product_name || `Producto #${item.product_id}`}</td>
                           <td className="px-4 py-3 text-right font-medium text-gray-900">{item.quantity}</td>
+                          <td className="px-4 py-3 text-center">
+                            {item.order_id ? (
+                              <button
+                                type="button"
+                                onClick={() => openOrder(item.order_id!)}
+                                className="inline-block px-2 py-1 font-semibold rounded text-xs bg-blue-50 text-blue-700 cursor-pointer hover:underline transition-opacity hover:opacity-80"
+                                title="Ver orden"
+                              >
+                                #{item.order_id}
+                              </button>
+                            ) : (
+                              <span className="text-gray-300 text-xs">-</span>
+                            )}
+                          </td>
                           <td className="px-4 py-3 text-center">
                             <div className="flex justify-center">
                               <Checkbox
@@ -375,7 +392,9 @@ const ShoppingListPage: React.FC = () => {
       {showOpen && <OpenShoppingListModal onClose={() => setShowOpen(false)} onConfirm={handleOpen} />}
       {showClose && list && <CloseShoppingListModal list={list} onClose={() => setShowClose(false)} onConfirm={handleClose} />}
       {showAddItem && <AddShoppingListItemModal onClose={() => setShowAddItem(false)} onConfirm={handleAddItem} />}
-      {detailId && <ShoppingListDetailModal listId={detailId} onClose={() => setDetailId(null)} />}
+      {detailId && <ShoppingListDetailModal listId={detailId} onClose={() => setDetailId(null)} onOrderClick={openOrder} />}
+
+      {orderDetailsModal}
     </div>
   );
 };

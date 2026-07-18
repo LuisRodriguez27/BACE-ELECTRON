@@ -83,20 +83,21 @@ class ShoppingListRepository {
     return new ShoppingListItem(row);
   }
 
-  async addItem(data: { shopping_list_id: number; product_id: number; quantity: number; created_by?: number | null }) {
+  async addItem(data: { shopping_list_id: number; product_id: number; quantity: number; created_by?: number | null; order_id?: number | null }) {
     const existing = await db.getOne<ShoppingListItemRow>(
       `SELECT * FROM shopping_list_items WHERE shopping_list_id = $1 AND product_id = $2 AND active = TRUE`,
       [data.shopping_list_id, data.product_id]
     );
     if (existing) {
       const newQuantity = (parseFloat(String(existing.quantity)) || 0) + data.quantity;
-      await db.execute(`UPDATE shopping_list_items SET quantity = $1, purchased = FALSE WHERE id = $2`, [newQuantity, existing.id]);
+      const newOrderId = existing.order_id || data.order_id || null;
+      await db.execute(`UPDATE shopping_list_items SET quantity = $1, purchased = FALSE, order_id = $2 WHERE id = $3`, [newQuantity, newOrderId, existing.id]);
       return this.getItemById(existing.id);
     }
     const row = await db.getOne<{ id: number }>(
-      `INSERT INTO shopping_list_items (shopping_list_id, product_id, quantity, purchased, created_by, active)
-       VALUES ($1, $2, $3, FALSE, $4, TRUE) RETURNING id`,
-      [data.shopping_list_id, data.product_id, data.quantity, data.created_by || null]
+      `INSERT INTO shopping_list_items (shopping_list_id, product_id, quantity, purchased, created_by, active, order_id)
+       VALUES ($1, $2, $3, FALSE, $4, TRUE, $5) RETURNING id`,
+      [data.shopping_list_id, data.product_id, data.quantity, data.created_by || null, data.order_id || null]
     );
     return this.getItemById(row!.id);
   }

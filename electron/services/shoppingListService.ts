@@ -76,11 +76,18 @@ class ShoppingListService {
       const quantity = parseFloat(String(data.quantity));
       if (isNaN(quantity) || quantity <= 0) throw new Error('La cantidad debe ser un número mayor a cero');
 
+      let orderId: number | null = null;
+      if (data.order_id !== undefined && data.order_id !== null && data.order_id !== '') {
+        orderId = parseInt(String(data.order_id), 10);
+        if (isNaN(orderId)) throw new Error('ID de orden inválido');
+      }
+
       const item = await shoppingListRepository.addItem({
         shopping_list_id: active.id,
         product_id: productId,
         quantity,
-        created_by: data.created_by ? parseInt(String(data.created_by), 10) : null
+        created_by: data.created_by ? parseInt(String(data.created_by), 10) : null,
+        order_id: orderId
       });
       if (!item) throw new Error('Error al agregar producto a la lista de compras');
       return item.toPlainObject();

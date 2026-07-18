@@ -9,11 +9,12 @@ interface Props {
   productId: number;
   productName: string;
   defaultQuantity: number;
+  orderId?: number;
   onClose: () => void;
   onAdded?: () => void;
 }
 
-const QuickAddToShoppingListModal: React.FC<Props> = ({ productId, productName, defaultQuantity, onClose, onAdded }) => {
+const QuickAddToShoppingListModal: React.FC<Props> = ({ productId, productName, defaultQuantity, orderId, onClose, onAdded }) => {
   const [quantity, setQuantity] = useState(String(defaultQuantity));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +26,7 @@ const QuickAddToShoppingListModal: React.FC<Props> = ({ productId, productName, 
     setLoading(true);
     setError(null);
     try {
-      await ShoppingListApiService.addItem({ product_id: productId, quantity: qty });
+      await ShoppingListApiService.addItem({ product_id: productId, quantity: qty, order_id: orderId ?? null });
       toast.success(`${productName} agregado a la lista de compras`);
       onAdded?.();
       onClose();
@@ -51,6 +52,11 @@ const QuickAddToShoppingListModal: React.FC<Props> = ({ productId, productName, 
           <p className="text-sm text-gray-600">
             ¿Cuántas unidades de <span className="font-medium text-gray-900">{productName}</span> deseas agregar a la lista de compras?
           </p>
+          {orderId && (
+            <p className="text-xs text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
+              Se vinculará a la Orden #{orderId}
+            </p>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad</label>

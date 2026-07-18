@@ -241,7 +241,8 @@ const schemaTables: string = `
     quantity          DECIMAL(10,2) NOT NULL DEFAULT 0,
     purchased         BOOLEAN       NOT NULL DEFAULT FALSE,
     created_by        INTEGER       REFERENCES users(id),
-    active            BOOLEAN       NOT NULL DEFAULT TRUE
+    active            BOOLEAN       NOT NULL DEFAULT TRUE,
+    order_id          INTEGER       REFERENCES orders(id) ON DELETE SET NULL
   );
 
 `;

@@ -24,6 +24,7 @@ export interface ShoppingListItem {
   purchased: boolean;
   created_by: number | null;
   active: boolean;
+  order_id: number | null;
   product_name: string | null;
 }
 
@@ -54,6 +55,7 @@ export interface CloseShoppingListForm {
 export interface AddShoppingListItemForm {
   product_id: number;
   quantity: number;
+  order_id?: number | null;
 }
 
 export interface UpdateShoppingListItemForm {
