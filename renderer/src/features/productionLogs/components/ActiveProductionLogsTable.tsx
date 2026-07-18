@@ -21,10 +21,11 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
 interface ActiveProductionLogsTableProps {
   onEditClick: (log: ProductionLog) => void;
+  onOrderClick?: (orderId: number) => void;
 }
 
 const ActiveProductionLogsTable = forwardRef<ProductionLogsTableRef, ActiveProductionLogsTableProps>(
-  ({ onEditClick }, ref) => {
+  ({ onEditClick, onOrderClick }, ref) => {
     const [activeGroups, setActiveGroups] = useState<GroupedProductionLogs[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -211,13 +212,18 @@ const ActiveProductionLogsTable = forwardRef<ProductionLogsTableRef, ActiveProdu
                         </td>
                         <td className={`py-3 px-4 text-center ${bgCompletado}`}>
                           {log.order_id ? (
-                            <span className={`inline-block px-2 py-1 font-semibold rounded text-xs ${
-                              log.completado 
-                                ? 'bg-emerald-200/60 text-emerald-800' 
-                                : 'bg-blue-50 text-blue-700'
-                            }`}>
+                            <button
+                              type="button"
+                              onClick={() => onOrderClick?.(log.order_id!)}
+                              className={`inline-block px-2 py-1 font-semibold rounded text-xs cursor-pointer hover:underline transition-opacity hover:opacity-80 ${
+                                log.completado
+                                  ? 'bg-emerald-200/60 text-emerald-800'
+                                  : 'bg-blue-50 text-blue-700'
+                              }`}
+                              title="Ver orden"
+                            >
                               #{log.order_id}
-                            </span>
+                            </button>
                           ) : (
                             <span className="text-gray-400 text-xs">-</span>
                           )}
@@ -323,11 +329,16 @@ const ActiveProductionLogsTable = forwardRef<ProductionLogsTableRef, ActiveProdu
                     <div className="flex items-start gap-3 flex-1 min-w-0">
                       <span className="font-bold text-gray-900 text-sm shrink-0 mt-0.5">#{log.id}</span>
                       {log.order_id && (
-                        <span className={`px-2 py-0.5 font-semibold rounded text-xs shrink-0 mt-0.5 ${
-                          log.completado ? 'bg-emerald-200/60 text-emerald-800' : 'bg-blue-50 text-blue-700'
-                        }`}>
+                        <button
+                          type="button"
+                          onClick={() => onOrderClick?.(log.order_id!)}
+                          className={`px-2 py-0.5 font-semibold rounded text-xs shrink-0 mt-0.5 cursor-pointer hover:underline transition-opacity hover:opacity-80 ${
+                            log.completado ? 'bg-emerald-200/60 text-emerald-800' : 'bg-blue-50 text-blue-700'
+                          }`}
+                          title="Ver orden"
+                        >
                           #{log.order_id}
-                        </span>
+                        </button>
                       )}
                       <div className="min-w-0 space-y-0.5">
                         <p className="text-sm font-semibold text-gray-900 break-words">{log.descripcion}</p>

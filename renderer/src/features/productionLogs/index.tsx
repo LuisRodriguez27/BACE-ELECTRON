@@ -7,12 +7,14 @@ import React, { useState, useRef } from 'react';
 import CreateProductionLogModal from './components/CreateProductionLogModal';
 import ActiveProductionLogsTable from './components/ActiveProductionLogsTable';
 import ProductionLogsHistoryTable from './components/ProductionLogsHistoryTable';
+import { useOrderDetailsModal } from '@/hooks/use-order-details-modal';
 import type { ProductionLog, ProductionLogsTableRef } from './types';
 
 const ProductionLogsFeature: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'current' | 'history'>('current');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedLogForEdit, setSelectedLogForEdit] = useState<ProductionLog | null>(null);
+  const { openOrder, orderDetailsModal } = useOrderDetailsModal();
 
   const activeTableRef = useRef<ProductionLogsTableRef>(null);
   const historyTableRef = useRef<ProductionLogsTableRef>(null);
@@ -123,11 +125,13 @@ const ProductionLogsFeature: React.FC = () => {
           <ActiveProductionLogsTable
             ref={activeTableRef}
             onEditClick={handleEditClick}
+            onOrderClick={openOrder}
           />
         ) : (
           <ProductionLogsHistoryTable
             ref={historyTableRef}
             onEditClick={handleEditClick}
+            onOrderClick={openOrder}
           />
         )}
       </div>
@@ -143,6 +147,8 @@ const ProductionLogsFeature: React.FC = () => {
         onLogUpdated={handleLogUpdated}
         logToEdit={selectedLogForEdit}
       />
+
+      {orderDetailsModal}
     </div>
   );
 };

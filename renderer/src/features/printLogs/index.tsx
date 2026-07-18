@@ -7,14 +7,14 @@ import React, { useState, useRef } from 'react';
 import CreatePrintLogModal from './components/CreatePrintLogModal';
 import ActivePrintLogsTable from './components/ActivePrintLogsTable';
 import PrintLogsHistoryTable from './components/PrintLogsHistoryTable';
-import OrderDetailsModal from '../orders/components/OrderDetailsModal';
+import { useOrderDetailsModal } from '@/hooks/use-order-details-modal';
 import type { PrintLog, PrintLogsTableRef } from './types';
 
 const PrintLogsFeature: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'current' | 'history'>('current');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedLogForEdit, setSelectedLogForEdit] = useState<PrintLog | null>(null);
-  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const { openOrder, orderDetailsModal } = useOrderDetailsModal();
 
   const activeTableRef = useRef<PrintLogsTableRef>(null);
   const historyTableRef = useRef<PrintLogsTableRef>(null);
@@ -43,10 +43,6 @@ const PrintLogsFeature: React.FC = () => {
   const handleEditClick = (log: PrintLog) => {
     setSelectedLogForEdit(log);
     setIsCreateModalOpen(true);
-  };
-
-  const handleOrderClick = (orderId: number) => {
-    setSelectedOrderId(orderId);
   };
 
   return (
@@ -129,13 +125,13 @@ const PrintLogsFeature: React.FC = () => {
           <ActivePrintLogsTable
             ref={activeTableRef}
             onEditClick={handleEditClick}
-            onOrderClick={handleOrderClick}
+            onOrderClick={openOrder}
           />
         ) : (
           <PrintLogsHistoryTable
             ref={historyTableRef}
             onEditClick={handleEditClick}
-            onOrderClick={handleOrderClick}
+            onOrderClick={openOrder}
           />
         )}
       </div>
@@ -152,12 +148,7 @@ const PrintLogsFeature: React.FC = () => {
         logToEdit={selectedLogForEdit}
       />
 
-      {/* Order Details Modal */}
-      <OrderDetailsModal
-        isOpen={selectedOrderId !== null}
-        onClose={() => setSelectedOrderId(null)}
-        orderId={selectedOrderId}
-      />
+      {orderDetailsModal}
     </div>
   );
 };

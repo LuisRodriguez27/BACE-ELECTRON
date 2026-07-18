@@ -15,6 +15,7 @@ import { CashSessionApiService } from '../CashSessionApiService';
 import type { CashSession, CashSessionSummary } from '../types';
 import CashSessionPrintModal from './CashSessionPrintModal';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useOrderDetailsModal } from '@/hooks/use-order-details-modal';
 import { toast } from 'sonner';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
@@ -73,6 +74,7 @@ const SessionDetailModal: React.FC<Props> = ({ sessionId, onClose, hasActiveSess
   const [showConfirm, setShowConfirm] = useState(false);
   const [reopenLoading, setReopenLoading] = useState(false);
   const { canAccess } = usePermissions();
+  const { openOrder, orderDetailsModal } = useOrderDetailsModal();
 
   useEffect(() => {
     const load = async () => {
@@ -271,7 +273,18 @@ const SessionDetailModal: React.FC<Props> = ({ sessionId, onClose, hasActiveSess
                   <tbody className="divide-y divide-gray-50">
                     {orderPaymentsWithOrder.map(p => (
                       <tr key={p.id} className="hover:bg-gray-50">
-                        <td className="px-3 py-2 text-gray-600">{p.order_id ? `#${p.order_id}` : '—'}</td>
+                        <td className="px-3 py-2 text-gray-600">
+                          {p.order_id ? (
+                            <button
+                              type="button"
+                              onClick={() => openOrder(p.order_id!)}
+                              className="font-medium text-blue-700 hover:underline cursor-pointer"
+                              title="Ver orden"
+                            >
+                              #{p.order_id}
+                            </button>
+                          ) : '—'}
+                        </td>
                         <td className="px-3 py-2 text-gray-500">{fmtDate(p.date)}</td>
                         <td className="px-3 py-2 text-gray-500">{p.descripcion || '—'}</td>
                         <td className="px-3 py-2 text-right font-medium text-blue-700">{fmt(p.amount)}</td>
@@ -392,6 +405,8 @@ const SessionDetailModal: React.FC<Props> = ({ sessionId, onClose, hasActiveSess
       type="warning"
       isLoading={reopenLoading}
     />
+
+    {orderDetailsModal}
     </>
   );
 };

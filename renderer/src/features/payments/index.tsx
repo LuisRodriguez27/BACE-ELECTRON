@@ -9,6 +9,7 @@ import { OrdersApiService } from '../orders/OrdersApiService';
 import type { Payment, PaymentFilters } from './types';
 import type { Order } from '../orders/types';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useOrderDetailsModal } from '@/hooks/use-order-details-modal';
 import { formatDateMX } from '@/utils/dateUtils';
 import CreatePaymentModal from './components/CreatePaymentModal';
 import EditPaymentModal from './components/EditPaymentModal';
@@ -49,6 +50,7 @@ const PaymentsPage: React.FC = () => {
   const [logbookModalOpen, setLogbookModalOpen] = useState(false);
 
   const { checkPermission } = usePermissions();
+  const { openOrder, orderDetailsModal } = useOrderDetailsModal();
 
   // ─── Carga de órdenes ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -449,10 +451,15 @@ const PaymentsPage: React.FC = () => {
                               <span>Orden Rápida #{payment.simple_order_id}</span>
                             </div>
                           ) : payment.order_id ? (
-                            <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => openOrder(payment.order_id!)}
+                              className="flex items-center gap-1 text-blue-700 hover:underline cursor-pointer"
+                              title="Ver orden"
+                            >
                               <Receipt size={14} />
                               <span>Orden #{payment.order_id}</span>
-                            </div>
+                            </button>
                           ) : (
                             <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
                               Pago libre
@@ -548,6 +555,8 @@ const PaymentsPage: React.FC = () => {
         onClose={() => setLogbookModalOpen(false)}
         orders={orders}
       />
+
+      {orderDetailsModal}
     </div>
   );
 };

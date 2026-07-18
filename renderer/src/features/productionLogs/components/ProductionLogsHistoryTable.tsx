@@ -24,10 +24,11 @@ import { generateProductionLogbookHtml } from '../logbook';
 
 interface ProductionLogsHistoryTableProps {
   onEditClick: (log: ProductionLog) => void;
+  onOrderClick?: (orderId: number) => void;
 }
 
 const ProductionLogsHistoryTable = forwardRef<ProductionLogsTableRef, ProductionLogsHistoryTableProps>(
-  ({ onEditClick }, ref) => {
+  ({ onEditClick, onOrderClick }, ref) => {
     const [historyData, setHistoryData] = useState<PaginatedHistoryDays | null>(null);
     const [historyPage, setHistoryPage] = useState(1);
     const [historyLimit] = useState(12);
@@ -471,13 +472,18 @@ const ProductionLogsHistoryTable = forwardRef<ProductionLogsTableRef, Production
                               </td>
                               <td className={`py-3 px-4 text-center ${bgCompletado}`}>
                                 {log.order_id ? (
-                                  <span className={`inline-block px-2 py-1 font-semibold rounded text-xs ${
-                                    log.completado 
-                                      ? 'bg-emerald-200/60 text-emerald-800' 
-                                      : 'bg-blue-50 text-blue-700'
-                                  }`}>
+                                  <button
+                                    type="button"
+                                    onClick={() => onOrderClick?.(log.order_id!)}
+                                    className={`inline-block px-2 py-1 font-semibold rounded text-xs cursor-pointer hover:underline transition-opacity hover:opacity-80 ${
+                                      log.completado
+                                        ? 'bg-emerald-200/60 text-emerald-800'
+                                        : 'bg-blue-50 text-blue-700'
+                                    }`}
+                                    title="Ver orden"
+                                  >
                                     #{log.order_id}
-                                  </span>
+                                  </button>
                                 ) : (
                                   <span className="text-gray-400 text-xs">-</span>
                                 )}

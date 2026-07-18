@@ -41,6 +41,7 @@ import ExpenseFormModal from './components/ExpenseFormModal';
 import SessionDetailModal from './components/SessionDetailModal';
 import CashSessionPrintModal from './components/CashSessionPrintModal';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useOrderDetailsModal } from '@/hooks/use-order-details-modal';
 import type { Pagination } from './types';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -88,6 +89,7 @@ const CashSessionPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { checkPermission, canAccess } = usePermissions();
+  const { openOrder, orderDetailsModal } = useOrderDetailsModal();
 
   // expenses local (subset del session)
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -510,7 +512,18 @@ const CashSessionPage: React.FC = () => {
                       {orderPaymentsWithOrder.map(p => (
                         <tr key={p.id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 text-gray-500">#{p.id}</td>
-                          <td className="px-4 py-3 text-gray-700">{p.order_id ? `Orden #${p.order_id}` : '—'}</td>
+                          <td className="px-4 py-3 text-gray-700">
+                            {p.order_id ? (
+                              <button
+                                type="button"
+                                onClick={() => openOrder(p.order_id!)}
+                                className="font-medium text-blue-700 hover:underline cursor-pointer"
+                                title="Ver orden"
+                              >
+                                Orden #{p.order_id}
+                              </button>
+                            ) : '—'}
+                          </td>
                           <td className="px-4 py-3 text-gray-500">{fmtDate(p.date)}</td>
                           <td className="px-4 py-3 text-gray-500">{p.descripcion || '—'}</td>
                           <td className="px-4 py-3 text-right font-medium text-blue-700">{fmt(p.amount)}</td>
@@ -842,6 +855,8 @@ const CashSessionPage: React.FC = () => {
         type="warning"
         isLoading={reopenLoading}
       />
+
+      {orderDetailsModal}
     </div>
   );
 };
