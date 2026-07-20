@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { createPortal } from 'react-dom';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
@@ -189,6 +190,7 @@ const ActivePrintLogsTable = forwardRef<PrintLogsTableRef, ActivePrintLogsTableP
         fetchActiveLogs();
       } catch (err) {
         console.error('Error updating checkbox:', err);
+        toast.error(extractErrorMessage(err));
         // Revert in case of failure
         fetchActiveLogs();
       }
@@ -213,6 +215,7 @@ const ActivePrintLogsTable = forwardRef<PrintLogsTableRef, ActivePrintLogsTableP
         fetchActiveLogs();
       } catch (err) {
         console.error('Error updating status:', err);
+        toast.error(extractErrorMessage(err));
         // Revert in case of failure
         fetchActiveLogs();
       }
