@@ -937,6 +937,24 @@ const MIGRATIONS: Migration[] = [
           ADD COLUMN IF NOT EXISTS order_id INTEGER REFERENCES orders(id) ON DELETE SET NULL
       `);
     }
+  },
+
+  // v35: Reforzar el constraint de status en print_logs para permitir 'Impreso'.
+  // En algunas instalaciones la v33 quedó registrada como aplicada sin que el
+  // ALTER TABLE se ejecutara realmente (falso positivo de isApplied durante el
+  // bootstrap), dejando el constraint viejo activo. Esta migración no depende
+  // de ese estado: repite el DROP/ADD de forma incondicional.
+  {
+    version: 35,
+    name: 'force_print_logs_status_check_allows_impreso',
+    up: async (client: PoolClient) => {
+      await client.query(`UPDATE print_logs SET status = 'Impreso' WHERE status = 'Realizado'`);
+      await client.query(`
+        ALTER TABLE print_logs
+          DROP CONSTRAINT IF EXISTS print_logs_status_check,
+          ADD CONSTRAINT print_logs_status_check CHECK (status IN ('Pendiente', 'En Proceso', 'Impreso'));
+      `);
+    }
   }
 ];
 
