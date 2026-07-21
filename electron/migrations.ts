@@ -14,6 +14,7 @@ import { PoolClient } from 'pg';
 import type { Db } from './types/db';
 import type { Migration } from './types/migrations';
 import * as bcryptjs from 'bcryptjs';
+import * as log from 'electron-log';
 
 const MIGRATIONS: Migration[] = [
 
@@ -1006,6 +1007,7 @@ export async function runMigrations(db: Db, client: PoolClient): Promise<void> {
       await client.query('ROLLBACK');
       const err = e as Error;
       console.error(`Error en migración v${migration.version}: ${err.message}`);
+      log.error(`Error en migración v${migration.version} (${migration.name}): ${err.message}`);
       throw new Error(`Fallo en migración v${migration.version} — se hizo rollback: ${err.message}`);
     }
   }

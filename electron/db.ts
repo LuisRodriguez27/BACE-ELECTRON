@@ -2,7 +2,8 @@ import './env';
 import { Pool, PoolClient, types, QueryResultRow } from 'pg';
 import { AsyncLocalStorage } from 'async_hooks';
 import * as path from 'path';
-import { app } from 'electron';
+import { app, dialog } from 'electron';
+import * as log from 'electron-log';
 import { runMigrations } from './migrations';
 import type { Db, DbExecuteResult } from './types/db';
 
@@ -122,7 +123,15 @@ export async function initDb(): Promise<void> {
 
     console.log('✅ Base de datos PG Inicializada');
   } catch (e) {
-    console.error('❌ Error inicializando Postgres DB:', e);
+    const err = e as Error;
+    console.error('❌ Error inicializando Postgres DB:', err);
+    log.error('❌ Error inicializando Postgres DB:', err);
+    if (app.isPackaged) {
+      dialog.showErrorBox(
+        'Error al inicializar la base de datos',
+        `No se pudo completar la inicialización/migración de la base de datos.\n\nEsta PC seguirá funcionando con el esquema anterior hasta que se resuelva.\n\nPor favor reporta este mensaje exacto:\n\n${err.message}`
+      );
+    }
   } finally {
     if (client) client.release();
   }
