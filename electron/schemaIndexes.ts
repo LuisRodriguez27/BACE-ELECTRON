@@ -80,6 +80,12 @@ const schemaIndexes: string = `
   CREATE INDEX IF NOT EXISTS idx_shopping_list_items_list_id     ON shopping_list_items(shopping_list_id);
   CREATE INDEX IF NOT EXISTS idx_shopping_list_items_product_id  ON shopping_list_items(product_id);
 
+  -- notes
+  CREATE INDEX IF NOT EXISTS idx_notes_created_by                ON notes(created_by);
+  CREATE INDEX IF NOT EXISTS idx_notes_edited_by                 ON notes(edited_by);
+  CREATE INDEX IF NOT EXISTS idx_notes_active_date                ON notes(date) WHERE active = TRUE;
+  CREATE INDEX IF NOT EXISTS idx_notes_status                     ON notes(status);
+
 `;
 
 export default schemaIndexes;

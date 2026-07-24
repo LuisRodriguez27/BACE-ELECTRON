@@ -245,6 +245,18 @@ const schemaTables: string = `
     order_id          INTEGER       REFERENCES orders(id) ON DELETE SET NULL
   );
 
+  CREATE TABLE IF NOT EXISTS notes (
+    id          SERIAL        PRIMARY KEY,
+    created_by  INTEGER       NOT NULL REFERENCES users(id),
+    edited_by   INTEGER       NOT NULL REFERENCES users(id),
+    client      VARCHAR(255),
+    phone       VARCHAR(50),
+    text        TEXT,
+    date        TIMESTAMPTZ   NOT NULL,
+    status      VARCHAR(50)   NOT NULL DEFAULT 'Pendiente' CHECK (status IN ('Pendiente', 'Resuelta', 'Archivada')),
+    active      BOOLEAN       NOT NULL DEFAULT TRUE
+  );
+
 `;
 
 export default schemaTables;

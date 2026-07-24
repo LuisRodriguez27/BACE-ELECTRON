@@ -253,6 +253,15 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.invoke('shoppingList:updateItem', id, data),
   removeShoppingListItem: (id: number): Promise<unknown> => ipcRenderer.invoke('shoppingList:removeItem', id),
 
+  // Bloc de Notas
+  getNotes: (page: number, limit: number, status?: string): Promise<unknown> =>
+    ipcRenderer.invoke('notes:getAll', page, limit, status),
+  getNoteById: (id: number): Promise<unknown> => ipcRenderer.invoke('notes:getById', id),
+  createNote: (data: unknown): Promise<unknown> => ipcRenderer.invoke('notes:create', data),
+  updateNote: (id: number, data: unknown): Promise<unknown> => ipcRenderer.invoke('notes:update', id, data),
+  deleteNote: (id: number): Promise<unknown> => ipcRenderer.invoke('notes:delete', id),
+  archiveNotes: (data: unknown): Promise<unknown> => ipcRenderer.invoke('notes:archiveMany', data),
+
   // Imágenes en NAS
   uploadImage: (productId: number, buffer: unknown, originalName: string): Promise<unknown> =>
     ipcRenderer.invoke('upload-image', productId, buffer, originalName),

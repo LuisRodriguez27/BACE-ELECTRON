@@ -940,7 +940,38 @@ const MIGRATIONS: Migration[] = [
           ADD COLUMN IF NOT EXISTS order_id INTEGER REFERENCES orders(id) ON DELETE SET NULL
       `);
     }
-  }
+  },
+
+  // v35: Crear tabla notes — feature "Bloc de Notas"
+  {
+    version: 35,
+    name: 'create_notes_table',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'notes'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS notes (
+          id          SERIAL        PRIMARY KEY,
+          created_by  INTEGER       NOT NULL REFERENCES users(id),
+          edited_by   INTEGER       NOT NULL REFERENCES users(id),
+          client      VARCHAR(255),
+          phone       VARCHAR(50),
+          text        TEXT,
+          date        TIMESTAMPTZ   NOT NULL,
+          status      VARCHAR(50)   NOT NULL DEFAULT 'Pendiente' CHECK (status IN ('Pendiente', 'Resuelta', 'Archivada')),
+          active      BOOLEAN       NOT NULL DEFAULT TRUE
+        )
+      `);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_notes_created_by ON notes(created_by)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_notes_edited_by ON notes(edited_by)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_notes_active_date ON notes(date) WHERE active = TRUE`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_notes_status ON notes(status)`);
+    }
+  },
 ];
 
 // ─── RUNNER PRINCIPAL ───────────────────────────────────────────────────────

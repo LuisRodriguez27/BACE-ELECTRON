@@ -25,3 +25,4 @@ export * from './supplierOrder';
 export * from './printLog';
 export * from './productionLog';
 export * from './stats';
+export * from './note';
