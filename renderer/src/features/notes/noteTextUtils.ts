@@ -33,3 +33,16 @@ export function applyDoubleEnterDivider(
     cursor: beforeCursor.length + insertion.length,
   };
 }
+
+/**
+ * Quita las líneas divisorias para mostrar una vista previa de una sola línea
+ * (ej. en la columna "Nota" de la tabla), donde la línea se vería como una
+ * seguidilla de guiones en vez de un separador real.
+ */
+export function stripDividerForPreview(text: string): string {
+  return text
+    .split('\n')
+    .filter(line => line !== NOTE_DIVIDER)
+    .join(' ')
+    .trim();
+}

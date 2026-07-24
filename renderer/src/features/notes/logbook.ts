@@ -63,6 +63,16 @@ export const generateNotePrintHtml = (note: Note, currentDate: string, backgroun
             <div class="label">Estado</div>
             <div class="value"><span class="status-badge status-${note.status}">${STATUS_LABEL[note.status]}</span></div>
           </div>
+          <div class="info-item">
+            <div class="label">Creado por</div>
+            <div class="value">${note.created_by_username || '-'}</div>
+          </div>
+          ${note.edited_by_username && note.edited_by_username !== note.created_by_username ? `
+          <div class="info-item">
+            <div class="label">Editado por</div>
+            <div class="value">${note.edited_by_username}</div>
+          </div>
+          ` : ''}
         </div>
 
         <div class="note-body">${note.text ? escapeHtml(note.text) : 'Sin contenido registrado.'}</div>

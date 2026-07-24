@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Archive, Edit3, Loader2, MoreVertical, Phone, Plus, Printer, StickyNote, Trash2, User } from 'lucide-react';
+import { Archive, Loader2, Phone, Plus, StickyNote, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
@@ -10,7 +10,9 @@ import { formatDateMX, nowISO } from '@/utils/dateUtils';
 import { extractErrorMessage } from '@/utils/errorHandling';
 import { NoteApiService } from './NoteApiService';
 import NoteFormModal from './components/NoteFormModal';
+import NoteActionsMenu from './components/NoteActionsMenu';
 import { generateNotePrintHtml } from './logbook';
+import { stripDividerForPreview } from './noteTextUtils';
 import type { Note, NoteStatus, Pagination } from './types';
 
 type TabKey = 'all' | NoteStatus;
@@ -50,7 +52,6 @@ const NotesPage: React.FC = () => {
   const [showBulkArchiveConfirm, setShowBulkArchiveConfirm] = useState(false);
   const [noteToArchive, setNoteToArchive] = useState<Note | null>(null);
   const [isArchiving, setIsArchiving] = useState(false);
-  const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
 
   const observerRef = useRef<IntersectionObserver | null>(null);
   const lastNoteElementRef = useCallback((node: HTMLTableRowElement) => {
@@ -107,7 +108,6 @@ const NotesPage: React.FC = () => {
     if (!checkPermission('Gestionar Notas')) return;
     setNoteToEdit(note);
     setShowFormModal(true);
-    setOpenDropdownId(null);
   };
 
   const handleNoteCreated = () => {
@@ -127,7 +127,6 @@ const NotesPage: React.FC = () => {
   const openDeleteConfirm = (note: Note) => {
     if (!checkPermission('Gestionar Notas')) return;
     setNoteToDelete(note);
-    setOpenDropdownId(null);
   };
 
   const handleDelete = async () => {
@@ -149,7 +148,6 @@ const NotesPage: React.FC = () => {
   const openArchiveConfirm = (note: Note) => {
     if (!checkPermission('Gestionar Notas')) return;
     setNoteToArchive(note);
-    setOpenDropdownId(null);
   };
 
   const handleArchiveSingle = async () => {
@@ -184,7 +182,6 @@ const NotesPage: React.FC = () => {
   };
 
   const handlePrintNote = (note: Note) => {
-    setOpenDropdownId(null);
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       toast.error('Por favor permite ventanas emergentes para imprimir');
@@ -217,7 +214,6 @@ const NotesPage: React.FC = () => {
       <div className="sticky top-0 z-20 bg-[var(--app-bg)] flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6 pb-2">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <StickyNote className="text-amber-500" size={24} />
             Bloc de Notas
           </h1>
           <p className="text-gray-600 mt-1 text-sm sm:text-base">
@@ -296,7 +292,7 @@ const NotesPage: React.FC = () => {
               <th className="py-3 px-4 font-semibold uppercase" style={{ width: '11%' }}>Fecha</th>
               <th className="py-3 px-4 font-semibold uppercase" style={{ width: '16%' }}>Cliente</th>
               <th className="py-3 px-4 font-semibold uppercase" style={{ width: notaColWidth }}>Nota</th>
-              <th className="py-3 px-4 font-semibold uppercase" style={{ width: '10%' }}>Creado por</th>
+              <th className="py-3 px-4 font-semibold uppercase" style={{ width: '10%' }}>Usuario</th>
               <th className="py-3 px-4 font-semibold uppercase" style={{ width: '10%' }}>Estado</th>
               <th className="py-3 px-4 font-semibold uppercase text-center" style={{ width: '10%' }}>Acciones</th>
             </tr>
@@ -357,76 +353,32 @@ const NotesPage: React.FC = () => {
                     )}
                   </td>
                   <td className="py-3 px-4 text-gray-600 min-w-0">
-                    <p className="truncate" title={note.text || undefined}>{note.text || '-'}</p>
+                    <p className="truncate" title={note.text || undefined}>{note.text ? stripDividerForPreview(note.text) : '-'}</p>
                   </td>
-                  <td className="py-3 px-4 text-gray-500 truncate">{note.created_by_username || '-'}</td>
+                  <td className="py-3 px-4 text-gray-500 min-w-0">
+                    <div className="truncate" title={`Creado por ${note.created_by_username || 'desconocido'}`}>
+                      {note.created_by_username || '-'}
+                    </div>
+                    {note.edited_by_username && note.edited_by_username !== note.created_by_username && (
+                      <div className="truncate text-xs text-gray-400 mt-0.5" title={`Editado por ${note.edited_by_username}`}>
+                        Editó: {note.edited_by_username}
+                      </div>
+                    )}
+                  </td>
                   <td className="py-3 px-4">
                     <span className={`inline-flex items-center py-1 px-2.5 rounded-full text-xs font-medium ${STATUS_BADGE[note.status]}`}>
                       {note.status}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-center relative">
-                    <div className="relative inline-block">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenDropdownId(openDropdownId === note.id ? null : note.id);
-                        }}
-                        className="p-1.5 rounded text-gray-400 hover:text-gray-700 bg-gray-50 hover:bg-gray-100"
-                        title="Acciones"
-                      >
-                        <MoreVertical size={16} />
-                      </button>
-
-                      {openDropdownId === note.id && (
-                        <>
-                          <div
-                            className="fixed inset-0 z-30"
-                            onClick={(e) => { e.stopPropagation(); setOpenDropdownId(null); }}
-                          />
-                          <div className="absolute right-0 mt-2 w-44 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-40 origin-top-right text-left">
-                            <button
-                              type="button"
-                              onClick={() => handlePrintNote(note)}
-                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                            >
-                              <Printer size={14} className="text-gray-400" />
-                              Imprimir nota
-                            </button>
-                            {canManage && (
-                              <button
-                                type="button"
-                                onClick={() => openEditModal(note)}
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                              >
-                                <Edit3 size={14} className="text-gray-400" />
-                                Editar nota
-                              </button>
-                            )}
-                            {canManage && note.status !== 'Archivada' && (
-                              <button
-                                type="button"
-                                onClick={() => openArchiveConfirm(note)}
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                              >
-                                <Archive size={14} className="text-gray-400" />
-                                Archivar nota
-                              </button>
-                            )}
-                            {canManage && (
-                              <button
-                                type="button"
-                                onClick={() => openDeleteConfirm(note)}
-                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                              >
-                                <Trash2 size={14} className="text-red-400" />
-                                Eliminar nota
-                              </button>
-                            )}
-                          </div>
-                        </>
-                      )}
-                    </div>
+                  <td className="py-3 px-4 text-center">
+                    <NoteActionsMenu
+                      note={note}
+                      canManage={canManage}
+                      onPrint={handlePrintNote}
+                      onEdit={openEditModal}
+                      onArchive={openArchiveConfirm}
+                      onDelete={openDeleteConfirm}
+                    />
                   </td>
                 </tr>
               );

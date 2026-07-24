@@ -17,6 +17,8 @@ export interface NoteRow {
   date: string;
   status: NoteStatus;
   active: boolean;
+  created_by_username?: string | null;
+  edited_by_username?: string | null;
 }
 
 // ─── Input / DTO types ─────────────────────────────────────────────────────
