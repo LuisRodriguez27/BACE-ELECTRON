@@ -22,7 +22,8 @@ import {
   ClipboardList,
   ShoppingBasket,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  StickyNote
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSidebarStore } from '@/store/sidebar'
@@ -68,6 +69,12 @@ const menuItems: MenuItem[] = [
     label: 'Presupuestos',
     icon: Calculator,
     path: '/dashboard/budgets'
+  },
+  {
+    id: 'notes',
+    label: 'Bloc de Notas',
+    icon: StickyNote,
+    path: '/dashboard/notes'
   },
   {
     id: 'products',
@@ -249,6 +256,10 @@ const Sidebar: React.FC = () => {
           }
 
           if (item.id === 'shopping-list' && !canAccess('Ver Lista de Compras')) {
+            return null
+          }
+
+          if (item.id === 'notes' && !canAccess('Ver Notas')) {
             return null
           }
 

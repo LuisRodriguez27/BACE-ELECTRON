@@ -42,6 +42,14 @@ import type {
   AddShoppingListItemForm,
   UpdateShoppingListItemForm,
 } from "../features/shoppingList/types";
+import type {
+  Note,
+  CreateNoteForm,
+  UpdateNoteForm,
+  ArchiveNotesForm,
+  PaginatedNotes,
+  NoteStatus,
+} from "../features/notes/types";
 
 declare global {
   interface Window {
@@ -242,6 +250,14 @@ declare global {
       addShoppingListItem: (data: AddShoppingListItemForm) => Promise<ShoppingListItem>;
       updateShoppingListItem: (id: number, data: UpdateShoppingListItemForm) => Promise<ShoppingListItem>;
       removeShoppingListItem: (id: number) => Promise<void>;
+
+      // Bloc de Notas
+      getNotes: (page: number, limit: number, status?: NoteStatus) => Promise<PaginatedNotes>;
+      getNoteById: (id: number) => Promise<Note>;
+      createNote: (data: CreateNoteForm) => Promise<Note>;
+      updateNote: (id: number, data: UpdateNoteForm) => Promise<Note>;
+      deleteNote: (id: number) => Promise<void>;
+      archiveNotes: (data: ArchiveNotesForm) => Promise<{ archived: number }>;
 
       // Shell / Utilidades
       openExternal: (url: string) => Promise<void>;

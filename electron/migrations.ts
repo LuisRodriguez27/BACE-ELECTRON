@@ -31,29 +31,29 @@ const MIGRATIONS: Migration[] = [
       );
 
       const permissions: [string, string][] = [
-        ['Gestionar Usuario',     'Permite crear, editar o desactivar usuarios'],
-        ['Gestionar Permisos',    'Permite asignar o revocar permisos a los usuarios'],
-        ['Crear Cliente',         'Permite registrar nuevos clientes'],
-        ['Editar Cliente',        'Permite modificar datos de clientes'],
-        ['Eliminar Cliente',      'Permite eliminar o desactivar clientes'],
-        ['Crear Producto',        'Permite registrar nuevos productos'],
-        ['Editar Producto',       'Permite modificar información de productos'],
-        ['Eliminar Producto',     'Permite eliminar o desactivar productos'],
-        ['Crear Plantilla',       'Permite crear plantillas de productos'],
-        ['Editar Plantilla',      'Permite modificar plantillas de productos'],
-        ['Eliminar Plantilla',    'Permite eliminar plantillas de productos'],
-        ['Crear Órdenes',         'Permite registrar nuevas órdenes'],
-        ['Editar Órdenes',        'Permite modificar órdenes'],
-        ['Cancelar Órdenes',      'Permite cancelar órdenes'],
-        ['Crear Presupuestos',    'Permite registrar nuevos presupuestos'],
+        ['Gestionar Usuario', 'Permite crear, editar o desactivar usuarios'],
+        ['Gestionar Permisos', 'Permite asignar o revocar permisos a los usuarios'],
+        ['Crear Cliente', 'Permite registrar nuevos clientes'],
+        ['Editar Cliente', 'Permite modificar datos de clientes'],
+        ['Eliminar Cliente', 'Permite eliminar o desactivar clientes'],
+        ['Crear Producto', 'Permite registrar nuevos productos'],
+        ['Editar Producto', 'Permite modificar información de productos'],
+        ['Eliminar Producto', 'Permite eliminar o desactivar productos'],
+        ['Crear Plantilla', 'Permite crear plantillas de productos'],
+        ['Editar Plantilla', 'Permite modificar plantillas de productos'],
+        ['Eliminar Plantilla', 'Permite eliminar plantillas de productos'],
+        ['Crear Órdenes', 'Permite registrar nuevas órdenes'],
+        ['Editar Órdenes', 'Permite modificar órdenes'],
+        ['Cancelar Órdenes', 'Permite cancelar órdenes'],
+        ['Crear Presupuestos', 'Permite registrar nuevos presupuestos'],
         ['Eliminar Presupuestos', 'Permite eliminar presupuestos'],
-        ['Editar Presupuestos',   'Permite editar los presupuestos registrados'],
-        ['Ver pagos',             'Permite ver los pagos registrados'],
-        ['Registrar Pagos',       'Permite registrar pagos en órdenes'],
-        ['Eliminar Pagos',        'Permite eliminar o anular pagos'],
-        ['Estadisticas',          'Permite visualizar las estadisticas de ventas'],
+        ['Editar Presupuestos', 'Permite editar los presupuestos registrados'],
+        ['Ver pagos', 'Permite ver los pagos registrados'],
+        ['Registrar Pagos', 'Permite registrar pagos en órdenes'],
+        ['Eliminar Pagos', 'Permite eliminar o anular pagos'],
+        ['Estadisticas', 'Permite visualizar las estadisticas de ventas'],
         ['Estadisticas: Filtros', 'Permite filtrar las estadisticas'],
-        ['Estadisticas: Hoy',     'Permite ver solo las estadisticas de hoy'],
+        ['Estadisticas: Hoy', 'Permite ver solo las estadisticas de hoy'],
       ];
 
       for (const [name, description] of permissions) {
@@ -77,11 +77,11 @@ const MIGRATIONS: Migration[] = [
     name: 'ensure_new_permissions_on_admin',
     up: async (client: PoolClient) => {
       const newPerms: [string, string][] = [
-        ['Estadisticas',          'Permite visualizar las estadisticas de ventas'],
-        ['Editar Presupuestos',   'Permite editar los presupuestos registrados'],
-        ['Ver Pagos',             'Permite ver los pagos registrados'],
+        ['Estadisticas', 'Permite visualizar las estadisticas de ventas'],
+        ['Editar Presupuestos', 'Permite editar los presupuestos registrados'],
+        ['Ver Pagos', 'Permite ver los pagos registrados'],
         ['Estadisticas: Filtros', 'Permite filtrar las estadisticas'],
-        ['Estadisticas: Hoy',     'Permite ver solo las estadisticas de hoy'],
+        ['Estadisticas: Hoy', 'Permite ver solo las estadisticas de hoy'],
       ];
 
       const { rows: admins } = await client.query<{ id: number }>(
@@ -202,11 +202,11 @@ const MIGRATIONS: Migration[] = [
     },
     up: async (client: PoolClient) => {
       const columns = [
-        { table: 'budgets',               column: 'date' },
-        { table: 'orders',                column: 'date' },
-        { table: 'orders',                column: 'estimated_delivery_date' },
-        { table: 'payments',              column: 'date' },
-        { table: 'simple_orders',         column: 'date' },
+        { table: 'budgets', column: 'date' },
+        { table: 'orders', column: 'date' },
+        { table: 'orders', column: 'estimated_delivery_date' },
+        { table: 'payments', column: 'date' },
+        { table: 'simple_orders', column: 'date' },
         { table: 'simple_order_payments', column: 'date' },
       ];
       for (const { table, column } of columns) {
@@ -910,15 +910,10 @@ const MIGRATIONS: Migration[] = [
       return parseInt(rows[0].count) === 1;
     },
     up: async (client: PoolClient) => {
+      await client.query(`ALTER TABLE print_logs DROP CONSTRAINT IF EXISTS print_logs_status_check`);
       await client.query(`UPDATE print_logs SET status = 'Impreso' WHERE status = 'Realizado'`);
-      // NOT VALID: aplica el constraint para inserts/updates nuevos sin revisar
-      // (ni tocar) filas existentes — hay registros viejos con valores fuera de
-      // este enum y no queremos sobrescribirlos, solo exigir el enum hacia adelante.
-      await client.query(`
-        ALTER TABLE print_logs
-          DROP CONSTRAINT IF EXISTS print_logs_status_check,
-          ADD CONSTRAINT print_logs_status_check CHECK (status IN ('Pendiente', 'En Proceso', 'Impreso')) NOT VALID;
-      `);
+      await client.query(`ALTER TABLE print_logs ADD CONSTRAINT print_logs_status_check CHECK (status IN ('Pendiente', 'En Proceso', 'Impreso')) NOT VALID;
+  `);
     }
   },
 
@@ -970,6 +965,22 @@ const MIGRATIONS: Migration[] = [
       await client.query(`CREATE INDEX IF NOT EXISTS idx_notes_edited_by ON notes(edited_by)`);
       await client.query(`CREATE INDEX IF NOT EXISTS idx_notes_active_date ON notes(date) WHERE active = TRUE`);
       await client.query(`CREATE INDEX IF NOT EXISTS idx_notes_status ON notes(status)`);
+      await client.query(`
+        INSERT INTO permissions (name, description, active)
+        VALUES
+          ('Ver Notas', 'Permite ver el bloc de notas', true),
+          ('Gestionar Notas', 'Permite crear, editar, archivar y eliminar notas', true)
+        ON CONFLICT (name) DO UPDATE SET active = true;
+      `);
+      await client.query(`
+        INSERT INTO user_permissions (user_id, permission_id, active)
+        SELECT u.id, p.id, true
+        FROM users u
+        CROSS JOIN permissions p
+        WHERE u.id = 1
+          AND p.name IN ('Ver Notas', 'Gestionar Notas')
+        ON CONFLICT DO NOTHING;
+      `);
     }
   },
 ];
