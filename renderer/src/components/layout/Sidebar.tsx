@@ -23,7 +23,7 @@ import {
   ShoppingBasket,
   ChevronUp,
   ChevronDown,
-  StickyNote
+  // StickyNote
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSidebarStore } from '@/store/sidebar'
@@ -70,12 +70,12 @@ const menuItems: MenuItem[] = [
     icon: Calculator,
     path: '/dashboard/budgets'
   },
-  {
-    id: 'notes',
-    label: 'Bloc de Notas',
-    icon: StickyNote,
-    path: '/dashboard/notes'
-  },
+  // {
+  //   id: 'notes',
+  //   label: 'Bloc de Notas',
+  //   icon: StickyNote,
+  //   path: '/dashboard/notes'
+  // },
   {
     id: 'products',
     label: 'Productos',

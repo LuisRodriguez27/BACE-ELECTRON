@@ -213,35 +213,36 @@ const SupplierOrdersTab: React.FC<SupplierOrdersTabProps> = ({ suppliers, initia
         </div>
       ) : (
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+          {/* Desktop View (Table) */}
+          <div className="hidden xl:block">
+            <table className="w-full table-fixed divide-y divide-gray-200">
               <thead className="bg-slate-50">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-16">
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-14">
                     ID
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
                     Proveedor
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-32">
                     Empleado
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                    Fecha Pedido
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-28">
+                    Fecha
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-28">
                     Estado
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider w-24">
                     Total
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                    Orden de Cliente
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-24">
+                    Orden
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider w-20">
                     Artículos
                   </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider w-36">
+                  <th scope="col" className="px-3 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider w-28">
                     Acciones
                   </th>
                 </tr>
@@ -254,26 +255,28 @@ const SupplierOrdersTab: React.FC<SupplierOrdersTabProps> = ({ suppliers, initia
 
                   return (
                     <tr key={order.id} className="hover:bg-slate-50/50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                      <td className="px-3 py-3 whitespace-nowrap text-sm font-bold text-gray-900">
                         #{order.id}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <User size={14} className="text-gray-400" />
-                          <span className="text-sm font-semibold text-gray-900">{order.supplier_name || `ID #${order.supplier_id}`}</span>
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <User size={14} className="text-gray-400 shrink-0" />
+                          <span className="text-sm font-semibold text-gray-900 truncate" title={order.supplier_name || `ID #${order.supplier_id}`}>
+                            {order.supplier_name || `ID #${order.supplier_id}`}
+                          </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-semibold">
+                      <td className="px-3 py-3 text-sm text-gray-600 font-semibold truncate" title={order.username || ''}>
                         {order.username || <span className="text-gray-400 italic text-xs">-</span>}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Calendar size={14} className="text-gray-400" />
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                          <Calendar size={14} className="text-gray-400 shrink-0" />
                           <span>{formatDateMX(order.date, 'DD/MM/YYYY')}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex flex-col gap-1.5 min-w-[100px]">
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <div className="flex flex-col gap-1.5">
                           <span className={`inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-bold uppercase rounded border ${statusInfo.badgeClass}`}>
                             {statusInfo.label}
                           </span>
@@ -284,27 +287,27 @@ const SupplierOrdersTab: React.FC<SupplierOrdersTabProps> = ({ suppliers, initia
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                      <td className="px-3 py-3 whitespace-nowrap text-right text-sm font-bold text-gray-900">
                         {order.total !== undefined && order.total !== null && order.total > 0 ? (
                           `$${order.total.toFixed(2)}`
                         ) : (
                           <span className="text-gray-400 font-normal italic">-</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                      <td className="px-3 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">
                         {order.order_id ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
                             #{order.order_id}
                           </span>
                         ) : (
-                          <span className="text-gray-400 italic text-xs">No vinculado</span>
+                          <span className="text-gray-400 italic text-xs">-</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                        {totalPieces} {totalPieces === 1 ? 'pieza' : 'piezas'}
+                      <td className="px-3 py-3 whitespace-nowrap text-right text-sm font-semibold text-gray-900">
+                        {totalPieces} <span className="text-xs font-normal text-gray-500">pz</span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex items-center justify-end gap-1.5">
+                      <td className="px-3 py-3 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex items-center justify-end gap-0.5">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -339,6 +342,113 @@ const SupplierOrdersTab: React.FC<SupplierOrdersTabProps> = ({ suppliers, initia
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile / Small Monitor View */}
+          <div className="block xl:hidden divide-y divide-gray-100 bg-white">
+            {filteredOrders.map((order) => {
+              const statusInfo = getProgressStyles(order.status);
+              const totalPieces = calculateOrderTotalPieces(order, suppliers);
+
+              return (
+                <div
+                  key={order.id}
+                  className="p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-slate-50/50 transition-colors"
+                >
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <span className="font-bold text-gray-900 text-sm shrink-0 mt-0.5">#{order.id}</span>
+                    {order.order_id && (
+                      <span className="px-2 py-0.5 font-semibold rounded text-xs shrink-0 mt-0.5 bg-blue-50 text-blue-700 border border-blue-200">
+                        Orden #{order.order_id}
+                      </span>
+                    )}
+                    <div className="min-w-0 space-y-1">
+                      <p className="text-sm font-semibold text-gray-900 break-words flex items-center gap-1.5">
+                        <User size={14} className="text-gray-400 shrink-0" />
+                        {order.supplier_name || `ID #${order.supplier_id}`}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                          {totalPieces} {totalPieces === 1 ? 'pieza' : 'piezas'}
+                        </span>
+                        {order.username && (
+                          <span className="text-xs text-gray-500">
+                            Empleado: <span className="font-medium text-gray-700">{order.username}</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-4 sm:gap-6 shrink-0">
+                    {/* Fecha */}
+                    <div className="text-xs">
+                      <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Fecha</span>
+                      <span className="flex items-center gap-1 font-semibold text-gray-900">
+                        <Calendar size={13} className="text-gray-400" />
+                        {formatDateMX(order.date, 'DD/MM/YYYY')}
+                      </span>
+                    </div>
+
+                    {/* Total */}
+                    <div className="text-xs">
+                      <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Total</span>
+                      <span className="font-bold text-gray-900">
+                        {order.total !== undefined && order.total !== null && order.total > 0
+                          ? `$${order.total.toFixed(2)}`
+                          : <span className="text-gray-400 font-normal italic">-</span>}
+                      </span>
+                    </div>
+
+                    {/* Estado */}
+                    <div className="text-xs min-w-[90px]">
+                      <span className="block text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Estado</span>
+                      <div className="flex flex-col gap-1">
+                        <span className={`inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-bold uppercase rounded border ${statusInfo.badgeClass}`}>
+                          {statusInfo.label}
+                        </span>
+                        {String(order.status).toLowerCase() !== 'cancelado' && (
+                          <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                            <div className={`h-full rounded-full transition-all duration-300 ${statusInfo.colorClass}`} style={{ width: `${statusInfo.percent}%` }}></div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-1 pl-3 border-l border-gray-200">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openDetailsModal(order)}
+                        className="p-1 h-8 w-8 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full"
+                        title="Ver detalles"
+                      >
+                        <Eye size={14} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEditModal(order)}
+                        className="p-1 h-8 w-8 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded-full"
+                        title="Editar pedido"
+                      >
+                        <Edit3 size={14} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openDeleteModal(order)}
+                        className="p-1 h-8 w-8 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full"
+                        title="Eliminar pedido"
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
