@@ -17,6 +17,7 @@ export const generateLogbookHtml = (ordersToPrint: Order[], currentDate: string)
         .center { text-align: center; }
         .check-col { width: 40px; text-align: center; }
         .client-subcol { width: 35px; }
+        .client-phone { display: block; font-size: 9px; color: #444; }
         
         /* Background Colors for Status */
         .bg-diseno { background-color: #ffd1dc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } /* Rosa Palo */
@@ -45,7 +46,7 @@ export const generateLogbookHtml = (ordersToPrint: Order[], currentDate: string)
             <th rowspan="2" style="width: 50px;">Folio</th>
             <th rowspan="2" style="width: 70px;">Fecha Rec.</th>
             <th rowspan="2" style="width: 150px;">Cliente</th>
-            <th rowspan="2" style="width: 80px;">Usuario</th>
+            <th rowspan="2" style="width: 80px;">Responsable</th>
             <th rowspan="2">Descripción</th>
             <th colspan="3">Estatus</th>
             <th colspan="2">Cliente</th>
@@ -80,7 +81,10 @@ export const generateLogbookHtml = (ordersToPrint: Order[], currentDate: string)
               <tr>
                 <td class="center"><strong>${order.id}</strong></td>
                 <td class="center">${dateR}</td>
-                <td>${order.client_name || order.client?.name || 'Sin Cliente'}</td>
+                <td>
+                  ${order.client_name || order.client?.name || 'Sin Cliente'}
+                  ${order.client?.phone ? `<span class="client-phone">${order.client.phone}</span>` : ''}
+                </td>
                 <td class="center">${order.user?.username || '-'}</td>
                 <td>${order.description || order.notes || ''}</td>
                 <td class="center ${isDiseño ? 'bg-diseno' : ''}"></td>
