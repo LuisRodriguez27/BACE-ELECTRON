@@ -34,6 +34,7 @@ const PaymentsPage: React.FC = () => {
   const [hasMore, setHasMore] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);   // true inicial → muestra skeleton
+  const [initialLoading, setInitialLoading] = useState(true); // solo la primera carga
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filterKey, setFilterKey] = useState(0);      // fuerza reload en CRUD
@@ -103,7 +104,10 @@ const PaymentsPage: React.FC = () => {
       } catch {
         if (!cancelled) setError('Error al cargar pagos');
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setInitialLoading(false);
+        }
       }
     };
 
@@ -233,7 +237,9 @@ const PaymentsPage: React.FC = () => {
   };
 
   // ─── Render ────────────────────────────────────────────────────────────────
-  if (loading) {
+  // Solo la carga inicial reemplaza la pantalla; en las búsquedas el input debe
+  // seguir montado para no perder el foco mientras se escribe.
+  if (initialLoading) {
     return (
       <div className="p-6">
         <div className="animate-pulse">
@@ -248,7 +254,9 @@ const PaymentsPage: React.FC = () => {
     );
   }
 
-  if (error && payments.length === 0) {
+  // Con una búsqueda activa el error se muestra dentro de la lista: salir aquí
+  // desmontaría el campo de búsqueda y se perdería el foco.
+  if (error && payments.length === 0 && !searchTerm) {
     return (
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -342,8 +350,11 @@ const PaymentsPage: React.FC = () => {
                       }
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 text-sm focus:outline-none bg-white"
+                      className="w-full pl-9 pr-8 py-2 text-sm focus:outline-none bg-white"
                     />
+                    {loading && (
+                      <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 animate-spin pointer-events-none" size={15} />
+                    )}
                   </>
                 )}
               </div>
@@ -396,7 +407,17 @@ const PaymentsPage: React.FC = () => {
         </div>
 
         <div className="p-6">
-          {payments.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center gap-2 py-12 text-gray-500">
+              <Loader2 className="animate-spin" size={20} />
+              <span className="text-sm">Buscando pagos...</span>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="text-red-800 mb-3">{error}</p>
+              <Button size="sm" onClick={() => setFilterKey(k => k + 1)}>Reintentar</Button>
+            </div>
+          ) : payments.length === 0 ? (
             <div className="text-center py-12">
               <CreditCard className="mx-auto h-12 w-12 text-gray-400 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No hay pagos</h3>
