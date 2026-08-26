@@ -21,6 +21,7 @@ const ClientSearchField: React.FC<ClientSearchFieldProps> = ({
   const {
     clients,
     loadingClients,
+    initialLoading,
     clientSearchTerm,
     showClientDropdown,
     setShowClientDropdown,
@@ -49,12 +50,12 @@ const ClientSearchField: React.FC<ClientSearchFieldProps> = ({
         </Button>
       </div>
       <div className="mt-1">
-        {loadingClients ? (
+        {initialLoading ? (
           <div className="flex items-center gap-2 p-2 border rounded-lg">
             <Loader className="animate-spin" size={16} />
             <span className="text-sm text-gray-500">Cargando clientes...</span>
           </div>
-        ) : clients.length === 0 ? (
+        ) : clients.length === 0 && !clientSearchTerm ? (
           <div className="flex items-center justify-between p-3 border border-dashed border-gray-300 rounded-lg">
             <div className="flex items-center gap-2 text-gray-500">
               <User size={16} />
@@ -81,12 +82,18 @@ const ClientSearchField: React.FC<ClientSearchFieldProps> = ({
                 value={clientSearchTerm}
                 onChange={(e) => handleClientInputChange(e.target.value)}
                 onFocus={() => setShowClientDropdown(true)}
-                className={`pl-10 pr-4 transition-all duration-500 ${
+                className={`pl-10 pr-9 transition-all duration-500 ${
                   highlightClient
                     ? 'border-green-400 bg-green-50 shadow-md ring-2 ring-green-200'
                     : 'border-gray-300'
                 }`}
               />
+              {loadingClients && (
+                <Loader
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 animate-spin z-10"
+                  size={16}
+                />
+              )}
               {/* Hidden input for form validation */}
               {selectedClientId && (
                 <input

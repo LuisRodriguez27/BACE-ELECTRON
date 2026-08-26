@@ -11,6 +11,7 @@ export interface UseClientSearchOptions {
 export interface UseClientSearchReturn {
   clients: Client[];
   loadingClients: boolean;
+  initialLoading: boolean;
   clientSearchTerm: string;
   setClientSearchTerm: (term: string) => void;
   showClientDropdown: boolean;
@@ -29,6 +30,7 @@ export interface UseClientSearchReturn {
 export const useClientSearch = ({ setValue, unregister }: UseClientSearchOptions): UseClientSearchReturn => {
   const [clients, setClients] = useState<Client[]>([]);
   const [loadingClients, setLoadingClients] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [clientSearchTerm, setClientSearchTerm] = useState('');
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
@@ -100,6 +102,7 @@ export const useClientSearch = ({ setValue, unregister }: UseClientSearchOptions
       console.error('Error loading clients:', err);
     } finally {
       setLoadingClients(false);
+      setInitialLoading(false);
     }
   };
 
@@ -137,6 +140,7 @@ export const useClientSearch = ({ setValue, unregister }: UseClientSearchOptions
         console.error('Error searching clients in hook:', err);
       } finally {
         setLoadingClients(false);
+        setInitialLoading(false);
       }
     }, 300); // Debounce de 300ms
 
@@ -191,6 +195,7 @@ export const useClientSearch = ({ setValue, unregister }: UseClientSearchOptions
   return {
     clients,
     loadingClients,
+    initialLoading,
     clientSearchTerm,
     setClientSearchTerm,
     showClientDropdown,
