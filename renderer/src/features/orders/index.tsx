@@ -531,15 +531,15 @@ const OrdersPage: React.FC = () => {
                       {/* Columna Izquierda: Cliente y Pagos (35% / 4 de 12 columnas) */}
                       <div className="md:col-span-4 space-y-3">
                         {order.client && (
-                          <div>
-                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">Cliente</span>
+                          <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                            <span className="text-xs font-semibold text-indigo-800 uppercase tracking-wider block mb-1">Cliente</span>
                             <div className="flex items-center gap-2">
                               {order.client.color && (
                                 <ClientColorIndicator color={order.client.color as ClientColor} size="sm" />
                               )}
-                              <p className="text-sm font-semibold text-gray-800 leading-tight">{order.client.name}</p>
+                              <p className="text-sm font-semibold text-indigo-900 leading-tight">{order.client.name}</p>
                             </div>
-                            <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                            <div className="flex items-center gap-2 mt-1 text-xs text-indigo-700">
                               <span>ID: {order.client_id}</span>
                               {order.client.phone && (
                                 <>
