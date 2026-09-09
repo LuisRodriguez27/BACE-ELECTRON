@@ -72,7 +72,7 @@ const menuItems: MenuItem[] = [
   },
   // {
   //   id: 'notes',
-  //   label: 'Bloc de Notas',
+  //   label: 'Post-it',
   //   icon: StickyNote,
   //   path: '/dashboard/notes'
   // },
