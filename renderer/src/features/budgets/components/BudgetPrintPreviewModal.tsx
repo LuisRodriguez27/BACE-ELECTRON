@@ -1,14 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui';
-import { X, Printer } from 'lucide-react';
+import { Printer, X } from 'lucide-react';
 import { toast } from 'sonner';
-import cotizacionImage from '@/assets/COTIZACION.jpg';
-import { getBudgetItemDescription, getBudgetItemDisplayName, getBudgetItemType, type Budget } from '../types';
-import { formatDateMX } from '@/utils/dateUtils';
-import ClientColorIndicator from '../../clients/components/ClientColorIndicator';
-import type { ClientColor } from '../../clients/types';
-
-
+import type { Budget } from '../types';
+import {
+  buildBudgetPrintHtml,
+  prepareBudgetHtml,
+  type PreparedBudgetHtml,
+} from '../utils/buildBudgetPageHtml';
 
 interface BudgetPrintPreviewModalProps {
   isOpen: boolean;
@@ -19,386 +18,110 @@ interface BudgetPrintPreviewModalProps {
 export const BudgetPrintPreviewModal: React.FC<BudgetPrintPreviewModalProps> = ({
   isOpen,
   onClose,
-  budgetData
+  budgetData,
 }) => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [isPreparing, setIsPreparing] = useState(false);
+  const [preparedDocument, setPreparedDocument] = useState<PreparedBudgetHtml | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!isOpen || !budgetData) {
+      setPreparedDocument(null);
+      return () => { cancelled = true; };
+    }
+
+    setIsPreparing(true);
+    prepareBudgetHtml(budgetData)
+      .then(documentHtml => {
+        if (!cancelled) setPreparedDocument(documentHtml);
+      })
+      .catch(error => {
+        console.error('Error al preparar la vista previa:', error);
+        if (!cancelled) toast.error('No se pudo generar la vista previa del presupuesto');
+      })
+      .finally(() => {
+        if (!cancelled) setIsPreparing(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [isOpen, budgetData]);
 
   if (!isOpen || !budgetData) return null;
 
-  // Función para formatear fecha como DD/MM/YYYY
-  const formatDate = (dateString: string) => {
-    return formatDateMX(dateString, 'DD/MM/YYYY');
-  };
-
-  const hasPreferentialPrice = budgetData.budgetProducts?.some(product => {
-    const type = getBudgetItemType(product);
-    const originalPrice = type === 'product'
-      ? product.product_price
-      : product.template_final_price;
-
-    return originalPrice !== undefined && originalPrice !== null &&
-      Math.abs(Number(product.unit_price) - Number(originalPrice)) > 0.01;
-  });
-
-  const handlePrint = async () => {
-    setIsLoading(true);
+  const handlePrint = () => {
+    if (!preparedDocument) return;
+    setIsPrinting(true);
 
     try {
-      // Convertir imagen a base64 para que funcione en la ventana de impresión
-      const imageToBase64 = async (url: string): Promise<string> => {
-        return new Promise((resolve, reject) => {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext('2d');
-            ctx?.drawImage(img, 0, 0);
-            resolve(canvas.toDataURL('image/png'));
-          };
-          img.onerror = reject;
-          img.src = url;
-        });
-      };
-
-      // Obtener la imagen en base64
-      const base64Image = await imageToBase64(cotizacionImage);
-
-
-      // Generar HTML con el mismo diseño del preview visual
-      const printHTML = `
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Presupuesto - ${budgetData.client?.name}</title>
-    <style>
-    :root {
-      /* Ajusta este valor para subir/bajar el contenido en la impresión. Acepta unidades como mm, cm, px */
-      --print-offset: -5mm;
-    }
-        * {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            color-adjust: exact !important;
-            font-family: Arial, sans-serif !important;
-        }
-        html {
-            font-size: 16px !important;
-        }
-        @page {
-            size: 21.6cm 18.5cm landscape;
-            margin: 0;
-        }
-        @media print {
-            html {
-                font-size: 16px !important;
-            }
-            html, body {
-                width: 21.6cm !important;
-                height: 18.5cm !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                overflow: hidden !important;
-            }
-            .print-container {
-        width: 21.6cm !important;
-        height: 18.5cm !important;
-        position: relative !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        /* Usar transform en lugar de margin-top negativo evita problemas de recorte y comportamiento variable en impresoras */
-        transform: translateY(var(--print-offset)) !important;
-            }
-            .background-image {
-                position: absolute !important;
-                top: 0 !important;
-                left: 0 !important;
-                width: 100% !important;
-                height: 100% !important;
-                object-fit: cover !important;
-                z-index: -1 !important;
-            }
-        }
-        body {
-            width: 21.6cm;
-            height: 18.5cm;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            font-family: Arial, sans-serif;
-        }
-        .print-container {
-      width: 21.6cm;
-      height: 18.5cm;
-      position: relative;
-      /* Aplicar offset también para la vista previa en navegador si quieres que se vea igual */
-      transform: translateY(var(--print-offset));
-        }
-        .background-image {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            z-index: -1;
-        }
-    </style>
-</head>
-<body>
-    <div class="print-container">
-        ${hasPreferentialPrice ? `
-        <!-- Sello de precio especial -->
-        <div style="position: absolute; bottom: 4rem; right: 1.25rem; width: 5.5rem; background-color: rgb(220, 38, 38); color: white; font-weight: bold; font-size: 0.5rem; text-align: center; padding: 0.35rem 0.25rem; box-sizing: border-box; z-index: 10; line-height: 1.2;">
-          USTED HA ADQUIRIDO UN PRECIO ESPECIAL
-        </div>
-        ` : ''}
-
-        <!-- Imagen de fondo como elemento IMG en lugar de background-image -->
-        <img src="${base64Image}" alt="Fondo" class="background-image" />
-        
-        <!-- ID del presupuesto -->
-        <div style="position: absolute; top: 4.25rem; right: 7rem; font-size: 1.5rem; line-height: 2rem; font-weight: 700; color: rgb(220, 38, 38);">
-            ${budgetData.id}
-        </div>
-
-    <!-- Cliente, Teléfono y Fecha -->
-    <div style="position: absolute; top: 8.5rem; left: 6.25rem; font-size: 1rem; line-height: 1.5rem; font-weight: 700; color: rgb(0, 0, 0);">
-      <!-- Use fixed column widths to avoid shifting when name is short -->
-      <div style="display: grid; grid-template-columns: 17rem 8rem 1rem; column-gap: 5.5rem; align-items: center;">
-        <!-- Cliente -->
-        <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(1em - 2px); display: flex; align-items: center; gap: 0.5rem;">
-          ${budgetData.client?.color ?
-          `<div style="width: 1rem; height: 1rem; border-radius: 9999px; background-color: ${budgetData.client.color === 'green' ? '#22c55e' :
-            budgetData.client.color === 'yellow' ? '#eab308' :
-              budgetData.client.color === 'red' ? '#ef4444' : 'transparent'
-          }; flex-shrink: 0;"></div>`
-          : ''}
-          ${budgetData.client?.name || 'Cliente no especificado'}
-        </div>
-
-        <!-- Teléfono -->
-        <div style="text-align: center;">
-          ${budgetData.client?.phone || ''}
-        </div>
-
-        <!-- Fecha -->
-        <div style="text-align: left;">
-          ${formatDate(budgetData.date)}
-        </div>
-      </div>
-    </div>
-
-        <!-- Productos en formato de tabla -->
-        <div style="position: absolute; top: 10rem; left: 2rem; right: 2.5rem; color: rgb(0, 0, 0);">
-            <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; font-size: 1.125rem; line-height: 1.75rem; font-weight: 600; margin-bottom: 0.5rem; border-bottom: 1px solid rgb(156, 163, 175); padding-bottom: 0.25rem;">
-                <div style="grid-column: span 1 / span 1; text-align: center;">Cant.</div>
-                <div style="grid-column: span 7 / span 7; text-align: left;">Producto</div>
-                <div style="grid-column: span 2 / span 2; text-align: right;">P. Unitario</div>
-                <div style="grid-column: span 2 / span 2; text-align: right;">Total</div>
-            </div>
-            ${budgetData.budgetProducts?.map((item) => `
-                <div style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 0.5rem; margin-bottom: 0.5rem; font-size: 1rem; line-height: 1.5rem; padding-top: 0.25rem; padding-bottom: 0.25rem;">
-                    <div style="grid-column: span 1 / span 1; text-align: center;">
-                        ${item.quantity}
-                    </div>
-                    <div style="grid-column: span 7 / span 7; padding-left: 0.25rem;">
-                        <div style="font-weight: 500;">
-                          ${getBudgetItemDisplayName(item)}
-                        </div>
-                        <div>
-                          ${getBudgetItemDescription(item) ?
-              `<div style="font-size: 0.875rem; color: rgb(55, 65, 81); margin-top: -0.2rem; line-height: 1.25;">
-                              ${getBudgetItemDescription(item)}
-                            </div>` : ''}
-                        </div>
-                    </div>
-                    <div style="grid-column: span 2 / span 2; text-align: right; font-weight: 500;">
-                        $${item.unit_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </div>
-                    <div style="grid-column: span 2 / span 2; text-align: right; font-weight: 500;">
-                        $${item.total_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </div>
-                </div>
-            `).join('')}
-        </div>
-
-        <!-- Total -->
-        <div style="position: absolute; bottom: 1.25rem; right: 3.75rem; min-width: 8rem; display: flex; flex-direction: column; align-items: center; justify-content: center; color: rgb(220, 38, 38); font-weight: 700; border: 2px solid rgb(220, 38, 38); padding: 0.25rem 0.5rem; background-color: rgba(255, 255, 255, 0.5);">
-            <div style="font-size: 0.875rem; line-height: 1.25;">TOTAL</div>
-            <div style="font-size: 1.25rem; line-height: 1;">$${budgetData.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-        </div>
-    </div>
-</body>
-</html>`;
-
-      // Crear ventana de impresión
       const printWindow = window.open('', '_blank', 'width=800,height=600');
-
       if (!printWindow) {
         toast.error('No se pudo abrir la ventana de impresión.');
         return;
       }
 
-      printWindow.document.write(printHTML);
+      printWindow.document.write(buildBudgetPrintHtml({
+        budgetData,
+        pagesHtml: preparedDocument.pagesHtml,
+      }));
       printWindow.document.close();
-
-      // Configurar impresión automática
       printWindow.onload = () => {
         setTimeout(() => {
           printWindow.focus();
           printWindow.print();
-          printWindow.onafterprint = () => {
-            printWindow.close();
-          };
+          printWindow.onafterprint = () => printWindow.close();
         }, 500);
       };
-
       toast.success('Documento enviado a impresión');
-
     } catch (error) {
       console.error('Error al imprimir:', error);
       toast.error('Error al generar el documento de impresión');
     } finally {
-      setIsLoading(false);
+      setIsPrinting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-60"
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}>
+    <div
+      className="fixed inset-0 flex items-center justify-center z-60"
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
+    >
       <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full mx-4 max-h-[95vh] overflow-hidden">
-        {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
               <Printer className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                Vista Previa - Presupuesto
-              </h2>
-              <p className="text-sm text-gray-500">
-                Verifica los datos antes de imprimir
-              </p>
+              <h2 className="text-lg font-semibold text-gray-900">Vista Previa - Presupuesto</h2>
+              <p className="text-sm text-gray-500">Verifica los datos antes de imprimir</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <Button
               onClick={handlePrint}
-              disabled={isLoading}
+              disabled={isPrinting || isPreparing || !preparedDocument}
               className="flex items-center gap-2"
             >
               <Printer size={16} />
-              {isLoading ? 'Imprimiendo...' : 'Imprimir'}
+              {isPrinting ? 'Imprimiendo...' : isPreparing ? 'Preparando...' : 'Imprimir'}
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="h-8 w-8 p-0"
-            >
+            <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
               <X size={16} />
             </Button>
           </div>
         </div>
 
-        {/* Preview Content */}
         <div className="p-6 overflow-auto max-h-[calc(95vh-100px)]">
-          <div className="flex justify-center">
+          {isPreparing && !preparedDocument ? (
+            <div className="py-16 text-center text-gray-500">Generando vista previa...</div>
+          ) : (
             <div
-              className="relative border border-gray-300 shadow-lg bg-cover bg-center bg-no-repeat"
-              style={{
-                width: '800px',
-                height: '662px',
-                backgroundImage: `url(${cotizacionImage})`
-              }}
-            >
-              {hasPreferentialPrice && (
-                <div
-                  className="absolute bottom-16 right-5 w-22 bg-red-600 text-white font-bold text-center p-1.5 select-none"
-                  style={{ zIndex: 10, fontSize: '0.55rem', lineHeight: '1.2' }}
-                >
-                  USTED HA ADQUIRIDO UN PRECIO ESPECIAL
-                </div>
-              )}
-
-              <div className='absolute top-13 right-28 text-2xl font-bold text-red-600'>
-                {budgetData.id}
-              </div>
-
-              {/* Cliente y Teléfono */}
-              <div className='absolute top-30 left-25 text-l font-bold text-black'>
-                {/* fixed columns to prevent shifting */}
-                <div style={{ display: 'grid', gridTemplateColumns: '17rem 8rem 1rem', columnGap: '5rem', alignItems: 'center' }}>
-                  {/* Cliente */}
-                  <div style={{ overflow: 'hidden', whiteSpace: 'nowrap', fontSize: 'calc(1em - 2px)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    {budgetData.client?.color && (
-                      <ClientColorIndicator color={budgetData.client.color as ClientColor} size="md" />
-                    )}
-                    <span>{budgetData.client?.name || 'Cliente no especificado'}</span>
-                  </div>
-
-                  {/* Numero de telefono */}
-                  <div style={{ textAlign: 'center' }}>
-                    {budgetData.client?.phone || ''}
-                  </div>
-
-                  {/* Fechas */}
-                  <div style={{ textAlign: 'center' }}>
-                    {formatDate(budgetData.date)}
-                  </div>
-
-                </div>
-              </div>
-
-              {/* Productos en formato de tabla */}
-              <div className="absolute top-36 left-8 right-10 text-black">
-                <div className="grid grid-cols-12 gap-2 text-lg font-semibold mb-2 border-b border-gray-400 pb-1">
-                  <div className="col-span-1 text-center">Cant.</div>
-                  <div className="col-span-7 text-left">Producto</div>
-                  <div className="col-span-2 text-right">P. Unitario</div>
-                  <div className="col-span-2 text-right">Total</div>
-                </div>
-                {budgetData.budgetProducts?.map((item, index) => (
-                  <div
-                    key={index}
-                    className="grid grid-cols-12 gap-2 mb-2 text-base py-1"
-                  >
-                    <div className="col-span-1 text-center">
-                      {item.quantity}
-                    </div>
-                    <div className="col-span-7 pl-1">
-                      <div className="font-medium">{getBudgetItemDisplayName(item)}</div>
-                      {getBudgetItemDescription(item) && (
-                        <div className="text-sm text-gray-700 -mt-2 leading-tight">
-                          {getBudgetItemDescription(item)}
-                        </div>
-                      )}
-                    </div>
-                    <div className="col-span-2 text-right font-medium">
-                      ${item.unit_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </div>
-                    <div className="col-span-2 text-right font-medium">
-                      ${item.total_price.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Total */}
-              <div className="absolute bottom-5 right-15 min-w-32 flex flex-col items-center justify-center text-red-600 font-bold border-2 border-red-600 bg-white/50 px-2 py-1">
-                <div className="text-sm leading-tight">TOTAL</div>
-                <div className="text-xl leading-none">
-                  ${budgetData.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </div>
-              </div>
-
-            </div>
-          </div>
+              className="flex flex-col items-center gap-8 [&>.budget-document-page]:border [&>.budget-document-page]:border-gray-300 [&>.budget-document-page]:shadow-lg"
+              dangerouslySetInnerHTML={{ __html: preparedDocument?.pagesHtml || '' }}
+            />
+          )}
         </div>
       </div>
     </div>
