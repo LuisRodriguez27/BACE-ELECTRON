@@ -12,11 +12,13 @@ import CreateSimpleOrderModal from './components/CreateSimpleOrderModal';
 import EditSimpleOrderModal from './components/EditSimpleOrderModal';
 import EditPaymentModal from '../payments/components/EditPaymentModal';
 import SimpleOrderPrintPreviewModal from './components/SimpleOrderPrintPreviewModal';
-import { Eye, Pencil, MoreVertical } from 'lucide-react';
+import { useWhatsAppSimpleOrder } from './hooks/useWhatsAppSimpleOrder';
+import { Eye, MessageCircle, Pencil, MoreVertical } from 'lucide-react';
 
 
 
 const SimpleOrdersPage: React.FC = () => {
+  const { isSendingWhatsApp, sendWhatsApp, whatsappDialogElement } = useWhatsAppSimpleOrder();
   const [orders, setOrders] = useState<SimpleOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -403,6 +405,14 @@ const SimpleOrdersPage: React.FC = () => {
                         >
                           <Printer size={16} />
                         </button>
+                        <button
+                          onClick={() => sendWhatsApp(order)}
+                          disabled={isSendingWhatsApp}
+                          className="p-1.5 rounded text-gray-400 hover:text-green-600 bg-gray-50 hover:bg-green-50 disabled:opacity-50"
+                          title="Enviar por WhatsApp"
+                        >
+                          <MessageCircle size={16} />
+                        </button>
                         <button 
                           onClick={() => {
                             setSelectedOrderId(order.id);
@@ -472,6 +482,18 @@ const SimpleOrdersPage: React.FC = () => {
                                 >
                                   <Printer size={14} className="text-gray-400" />
                                   Imprimir Orden
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    sendWhatsApp(order);
+                                    setOpenDropdownId(null);
+                                  }}
+                                  disabled={isSendingWhatsApp}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50"
+                                >
+                                  <MessageCircle size={14} className="text-gray-400" />
+                                  Enviar por WhatsApp
                                 </button>
                                 <button
                                   type="button"
@@ -631,6 +653,8 @@ const SimpleOrdersPage: React.FC = () => {
           orderData={orders.find(o => o.id === selectedOrderId) || null}
         />
       )}
+
+      {whatsappDialogElement}
 
     </div>
   );
