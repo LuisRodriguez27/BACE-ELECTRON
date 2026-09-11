@@ -1,12 +1,14 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Archive, Edit3, MoreVertical, Printer, Trash2 } from 'lucide-react';
+import { Archive, Edit3, MessageCircle, MoreVertical, Printer, Trash2 } from 'lucide-react';
 import type { Note } from '../types';
 
 interface Props {
   note: Note;
   canManage: boolean;
+  isSendingWhatsApp: boolean;
   onPrint: (note: Note) => void;
+  onWhatsApp: (note: Note) => void;
   onEdit: (note: Note) => void;
   onArchive: (note: Note) => void;
   onDelete: (note: Note) => void;
@@ -20,7 +22,16 @@ const MENU_WIDTH = 176; // w-44
 // (ej. 720p) quedaba recortado/oculto en vez de flotar sobre la tabla. Al usar un
 // portal posicionado con `fixed` a partir del rect del botón, el menú siempre es
 // visible, y se voltea hacia arriba cuando no cabe hacia abajo.
-const NoteActionsMenu: React.FC<Props> = ({ note, canManage, onPrint, onEdit, onArchive, onDelete }) => {
+const NoteActionsMenu: React.FC<Props> = ({
+  note,
+  canManage,
+  isSendingWhatsApp,
+  onPrint,
+  onWhatsApp,
+  onEdit,
+  onArchive,
+  onDelete,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -87,6 +98,15 @@ const NoteActionsMenu: React.FC<Props> = ({ note, canManage, onPrint, onEdit, on
             >
               <Printer size={14} className="text-gray-400" />
               Imprimir nota
+            </button>
+            <button
+              type="button"
+              onClick={() => { onWhatsApp(note); close(); }}
+              disabled={isSendingWhatsApp}
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50"
+            >
+              <MessageCircle size={14} className="text-gray-400" />
+              Enviar por WhatsApp
             </button>
             {canManage && (
               <button

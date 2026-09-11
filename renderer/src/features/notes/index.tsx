@@ -6,12 +6,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useAuthStore } from '@/store/auth';
-import { formatDateMX, nowISO } from '@/utils/dateUtils';
+import { formatDateMX } from '@/utils/dateUtils';
 import { extractErrorMessage } from '@/utils/errorHandling';
 import { NoteApiService } from './NoteApiService';
 import NoteFormModal from './components/NoteFormModal';
 import NoteActionsMenu from './components/NoteActionsMenu';
-import { generateNotePrintHtml } from './logbook';
+import NotePrintPreviewModal from './components/NotePrintPreviewModal';
+import { useWhatsAppNote } from './hooks/useWhatsAppNote';
 import { stripDividerForPreview } from './noteTextUtils';
 import type { Note, NoteStatus, Pagination } from './types';
 
@@ -31,6 +32,7 @@ const STATUS_BADGE: Record<NoteStatus, string> = {
 };
 
 const NotesPage: React.FC = () => {
+  const { isSendingWhatsApp, sendWhatsApp, whatsappDialogElement } = useWhatsAppNote();
   const { checkPermission, canAccess } = usePermissions();
   const { user } = useAuthStore();
   const canManage = canAccess('Gestionar Notas');
@@ -52,6 +54,7 @@ const NotesPage: React.FC = () => {
   const [showBulkArchiveConfirm, setShowBulkArchiveConfirm] = useState(false);
   const [noteToArchive, setNoteToArchive] = useState<Note | null>(null);
   const [isArchiving, setIsArchiving] = useState(false);
+  const [noteToPrint, setNoteToPrint] = useState<Note | null>(null);
 
   const observerRef = useRef<IntersectionObserver | null>(null);
   const lastNoteElementRef = useCallback((node: HTMLTableRowElement) => {
@@ -182,14 +185,7 @@ const NotesPage: React.FC = () => {
   };
 
   const handlePrintNote = (note: Note) => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast.error('Por favor permite ventanas emergentes para imprimir');
-      return;
-    }
-    const currentDate = formatDateMX(nowISO(), 'dddd, D [de] MMMM [de] YYYY');
-    printWindow.document.write(generateNotePrintHtml(note, currentDate));
-    printWindow.document.close();
+    setNoteToPrint(note);
   };
 
   const toggleSelectAll = () => {
@@ -211,7 +207,7 @@ const NotesPage: React.FC = () => {
   return (
     <div className="p-4 sm:p-6">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-[var(--app-bg)] flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6 pb-2">
+      <div className="sticky top-0 z-20 bg-(--app-bg) flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-6 pb-2">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
             Bloc de Notas
@@ -374,7 +370,9 @@ const NotesPage: React.FC = () => {
                     <NoteActionsMenu
                       note={note}
                       canManage={canManage}
+                      isSendingWhatsApp={isSendingWhatsApp}
                       onPrint={handlePrintNote}
+                      onWhatsApp={sendWhatsApp}
                       onEdit={openEditModal}
                       onArchive={openArchiveConfirm}
                       onDelete={openDeleteConfirm}
@@ -414,6 +412,14 @@ const NotesPage: React.FC = () => {
           onUpdate={async (id, data) => { const updated = await NoteApiService.update(id, data); handleNoteUpdated(updated); }}
         />
       )}
+
+      <NotePrintPreviewModal
+        isOpen={!!noteToPrint}
+        note={noteToPrint}
+        onClose={() => setNoteToPrint(null)}
+      />
+
+      {whatsappDialogElement}
 
       {/* Delete confirmation */}
       <ConfirmDialog
