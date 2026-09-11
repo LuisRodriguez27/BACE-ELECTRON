@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/auth';
-import { AlertCircle, Calendar, CheckCircle, Clock, DollarSign, Edit3, Eye, Plus, Printer, Search, ShoppingCart } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle, Clock, DollarSign, Edit3, Eye, MessageCircle, Plus, Printer, Search, ShoppingCart } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { PaymentsApiService } from '../payments/PaymentsApiService';
 import CreatePaymentModal from '../payments/components/CreatePaymentModal';
@@ -124,6 +124,14 @@ const OrdersPage: React.FC = () => {
     }
     setSelectedOrderId(orderId);
     setShowPaymentModal(true);
+  };
+
+  const handleOpenWhatsAppChat = async (order: Order) => {
+    const rawPhone = (order.client?.phone || '').replace(/\D/g, '');
+    if (!rawPhone) return;
+
+    const phoneWithCountry = rawPhone.length === 10 ? `52${rawPhone}` : rawPhone;
+    await window.api.openExternal(`https://web.whatsapp.com/send?phone=${phoneWithCountry}`);
   };
 
   const openCreateModal = () => {
@@ -479,6 +487,17 @@ const OrdersPage: React.FC = () => {
                       </div>
 
                       <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenWhatsAppChat(order)}
+                          className="flex items-center gap-2 text-[#128C7E] hover:text-[#075E54] hover:bg-green-50"
+                          disabled={!order.client?.phone?.replace(/\D/g, '')}
+                          title={order.client?.phone ? `Abrir chat de ${order.client.name}` : 'El cliente no tiene teléfono registrado'}
+                        >
+                          <MessageCircle size={14} />
+                          WhatsApp
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
