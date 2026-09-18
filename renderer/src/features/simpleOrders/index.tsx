@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, DollarSign, Plus, Search, ShoppingCart, Printer } from 'lucide-react';
+import { AlertCircle, Copy, DollarSign, Loader2, Plus, Search, ShoppingCart, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDateMX, nowISO } from '@/utils/dateUtils';
 
@@ -18,7 +18,14 @@ import { Eye, MessageCircle, Pencil, MoreVertical } from 'lucide-react';
 
 
 const SimpleOrdersPage: React.FC = () => {
-  const { isSendingWhatsApp, sendWhatsApp, whatsappDialogElement } = useWhatsAppSimpleOrder();
+  const {
+    isSendingWhatsApp,
+    isCopyingImage,
+    copyingImageId,
+    sendWhatsApp,
+    copyImage,
+    whatsappDialogElement,
+  } = useWhatsAppSimpleOrder();
   const [orders, setOrders] = useState<SimpleOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -407,11 +414,21 @@ const SimpleOrdersPage: React.FC = () => {
                         </button>
                         <button
                           onClick={() => sendWhatsApp(order)}
-                          disabled={isSendingWhatsApp}
+                          disabled={isSendingWhatsApp || isCopyingImage}
                           className="p-1.5 rounded text-gray-400 hover:text-green-600 bg-gray-50 hover:bg-green-50 disabled:opacity-50"
                           title="Enviar por WhatsApp"
                         >
                           <MessageCircle size={16} />
+                        </button>
+                        <button
+                          onClick={() => copyImage(order)}
+                          disabled={isCopyingImage || isSendingWhatsApp}
+                          className="p-1.5 rounded text-gray-400 hover:text-blue-600 bg-gray-50 hover:bg-blue-50 disabled:opacity-50"
+                          title="Copiar imagen"
+                        >
+                          {copyingImageId === order.id
+                            ? <Loader2 size={16} className="animate-spin" />
+                            : <Copy size={16} />}
                         </button>
                         <button 
                           onClick={() => {
@@ -489,11 +506,25 @@ const SimpleOrdersPage: React.FC = () => {
                                     sendWhatsApp(order);
                                     setOpenDropdownId(null);
                                   }}
-                                  disabled={isSendingWhatsApp}
+                                  disabled={isSendingWhatsApp || isCopyingImage}
                                   className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50"
                                 >
                                   <MessageCircle size={14} className="text-gray-400" />
                                   Enviar por WhatsApp
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    copyImage(order);
+                                    setOpenDropdownId(null);
+                                  }}
+                                  disabled={isCopyingImage || isSendingWhatsApp}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50"
+                                >
+                                  {copyingImageId === order.id
+                                    ? <Loader2 size={14} className="text-gray-400 animate-spin" />
+                                    : <Copy size={14} className="text-gray-400" />}
+                                  {copyingImageId === order.id ? 'Copiando imagen...' : 'Copiar imagen'}
                                 </button>
                                 <button
                                   type="button"

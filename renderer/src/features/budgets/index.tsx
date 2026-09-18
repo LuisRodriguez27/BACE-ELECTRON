@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useAuthStore } from '@/store/auth';
-import { ArrowRight, Calendar, DollarSign, FileText, Loader2, MessageCircle, Plus, Printer, Search, Trash2, Pencil } from 'lucide-react';
+import { ArrowRight, Calendar, Copy, DollarSign, FileText, Loader2, MessageCircle, Plus, Printer, Search, Trash2, Pencil } from 'lucide-react';
 import { formatDateMX } from '@/utils/dateUtils';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -51,7 +51,14 @@ const BudgetsPage: React.FC = () => {
   const [selectedBudgetForPrint, setSelectedBudgetForPrint] = useState<Budget | null>(null);
 
   const { user } = useAuthStore();
-  const { isSendingWhatsApp, sendWhatsApp, whatsappDialogElement } = useWhatsAppBudget();
+  const {
+    isSendingWhatsApp,
+    isCopyingImage,
+    copyingImageId,
+    sendWhatsApp,
+    copyImage,
+    whatsappDialogElement,
+  } = useWhatsAppBudget();
 
   const observerRef = useRef<IntersectionObserver | null>(null);
   const lastBudgetElementRef = useCallback((node: HTMLDivElement) => {
@@ -370,7 +377,7 @@ const BudgetsPage: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center justify-end gap-3">
                           {!budget.converted_to_order && (
                             <Button
                               variant="outline"
@@ -383,11 +390,23 @@ const BudgetsPage: React.FC = () => {
                           <Button
                             size="sm"
                             onClick={() => sendWhatsApp(budget)}
-                            disabled={isSendingWhatsApp}
+                            disabled={isSendingWhatsApp || isCopyingImage}
                             className="flex items-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] text-white border-0"
                           >
                             <MessageCircle size={14} />
                             WhatsApp
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => copyImage(budget)}
+                            disabled={isCopyingImage || isSendingWhatsApp}
+                            className="flex items-center gap-2"
+                          >
+                            {copyingImageId === budget.id
+                              ? <Loader2 size={14} className="animate-spin" />
+                              : <Copy size={14} />}
+                            {copyingImageId === budget.id ? 'Copiando...' : 'Copiar imagen'}
                           </Button>
                           <Button
                             variant={"outline"}

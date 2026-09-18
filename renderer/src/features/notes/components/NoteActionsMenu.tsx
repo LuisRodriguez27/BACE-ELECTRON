@@ -1,14 +1,16 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Archive, Edit3, MessageCircle, MoreVertical, Printer, Trash2 } from 'lucide-react';
+import { Archive, Copy, Edit3, Loader2, MessageCircle, MoreVertical, Printer, Trash2 } from 'lucide-react';
 import type { Note } from '../types';
 
 interface Props {
   note: Note;
   canManage: boolean;
   isSendingWhatsApp: boolean;
+  isCopyingImage: boolean;
   onPrint: (note: Note) => void;
   onWhatsApp: (note: Note) => void;
+  onCopyImage: (note: Note) => void;
   onEdit: (note: Note) => void;
   onArchive: (note: Note) => void;
   onDelete: (note: Note) => void;
@@ -26,8 +28,10 @@ const NoteActionsMenu: React.FC<Props> = ({
   note,
   canManage,
   isSendingWhatsApp,
+  isCopyingImage,
   onPrint,
   onWhatsApp,
+  onCopyImage,
   onEdit,
   onArchive,
   onDelete,
@@ -102,11 +106,22 @@ const NoteActionsMenu: React.FC<Props> = ({
             <button
               type="button"
               onClick={() => { onWhatsApp(note); close(); }}
-              disabled={isSendingWhatsApp}
+              disabled={isSendingWhatsApp || isCopyingImage}
               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50"
             >
               <MessageCircle size={14} className="text-gray-400" />
               Enviar por WhatsApp
+            </button>
+            <button
+              type="button"
+              onClick={() => { onCopyImage(note); close(); }}
+              disabled={isCopyingImage || isSendingWhatsApp}
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-50"
+            >
+              {isCopyingImage
+                ? <Loader2 size={14} className="text-gray-400 animate-spin" />
+                : <Copy size={14} className="text-gray-400" />}
+              {isCopyingImage ? 'Copiando imagen...' : 'Copiar imagen'}
             </button>
             {canManage && (
               <button

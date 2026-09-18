@@ -6,6 +6,7 @@ import { captureNoteHtmlAsPng, prepareNoteHtml } from '../utils/buildNotePageHtm
 
 export function useWhatsAppNote() {
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
+  const [isCopyingImage, setIsCopyingImage] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [pendingNote, setPendingNote] = useState<Note | null>(null);
@@ -14,6 +15,37 @@ export function useWhatsAppNote() {
     setMessageText('Se le envía la nota con la información solicitada.');
     setPendingNote(note);
     setIsDialogOpen(true);
+  };
+
+  const prepareAndCopyImage = async (note: Note) => {
+    const preparedDocument = await prepareNoteHtml(note, 'whatsapp');
+    const blob = await captureNoteHtmlAsPng(preparedDocument);
+
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      return { preparedDocument, blob, copied: true };
+    } catch {
+      return { preparedDocument, blob, copied: false };
+    }
+  };
+
+  const copyImage = async (note: Note) => {
+    setIsCopyingImage(true);
+
+    try {
+      const { preparedDocument, copied } = await prepareAndCopyImage(note);
+      if (!copied) throw new Error('No se pudo escribir la imagen en el portapapeles');
+
+      const pagesLabel = preparedDocument.pageCount === 1
+        ? 'La imagen fue copiada al portapapeles'
+        : `Las ${preparedDocument.pageCount} páginas fueron copiadas al portapapeles en una sola imagen`;
+      toast.success(`${pagesLabel}. Ya puedes pegarla en el chat que prefieras.`);
+    } catch (error) {
+      console.error('Error al copiar la imagen de la nota:', error);
+      toast.error('No se pudo copiar la imagen de la nota al portapapeles.');
+    } finally {
+      setIsCopyingImage(false);
+    }
   };
 
   const cancel = () => {
@@ -28,16 +60,14 @@ export function useWhatsAppNote() {
     setIsSendingWhatsApp(true);
 
     try {
-      const preparedDocument = await prepareNoteHtml(pendingNote, 'whatsapp');
-      const blob = await captureNoteHtmlAsPng(preparedDocument);
+      const { preparedDocument, blob, copied } = await prepareAndCopyImage(pendingNote);
 
-      try {
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      if (copied) {
         const pagesLabel = preparedDocument.pageCount === 1
           ? 'La imagen fue copiada'
           : `Las ${preparedDocument.pageCount} páginas fueron copiadas en una sola imagen`;
         toast.success(`${pagesLabel}. ¡Pégala en WhatsApp con Ctrl+V!`);
-      } catch {
+      } else {
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement('a');
         anchor.href = url;
@@ -95,5 +125,11 @@ export function useWhatsAppNote() {
     </div>
   ) : null;
 
-  return { isSendingWhatsApp, sendWhatsApp: startWhatsAppFlow, whatsappDialogElement };
+  return {
+    isSendingWhatsApp,
+    isCopyingImage,
+    sendWhatsApp: startWhatsAppFlow,
+    copyImage,
+    whatsappDialogElement,
+  };
 }

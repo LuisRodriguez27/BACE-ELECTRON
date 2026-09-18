@@ -32,7 +32,13 @@ const STATUS_BADGE: Record<NoteStatus, string> = {
 };
 
 const NotesPage: React.FC = () => {
-  const { isSendingWhatsApp, sendWhatsApp, whatsappDialogElement } = useWhatsAppNote();
+  const {
+    isSendingWhatsApp,
+    isCopyingImage,
+    sendWhatsApp,
+    copyImage,
+    whatsappDialogElement,
+  } = useWhatsAppNote();
   const { checkPermission, canAccess } = usePermissions();
   const { user } = useAuthStore();
   const canManage = canAccess('Gestionar Notas');
@@ -371,8 +377,10 @@ const NotesPage: React.FC = () => {
                       note={note}
                       canManage={canManage}
                       isSendingWhatsApp={isSendingWhatsApp}
+                      isCopyingImage={isCopyingImage}
                       onPrint={handlePrintNote}
                       onWhatsApp={sendWhatsApp}
+                      onCopyImage={copyImage}
                       onEdit={openEditModal}
                       onArchive={openArchiveConfirm}
                       onDelete={openDeleteConfirm}

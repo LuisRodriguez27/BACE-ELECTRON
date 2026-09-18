@@ -5,6 +5,7 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock,
+  Copy,
   DollarSign,
   Edit3,
   FileText,
@@ -69,7 +70,13 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const { user } = useAuth();
   const { checkPermission } = usePermissions();
   const [shoppingListTarget, setShoppingListTarget] = useState<OrderProduct | null>(null);
-  const { isSendingWhatsApp, sendWhatsApp, whatsappDialogElement } = useWhatsAppOrder();
+  const {
+    isSendingWhatsApp,
+    isCopyingImage,
+    sendWhatsApp,
+    copyImage,
+    whatsappDialogElement,
+  } = useWhatsAppOrder();
 
   // Cargar datos de la orden al abrir el modal
   useEffect(() => {
@@ -338,15 +345,25 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-3">
             <Button
               size="sm"
               onClick={() => order && sendWhatsApp(order, orderProducts, payments)}
-              disabled={isSendingWhatsApp || !order}
+              disabled={isSendingWhatsApp || isCopyingImage || !order}
               className="flex items-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] text-white border-0"
             >
               <MessageCircle size={16} />
               {isSendingWhatsApp ? 'Preparando...' : 'Enviar por WhatsApp'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => order && copyImage(order, orderProducts, payments)}
+              disabled={isCopyingImage || isSendingWhatsApp || !order}
+              className="flex items-center gap-2"
+            >
+              {isCopyingImage ? <Loader size={16} className="animate-spin" /> : <Copy size={16} />}
+              {isCopyingImage ? 'Copiando...' : 'Copiar imagen'}
             </Button>
             <Button
               variant="outline"

@@ -6,6 +6,8 @@ import { captureBudgetHtmlAsPng, prepareBudgetHtml } from '../utils/buildBudgetP
 
 export function useWhatsAppBudget() {
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
+  const [copyingImageId, setCopyingImageId] = useState<number | null>(null);
+  const isCopyingImage = copyingImageId !== null;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [pendingArgs, setPendingArgs] = useState<{ budgetData: Budget } | null>(null);
@@ -16,6 +18,37 @@ export function useWhatsAppBudget() {
     setIsDialogOpen(true);
   };
 
+  const prepareAndCopyImage = async (budgetData: Budget) => {
+    const preparedDocument = await prepareBudgetHtml(budgetData, 'whatsapp');
+    const blob = await captureBudgetHtmlAsPng(preparedDocument);
+
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      return { preparedDocument, blob, copied: true };
+    } catch {
+      return { preparedDocument, blob, copied: false };
+    }
+  };
+
+  const copyImage = async (budgetData: Budget) => {
+    setCopyingImageId(budgetData.id);
+
+    try {
+      const { preparedDocument, copied } = await prepareAndCopyImage(budgetData);
+      if (!copied) throw new Error('No se pudo escribir la imagen en el portapapeles');
+
+      const pagesLabel = preparedDocument.pageCount === 1
+        ? 'La imagen fue copiada al portapapeles'
+        : `Las ${preparedDocument.pageCount} páginas fueron copiadas al portapapeles en una sola imagen`;
+      toast.success(`${pagesLabel}. Ya puedes pegarla en el chat que prefieras.`);
+    } catch (error) {
+      console.error('Error al copiar la imagen del presupuesto:', error);
+      toast.error('No se pudo copiar la imagen del presupuesto al portapapeles.');
+    } finally {
+      setCopyingImageId(null);
+    }
+  };
+
   const confirmAndSend = async () => {
     if (!pendingArgs) return;
 
@@ -24,16 +57,14 @@ export function useWhatsAppBudget() {
     const { budgetData } = pendingArgs;
 
     try {
-      const preparedDocument = await prepareBudgetHtml(budgetData, 'whatsapp');
-      const blob = await captureBudgetHtmlAsPng(preparedDocument);
+      const { preparedDocument, blob, copied } = await prepareAndCopyImage(budgetData);
 
-      try {
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      if (copied) {
         const pagesLabel = preparedDocument.pageCount === 1
           ? 'La imagen fue copiada'
           : `Las ${preparedDocument.pageCount} páginas fueron copiadas en una sola imagen`;
         toast.success(`${pagesLabel}. ¡Pégala en WhatsApp con Ctrl+V!`);
-      } catch {
+      } else {
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement('a');
         anchor.href = url;
@@ -91,5 +122,12 @@ export function useWhatsAppBudget() {
     </div>
   ) : null;
 
-  return { isSendingWhatsApp, sendWhatsApp: startWhatsAppFlow, whatsappDialogElement };
+  return {
+    isSendingWhatsApp,
+    isCopyingImage,
+    copyingImageId,
+    sendWhatsApp: startWhatsAppFlow,
+    copyImage,
+    whatsappDialogElement,
+  };
 }

@@ -9,6 +9,8 @@ import {
 
 export function useWhatsAppSimpleOrder() {
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
+  const [copyingImageId, setCopyingImageId] = useState<number | null>(null);
+  const isCopyingImage = copyingImageId !== null;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [pendingOrder, setPendingOrder] = useState<SimpleOrder | null>(null);
@@ -19,6 +21,37 @@ export function useWhatsAppSimpleOrder() {
     setIsDialogOpen(true);
   };
 
+  const prepareAndCopyImage = async (orderData: SimpleOrder) => {
+    const preparedDocument = await prepareSimpleOrderHtml(orderData, 'whatsapp');
+    const blob = await captureSimpleOrderHtmlAsPng(preparedDocument);
+
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      return { preparedDocument, blob, copied: true };
+    } catch {
+      return { preparedDocument, blob, copied: false };
+    }
+  };
+
+  const copyImage = async (orderData: SimpleOrder) => {
+    setCopyingImageId(orderData.id);
+
+    try {
+      const { preparedDocument, copied } = await prepareAndCopyImage(orderData);
+      if (!copied) throw new Error('No se pudo escribir la imagen en el portapapeles');
+
+      const pagesLabel = preparedDocument.pageCount === 1
+        ? 'La imagen fue copiada al portapapeles'
+        : `Las ${preparedDocument.pageCount} páginas fueron copiadas al portapapeles en una sola imagen`;
+      toast.success(`${pagesLabel}. Ya puedes pegarla en el chat que prefieras.`);
+    } catch (error) {
+      console.error('Error al copiar la imagen de la orden rápida:', error);
+      toast.error('No se pudo copiar la imagen de la orden rápida al portapapeles.');
+    } finally {
+      setCopyingImageId(null);
+    }
+  };
+
   const confirmAndSend = async () => {
     if (!pendingOrder) return;
 
@@ -26,16 +59,14 @@ export function useWhatsAppSimpleOrder() {
     setIsSendingWhatsApp(true);
 
     try {
-      const preparedDocument = await prepareSimpleOrderHtml(pendingOrder, 'whatsapp');
-      const blob = await captureSimpleOrderHtmlAsPng(preparedDocument);
+      const { preparedDocument, blob, copied } = await prepareAndCopyImage(pendingOrder);
 
-      try {
-        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      if (copied) {
         const pagesLabel = preparedDocument.pageCount === 1
           ? 'La imagen fue copiada'
           : `Las ${preparedDocument.pageCount} páginas fueron copiadas en una sola imagen`;
         toast.success(`${pagesLabel}. ¡Pégala en WhatsApp con Ctrl+V!`);
-      } catch {
+      } else {
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement('a');
         anchor.href = url;
@@ -93,5 +124,12 @@ export function useWhatsAppSimpleOrder() {
     </div>
   ) : null;
 
-  return { isSendingWhatsApp, sendWhatsApp: startWhatsAppFlow, whatsappDialogElement };
+  return {
+    isSendingWhatsApp,
+    isCopyingImage,
+    copyingImageId,
+    sendWhatsApp: startWhatsAppFlow,
+    copyImage,
+    whatsappDialogElement,
+  };
 }
