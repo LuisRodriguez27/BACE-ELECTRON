@@ -123,7 +123,7 @@ const EditSimpleOrderModal: React.FC<EditSimpleOrderModalProps> = ({
       className="fixed inset-0 flex items-center justify-center z-50 p-4"
       style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
     >
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col relative animate-enter">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg min-h-[560px] max-h-[90vh] flex flex-col relative animate-enter">
         <div className="flex justify-between items-center px-6 py-4 border-b">
           <h2 className="text-xl font-bold flex items-center gap-2 text-gray-800">
             Editar Orden Rápida #{order.id}
@@ -150,7 +150,7 @@ const EditSimpleOrderModal: React.FC<EditSimpleOrderModalProps> = ({
                 <Label htmlFor="concept" className="mb-1 block font-medium">Concepto principal <span className="text-red-500">*</span></Label>
                 <textarea
                   id="concept"
-                  rows={3}
+                  rows={7}
                   value={concept}
                   onChange={(e) => setConcept(e.target.value)}
                   onKeyDown={handleKeyDown}
