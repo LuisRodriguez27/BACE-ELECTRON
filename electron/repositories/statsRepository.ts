@@ -48,6 +48,7 @@ class StatsRepository {
       const includeOrders = source === 'all' || source === 'orders';
       const includeSimpleOrders = source === 'all' || source === 'simple';
       const includeExtra = source === 'all' || source === 'extra';
+      const includeCredits = source === 'all' || source === 'credit';
 
       if (includeOrders) {
         const oParams: unknown[] = [];
@@ -70,11 +71,28 @@ class StatsRepository {
       }
       if (includeExtra) {
         const epParams: unknown[] = [];
-        let epWhere = `WHERE py.order_id IS NULL AND py.date >= $${finalParamIndex} AND py.date <= $${finalParamIndex + 1}`;
+        let epWhere = `WHERE py.order_id IS NULL AND py.credit_id IS NULL AND py.date >= $${finalParamIndex} AND py.date <= $${finalParamIndex + 1}`;
         if (paymentMethod) { finalParamIndex += 2; epWhere += ` AND py.descripcion = $${finalParamIndex}`; epParams.push(startDate, endDate, paymentMethod); finalParamIndex++; }
         else { epParams.push(startDate, endDate); finalParamIndex += 2; }
         unions.push(`SELECT TO_CHAR(py.date AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, py.amount as total FROM payments py ${epWhere}`);
         finalParams.push(...epParams);
+      }
+      if (includeCredits) {
+        const crParams: unknown[] = [];
+        if (paymentMethod) {
+          const methodIndex = finalParamIndex++;
+          const startIndex = finalParamIndex++;
+          const endIndex = finalParamIndex++;
+          crParams.push(paymentMethod, startDate, endDate);
+          unions.push(`SELECT TO_CHAR(cp.date AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, cp.amount as total FROM payments cp WHERE cp.credit_id IS NOT NULL AND cp.descripcion = $${methodIndex} AND cp.date >= $${startIndex} AND cp.date <= $${endIndex}`);
+        } else {
+          const startIndex = finalParamIndex++;
+          const endIndex = finalParamIndex++;
+          crParams.push(startDate, endDate);
+          const manualOnly = source === 'all' ? 'AND ci.order_id IS NULL AND ci.simple_order_id IS NULL' : '';
+          unions.push(`SELECT TO_CHAR(ci.date AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, ci.total FROM credit_items ci WHERE ci.active = TRUE ${manualOnly} AND ci.date >= $${startIndex} AND ci.date <= $${endIndex}`);
+        }
+        finalParams.push(...crParams);
       }
 
       if (unions.length === 0) return [];
@@ -132,6 +150,7 @@ class StatsRepository {
       const includeOrders = source === 'all' || source === 'orders';
       const includeSimpleOrders = source === 'all' || source === 'simple';
       const includeExtra = source === 'all' || source === 'extra';
+      const includeCredits = source === 'all' || source === 'credit';
 
       if (includeOrders) {
         const oParams: unknown[] = [];
@@ -156,10 +175,26 @@ class StatsRepository {
         const epParams: unknown[] = [];
         const { placeholders: epDP, nextIndex: epNI } = this._buildPlaceholders(dates.length, finalParamIndex);
         let epWhere: string;
-        if (paymentMethod) { epWhere = `WHERE py.order_id IS NULL AND py.descripcion = $${epNI} AND TO_CHAR(py.date AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${epDP})`; epParams.push(...dates, paymentMethod); finalParamIndex = epNI + 1; }
-        else { epWhere = `WHERE py.order_id IS NULL AND TO_CHAR(py.date AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${epDP})`; epParams.push(...dates); finalParamIndex = epNI; }
+        if (paymentMethod) { epWhere = `WHERE py.order_id IS NULL AND py.credit_id IS NULL AND py.descripcion = $${epNI} AND TO_CHAR(py.date AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${epDP})`; epParams.push(...dates, paymentMethod); finalParamIndex = epNI + 1; }
+        else { epWhere = `WHERE py.order_id IS NULL AND py.credit_id IS NULL AND TO_CHAR(py.date AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${epDP})`; epParams.push(...dates); finalParamIndex = epNI; }
         unions.push(`SELECT TO_CHAR(py.date AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, py.amount as total FROM payments py ${epWhere}`);
         finalParams.push(...epParams);
+      }
+      if (includeCredits) {
+        const crParams: unknown[] = [];
+        const { placeholders: crDP, nextIndex: crNI } = this._buildPlaceholders(dates.length, finalParamIndex);
+        if (paymentMethod) {
+          const methodIndex = crNI;
+          crParams.push(...dates, paymentMethod);
+          finalParamIndex = crNI + 1;
+          unions.push(`SELECT TO_CHAR(cp.date AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, cp.amount as total FROM payments cp WHERE cp.credit_id IS NOT NULL AND cp.descripcion = $${methodIndex} AND TO_CHAR(cp.date AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${crDP})`);
+        } else {
+          crParams.push(...dates);
+          finalParamIndex = crNI;
+          const manualOnly = source === 'all' ? 'AND ci.order_id IS NULL AND ci.simple_order_id IS NULL' : '';
+          unions.push(`SELECT TO_CHAR(ci.date AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date, ci.total FROM credit_items ci WHERE ci.active = TRUE ${manualOnly} AND TO_CHAR(ci.date AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') IN (${crDP})`);
+        }
+        finalParams.push(...crParams);
       }
 
       if (unions.length === 0) return [];
@@ -198,6 +233,7 @@ class StatsRepository {
           UNION SELECT TO_CHAR(date AT TIME ZONE 'America/Mexico_City', 'YYYY') as year FROM payments WHERE date IS NOT NULL
           UNION SELECT TO_CHAR(date AT TIME ZONE 'America/Mexico_City', 'YYYY') as year FROM simple_orders WHERE active = true AND date IS NOT NULL
           UNION SELECT TO_CHAR(date AT TIME ZONE 'America/Mexico_City', 'YYYY') as year FROM simple_order_payments WHERE date IS NOT NULL
+          UNION SELECT TO_CHAR(date AT TIME ZONE 'America/Mexico_City', 'YYYY') as year FROM credit_items WHERE active = TRUE AND date IS NOT NULL
         ) all_years ORDER BY year DESC
       `);
       const years = rawResults.map(r => parseInt(r.year)).filter(y => !isNaN(y));
@@ -219,6 +255,7 @@ class StatsRepository {
         UNION SELECT TO_CHAR(date AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date FROM payments WHERE TO_CHAR(date AT TIME ZONE 'America/Mexico_City', 'YYYY') = $1
         UNION SELECT TO_CHAR(date AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date FROM simple_orders WHERE active = true AND TO_CHAR(date AT TIME ZONE 'America/Mexico_City', 'YYYY') = $1
         UNION SELECT TO_CHAR(date AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date FROM simple_order_payments WHERE TO_CHAR(date AT TIME ZONE 'America/Mexico_City', 'YYYY') = $1
+        UNION SELECT TO_CHAR(date AT TIME ZONE 'America/Mexico_City', 'YYYY-MM-DD') as sale_date FROM credit_items WHERE active = TRUE AND TO_CHAR(date AT TIME ZONE 'America/Mexico_City', 'YYYY') = $1
       ) all_dates ORDER BY sale_date ASC
     `, [strYear]);
     return results.map(r => r.sale_date);

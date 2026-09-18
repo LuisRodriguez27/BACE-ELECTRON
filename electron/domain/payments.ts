@@ -3,6 +3,9 @@ import type { PaymentRow } from '../types/domain';
 class Payment {
   id: number;
   order_id: number | null;
+  credit_id: number | null;
+  created_by: number | null;
+  cash_session_id: number | null;
   amount: number;
   date: string;
   descripcion: string | null;
@@ -12,10 +15,15 @@ class Payment {
   order: PaymentRow['order'];
   is_simple_order: boolean;
   simple_order_id: number | null;
+  is_credit: boolean;
+  credit: PaymentRow['credit'];
 
-  constructor({ id, order_id, amount, date, descripcion, info, phone, client_name, order = null, is_simple_order = false, simple_order_id = null }: PaymentRow) {
+  constructor({ id, order_id, credit_id, created_by, cash_session_id, amount, date, descripcion, info, phone, client_name, order = null, credit = null, is_simple_order = false, simple_order_id = null, is_credit = false }: PaymentRow) {
     this.id = id;
     this.order_id = order_id || null;
+    this.credit_id = credit_id || null;
+    this.created_by = created_by || null;
+    this.cash_session_id = cash_session_id || null;
     this.amount = parseFloat(String(amount)) || 0;
     this.date = date;
     this.descripcion = descripcion || null;
@@ -25,6 +33,8 @@ class Payment {
     this.order = order;
     this.is_simple_order = is_simple_order ?? false;
     this.simple_order_id = simple_order_id || null;
+    this.is_credit = is_credit || this.credit_id !== null;
+    this.credit = credit;
   }
 
   hasOrder(): boolean { return this.order !== null && this.order !== undefined; }
@@ -52,6 +62,17 @@ class Payment {
     return { id: this.order!.id, client_id: this.order!.client_id, status: this.order!.status, total: this.order!.total, client_name: this.order!.client_name, description: this.order!.description, notes: this.order!.notes };
   }
 
+  getCredit() {
+    if (!this.credit) return null;
+    return {
+      id: this.credit.id,
+      client_id: this.credit.client_id,
+      status: this.credit.status,
+      client_name: this.credit.client_name,
+      client_phone: this.credit.client_phone,
+    };
+  }
+
   matchesSearchTerm(searchTerm: string): boolean {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
@@ -65,6 +86,7 @@ class Payment {
 
   getDisplayName(): string {
     if (this.is_simple_order) return `Pago #${this.id} - Orden Rápida #${this.simple_order_id}`;
+    if (this.is_credit) return `Pago #${this.id} - Crédito #${this.credit_id}`;
     const orderInfo = this.hasOrder() ? ` - Orden #${this.order!.id}` : ` - Orden #${this.order_id}`;
     return `Pago #${this.id}${orderInfo}`;
   }
@@ -103,7 +125,7 @@ class Payment {
   }
 
   toPlainObject() {
-    return { id: this.id, order_id: this.order_id, amount: this.amount, date: this.date, descripcion: this.descripcion, info: this.info, phone: this.phone, client_name: this.client_name, order: this.getOrder(), formattedAmount: this.getFormattedAmount(), formattedDate: this.getFormattedDate(), formattedDateTime: this.getFormattedDateTime(), paymentStatus: this.getPaymentStatus(), paymentStatusLabel: this.getPaymentStatusLabel(), canEdit: this.canEdit(), canDelete: this.canDelete(), is_simple_order: this.is_simple_order, simple_order_id: this.simple_order_id };
+    return { id: this.id, order_id: this.order_id, credit_id: this.credit_id, created_by: this.created_by, cash_session_id: this.cash_session_id, amount: this.amount, date: this.date, descripcion: this.descripcion, info: this.info, phone: this.phone, client_name: this.client_name, order: this.getOrder(), credit: this.getCredit(), formattedAmount: this.getFormattedAmount(), formattedDate: this.getFormattedDate(), formattedDateTime: this.getFormattedDateTime(), paymentStatus: this.getPaymentStatus(), paymentStatusLabel: this.getPaymentStatusLabel(), canEdit: this.canEdit(), canDelete: this.canDelete(), is_simple_order: this.is_simple_order, simple_order_id: this.simple_order_id, is_credit: this.is_credit };
   }
 }
 

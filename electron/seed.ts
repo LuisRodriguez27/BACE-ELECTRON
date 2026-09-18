@@ -26,10 +26,10 @@ async function seed(): Promise<void> {
   // -------------------------
   await db.exec(`
     TRUNCATE TABLE
-      user_permissions, order_products, budget_products, payments,
+      user_permissions, order_products, budget_products, credit_items, payments,
       simple_order_payments, expenses, supplier_order_items, print_logs,
       production_logs, shopping_list_items, cash_sessions, simple_orders,
-      shopping_lists, product_templates, supplier_orders, orders, suppliers,
+      shopping_lists, product_templates, supplier_orders, credits, orders, suppliers,
       budgets, products, clients, users, permissions
     RESTART IDENTITY CASCADE;
   `);
@@ -116,6 +116,10 @@ async function seed(): Promise<void> {
     // Lista de compras
     ['Ver Lista de Compras', 'Permite ver la lista de compras', true],
     ['Gestionar Lista de Compras', 'Permite abrir/cerrar la lista de compras y agregar, editar o quitar productos', true],
+
+    // Créditos
+    ['Ver Creditos', 'Permite consultar créditos, cargos, abonos y cortes', true],
+    ['Gestionar Creditos', 'Permite crear, editar, abonar, cerrar y reabrir créditos', true],
   ];
 
   for (const perm of permissions) {

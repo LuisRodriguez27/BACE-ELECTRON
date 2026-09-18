@@ -27,6 +27,7 @@ export interface OrderRow {
   status: OrderStatus;
   responsable: OrderResponsable | null;
   total: number;
+  credited_amount?: number;
   notes: string | null;
   description: string | null;
   active: boolean;

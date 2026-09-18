@@ -2,6 +2,7 @@ import paymentsRepository, { PaymentFilters } from '../repositories/paymentsRepo
 import orderRepository from '../repositories/orderRepository';
 import cashSessionRepository from '../repositories/cashSessionRepository';
 import clientRepository from '../repositories/clientRepository';
+import creditRepository from '../repositories/creditRepository';
 import db from '../db';
 import type { CreatePaymentData, UpdatePaymentData } from '../types/payment';
 
@@ -71,9 +72,10 @@ class PaymentsService {
           if (order.isCancelled()) throw new Error('No se pueden agregar pagos a órdenes canceladas');
 
           const currentPaymentsTotal = await paymentsRepository.getTotalPaymentsByOrderId(orderId);
-          const newTotal = currentPaymentsTotal + amount;
+          const creditedAmount = await creditRepository.getCreditedAmountByOrder(orderId);
+          const newTotal = currentPaymentsTotal + creditedAmount + amount;
           if (newTotal > order.total) {
-            const remaining = order.total - currentPaymentsTotal;
+            const remaining = order.total - currentPaymentsTotal - creditedAmount;
             throw new Error(`El pago excede el monto pendiente. Monto restante: ${new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(remaining)}`);
           }
 
@@ -122,14 +124,33 @@ class PaymentsService {
       const existingPayment = await paymentsRepository.findById(id);
       if (!existingPayment) throw new Error('Pago no encontrado');
       if (!existingPayment.canEdit()) throw new Error('No se puede editar un pago de una orden completada o cancelada');
+      if (existingPayment.credit_id) {
+        const credit = await creditRepository.findById(existingPayment.credit_id);
+        if (!credit) throw new Error('El crédito relacionado ya no existe');
+        if (!credit.isOpen()) throw new Error('No se puede editar un abono de un crédito cerrado');
+        if (phone !== undefined || clientName !== undefined) {
+          throw new Error('El cliente de un abono de crédito se obtiene de la cuenta y no puede modificarse desde Pagos');
+        }
+      }
 
       if (amount !== undefined) {
         if (isNaN(amount) || amount <= 0) throw new Error('Monto inválido. Debe ser un número mayor a 0');
-        const currentPaymentsTotal = await paymentsRepository.getTotalPaymentsByOrderId(existingPayment.order_id as number);
-        const newTotal = currentPaymentsTotal - existingPayment.amount + amount;
-        if (existingPayment.hasOrder() && existingPayment.order && newTotal > (existingPayment.order.total as number)) {
-          const remaining = (existingPayment.order.total as number) - (currentPaymentsTotal - existingPayment.amount);
-          throw new Error(`El pago actualizado excede el monto pendiente. Monto máximo: ${new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(remaining)}`);
+        if (existingPayment.credit_id) {
+          const credit = await creditRepository.findById(existingPayment.credit_id);
+          if (!credit) throw new Error('El crédito relacionado ya no existe');
+          const currentPaymentsTotal = await paymentsRepository.getTotalPaymentsByCreditId(existingPayment.credit_id);
+          const maximum = credit.getTotalCharges() - (currentPaymentsTotal - existingPayment.amount);
+          if (amount > maximum + 0.01) {
+            throw new Error(`El pago actualizado excede el saldo del crédito. Monto máximo: ${new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(maximum)}`);
+          }
+        } else if (existingPayment.hasOrder() && existingPayment.order) {
+          const currentPaymentsTotal = await paymentsRepository.getTotalPaymentsByOrderId(existingPayment.order_id as number);
+          const creditedAmount = await creditRepository.getCreditedAmountByOrder(existingPayment.order_id as number);
+          const newTotal = currentPaymentsTotal - existingPayment.amount + creditedAmount + amount;
+          if (newTotal > (existingPayment.order.total as number)) {
+            const remaining = (existingPayment.order.total as number) - (currentPaymentsTotal - existingPayment.amount) - creditedAmount;
+            throw new Error(`El pago actualizado excede el monto pendiente. Monto máximo: ${new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(remaining)}`);
+          }
         }
       }
 
@@ -180,6 +201,11 @@ class PaymentsService {
       const existingPayment = await paymentsRepository.findById(id);
       if (!existingPayment) throw new Error('Pago no encontrado');
       if (!existingPayment.canDelete()) throw new Error('No se puede eliminar un pago de una orden completada o cancelada');
+      if (existingPayment.credit_id) {
+        const credit = await creditRepository.findById(existingPayment.credit_id);
+        if (!credit) throw new Error('El crédito relacionado ya no existe');
+        if (!credit.isOpen()) throw new Error('No se puede eliminar un abono de un crédito cerrado');
+      }
 
       const transaction = db.transaction(async () => {
         const deleted = await paymentsRepository.delete(id);

@@ -4,6 +4,7 @@ import clientRepository from '../repositories/clientRepository';
 import SimpleOrder from '../domain/simpleOrder';
 import type { SimpleOrderData, AddSimplePaymentData, UpdateSimplePaymentData } from '../types/simpleOrder';
 import db from '../db';
+import creditRepository from '../repositories/creditRepository';
 
 class SimpleOrderService {
   async getAllSimpleOrders() {
@@ -143,6 +144,12 @@ class SimpleOrderService {
       if (!activeSession) throw new Error('No hay una sesión de caja abierta. Abre la caja antes de registrar pagos.');
       if (!simple_order_id || !user_id || typeof amount !== 'number' || amount <= 0) throw new Error('Datos de pago inválidos. Se requiere el ID de la orden, el empleado y un monto mayor a 0.');
 
+      const order = await simpleOrderRepository.getById(simple_order_id);
+      if (!order || !order.isActive()) throw new Error('La orden rápida especificada no existe o está inactiva.');
+      const creditedAmount = await creditRepository.getCreditedAmountBySimpleOrder(simple_order_id);
+      const available = order.total - order.getTotalPaid() - creditedAmount;
+      if (amount > available + 0.01) throw new Error(`El pago excede el monto pendiente. Monto restante: ${available.toFixed(2)}`);
+
       const transaction = db.transaction(async () => {
         const newId = await simpleOrderRepository.addPayment({ simple_order_id, user_id, amount, date: date || new Date().toISOString(), descripcion });
         return await simpleOrderRepository.getPaymentById(newId);
@@ -166,6 +173,16 @@ class SimpleOrderService {
 
   async updatePayment(id: number, paymentData: UpdateSimplePaymentData) {
     try {
+      const existingPayment = await simpleOrderRepository.getPaymentById(id);
+      if (!existingPayment) throw new Error('Pago no encontrado.');
+      const order = await simpleOrderRepository.getById(existingPayment.simple_order_id);
+      if (!order) throw new Error('La orden rápida relacionada no existe.');
+      const creditedAmount = await creditRepository.getCreditedAmountBySimpleOrder(existingPayment.simple_order_id);
+      const otherPayments = order.getTotalPaid() - parseFloat(String(existingPayment.amount));
+      if (paymentData.amount + otherPayments + creditedAmount > order.total + 0.01) {
+        const maximum = order.total - otherPayments - creditedAmount;
+        throw new Error(`El pago actualizado excede el monto pendiente. Monto máximo: ${maximum.toFixed(2)}`);
+      }
       const transaction = db.transaction(async () => {
         const success = await simpleOrderRepository.updatePayment(id, paymentData);
         if (!success) throw new Error('No se pudo actualizar el pago, posiblemente no exista.');

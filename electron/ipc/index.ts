@@ -18,6 +18,7 @@ import { registerProductionLogIpc } from './productionLogIpc';
 import { registerImageIpc } from './imageIpc';
 import { registerShoppingListIpc } from './shoppingListIpc';
 import { registerNoteIpc } from './noteIpc';
+import { registerCreditIpc } from './creditIpc';
 
 export function registerIpcHandlers(): void {
   registerUserIpc();
@@ -40,5 +41,6 @@ export function registerIpcHandlers(): void {
   registerImageIpc();
   registerShoppingListIpc();
   registerNoteIpc();
+  registerCreditIpc();
 }
 

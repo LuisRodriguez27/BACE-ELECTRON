@@ -104,6 +104,27 @@ contextBridge.exposeInMainWorld('api', {
   getPaymentsByClientId: (clientId: number): Promise<unknown> =>
     ipcRenderer.invoke('payments:getByClientId', clientId),
 
+  // Créditos
+  getCredits: (page: number, limit: number, filters: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('credits:getAll', page, limit, filters),
+  getCreditById: (id: number): Promise<unknown> => ipcRenderer.invoke('credits:getById', id),
+  getOpenCreditByClientId: (clientId: number): Promise<unknown> =>
+    ipcRenderer.invoke('credits:getOpenByClientId', clientId),
+  createCredit: (data: unknown): Promise<unknown> => ipcRenderer.invoke('credits:create', data),
+  addCreditItem: (data: unknown): Promise<unknown> => ipcRenderer.invoke('credits:addItem', data),
+  updateCreditItem: (id: number, data: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('credits:updateItem', id, data),
+  removeCreditItem: (id: number): Promise<unknown> => ipcRenderer.invoke('credits:removeItem', id),
+  addCreditPayment: (data: unknown): Promise<unknown> => ipcRenderer.invoke('credits:addPayment', data),
+  updateCreditNotes: (id: number, notes: string | null): Promise<unknown> =>
+    ipcRenderer.invoke('credits:updateNotes', id, notes),
+  closeCredit: (id: number, data: unknown): Promise<unknown> => ipcRenderer.invoke('credits:close', id, data),
+  reopenCredit: (id: number): Promise<unknown> => ipcRenderer.invoke('credits:reopen', id),
+  getCreditStatement: (id: number, params: unknown): Promise<unknown> =>
+    ipcRenderer.invoke('credits:getStatement', id, params),
+  searchCreditSources: (searchTerm: string, limit: number): Promise<unknown> =>
+    ipcRenderer.invoke('credits:searchSources', searchTerm, limit),
+
   // Presupuestos
   getAllBudgets: (): Promise<unknown> => ipcRenderer.invoke('budgets:getAll'),
   getBudgetsPaginated: (page: number, limit: number, searchTerm: string): Promise<unknown> =>

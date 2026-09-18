@@ -983,6 +983,99 @@ const MIGRATIONS: Migration[] = [
       `);
     }
   },
+
+  // v36: Crear módulo de créditos y relacionar sus abonos con payments/caja
+  {
+    version: 36,
+    name: 'create_credits_module',
+    isApplied: async (client: PoolClient) => {
+      const { rows: [state] } = await client.query<{ tables_count: string; columns_count: string; permissions_count: string }>(`
+        SELECT
+          (SELECT COUNT(*) FROM information_schema.tables WHERE table_name IN ('credits', 'credit_items')) AS tables_count,
+          (SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'payments' AND column_name IN ('credit_id', 'created_by')) AS columns_count,
+          (SELECT COUNT(*) FROM permissions WHERE name IN ('Ver Creditos', 'Gestionar Creditos')) AS permissions_count
+      `);
+      return parseInt(state.tables_count) === 2
+        && parseInt(state.columns_count) === 2
+        && parseInt(state.permissions_count) === 2;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS credits (
+          id            SERIAL       PRIMARY KEY,
+          client_id     INTEGER      NOT NULL REFERENCES clients(id),
+          opened_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+          closing_date  TIMESTAMPTZ,
+          status        VARCHAR(20)  NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'closed')),
+          notes         TEXT,
+          created_by    INTEGER      NOT NULL REFERENCES users(id),
+          active        BOOLEAN      NOT NULL DEFAULT TRUE
+        );
+
+        CREATE TABLE IF NOT EXISTS credit_items (
+          id               SERIAL        PRIMARY KEY,
+          credit_id        INTEGER       NOT NULL REFERENCES credits(id),
+          order_id         INTEGER       REFERENCES orders(id),
+          simple_order_id  INTEGER       REFERENCES simple_orders(id),
+          date             TIMESTAMPTZ   NOT NULL,
+          product          TEXT          NOT NULL,
+          quantity         DECIMAL(10,4) NOT NULL DEFAULT 1 CHECK (quantity > 0),
+          unit_price       DECIMAL(10,2) NOT NULL CHECK (unit_price > 0),
+          total            DECIMAL(10,2) NOT NULL CHECK (total > 0),
+          created_by       INTEGER       NOT NULL REFERENCES users(id),
+          edited_by        INTEGER       REFERENCES users(id),
+          active           BOOLEAN       NOT NULL DEFAULT TRUE,
+          CONSTRAINT credit_items_single_source_check CHECK (order_id IS NULL OR simple_order_id IS NULL)
+        );
+
+        ALTER TABLE payments
+          ADD COLUMN IF NOT EXISTS credit_id INTEGER REFERENCES credits(id),
+          ADD COLUMN IF NOT EXISTS created_by INTEGER REFERENCES users(id);
+      `);
+
+      await client.query(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint WHERE conname = 'payments_single_reference_check'
+          ) THEN
+            ALTER TABLE payments
+              ADD CONSTRAINT payments_single_reference_check
+              CHECK (order_id IS NULL OR credit_id IS NULL);
+          END IF;
+        END $$;
+      `);
+
+      await client.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_credits_one_open_per_client      ON credits(client_id) WHERE active = TRUE AND status = 'open';
+        CREATE INDEX IF NOT EXISTS idx_credits_client_id                       ON credits(client_id);
+        CREATE INDEX IF NOT EXISTS idx_credits_status                          ON credits(status) WHERE active = TRUE;
+        CREATE INDEX IF NOT EXISTS idx_credit_items_credit_id                  ON credit_items(credit_id) WHERE active = TRUE;
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_credit_items_unique_order        ON credit_items(order_id) WHERE active = TRUE AND order_id IS NOT NULL;
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_credit_items_unique_simple_order ON credit_items(simple_order_id) WHERE active = TRUE AND simple_order_id IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS idx_credit_items_date                       ON credit_items(date) WHERE active = TRUE;
+        CREATE INDEX IF NOT EXISTS idx_payments_credit_id                      ON payments(credit_id);
+        CREATE INDEX IF NOT EXISTS idx_payments_created_by                     ON payments(created_by);
+      `);
+
+      await client.query(`
+        INSERT INTO permissions (name, description, active)
+        VALUES
+          ('Ver Creditos', 'Permite consultar créditos, cargos, abonos y cortes', true),
+          ('Gestionar Creditos', 'Permite crear, editar, abonar, cerrar y reabrir créditos', true)
+        ON CONFLICT (name) DO UPDATE SET active = true;
+      `);
+      await client.query(`
+        INSERT INTO user_permissions (user_id, permission_id, active)
+        SELECT u.id, p.id, true
+        FROM users u
+        CROSS JOIN permissions p
+        WHERE u.id = 1
+          AND p.name IN ('Ver Creditos', 'Gestionar Creditos')
+        ON CONFLICT DO NOTHING;
+      `);
+    }
+  },
 ];
 
 // ─── RUNNER PRINCIPAL ───────────────────────────────────────────────────────

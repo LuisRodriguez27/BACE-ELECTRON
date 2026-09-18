@@ -8,6 +8,8 @@ interface PaymentUnionRow {
   id: number;
   order_id: number | null;
   simple_order_id?: number | null;
+  credit_id: number | null;
+  created_by: number | null;
   cash_session_id: number | null;
   amount: number;
   date: string;
@@ -16,6 +18,7 @@ interface PaymentUnionRow {
   phone: string | null;
   client_name: string | null;
   is_simple_order?: boolean;
+  is_credit?: boolean;
   o_id: number | null;
   o_client_id: number | null;
   o_status: OrderStatus | null;
@@ -24,12 +27,17 @@ interface PaymentUnionRow {
   o_description: string | null;
   o_notes: string | null;
   o_client_phone: string | null;
+  cr_id: number | null;
+  cr_client_id: number | null;
+  cr_status: 'open' | 'closed' | null;
+  cr_client_name: string | null;
+  cr_client_phone: string | null;
 }
 
 export interface PaymentFilters {
   freeOnly?: boolean;
-  orderFilter?: 'free' | 'simple' | string;
-  searchType?: 'payment_id' | 'order_id' | 'amount' | 'method' | 'info';
+  orderFilter?: 'free' | 'simple' | 'credit' | string;
+  searchType?: 'payment_id' | 'order_id' | 'credit_id' | 'amount' | 'method' | 'info';
   searchTerm?: string;
 }
 
@@ -37,15 +45,19 @@ class PaymentsRepository {
   private _getBaseQuery(): string {
     return `
       SELECT 
-        p.id, p.order_id, CAST(NULL AS INTEGER) as simple_order_id, p.cash_session_id, p.amount, p.date, p.descripcion, p.info, p.phone, p.client_name, false as is_simple_order,
-        o.id as o_id, o.client_id as o_client_id, o.status as o_status, o.total as o_total, c.name as o_client_name, o.description as o_description, o.notes as o_notes, c.phone as o_client_phone
+        p.id, p.order_id, CAST(NULL AS INTEGER) as simple_order_id, p.credit_id, p.created_by, p.cash_session_id, p.amount, p.date, p.descripcion, p.info, p.phone, p.client_name, false as is_simple_order, (p.credit_id IS NOT NULL) as is_credit,
+        o.id as o_id, o.client_id as o_client_id, o.status as o_status, o.total as o_total, c.name as o_client_name, o.description as o_description, o.notes as o_notes, c.phone as o_client_phone,
+        cr.id as cr_id, cr.client_id as cr_client_id, cr.status as cr_status, cc.name as cr_client_name, cc.phone as cr_client_phone
       FROM payments p
       LEFT JOIN orders o ON p.order_id = o.id
       LEFT JOIN clients c ON o.client_id = c.id
+      LEFT JOIN credits cr ON p.credit_id = cr.id
+      LEFT JOIN clients cc ON cr.client_id = cc.id
       UNION ALL
       SELECT 
-        sp.id, CAST(NULL AS INTEGER) as order_id, sp.simple_order_id as simple_order_id, sp.cash_session_id, sp.amount, sp.date, sp.descripcion, so.concept as info, so.client_phone as phone, so.client_name as client_name, true as is_simple_order,
-        CAST(NULL AS INTEGER) as o_id, CAST(NULL AS INTEGER) as o_client_id, 'Completada' as o_status, so.total as o_total, so.client_name as o_client_name, so.concept as o_description, NULL as o_notes, so.client_phone as o_client_phone
+        sp.id, CAST(NULL AS INTEGER) as order_id, sp.simple_order_id as simple_order_id, CAST(NULL AS INTEGER) as credit_id, sp.user_id as created_by, sp.cash_session_id, sp.amount, sp.date, sp.descripcion, so.concept as info, so.client_phone as phone, so.client_name as client_name, true as is_simple_order, false as is_credit,
+        CAST(NULL AS INTEGER) as o_id, CAST(NULL AS INTEGER) as o_client_id, 'Completada' as o_status, so.total as o_total, so.client_name as o_client_name, so.concept as o_description, NULL as o_notes, so.client_phone as o_client_phone,
+        CAST(NULL AS INTEGER) as cr_id, CAST(NULL AS INTEGER) as cr_client_id, NULL as cr_status, NULL as cr_client_name, NULL as cr_client_phone
       FROM simple_order_payments sp
       LEFT JOIN simple_orders so ON sp.simple_order_id = so.id
     `;
@@ -55,6 +67,8 @@ class PaymentsRepository {
     return new Payment({
       id: row.id,
       order_id: row.order_id,
+      credit_id: row.credit_id,
+      created_by: row.created_by,
       amount: parseFloat(String(row.amount)),
       date: row.date,
       descripcion: row.descripcion,
@@ -63,6 +77,7 @@ class PaymentsRepository {
       client_name: row.client_name,
       is_simple_order: Boolean(row.is_simple_order),
       simple_order_id: row.simple_order_id || null,
+      is_credit: Boolean(row.is_credit),
       cash_session_id: row.cash_session_id,
       order: (row.o_id || row.is_simple_order) ? {
         id: row.o_id || row.simple_order_id || 0,
@@ -73,6 +88,13 @@ class PaymentsRepository {
         description: row.o_description,
         notes: row.o_notes,
       } : null,
+      credit: row.cr_id ? {
+        id: row.cr_id,
+        client_id: row.cr_client_id || 0,
+        status: row.cr_status || 'open',
+        client_name: row.cr_client_name,
+        client_phone: row.cr_client_phone,
+      } : null,
     });
   }
 
@@ -82,20 +104,20 @@ class PaymentsRepository {
   }
 
   async findByOrderId(orderId: number): Promise<Payment[]> {
-    const rows = await db.getAll<PaymentUnionRow>(`SELECT p.*, o.id as o_id, o.client_id as o_client_id, o.status as o_status, o.total as o_total, c.name as o_client_name, c.phone as o_client_phone, o.description as o_description, o.notes as o_notes FROM payments p LEFT JOIN orders o ON p.order_id = o.id LEFT JOIN clients c ON o.client_id = c.id WHERE p.order_id = $1 ORDER BY p.date DESC`, [orderId]);
+    const rows = await db.getAll<PaymentUnionRow>(`SELECT * FROM (${this._getBaseQuery()}) p WHERE p.order_id = $1 AND p.is_simple_order = FALSE ORDER BY p.date DESC`, [orderId]);
     return rows.map(r => this._mapRow(r));
   }
 
   async findById(id: number): Promise<Payment | null> {
-    const row = await db.getOne<PaymentUnionRow>(`SELECT p.*, o.id as o_id, o.client_id as o_client_id, o.status as o_status, o.total as o_total, c.name as o_client_name, c.phone as o_client_phone, o.description as o_description, o.notes as o_notes FROM payments p LEFT JOIN orders o ON p.order_id = o.id LEFT JOIN clients c ON o.client_id = c.id WHERE p.id = $1`, [id]);
+    const row = await db.getOne<PaymentUnionRow>(`SELECT * FROM (${this._getBaseQuery()}) p WHERE p.id = $1 AND p.is_simple_order = FALSE`, [id]);
     if (!row) return null;
     return this._mapRow(row);
   }
 
-  async create({ order_id, amount, date, descripcion, info, phone, client_name }: { order_id?: number | null; amount: number; date: string; descripcion?: string | null; info?: string | null; phone?: string | null; client_name?: string | null }): Promise<Payment | null> {
+  async create({ order_id, credit_id, created_by, amount, date, descripcion, info, phone, client_name }: { order_id?: number | null; credit_id?: number | null; created_by?: number | null; amount: number; date: string; descripcion?: string | null; info?: string | null; phone?: string | null; client_name?: string | null }): Promise<Payment | null> {
     const activeSession = await cashSessionRepository.getActive();
     const cash_session_id = activeSession?.id ?? null;
-    const result = await db.execute('INSERT INTO payments (order_id, cash_session_id, amount, date, descripcion, info, phone, client_name) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)', [order_id || null, cash_session_id, amount, date, descripcion, info || null, phone || null, client_name || null]);
+    const result = await db.execute('INSERT INTO payments (order_id, credit_id, created_by, cash_session_id, amount, date, descripcion, info, phone, client_name) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)', [order_id || null, credit_id || null, created_by || null, cash_session_id, amount, date, descripcion, info || null, phone || null, client_name || null]);
     return await this.findById(result.lastInsertRowid!);
   }
 
@@ -110,7 +132,7 @@ class PaymentsRepository {
   }
 
   async findByClientId(clientId: number): Promise<Payment[]> {
-    const rows = await db.getAll<PaymentUnionRow>(`SELECT p.*, o.id as o_id, o.client_id as o_client_id, o.status as o_status, o.total as o_total, c.name as o_client_name, c.phone as o_client_phone, o.description as o_description, o.notes as o_notes FROM payments p LEFT JOIN orders o ON p.order_id = o.id LEFT JOIN clients c ON o.client_id = c.id WHERE o.client_id = $1 ORDER BY p.date DESC`, [clientId]);
+    const rows = await db.getAll<PaymentUnionRow>(`SELECT * FROM (${this._getBaseQuery()}) p WHERE p.o_client_id = $1 OR p.cr_client_id = $1 ORDER BY p.date DESC`, [clientId]);
     return rows.map(r => this._mapRow(r));
   }
 
@@ -119,19 +141,26 @@ class PaymentsRepository {
     return result ? parseFloat(result.total) || 0 : 0;
   }
 
+  async getTotalPaymentsByCreditId(creditId: number): Promise<number> {
+    const result = await db.getOne<{ total: string }>(`SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE credit_id = $1`, [creditId]);
+    return result ? parseFloat(result.total) || 0 : 0;
+  }
+
   async findPaginated(page = 1, limit = 20, filters: PaymentFilters = {}) {
     const offset = (page - 1) * limit;
     const conditions: string[] = [];
     const whereParams: unknown[] = [];
 
-    if (filters.freeOnly || filters.orderFilter === 'free') { conditions.push('p.order_id IS NULL AND p.is_simple_order = false'); }
+    if (filters.freeOnly || filters.orderFilter === 'free') { conditions.push('p.order_id IS NULL AND p.credit_id IS NULL AND p.is_simple_order = false'); }
     else if (filters.orderFilter === 'simple') { conditions.push('p.is_simple_order = true'); }
+    else if (filters.orderFilter === 'credit') { conditions.push('p.credit_id IS NOT NULL AND p.is_simple_order = false'); }
 
     if (filters.searchType && filters.searchTerm && String(filters.searchTerm).trim()) {
       const term = String(filters.searchTerm).trim();
       switch (filters.searchType) {
         case 'payment_id': whereParams.push(`%${term}%`); conditions.push(`CAST(p.id AS TEXT) LIKE $${whereParams.length}`); break;
         case 'order_id': whereParams.push(`%${term}%`); conditions.push(`(CAST(p.order_id AS TEXT) LIKE $${whereParams.length} OR CAST(p.simple_order_id AS TEXT) LIKE $${whereParams.length})`); break;
+        case 'credit_id': whereParams.push(`%${term}%`); conditions.push(`CAST(p.credit_id AS TEXT) LIKE $${whereParams.length}`); break;
         case 'amount': whereParams.push(`%${term}%`); conditions.push(`CAST(p.amount AS TEXT) LIKE $${whereParams.length}`); break;
         case 'method': whereParams.push(term); conditions.push(`p.descripcion = $${whereParams.length}`); break;
         case 'info': whereParams.push(`%${term}%`); conditions.push(`(p.info ILIKE $${whereParams.length} OR p.phone LIKE $${whereParams.length} OR p.client_name ILIKE $${whereParams.length})`); break;

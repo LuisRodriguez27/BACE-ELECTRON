@@ -7,18 +7,20 @@ class SimpleOrder {
   date: string;
   concept: string;
   total: number;
+  credited_amount: number;
   active: boolean;
   user_username: string | null;
   client_name: string;
   client_phone: string;
   payments: InstanceType<typeof SimpleOrderPayment>[];
 
-  constructor({ id, user_id, date, concept, total, active = true, user_username, client_name, client_phone, payments = [] }: SimpleOrderRow & { payments?: SimpleOrderPaymentRow[] }) {
+  constructor({ id, user_id, date, concept, total, credited_amount = 0, active = true, user_username, client_name, client_phone, payments = [] }: SimpleOrderRow & { payments?: SimpleOrderPaymentRow[] }) {
     this.id = id;
     this.user_id = user_id;
     this.date = date;
     this.concept = concept;
     this.total = parseFloat(String(total)) || 0;
+    this.credited_amount = parseFloat(String(credited_amount)) || 0;
     this.active = active;
     this.user_username = user_username || null;
     this.client_name = client_name || '';
@@ -39,14 +41,14 @@ class SimpleOrder {
   }
 
   getTotalPaid(): number { return this.payments.reduce((sum: number, p: InstanceType<typeof SimpleOrderPayment>) => sum + p.amount, 0); }
-  getBalance(): number { return this.total - this.getTotalPaid(); }
+  getBalance(): number { return this.total - this.getTotalPaid() - this.credited_amount; }
 
   isValid(): boolean {
     return !!(this.user_id && this.user_id > 0 && this.concept && this.concept.trim().length > 0 && typeof this.total === 'number' && this.total >= 0 && !isNaN(this.total));
   }
 
   toPlainObject() {
-    return { id: this.id, user_id: this.user_id, date: this.date, concept: this.concept, total: this.total, active: this.active, client_name: this.client_name, client_phone: this.client_phone, user: this.getUser(), payments: this.payments.map((p: InstanceType<typeof SimpleOrderPayment>) => p.toPlainObject()), totalPaid: this.getTotalPaid(), balance: this.getBalance() };
+    return { id: this.id, user_id: this.user_id, date: this.date, concept: this.concept, total: this.total, credited_amount: this.credited_amount, active: this.active, client_name: this.client_name, client_phone: this.client_phone, user: this.getUser(), payments: this.payments.map((p: InstanceType<typeof SimpleOrderPayment>) => p.toPlainObject()), totalPaid: this.getTotalPaid(), balance: this.getBalance() };
   }
 }
 

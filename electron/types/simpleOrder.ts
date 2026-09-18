@@ -11,6 +11,7 @@ export interface SimpleOrderRow {
   date: string;
   concept: string;
   total: number;
+  credited_amount?: number;
   active: boolean;
   client_name: string;
   client_phone: string;

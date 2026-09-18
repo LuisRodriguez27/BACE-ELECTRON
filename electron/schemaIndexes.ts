@@ -38,6 +38,17 @@ const schemaIndexes: string = `
   -- payments
   CREATE INDEX IF NOT EXISTS idx_payments_order_id                       ON payments(order_id);
   CREATE INDEX IF NOT EXISTS idx_payments_cash_session_id                ON payments(cash_session_id);
+  CREATE INDEX IF NOT EXISTS idx_payments_credit_id                      ON payments(credit_id);
+  CREATE INDEX IF NOT EXISTS idx_payments_created_by                     ON payments(created_by);
+
+  -- credits / credit_items
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_credits_one_open_per_client      ON credits(client_id) WHERE active = TRUE AND status = 'open';
+  CREATE INDEX IF NOT EXISTS idx_credits_client_id                       ON credits(client_id);
+  CREATE INDEX IF NOT EXISTS idx_credits_status                          ON credits(status) WHERE active = TRUE;
+  CREATE INDEX IF NOT EXISTS idx_credit_items_credit_id                  ON credit_items(credit_id) WHERE active = TRUE;
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_credit_items_unique_order        ON credit_items(order_id) WHERE active = TRUE AND order_id IS NOT NULL;
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_credit_items_unique_simple_order ON credit_items(simple_order_id) WHERE active = TRUE AND simple_order_id IS NOT NULL;
+  CREATE INDEX IF NOT EXISTS idx_credit_items_date                       ON credit_items(date) WHERE active = TRUE;
 
   -- simple_order_payments
   CREATE INDEX IF NOT EXISTS idx_simple_order_payments_simple_order_id   ON simple_order_payments(simple_order_id);

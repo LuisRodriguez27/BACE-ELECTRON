@@ -10,6 +10,7 @@ class Order {
   status: OrderStatus;
   responsable: OrderResponsable | null;
   total: number;
+  credited_amount: number;
   notes: string | null;
   description: string | null;
   active: boolean;
@@ -25,7 +26,7 @@ class Order {
   static VALID_RESPONSABLES: OrderResponsable[] = ['Mostrador', 'Maquila'];
   static RESPONSABLE = { MOSTRADOR: 'Mostrador' as const, MAQUILA: 'Maquila' as const };
 
-  constructor({ id, client_id, user_id, edited_by, date, estimated_delivery_date, status, responsable, total, notes, description, active = true, client_name, client_phone, client_color, user_username, edited_by_username, orderProducts = [] }: OrderRow & { orderProducts?: OrderProductRow[] }) {
+  constructor({ id, client_id, user_id, edited_by, date, estimated_delivery_date, status, responsable, total, credited_amount = 0, notes, description, active = true, client_name, client_phone, client_color, user_username, edited_by_username, orderProducts = [] }: OrderRow & { orderProducts?: OrderProductRow[] }) {
     this.id = id;
     this.client_id = client_id;
     this.user_id = user_id;
@@ -35,6 +36,7 @@ class Order {
     this.status = status || 'Revision';
     this.responsable = responsable || null;
     this.total = parseFloat(String(total)) || 0;
+    this.credited_amount = parseFloat(String(credited_amount)) || 0;
     this.notes = notes || null;
     this.description = description || null;
     this.active = active;
@@ -138,7 +140,7 @@ class Order {
   canComplete(): boolean { return !this.isCompleted() && !this.isCancelled(); }
 
   toPlainObject() {
-    return { id: this.id, client_id: this.client_id, user_id: this.user_id, edited_by: this.edited_by, date: this.date, estimated_delivery_date: this.estimated_delivery_date, status: this.status, responsable: this.responsable, total: this.total, notes: this.notes, description: this.description, active: this.active, client_name: this.client_name, client: this.getClient(), user: this.getUser(), editedByUser: this.getEditedByUser(), orderProducts: this.orderProducts };
+    return { id: this.id, client_id: this.client_id, user_id: this.user_id, edited_by: this.edited_by, date: this.date, estimated_delivery_date: this.estimated_delivery_date, status: this.status, responsable: this.responsable, total: this.total, credited_amount: this.credited_amount, notes: this.notes, description: this.description, active: this.active, client_name: this.client_name, client: this.getClient(), user: this.getUser(), editedByUser: this.getEditedByUser(), orderProducts: this.orderProducts };
   }
 }
 

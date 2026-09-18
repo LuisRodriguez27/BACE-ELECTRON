@@ -123,16 +123,30 @@ const schemaTables: string = `
     notes            TEXT
   );
 
+  CREATE TABLE IF NOT EXISTS credits (
+    id            SERIAL       PRIMARY KEY,
+    client_id     INTEGER      NOT NULL REFERENCES clients(id),
+    opened_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    closing_date  TIMESTAMPTZ,
+    status        VARCHAR(20)  NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'closed')),
+    notes         TEXT,
+    created_by    INTEGER      NOT NULL REFERENCES users(id),
+    active        BOOLEAN      NOT NULL DEFAULT TRUE
+  );
+
   CREATE TABLE IF NOT EXISTS payments (
     id               SERIAL        PRIMARY KEY,
     order_id         INTEGER       REFERENCES orders(id),
+    credit_id        INTEGER       REFERENCES credits(id),
+    created_by       INTEGER       REFERENCES users(id),
     cash_session_id  INTEGER       REFERENCES cash_sessions(id),
     amount           DECIMAL(10,2) NOT NULL,
     date             TIMESTAMPTZ,
     descripcion      TEXT,
     info             TEXT,
     phone            VARCHAR(50),
-    client_name      VARCHAR(255)
+    client_name      VARCHAR(255),
+    CONSTRAINT payments_single_reference_check CHECK (order_id IS NULL OR credit_id IS NULL)
   );
 
   CREATE TABLE IF NOT EXISTS simple_orders (
@@ -154,6 +168,22 @@ const schemaTables: string = `
     amount           DECIMAL(10,2) NOT NULL,
     date             TIMESTAMPTZ   NOT NULL,
     descripcion      TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS credit_items (
+    id               SERIAL        PRIMARY KEY,
+    credit_id        INTEGER       NOT NULL REFERENCES credits(id),
+    order_id         INTEGER       REFERENCES orders(id),
+    simple_order_id  INTEGER       REFERENCES simple_orders(id),
+    date             TIMESTAMPTZ   NOT NULL,
+    product          TEXT          NOT NULL,
+    quantity         DECIMAL(10,4) NOT NULL DEFAULT 1 CHECK (quantity > 0),
+    unit_price       DECIMAL(10,2) NOT NULL CHECK (unit_price > 0),
+    total            DECIMAL(10,2) NOT NULL CHECK (total > 0),
+    created_by       INTEGER       NOT NULL REFERENCES users(id),
+    edited_by        INTEGER       REFERENCES users(id),
+    active           BOOLEAN       NOT NULL DEFAULT TRUE,
+    CONSTRAINT credit_items_single_source_check CHECK (order_id IS NULL OR simple_order_id IS NULL)
   );
 
   CREATE TABLE IF NOT EXISTS suppliers (

@@ -4,8 +4,12 @@ import cashSessionRepository from './cashSessionRepository';
 import type { SimpleOrderRow, SimpleOrderPaymentRow } from '../types/simpleOrder';
 
 class SimpleOrderRepository {
+  private readonly selectWithCredit = `SELECT o.*, u.username as user_username,
+    COALESCE((SELECT SUM(ci.total) FROM credit_items ci WHERE ci.simple_order_id = o.id AND ci.active = TRUE), 0) AS credited_amount
+    FROM simple_orders o LEFT JOIN users u ON o.user_id = u.id`;
+
   async getAll() {
-    const rows = await db.getAll<SimpleOrderRow>(`SELECT o.*, u.username as user_username FROM simple_orders o LEFT JOIN users u ON o.user_id = u.id WHERE o.active = true ORDER BY o.date DESC`);
+    const rows = await db.getAll<SimpleOrderRow>(`${this.selectWithCredit} WHERE o.active = true ORDER BY o.date DESC`);
     const ordersWithPayments = [];
     for (const row of rows) {
       const payments = await this.getPayments(row.id as number);
@@ -15,7 +19,7 @@ class SimpleOrderRepository {
   }
 
   async getById(id: number) {
-    const row = await db.getOne<SimpleOrderRow>(`SELECT o.*, u.username as user_username FROM simple_orders o LEFT JOIN users u ON o.user_id = u.id WHERE o.id = $1`, [id]);
+    const row = await db.getOne<SimpleOrderRow>(`${this.selectWithCredit} WHERE o.id = $1`, [id]);
     if (!row) return null;
     const payments = await this.getPayments(id);
     return new SimpleOrder({ ...row, payments });
@@ -79,7 +83,7 @@ class SimpleOrderRepository {
 
     const countResult = await db.getOne<{ total: string }>(`SELECT COUNT(*) as total FROM simple_orders o WHERE o.active = true ${searchCondition}`, searchParams);
     const total = parseInt(countResult!.total, 10) || 0;
-    const rows = await db.getAll<SimpleOrderRow>(`SELECT o.*, u.username as user_username FROM simple_orders o LEFT JOIN users u ON o.user_id = u.id WHERE o.active = true ${searchCondition} ORDER BY o.date DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`, [...searchParams, limit, offset]);
+    const rows = await db.getAll<SimpleOrderRow>(`${this.selectWithCredit} WHERE o.active = true ${searchCondition} ORDER BY o.date DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`, [...searchParams, limit, offset]);
 
     const ordersWithPayments = [];
     for (const row of rows) {
@@ -88,9 +92,10 @@ class SimpleOrderRepository {
     }
 
     const statsResult = await db.getOne<{ total_count: string; total_amount: string; total_paid: string; total_pending: string }>(`
-      WITH order_payments AS (SELECT simple_order_id, COALESCE(SUM(amount), 0) as total_paid FROM simple_order_payments GROUP BY simple_order_id)
-      SELECT COUNT(*) as total_count, COALESCE(SUM(total), 0) as total_amount, COALESCE(SUM(COALESCE(p.total_paid, 0)), 0) as total_paid, COALESCE(SUM(GREATEST(0, total - COALESCE(p.total_paid, 0))), 0) as total_pending
-      FROM simple_orders o LEFT JOIN order_payments p ON o.id = p.simple_order_id WHERE o.active = true
+      WITH order_payments AS (SELECT simple_order_id, COALESCE(SUM(amount), 0) as total_paid FROM simple_order_payments GROUP BY simple_order_id),
+           credit_totals AS (SELECT simple_order_id, COALESCE(SUM(total), 0) as total_credited FROM credit_items WHERE active = TRUE AND simple_order_id IS NOT NULL GROUP BY simple_order_id)
+      SELECT COUNT(*) as total_count, COALESCE(SUM(o.total), 0) as total_amount, COALESCE(SUM(COALESCE(p.total_paid, 0)), 0) as total_paid, COALESCE(SUM(GREATEST(0, o.total - COALESCE(p.total_paid, 0) - COALESCE(c.total_credited, 0))), 0) as total_pending
+      FROM simple_orders o LEFT JOIN order_payments p ON o.id = p.simple_order_id LEFT JOIN credit_totals c ON o.id = c.simple_order_id WHERE o.active = true
     `);
 
     return {
