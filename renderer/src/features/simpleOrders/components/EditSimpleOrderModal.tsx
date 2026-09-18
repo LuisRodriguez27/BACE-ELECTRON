@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { SimpleOrdersApiService } from '../SimpleOrdersApiService';
 import { useAuth } from '@/hooks/use-auth';
 import type { SimpleOrder } from '../types';
+import SimpleOrderClientFields from './SimpleOrderClientFields';
 
 interface EditSimpleOrderModalProps {
   isOpen: boolean;
@@ -72,7 +73,7 @@ const EditSimpleOrderModal: React.FC<EditSimpleOrderModalProps> = ({
 
     try {
       if (!order) return;
-      const updatedOrder = await SimpleOrdersApiService.update(order.id, {
+      await SimpleOrdersApiService.update(order.id, {
         user_id: order.user_id, // keep original user
         concept,
         total: Number(total),
@@ -83,9 +84,6 @@ const EditSimpleOrderModal: React.FC<EditSimpleOrderModalProps> = ({
       });
 
       toast.success('Orden rápida actualizada correctamente');
-      if (updatedOrder.clientCreated) {
-        toast.info('Cliente registrado exitosamente');
-      }
       onOrderUpdated();
       onClose();
     } catch (err: any) {
@@ -160,32 +158,14 @@ const EditSimpleOrderModal: React.FC<EditSimpleOrderModalProps> = ({
                 />
               </div>
 
-              <div>
-                <Label htmlFor="client_name" className="mb-1 block font-medium">Nombre del Cliente <span className="text-gray-400 font-normal text-xs">(Opcional)</span></Label>
-                <Input
-                  id="client_name"
-                  value={client_name}
-                  onChange={(e) => setClientName(e.target.value)}
-                  placeholder="Nombre de la persona (para tickets / búsquedas)"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="client_phone" className="mb-1 block font-medium">Teléfono del Cliente <span className="text-gray-400 font-normal text-xs">(Opcional)</span></Label>
-                <Input
-                  id="client_phone"
-                  type="tel"
-                  maxLength={10}
-                  value={client_phone}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, '');
-                    if (val.length <= 10) {
-                      setClientPhone(val);
-                    }
-                  }}
-                  placeholder="Teléfono del cliente..."
-                />
-              </div>
+              <SimpleOrderClientFields
+                isOpen={isOpen}
+                clientName={client_name}
+                clientPhone={client_phone}
+                onClientNameChange={setClientName}
+                onClientPhoneChange={setClientPhone}
+                idPrefix="edit-simple-order"
+              />
 
               <div>
                 <Label htmlFor="total" className="mb-1 block font-medium">Total a cobrar <span className="text-red-500">*</span></Label>

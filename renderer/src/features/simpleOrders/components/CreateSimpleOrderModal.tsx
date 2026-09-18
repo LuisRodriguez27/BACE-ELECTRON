@@ -4,6 +4,7 @@ import { X, DollarSign, Loader } from 'lucide-react';
 import { toast } from 'sonner';
 import { SimpleOrdersApiService } from '../SimpleOrdersApiService';
 import { useAuthStore } from '@/store/auth';
+import SimpleOrderClientFields from './SimpleOrderClientFields';
 
 interface CreateSimpleOrderModalProps {
   isOpen: boolean;
@@ -85,9 +86,6 @@ const CreateSimpleOrderModal: React.FC<CreateSimpleOrderModalProps> = ({
       }
 
       toast.success('Orden rápida registrada exitosamente');
-      if (respOrder.clientCreated) {
-        toast.info('Cliente registrado exitosamente');
-      }
       onOrderCreated();
       handleClose();
     } catch (err: any) {
@@ -165,44 +163,14 @@ const CreateSimpleOrderModal: React.FC<CreateSimpleOrderModalProps> = ({
             </div>
           )}
 
-          {/* Cliente (Opcional) */}
-          <div>
-            <Label htmlFor="clientName" className="text-sm font-medium text-gray-700">
-              Cliente (Opcional)
-            </Label>
-            <div className="mt-1 relative">
-              <Input
-                id="clientName"
-                value={client_name}
-                onChange={(e) => setClientName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                placeholder="Nombre del cliente..."
-              />
-            </div>
-          </div>
-
-          {/* Teléfono (Opcional) */}
-          <div>
-            <Label htmlFor="clientPhone" className="text-sm font-medium text-gray-700">
-              Teléfono (Opcional)
-            </Label>
-            <div className="mt-1 relative">
-              <Input
-                id="clientPhone"
-                type="tel"
-                maxLength={10}
-                value={client_phone}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, '');
-                  if (val.length <= 10) {
-                    setClientPhone(val);
-                  }
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                placeholder="Teléfono del cliente..."
-              />
-            </div>
-          </div>
+          <SimpleOrderClientFields
+            isOpen={isOpen}
+            clientName={client_name}
+            clientPhone={client_phone}
+            onClientNameChange={setClientName}
+            onClientPhoneChange={setClientPhone}
+            idPrefix="create-simple-order"
+          />
 
           {/* Concepto */}
           <div>

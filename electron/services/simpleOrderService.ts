@@ -62,11 +62,10 @@ class SimpleOrderService {
         const newId = await simpleOrderRepository.create({ user_id: order.user_id, date: order.date || new Date().toISOString(), concept: order.concept, total: order.total, active: order.active, client_name: resolvedName?.trim() || null, client_phone: resolvedPhone?.trim() || null });
         const newOrder = await simpleOrderRepository.getById(newId);
         if (!newOrder) throw new Error('Error al obtener la orden creada');
-        const resObj = {
+        return {
           ...newOrder.toPlainObject(),
           clientCreated: wasClientCreated ? true : undefined,
         };
-        return resObj;
       });
 
       return await transaction();
@@ -111,11 +110,10 @@ class SimpleOrderService {
 
         const updatedOrder = await simpleOrderRepository.getById(id);
         if (!updatedOrder) throw new Error('Error al obtener la orden actualizada');
-        const resObj = {
+        return {
           ...updatedOrder.toPlainObject(),
           clientCreated: wasClientCreated ? true : undefined,
         };
-        return resObj;
       });
 
       return await transaction();

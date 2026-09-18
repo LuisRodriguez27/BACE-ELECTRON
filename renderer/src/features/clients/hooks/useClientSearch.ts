@@ -4,8 +4,12 @@ import type { UseFormSetValue, UseFormUnregister } from 'react-hook-form';
 import { ClientApiService } from '../ClientApiService';
 
 export interface UseClientSearchOptions {
-  setValue: UseFormSetValue<any>;
-  unregister: UseFormUnregister<any>;
+  setValue?: UseFormSetValue<any>;
+  unregister?: UseFormUnregister<any>;
+  onSelectClient?: (client: Client) => void;
+  dropdownId?: string;
+  inputId?: string;
+  containerId?: string;
 }
 
 export interface UseClientSearchReturn {
@@ -27,7 +31,14 @@ export interface UseClientSearchReturn {
   reset: () => void;
 }
 
-export const useClientSearch = ({ setValue, unregister }: UseClientSearchOptions): UseClientSearchReturn => {
+export const useClientSearch = ({
+  setValue,
+  unregister,
+  onSelectClient,
+  dropdownId = 'client-dropdown',
+  inputId = 'client-search-input',
+  containerId,
+}: UseClientSearchOptions): UseClientSearchReturn => {
   const [clients, setClients] = useState<Client[]>([]);
   const [loadingClients, setLoadingClients] = useState(true);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -65,14 +76,16 @@ export const useClientSearch = ({ setValue, unregister }: UseClientSearchOptions
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
-      const clientDropdown = document.getElementById('client-dropdown');
-      const clientInput = document.getElementById('client-search-input');
+      const clientDropdown = document.getElementById(dropdownId);
+      const clientInput = document.getElementById(inputId);
+      const clientContainer = containerId ? document.getElementById(containerId) : null;
 
       if (clientDropdown && showClientDropdown) {
         const isClickInsideClientDropdown = clientDropdown.contains(target);
         const isClickInsideClientInput = clientInput?.contains(target);
+        const isClickInsideClientContainer = clientContainer?.contains(target);
 
-        if (!isClickInsideClientDropdown && !isClickInsideClientInput) {
+        if (!isClickInsideClientDropdown && !isClickInsideClientInput && !isClickInsideClientContainer) {
           setShowClientDropdown(false);
         }
       }
@@ -82,7 +95,7 @@ export const useClientSearch = ({ setValue, unregister }: UseClientSearchOptions
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showClientDropdown]);
+  }, [showClientDropdown, dropdownId, inputId, containerId]);
 
   const loadClients = async () => {
     try {
@@ -153,16 +166,17 @@ export const useClientSearch = ({ setValue, unregister }: UseClientSearchOptions
   }, [clients]);
 
   const selectClient = useCallback((client: Client) => {
-    setValue('client_id', client.id);
+    setValue?.('client_id', client.id);
+    onSelectClient?.(client);
     setSelectedClientId(client.id);
     setClientSearchTerm(`${client.name} - ${client.phone}`);
     setShowClientDropdown(false);
-  }, [setValue]);
+  }, [setValue, onSelectClient]);
 
   const handleClientCreated = useCallback((newClient: Client) => {
     setClients(prev => [newClient, ...prev]);
     // Seleccionar automáticamente el cliente recién creado
-    setValue('client_id', newClient.id);
+    setValue?.('client_id', newClient.id);
     setSelectedClientId(newClient.id);
     setClientSearchTerm(`${newClient.name} - ${newClient.phone}`);
     setShowClientDropdown(false);
@@ -180,7 +194,7 @@ export const useClientSearch = ({ setValue, unregister }: UseClientSearchOptions
       const selectedClient = clients.find(c => c.id === selectedClientId);
       if (selectedClient && searchTerm !== `${selectedClient.name} - ${selectedClient.phone}`) {
         setSelectedClientId(null);
-        unregister('client_id');
+        unregister?.('client_id');
       }
     }
   }, [selectedClientId, clients, unregister]);
