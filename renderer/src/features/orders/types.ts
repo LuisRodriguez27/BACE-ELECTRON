@@ -85,6 +85,7 @@ export interface Order {
   status: OrderStatusType;
   responsable?: OrderResponsableType;
   total: number;
+  credited_amount?: number;
   notes?: string;
   description?: string;
   active: boolean;

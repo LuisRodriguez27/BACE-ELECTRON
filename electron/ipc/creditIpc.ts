@@ -7,6 +7,7 @@ import type {
   CreateCreditData,
   CreditFilters,
   CreditStatementParams,
+  CreditSourceType,
   UpdateCreditItemData,
 } from '../types/credit';
 
@@ -24,5 +25,5 @@ export function registerCreditIpc(): void {
   ipcMain.handle('credits:close', async (_event, id: number, data: CloseCreditData) => await creditService.close(id, data));
   ipcMain.handle('credits:reopen', async (_event, id: number) => await creditService.reopen(id));
   ipcMain.handle('credits:getStatement', async (_event, id: number, params: CreditStatementParams) => await creditService.getStatement(id, params));
-  ipcMain.handle('credits:searchSources', async (_event, searchTerm: string, limit: number) => await creditService.searchAvailableSources(searchTerm, limit));
+  ipcMain.handle('credits:searchSources', async (_event, searchTerm: string, limit: number, sourceType?: Exclude<CreditSourceType, 'manual'>) => await creditService.searchAvailableSources(searchTerm, limit, sourceType));
 }

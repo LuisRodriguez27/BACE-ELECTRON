@@ -58,8 +58,8 @@ const EditSimpleOrderModal: React.FC<EditSimpleOrderModalProps> = ({
       return;
     }
     
-    if (order && Number(total) < order.totalPaid) {
-        setError(`El total no puede ser menor a lo que ya se abonó ($${order.totalPaid})`);
+    if (order && Number(total) < order.totalPaid + (order.credited_amount || 0)) {
+        setError(`El total no puede ser menor a lo abonado o trasladado a crédito ($${(order.totalPaid + (order.credited_amount || 0)).toFixed(2)})`);
         return;
     }
 

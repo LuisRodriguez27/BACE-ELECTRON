@@ -23,7 +23,8 @@ import {
   ShoppingBasket,
   ChevronUp,
   ChevronDown,
-  StickyNote
+  StickyNote,
+  CreditCard
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSidebarStore } from '@/store/sidebar'
@@ -87,6 +88,12 @@ const menuItems: MenuItem[] = [
     label: 'Pagos',
     icon: DollarSign,
     path: '/dashboard/payments'
+  },
+  {
+    id: 'credits',
+    label: 'Créditos',
+    icon: CreditCard,
+    path: '/dashboard/credits'
   },
   {
     id: 'cash-session',
@@ -240,6 +247,10 @@ const Sidebar: React.FC = () => {
           } 
 
           if (item.id === 'payments' && !canAccess('Ver Pagos')) {
+            return null
+          }
+
+          if (item.id === 'credits' && !canAccess('Ver Creditos')) {
             return null
           }
 

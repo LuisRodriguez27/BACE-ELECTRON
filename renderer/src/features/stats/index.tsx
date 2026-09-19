@@ -379,6 +379,7 @@ const StatsPage: React.FC = () => {
             <option value="orders">Órdenes</option>
             <option value="simple">Órdenes Rápidas</option>
             <option value="extra">Ingresos sin Orden</option>
+            <option value="credit">Créditos</option>
           </select>
 
           {period === 'custom' && (
@@ -566,7 +567,12 @@ const StatsPage: React.FC = () => {
               </span>
               {paymentMethod !== 'all' && (
                 <span className="text-xs text-blue-600 text-center mt-2 max-w-lg bg-blue-100 p-2 rounded-md">
-                  Nota: El total refleja la suma del valor completo de las órdenes que incluyen este método de pago, no solo el monto parcial abonado.
+                  Con un método de pago seleccionado, el total refleja únicamente los ingresos efectivamente registrados con ese método.
+                </span>
+              )}
+              {paymentMethod === 'all' && (
+                <span className="text-xs text-blue-600 text-center mt-2 max-w-lg bg-blue-100 p-2 rounded-md">
+                  Sin filtrar por método, el total representa los ingresos esperados, aunque existan órdenes o créditos pendientes de pago.
                 </span>
               )}
             </div>

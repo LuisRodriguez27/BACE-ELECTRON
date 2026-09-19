@@ -24,6 +24,9 @@ export type EditPaymentForm = z.infer<typeof editPaymentSchema>;
 export interface Payment {
   id: number;
   order_id?: number | null;
+  credit_id?: number | null;
+  created_by?: number | null;
+  cash_session_id?: number | null;
   amount: number;
   date?: string; // ISO date string
   descripcion?: string;
@@ -33,6 +36,7 @@ export interface Payment {
   clientCreated?: boolean;
   is_simple_order?: boolean;
   simple_order_id?: number | null;
+  is_credit?: boolean;
   // Para joins con orders
   order?: {
     id: number;
@@ -44,12 +48,19 @@ export interface Payment {
     description?: string | null;
     notes?: string | null;
   } | null;
+  credit?: {
+    id: number;
+    client_id: number;
+    status: 'open' | 'closed';
+    client_name?: string | null;
+    client_phone?: string | null;
+  } | null;
 }
 
 export interface PaymentFilters {
   freeOnly?: boolean;
-  orderFilter?: number | 'free' | 'simple' | null;
-  searchType?: 'payment_id' | 'order_id' | 'amount' | 'method' | 'info';
+  orderFilter?: number | 'free' | 'simple' | 'credit' | null;
+  searchType?: 'payment_id' | 'order_id' | 'credit_id' | 'amount' | 'method' | 'info';
   searchTerm?: string;
 }
 

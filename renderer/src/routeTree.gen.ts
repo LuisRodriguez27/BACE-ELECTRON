@@ -26,6 +26,7 @@ import { Route as DashboardPaymentsRouteImport } from './routes/dashboard.paymen
 import { Route as DashboardOrdersRouteImport } from './routes/dashboard.orders'
 import { Route as DashboardNotesRouteImport } from './routes/dashboard.notes'
 import { Route as DashboardHistoryRouteImport } from './routes/dashboard.history'
+import { Route as DashboardCreditsRouteImport } from './routes/dashboard.credits'
 import { Route as DashboardConfigurationsRouteImport } from './routes/dashboard.configurations'
 import { Route as DashboardClientsRouteImport } from './routes/dashboard.clients'
 import { Route as DashboardCashSessionRouteImport } from './routes/dashboard.cash-session'
@@ -143,6 +144,11 @@ const DashboardHistoryRoute = DashboardHistoryRouteImport.update({
   path: '/history',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardCreditsRoute = DashboardCreditsRouteImport.update({
+  id: '/credits',
+  path: '/credits',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardConfigurationsRoute = DashboardConfigurationsRouteImport.update({
   id: '/configurations',
   path: '/configurations',
@@ -177,6 +183,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/cash-session': typeof DashboardCashSessionRoute
   '/dashboard/clients': typeof DashboardClientsRoute
   '/dashboard/configurations': typeof DashboardConfigurationsRoute
+  '/dashboard/credits': typeof DashboardCreditsRoute
   '/dashboard/history': typeof DashboardHistoryRoute
   '/dashboard/notes': typeof DashboardNotesRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
@@ -203,6 +210,7 @@ export interface FileRoutesByTo {
   '/dashboard/cash-session': typeof DashboardCashSessionRoute
   '/dashboard/clients': typeof DashboardClientsRoute
   '/dashboard/configurations': typeof DashboardConfigurationsRoute
+  '/dashboard/credits': typeof DashboardCreditsRoute
   '/dashboard/history': typeof DashboardHistoryRoute
   '/dashboard/notes': typeof DashboardNotesRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
@@ -231,6 +239,7 @@ export interface FileRoutesById {
   '/dashboard/cash-session': typeof DashboardCashSessionRoute
   '/dashboard/clients': typeof DashboardClientsRoute
   '/dashboard/configurations': typeof DashboardConfigurationsRoute
+  '/dashboard/credits': typeof DashboardCreditsRoute
   '/dashboard/history': typeof DashboardHistoryRoute
   '/dashboard/notes': typeof DashboardNotesRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
@@ -260,6 +269,7 @@ export interface FileRouteTypes {
     | '/dashboard/cash-session'
     | '/dashboard/clients'
     | '/dashboard/configurations'
+    | '/dashboard/credits'
     | '/dashboard/history'
     | '/dashboard/notes'
     | '/dashboard/orders'
@@ -286,6 +296,7 @@ export interface FileRouteTypes {
     | '/dashboard/cash-session'
     | '/dashboard/clients'
     | '/dashboard/configurations'
+    | '/dashboard/credits'
     | '/dashboard/history'
     | '/dashboard/notes'
     | '/dashboard/orders'
@@ -313,6 +324,7 @@ export interface FileRouteTypes {
     | '/dashboard/cash-session'
     | '/dashboard/clients'
     | '/dashboard/configurations'
+    | '/dashboard/credits'
     | '/dashboard/history'
     | '/dashboard/notes'
     | '/dashboard/orders'
@@ -488,6 +500,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardHistoryRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/credits': {
+      id: '/dashboard/credits'
+      path: '/credits'
+      fullPath: '/dashboard/credits'
+      preLoaderRoute: typeof DashboardCreditsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/configurations': {
       id: '/dashboard/configurations'
       path: '/configurations'
@@ -524,6 +543,7 @@ interface DashboardRouteChildren {
   DashboardCashSessionRoute: typeof DashboardCashSessionRoute
   DashboardClientsRoute: typeof DashboardClientsRoute
   DashboardConfigurationsRoute: typeof DashboardConfigurationsRoute
+  DashboardCreditsRoute: typeof DashboardCreditsRoute
   DashboardHistoryRoute: typeof DashboardHistoryRoute
   DashboardNotesRoute: typeof DashboardNotesRoute
   DashboardOrdersRoute: typeof DashboardOrdersRoute
@@ -544,6 +564,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardCashSessionRoute: DashboardCashSessionRoute,
   DashboardClientsRoute: DashboardClientsRoute,
   DashboardConfigurationsRoute: DashboardConfigurationsRoute,
+  DashboardCreditsRoute: DashboardCreditsRoute,
   DashboardHistoryRoute: DashboardHistoryRoute,
   DashboardNotesRoute: DashboardNotesRoute,
   DashboardOrdersRoute: DashboardOrdersRoute,

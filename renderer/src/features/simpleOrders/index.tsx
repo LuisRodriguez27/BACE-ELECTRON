@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Copy, DollarSign, Loader2, Plus, Search, ShoppingCart, Printer } from 'lucide-react';
+import { AlertCircle, Copy, CreditCard, DollarSign, Loader2, Plus, Search, ShoppingCart, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDateMX, nowISO } from '@/utils/dateUtils';
 
@@ -14,10 +15,14 @@ import EditPaymentModal from '../payments/components/EditPaymentModal';
 import SimpleOrderPrintPreviewModal from './components/SimpleOrderPrintPreviewModal';
 import { useWhatsAppSimpleOrder } from './hooks/useWhatsAppSimpleOrder';
 import { Eye, MessageCircle, Pencil, MoreVertical } from 'lucide-react';
+import AssignOrderToCreditModal from '../credits/components/AssignOrderToCreditModal';
+import type { CreditAssignmentSource } from '../credits/types';
+import { usePermissions } from '@/hooks/use-permissions';
 
 
 
 const SimpleOrdersPage: React.FC = () => {
+  const { checkPermission } = usePermissions();
   const {
     isSendingWhatsApp,
     isCopyingImage,
@@ -66,6 +71,8 @@ const SimpleOrdersPage: React.FC = () => {
   const [selectedPayment, setSelectedPayment] = useState<SimpleOrderPayment | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all'|'pending'|'paid'>('all');
   const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
+  const [creditSource, setCreditSource] = useState<CreditAssignmentSource | null>(null);
 
   const observerRef = useRef<IntersectionObserver | null>(null);
   const lastOrderElementRef = useCallback((node: HTMLTableRowElement) => {
@@ -119,6 +126,17 @@ const SimpleOrdersPage: React.FC = () => {
     loadOrders(1, true, '');
   }, []);
 
+  useEffect(() => {
+    if (!openDropdownId) return;
+    const closeMenu = () => { setOpenDropdownId(null); setDropdownPosition(null); };
+    window.addEventListener('scroll', closeMenu, true);
+    window.addEventListener('resize', closeMenu);
+    return () => {
+      window.removeEventListener('scroll', closeMenu, true);
+      window.removeEventListener('resize', closeMenu);
+    };
+  }, [openDropdownId]);
+
   // Manejar búsqueda con debounce
   useEffect(() => {
     if (searchDebounceTimer) {
@@ -151,6 +169,24 @@ const SimpleOrdersPage: React.FC = () => {
     setShowPaymentModal(true);
   };
 
+  const handleAddToCredit = (order: SimpleOrder) => {
+    if (!checkPermission('Gestionar Creditos')) return;
+    const credited = order.credited_amount || 0;
+    if (order.balance <= 0.01 || credited > 0.01) return;
+    setCreditSource({
+      source_type: 'simple_order',
+      id: order.id,
+      date: order.date,
+      product: order.concept,
+      client_name: order.client_name || null,
+      client_phone: order.client_phone || null,
+      total: order.total,
+      paid: order.totalPaid,
+      credited,
+      available: order.balance,
+    });
+  };
+
   const closeModals = () => {
     setShowCreateModal(false);
     setShowEditModal(false);
@@ -161,6 +197,7 @@ const SimpleOrdersPage: React.FC = () => {
     setSelectedOrderId(null);
     setSelectedPayment(null);
     setOpenDropdownId(null);
+    setDropdownPosition(null);
   };
 
   const openCreateModal = () => {
@@ -188,13 +225,19 @@ const SimpleOrdersPage: React.FC = () => {
   };
 
   const getPaymentBadge = (order: SimpleOrder) => {
-    if (order.balance <= 0) {
+    if (order.balance <= 0 && (order.credited_amount || 0) > 0 && order.totalPaid < order.total) {
+      return (
+        <span className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+          <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span> En crédito
+        </span>
+      );
+    } else if (order.balance <= 0) {
       return (
         <span className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
           <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span> Pagado
         </span>
       );
-    } else if (order.totalPaid > 0) {
+    } else if (order.totalPaid > 0 || (order.credited_amount || 0) > 0) {
       return (
         <span className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
           <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span> Pendiente ${order.balance.toFixed(2)}
@@ -384,7 +427,8 @@ const SimpleOrdersPage: React.FC = () => {
                     <td className="py-3 px-4 text-gray-500">{order.user?.username || 'N/A'}</td>
                     <td className="py-3 px-4 text-gray-900 font-medium text-right">${order.total.toFixed(2)}</td>
                     <td className={`py-3 px-4 font-medium text-right ${order.balance > 0 && order.totalPaid > 0 ? 'text-orange-600' : order.balance <= 0 ? 'text-green-600' : 'text-gray-500'}`}>
-                      ${order.totalPaid.toFixed(2)}
+                      <div>${order.totalPaid.toFixed(2)}</div>
+                      {(order.credited_amount || 0) > 0 && <div className="text-xs font-normal text-purple-600">Crédito: ${(order.credited_amount || 0).toFixed(2)}</div>}
                     </td>
                     <td className="py-3 px-4 text-right">
                       {getPaymentBadge(order)}
@@ -440,6 +484,14 @@ const SimpleOrdersPage: React.FC = () => {
                         >
                           <Eye size={16} />
                         </button>
+                        <button
+                          onClick={() => handleAddToCredit(order)}
+                          disabled={order.balance <= 0 || (order.credited_amount || 0) > 0}
+                          className={`p-1.5 rounded ${order.balance <= 0 || (order.credited_amount || 0) > 0 ? 'text-gray-300 cursor-not-allowed' : 'text-purple-500 hover:text-purple-700 bg-purple-50 hover:bg-purple-100'}`}
+                          title={(order.credited_amount || 0) > 0 ? 'La orden rápida ya está relacionada con un crédito' : 'Agregar a crédito'}
+                        >
+                          <CreditCard size={16} />
+                        </button>
                         <button 
                           onClick={() => handleAddPayment(order.id)}
                           disabled={order.balance <= 0}
@@ -452,11 +504,18 @@ const SimpleOrdersPage: React.FC = () => {
 
                       {/* Botón de tres puntos en pantallas medianas/pequeñas (como 1366px) */}
                       <div className="2xl:hidden flex justify-center">
-                        <div className="relative">
+                        <div>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              setOpenDropdownId(openDropdownId === order.id ? null : order.id);
+                              if (openDropdownId === order.id) {
+                                setOpenDropdownId(null);
+                                setDropdownPosition(null);
+                                return;
+                              }
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setDropdownPosition({ top: Math.min(rect.bottom + 8, window.innerHeight - 300), left: Math.max(8, rect.right - 192) });
+                              setOpenDropdownId(order.id);
                             }}
                             className="p-1.5 rounded text-gray-400 hover:text-gray-700 bg-gray-50 hover:bg-gray-100"
                             title="Acciones"
@@ -464,18 +523,33 @@ const SimpleOrdersPage: React.FC = () => {
                             <MoreVertical size={16} />
                           </button>
                           
-                          {openDropdownId === order.id && (
+                          {openDropdownId === order.id && dropdownPosition && createPortal(
                             <>
-                              {/* Backdrop invisible para cerrar al hacer clic fuera */}
-                              <div 
-                                className="fixed inset-0 z-30" 
-                                onClick={(e) => {
-                                  e.stopPropagation();
+                              <div
+                                className="fixed inset-0 z-50"
+                                onClick={() => {
                                   setOpenDropdownId(null);
+                                  setDropdownPosition(null);
                                 }}
                               />
                               
-                              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-40 origin-top-right text-left">
+                              <div className="fixed z-[60] w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 text-left" style={dropdownPosition}>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    handleAddToCredit(order);
+                                    setOpenDropdownId(null);
+                                  }}
+                                  disabled={order.balance <= 0 || (order.credited_amount || 0) > 0}
+                                  className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${
+                                    order.balance <= 0 || (order.credited_amount || 0) > 0
+                                      ? 'text-gray-300 cursor-not-allowed'
+                                      : 'text-purple-700 hover:bg-purple-50'
+                                  }`}
+                                >
+                                  <CreditCard size={14} />
+                                  {(order.credited_amount || 0) > 0 ? 'Ya está en crédito' : 'Agregar a crédito'}
+                                </button>
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -555,7 +629,8 @@ const SimpleOrdersPage: React.FC = () => {
                                   Agregar Pago
                                 </button>
                               </div>
-                            </>
+                            </>,
+                            document.body,
                           )}
                         </div>
                       </div>
@@ -606,7 +681,7 @@ const SimpleOrdersPage: React.FC = () => {
           isOpen={showPaymentModal}
           onClose={closeModals}
           orderId={selectedOrderId}
-          orderTotal={orders.find(o => o.id === selectedOrderId)?.total || 0}
+          orderTotal={(orders.find(o => o.id === selectedOrderId)?.total || 0) - (orders.find(o => o.id === selectedOrderId)?.credited_amount || 0)}
           currentPayments={orders.find(o => o.id === selectedOrderId)?.totalPaid || 0}
           clientName={orders.find(o => o.id === selectedOrderId)?.concept || 'Orden Rápida'}
           onPaymentCreated={handlePaymentCreated}
@@ -668,7 +743,7 @@ const SimpleOrdersPage: React.FC = () => {
           isOpen={showEditPaymentModal}
           onClose={closeModals}
           payment={selectedPayment as any}
-          orderTotal={orders.find(o => o.id === selectedOrderId)?.total || 0}
+          orderTotal={(orders.find(o => o.id === selectedOrderId)?.total || 0) - (orders.find(o => o.id === selectedOrderId)?.credited_amount || 0)}
           currentPayments={(orders.find(o => o.id === selectedOrderId)?.totalPaid || 0) - (selectedPayment.amount || 0)}
           onPaymentUpdated={handlePaymentCreated}
           onPaymentDeleted={handlePaymentCreated}
@@ -686,6 +761,17 @@ const SimpleOrdersPage: React.FC = () => {
       )}
 
       {whatsappDialogElement}
+
+      {creditSource && (
+        <AssignOrderToCreditModal
+          source={creditSource}
+          onClose={() => setCreditSource(null)}
+          onAssigned={() => {
+            setCreditSource(null);
+            loadOrders(1, true, searchTerm);
+          }}
+        />
+      )}
 
     </div>
   );

@@ -42,6 +42,8 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
   });
 
   const pendingAmount = orderTotal - currentPayments;
+  const isCreditPayment = !!payment?.is_credit || !!payment?.credit_id;
+  const maximumAmount = isCreditPayment ? undefined : pendingAmount + (payment?.amount || 0);
 
   useEffect(() => {
     if (payment && isOpen) {
@@ -69,13 +71,13 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
       const validatedData = editPaymentSchema.parse(formData);
 
       // Verificar que el nuevo monto no exceda lo disponible
-      if (validatedData.amount > pendingAmount + payment.amount) {
-        setError(`El monto no puede exceder el disponible: $${(pendingAmount + payment.amount).toFixed(2)}`);
+      if (maximumAmount !== undefined && validatedData.amount > maximumAmount) {
+        setError(`El monto no puede exceder el disponible: $${maximumAmount.toFixed(2)}`);
         setLoading(false);
         return;
       }
 
-      const isFreePayment = !payment.order_id && !isSimpleOrder;
+      const isFreePayment = !payment.order_id && !isSimpleOrder && !isCreditPayment;
 
       if (isFreePayment && (!formData.info || formData.info.trim() === '')) {
         setError('El campo "Información/Concepto" es requerido para pagos sin orden');
@@ -97,7 +99,11 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
           descripcion: validatedData.descripcion
         }) as any;
       } else {
-        updatedPayment = await PaymentsApiService.update(payment.id, validatedData);
+        updatedPayment = await PaymentsApiService.update(payment.id, isCreditPayment ? {
+          amount: validatedData.amount,
+          descripcion: validatedData.descripcion,
+          info: validatedData.info,
+        } : validatedData);
       }
 
       toast.success('Pago actualizado exitosamente');
@@ -257,7 +263,7 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
                 <div>
                   <span className="text-gray-600">Monto disponible para edición:</span>
                   <p className="font-semibold text-green-600">
-                    ${(pendingAmount + payment.amount).toFixed(2)}
+                    {isCreditPayment ? 'Validado contra el saldo actual del crédito' : `$${maximumAmount!.toFixed(2)}`}
                   </p>
                 </div>
               </div>
@@ -275,7 +281,7 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
                   type="number"
                   step="0.01"
                   min="1"
-                  max={pendingAmount + payment.amount}
+                  max={maximumAmount}
                   value={formData.amount || ''}
                   onChange={(e) => setFormData(prev => ({
                     ...prev,
@@ -287,12 +293,12 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
                 />
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Máximo: ${(pendingAmount + payment.amount).toFixed(2)}
+                {isCreditPayment ? 'El máximo se valida con los cargos y demás abonos del crédito.' : `Máximo: $${maximumAmount!.toFixed(2)}`}
               </p>
             </div>
 
             {/* Campos editables para pago libre */}
-            {!payment.order_id && !isSimpleOrder && (
+            {!payment.order_id && !isSimpleOrder && !isCreditPayment && (
               <>
                 {/* Nombre de cliente */}
                 <div>
@@ -403,7 +409,7 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
                 </Button>
                 <Button
                   type="submit"
-                  disabled={loading || formData.amount <= 0 || formData.amount > (pendingAmount + payment.amount)}
+                  disabled={loading || formData.amount <= 0 || (maximumAmount !== undefined && formData.amount > maximumAmount)}
                   className="flex items-center gap-2"
                 >
                   {loading && <Loader className="animate-spin" size={16} />}

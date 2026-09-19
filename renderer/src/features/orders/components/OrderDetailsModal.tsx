@@ -808,6 +808,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 payments={payments}
                 orderId={order.id}
                 orderTotal={order.total}
+                creditedAmount={order.credited_amount || 0}
                 clientName={order.client?.name || 'Cliente'}
                 onPaymentsChange={loadPayments}
               />

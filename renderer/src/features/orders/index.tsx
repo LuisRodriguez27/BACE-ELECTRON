@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/auth';
-import { AlertCircle, Calendar, CheckCircle, Clock, DollarSign, Edit3, Eye, MessageCircle, Plus, Printer, Search, ShoppingCart } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle, Clock, CreditCard, DollarSign, Edit3, Eye, MessageCircle, Plus, Printer, Search, ShoppingCart } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { PaymentsApiService } from '../payments/PaymentsApiService';
 import CreatePaymentModal from '../payments/components/CreatePaymentModal';
@@ -16,6 +16,8 @@ import { usePermissions } from '@/hooks/use-permissions';
 import ClientColorIndicator from '../clients/components/ClientColorIndicator';
 import type { ClientColor } from '../clients/types';
 import { formatDateMX, formatDateOnlyMX, nowISO } from '@/utils/dateUtils';
+import AssignOrderToCreditModal from '../credits/components/AssignOrderToCreditModal';
+import type { Credit, CreditAssignmentSource } from '../credits/types';
 
 const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -30,6 +32,7 @@ const OrdersPage: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const [creditSource, setCreditSource] = useState<CreditAssignmentSource | null>(null);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -124,6 +127,37 @@ const OrdersPage: React.FC = () => {
     }
     setSelectedOrderId(orderId);
     setShowPaymentModal(true);
+  };
+
+  const handleAddToCredit = (order: Order) => {
+    if (!checkPermission('Gestionar Creditos')) return;
+    const paid = getTotalPaid(order.id);
+    const credited = order.credited_amount || 0;
+    const available = Math.max(0, order.total - paid - credited);
+    if (available <= 0.01 || credited > 0.01) return;
+    setCreditSource({
+      source_type: 'order',
+      id: order.id,
+      client_id: order.client_id,
+      date: order.date,
+      product: order.description?.trim() || `Orden #${order.id}`,
+      client_name: order.client?.name || order.client_name || null,
+      client_phone: order.client?.phone || null,
+      total: order.total,
+      paid,
+      credited,
+      available,
+    });
+  };
+
+  const handleCreditCreated = (credit: Credit) => {
+    if (!creditSource) return;
+    const linkedItem = credit.items.find(item => item.order_id === creditSource.id);
+    const creditedAmount = linkedItem?.total || creditSource.available;
+    setOrders(current => current.map(order => order.id === creditSource.id
+      ? { ...order, credited_amount: (order.credited_amount || 0) + creditedAmount }
+      : order));
+    setCreditSource(null);
   };
 
   const handleOpenWhatsAppChat = async (order: Order) => {
@@ -264,7 +298,7 @@ const OrdersPage: React.FC = () => {
 
   const getRemainingAmount = (order: Order): number => {
     const totalPaid = getTotalPaid(order.id);
-    return order.total - totalPaid;
+    return order.total - totalPaid - (order.credited_amount || 0);
   };
 
   const handlePaymentCreated = (newPayment: Payment) => {
@@ -277,23 +311,31 @@ const OrdersPage: React.FC = () => {
     }));
   };
 
-  const getPaymentStatus = (order: Order): { status: 'paid' | 'partial' | 'pending'; icon: React.ReactNode; color: string; text: string } => {
+  const getPaymentStatus = (order: Order): { status: 'paid' | 'credited' | 'partial' | 'pending'; icon: React.ReactNode; color: string; text: string } => {
     const totalPaid = getTotalPaid(order.id);
-    const remaining = order.total - totalPaid;
+    const credited = order.credited_amount || 0;
+    const remaining = order.total - totalPaid - credited;
 
-    if (remaining <= 0) {
+    if (remaining <= 0 && credited > 0 && totalPaid < order.total) {
+      return {
+        status: 'credited',
+        icon: <CreditCard className="h-4 w-4" />,
+        color: 'text-purple-600',
+        text: 'En crédito'
+      };
+    } else if (remaining <= 0) {
       return {
         status: 'paid',
         icon: <CheckCircle className="h-4 w-4" />,
         color: 'text-green-600',
         text: 'Pagado'
       };
-    } else if (totalPaid > 0) {
+    } else if (totalPaid > 0 || credited > 0) {
       return {
         status: 'partial',
         icon: <AlertCircle className="h-4 w-4" />,
         color: 'text-orange-600',
-        text: 'Pago parcial'
+        text: credited > 0 && totalPaid <= 0 ? 'En crédito' : 'Pago parcial'
       };
     } else {
       return {
@@ -479,24 +521,46 @@ const OrdersPage: React.FC = () => {
 
                           <div className="flex items-center gap-2">
                             <DollarSign size={14} />
-                            <span className={`font-semibold ${paymentStatus.status === 'paid' ? 'text-green-600' : paymentStatus.status === 'partial' ? 'text-orange-600' : 'text-gray-500'}`}>
+                            <span className={`font-semibold ${paymentStatus.status === 'paid' ? 'text-green-600' : paymentStatus.status === 'credited' ? 'text-purple-600' : paymentStatus.status === 'partial' ? 'text-orange-600' : 'text-gray-500'}`}>
                               Pagado: ${totalPaid.toFixed(2)}
                             </span>
                           </div>
+                          {(order.credited_amount || 0) > 0 && (
+                            <div className="flex items-center gap-2">
+                              <CreditCard size={14} />
+                              <span className="font-semibold text-purple-600">A crédito: ${(order.credited_amount || 0).toFixed(2)}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-col items-end gap-2">
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenWhatsAppChat(order)}
+                            className="flex items-center gap-2 text-[#128C7E] hover:text-[#075E54] hover:bg-green-50"
+                            disabled={!order.client?.phone?.replace(/\D/g, '')}
+                            title={order.client?.phone ? `Abrir chat de ${order.client.name}` : 'El cliente no tiene teléfono registrado'}
+                          >
+                            <MessageCircle size={14} />
+                            WhatsApp
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleEditOrder(order.id)} className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"><Edit3 size={14} />Edición</Button>
+                          <Button variant="outline" size="sm" onClick={() => handleViewDetails(order.id)} className="flex items-center gap-2"><Eye size={14} />Ver Detalles</Button>
+                        </div>
+                        <div className="flex flex-wrap justify-end gap-2">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleOpenWhatsAppChat(order)}
-                          className="flex items-center gap-2 text-[#128C7E] hover:text-[#075E54] hover:bg-green-50"
-                          disabled={!order.client?.phone?.replace(/\D/g, '')}
-                          title={order.client?.phone ? `Abrir chat de ${order.client.name}` : 'El cliente no tiene teléfono registrado'}
+                          onClick={() => handleAddToCredit(order)}
+                          className="flex items-center gap-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                          disabled={getRemainingAmount(order) <= 0 || (order.credited_amount || 0) > 0}
+                          title={(order.credited_amount || 0) > 0 ? 'La orden ya está relacionada con un crédito' : 'Agregar esta orden a un crédito'}
                         >
-                          <MessageCircle size={14} />
-                          WhatsApp
+                          <CreditCard size={14} />
+                          {(order.credited_amount || 0) > 0 ? 'En crédito' : 'A crédito'}
                         </Button>
                         <Button
                           variant="outline"
@@ -508,24 +572,7 @@ const OrdersPage: React.FC = () => {
                           <DollarSign size={14} />
                           Agregar Pago
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditOrder(order.id)}
-                          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                        >
-                          <Edit3 size={14} />
-                          Edición
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewDetails(order.id)}
-                          className="flex items-center gap-2"
-                        >
-                          <Eye size={14} />
-                          Ver Detalles
-                        </Button>
+                        </div>
                       </div>
                     </div>
 
@@ -661,10 +708,18 @@ const OrdersPage: React.FC = () => {
           isOpen={showPaymentModal}
           onClose={closeModals}
           orderId={selectedOrderId}
-          orderTotal={orders.find(o => o.id === selectedOrderId)?.total || 0}
+          orderTotal={(orders.find(o => o.id === selectedOrderId)?.total || 0) - (orders.find(o => o.id === selectedOrderId)?.credited_amount || 0)}
           currentPayments={getTotalPaid(selectedOrderId)}
           clientName={orders.find(o => o.id === selectedOrderId)?.client?.name || 'Cliente'}
           onPaymentCreated={handlePaymentCreated}
+        />
+      )}
+
+      {creditSource && (
+        <AssignOrderToCreditModal
+          source={creditSource}
+          onClose={() => setCreditSource(null)}
+          onAssigned={handleCreditCreated}
         />
       )}
 

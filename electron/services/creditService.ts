@@ -15,6 +15,7 @@ import type {
   CreditItemInput,
   CreditPaymentMethod,
   CreditStatementParams,
+  CreditSourceType,
   UpdateCreditItemData,
 } from '../types/credit';
 
@@ -441,10 +442,13 @@ class CreditService {
     }
   }
 
-  async searchAvailableSources(searchTerm = '', limit = 20) {
+  async searchAvailableSources(searchTerm = '', limit = 20, sourceType?: Exclude<CreditSourceType, 'manual'>) {
     try {
       if (limit < 1 || limit > 100) limit = 20;
-      return await creditRepository.searchAvailableSources(searchTerm.trim(), limit);
+      if (sourceType !== undefined && sourceType !== 'order' && sourceType !== 'simple_order') {
+        throw new Error('Tipo de orden de origen inválido');
+      }
+      return await creditRepository.searchAvailableSources(searchTerm.trim(), limit, sourceType);
     } catch (error) {
       console.error('Error al buscar órdenes disponibles para crédito:', error);
       throw error;

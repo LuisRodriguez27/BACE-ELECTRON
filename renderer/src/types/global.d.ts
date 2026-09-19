@@ -50,6 +50,18 @@ import type {
   PaginatedNotes,
   NoteStatus,
 } from "../features/notes/types";
+import type {
+  AddCreditPaymentPayload,
+  Credit,
+  CreditFilters,
+  CreditItem,
+  CreditItemPayload,
+  CreditSourceSearchResult,
+  CreditStatement,
+  CreateCreditPayload,
+  PaginatedCredits,
+  UpdateCreditItemPayload,
+} from "../features/credits/types";
 
 declare global {
   interface Window {
@@ -144,6 +156,21 @@ declare global {
       updatePayment: (id: number, data: EditPaymentForm) => Promise<Payment>;
       deletePayment: (id: number) => Promise<void>;
       getPaymentsByClientId: (clientId: number) => Promise<Payment[]>;
+
+      // Créditos
+      getCredits: (page: number, limit: number, filters?: CreditFilters) => Promise<PaginatedCredits>;
+      getCreditById: (id: number) => Promise<Credit>;
+      getOpenCreditByClientId: (clientId: number) => Promise<Credit | null>;
+      createCredit: (data: CreateCreditPayload) => Promise<Credit>;
+      addCreditItem: (data: CreditItemPayload & { credit_id: number }) => Promise<CreditItem>;
+      updateCreditItem: (id: number, data: UpdateCreditItemPayload) => Promise<CreditItem>;
+      removeCreditItem: (id: number) => Promise<void>;
+      addCreditPayment: (data: AddCreditPaymentPayload) => Promise<Payment>;
+      updateCreditNotes: (id: number, notes: string | null) => Promise<Credit>;
+      closeCredit: (id: number, data: { notes?: string | null }) => Promise<Credit>;
+      reopenCredit: (id: number) => Promise<Credit>;
+      getCreditStatement: (id: number, params: { from?: string | null; to: string }) => Promise<CreditStatement>;
+      searchCreditSources: (searchTerm: string, limit: number, sourceType?: 'order' | 'simple_order') => Promise<CreditSourceSearchResult[]>;
 
       // Presupuestos
       getAllBudgets: () => Promise<Budget[]>;

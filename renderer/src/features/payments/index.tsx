@@ -23,9 +23,9 @@ const PaymentsPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
 
   // ─── Filtros ───────────────────────────────────────────────────────────────
-  const [selectedOrderId, setSelectedOrderId] = useState<number | 'free' | 'simple' | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<number | 'free' | 'simple' | 'credit' | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchType, setSearchType] = useState<'payment_id' | 'order_id' | 'amount' | 'method' | 'info'>('payment_id');
+  const [searchType, setSearchType] = useState<'payment_id' | 'order_id' | 'credit_id' | 'amount' | 'method' | 'info'>('payment_id');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // ─── Scroll infinito ───────────────────────────────────────────────────────
@@ -169,6 +169,7 @@ const PaymentsPage: React.FC = () => {
     if (value === '') setSelectedOrderId(null);
     else if (value === 'free') setSelectedOrderId('free');
     else if (value === 'simple') setSelectedOrderId('simple');
+    else if (value === 'credit') setSelectedOrderId('credit');
     else setSelectedOrderId(Number(value));
   };
 
@@ -273,7 +274,7 @@ const PaymentsPage: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Gestión de Pagos</h1>
-          <p className="text-gray-600 mt-1">Administra los pagos de órdenes o registra pagos libres</p>
+          <p className="text-gray-600 mt-1">Administra pagos de órdenes, abonos de crédito e ingresos libres</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" className="flex items-center gap-2" onClick={() => setLogbookModalOpen(true)}>
@@ -292,15 +293,16 @@ const PaymentsPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row gap-4">
           {/* Filtro por orden */}
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Filtrar por Orden:</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Filtrar por origen:</label>
             <select
-              value={selectedOrderId === null ? '' : selectedOrderId === 'free' ? 'free' : selectedOrderId === 'simple' ? 'simple' : String(selectedOrderId)}
+              value={selectedOrderId === null ? '' : typeof selectedOrderId === 'string' ? selectedOrderId : String(selectedOrderId)}
               onChange={(e) => handleOrderChange(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">Todos los pagos</option>
               <option value="free">Pagos libres (sin orden)</option>
               <option value="simple">Órdenes rápidas</option>
+              <option value="credit">Abonos de crédito</option>
               {orders.map((order) => (
                 <option key={order.id} value={order.id}>
                   Orden #{order.id} — {order.client?.name} — ${order.total.toFixed(2)}
@@ -320,6 +322,7 @@ const PaymentsPage: React.FC = () => {
               >
                 <option value="payment_id"># Pago</option>
                 <option value="order_id"># Orden</option>
+                <option value="credit_id"># Crédito</option>
                 <option value="amount">Monto</option>
                 <option value="method">Método</option>
                 <option value="info">Concepto</option>
@@ -342,10 +345,11 @@ const PaymentsPage: React.FC = () => {
                   <>
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={15} />
                     <input
-                      type={['payment_id', 'order_id', 'amount'].includes(searchType) ? 'number' : 'text'}
+                      type={['payment_id', 'order_id', 'credit_id', 'amount'].includes(searchType) ? 'number' : 'text'}
                       placeholder={
                         searchType === 'payment_id' ? 'ID del pago...' :
                           searchType === 'order_id' ? 'ID de la orden...' :
+                            searchType === 'credit_id' ? 'ID del crédito...' :
                             searchType === 'amount' ? 'Monto...' : 'Concepto del pago...'
                       }
                       value={searchTerm}
@@ -400,6 +404,7 @@ const PaymentsPage: React.FC = () => {
             {selectedOrderId === null && 'Todos los pagos'}
             {selectedOrderId === 'free' && 'Pagos libres (sin orden)'}
             {selectedOrderId === 'simple' && 'Pagos de Órdenes rápidas'}
+            {selectedOrderId === 'credit' && 'Abonos de crédito'}
             {typeof selectedOrderId === 'number' && `Pagos de la Orden #${selectedOrderId}`}
             {' '}
             <span className="text-gray-400 font-normal text-sm">({totalCount})</span>
@@ -426,14 +431,20 @@ const PaymentsPage: React.FC = () => {
                   ? 'No hay pagos libres registrados'
                   : selectedOrderId === 'simple'
                     ? 'No hay pagos de órdenes rápidas registrados'
+                    : selectedOrderId === 'credit'
+                      ? 'No hay abonos de crédito registrados'
                     : typeof selectedOrderId === 'number'
                       ? 'Esta orden aún no tiene pagos registrados'
                       : 'No hay pagos que coincidan con los filtros'}
               </p>
-              <Button className="flex items-center gap-2 mx-auto" onClick={openCreateModal}>
-                <Plus size={16} />
-                Registrar Pago
-              </Button>
+              {selectedOrderId === 'credit' ? (
+                <p className="text-sm text-blue-700">Los abonos se registran desde el detalle del crédito para validar su saldo y la caja activa.</p>
+              ) : (
+                <Button className="flex items-center gap-2 mx-auto" onClick={openCreateModal}>
+                  <Plus size={16} />
+                  Registrar Pago
+                </Button>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
@@ -448,6 +459,8 @@ const PaymentsPage: React.FC = () => {
                         <h3 className="font-semibold text-gray-900">
                           {payment.is_simple_order 
                             ? `Pago (Rápida) #${payment.id}` 
+                            : payment.is_credit
+                              ? `Abono de Crédito #${payment.credit_id}`
                             : payment.order_id 
                               ? `Pago #${payment.id}` 
                               : `Pago Libre #${payment.id}`}
@@ -471,6 +484,11 @@ const PaymentsPage: React.FC = () => {
                               <Receipt size={14} />
                               <span>Orden Rápida #{payment.simple_order_id}</span>
                             </div>
+                          ) : payment.is_credit ? (
+                            <div className="flex items-center gap-1 text-blue-700">
+                              <CreditCard size={14} />
+                              <span>Crédito #{payment.credit_id}</span>
+                            </div>
                           ) : payment.order_id ? (
                             <button
                               type="button"
@@ -486,10 +504,10 @@ const PaymentsPage: React.FC = () => {
                               Pago libre
                             </span>
                           )}
-                          {(payment.phone || payment.order?.client_phone) && (
+                          {(payment.phone || payment.order?.client_phone || payment.credit?.client_phone) && (
                             <div className="flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
                               <Phone size={12} />
-                              <span>{payment.phone || payment.order?.client_phone}</span>
+                              <span>{payment.phone || payment.order?.client_phone || payment.credit?.client_phone}</span>
                             </div>
                           )}
                         </div>
@@ -564,7 +582,9 @@ const PaymentsPage: React.FC = () => {
         clientName={
           selectedPayment?.is_simple_order
             ? selectedPayment.order?.client_name || 'Orden Rápida'
-            : selectedPayment?.order_id
+            : selectedPayment?.is_credit
+              ? selectedPayment.credit?.client_name || selectedPayment.client_name || 'Crédito'
+              : selectedPayment?.order_id
               ? orders.find(o => o.id === selectedPayment.order_id)?.client?.name ?? 'Sin cliente'
               : selectedPayment?.client_name || 'Pago libre'
         }

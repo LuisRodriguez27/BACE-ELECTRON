@@ -122,8 +122,8 @@ contextBridge.exposeInMainWorld('api', {
   reopenCredit: (id: number): Promise<unknown> => ipcRenderer.invoke('credits:reopen', id),
   getCreditStatement: (id: number, params: unknown): Promise<unknown> =>
     ipcRenderer.invoke('credits:getStatement', id, params),
-  searchCreditSources: (searchTerm: string, limit: number): Promise<unknown> =>
-    ipcRenderer.invoke('credits:searchSources', searchTerm, limit),
+  searchCreditSources: (searchTerm: string, limit: number, sourceType?: 'order' | 'simple_order'): Promise<unknown> =>
+    ipcRenderer.invoke('credits:searchSources', searchTerm, limit, sourceType),
 
   // Presupuestos
   getAllBudgets: (): Promise<unknown> => ipcRenderer.invoke('budgets:getAll'),

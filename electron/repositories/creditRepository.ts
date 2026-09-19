@@ -6,6 +6,7 @@ import type {
   CreditPaymentRow,
   CreditRow,
   CreditSourceSearchResult,
+  CreditSourceType,
   CreditStatus,
 } from '../types/credit';
 
@@ -259,12 +260,18 @@ class CreditRepository {
     return parseFloat(String(row?.total || 0));
   }
 
-  async searchAvailableSources(searchTerm = '', limit = 20): Promise<CreditSourceSearchResult[]> {
+  async searchAvailableSources(searchTerm = '', limit = 20, sourceType?: Exclude<CreditSourceType, 'manual'>): Promise<CreditSourceSearchResult[]> {
     const params: unknown[] = [];
     let search = '';
     if (searchTerm.trim()) {
       params.push(`%${searchTerm.trim()}%`);
-      search = `AND (CAST(src.id AS TEXT) ILIKE $1 OR src.product ILIKE $1 OR src.client_name ILIKE $1 OR src.client_phone ILIKE $1)`;
+      const searchIndex = params.length;
+      search = `AND (CAST(src.id AS TEXT) ILIKE $${searchIndex} OR src.product ILIKE $${searchIndex} OR src.client_name ILIKE $${searchIndex} OR src.client_phone ILIKE $${searchIndex})`;
+    }
+    let sourceFilter = '';
+    if (sourceType) {
+      params.push(sourceType);
+      sourceFilter = `AND src.source_type = $${params.length}`;
     }
     params.push(limit);
     const limitIndex = params.length;
@@ -310,8 +317,8 @@ class CreditRepository {
         WHERE so.active = TRUE
       )
       SELECT * FROM sources src
-      WHERE src.available > 0 AND src.credited = 0 ${search}
-      ORDER BY src.date DESC, src.id DESC
+      WHERE src.available > 0 AND src.credited = 0 ${sourceFilter} ${search}
+      ORDER BY src.id DESC
       LIMIT $${limitIndex}
     `, params);
 
