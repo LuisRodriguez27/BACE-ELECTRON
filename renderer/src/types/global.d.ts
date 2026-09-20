@@ -159,6 +159,7 @@ declare global {
 
       // Créditos
       getCredits: (page: number, limit: number, filters?: CreditFilters) => Promise<PaginatedCredits>;
+      getCreditsForPrint: (filters?: CreditFilters) => Promise<Credit[]>;
       getCreditById: (id: number) => Promise<Credit>;
       getOpenCreditByClientId: (clientId: number) => Promise<Credit | null>;
       createCredit: (data: CreateCreditPayload) => Promise<Credit>;

@@ -15,6 +15,8 @@ export const CreditApiService = {
   getAll: (page = 1, limit = 20, filters: CreditFilters = {}): Promise<PaginatedCredits> =>
     window.api.getCredits(page, limit, filters),
 
+  getForPrint: (filters: CreditFilters = {}): Promise<Credit[]> => window.api.getCreditsForPrint(filters),
+
   getById: (id: number): Promise<Credit> => window.api.getCreditById(id),
 
   getOpenByClientId: (clientId: number): Promise<Credit | null> =>

@@ -107,6 +107,7 @@ contextBridge.exposeInMainWorld('api', {
   // Créditos
   getCredits: (page: number, limit: number, filters: unknown): Promise<unknown> =>
     ipcRenderer.invoke('credits:getAll', page, limit, filters),
+  getCreditsForPrint: (filters: unknown): Promise<unknown> => ipcRenderer.invoke('credits:getForPrint', filters),
   getCreditById: (id: number): Promise<unknown> => ipcRenderer.invoke('credits:getById', id),
   getOpenCreditByClientId: (clientId: number): Promise<unknown> =>
     ipcRenderer.invoke('credits:getOpenByClientId', clientId),

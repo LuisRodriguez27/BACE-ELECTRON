@@ -34,6 +34,30 @@ const CREDIT_ITEM_SELECT = `
 `;
 
 class CreditRepository {
+  private _buildCreditFilters(searchTerm = '', status?: CreditStatus, from?: string | null, to?: string | null) {
+    const conditions = ['cr.active = TRUE'];
+    const params: unknown[] = [];
+
+    if (status) {
+      params.push(status);
+      conditions.push(`cr.status = $${params.length}`);
+    }
+    if (searchTerm.trim()) {
+      params.push(`%${searchTerm.trim()}%`);
+      conditions.push(`(CAST(cr.id AS TEXT) ILIKE $${params.length} OR c.name ILIKE $${params.length} OR c.phone ILIKE $${params.length})`);
+    }
+    if (from) {
+      params.push(from);
+      conditions.push(`(cr.opened_at AT TIME ZONE 'America/Mexico_City')::date >= $${params.length}::date`);
+    }
+    if (to) {
+      params.push(to);
+      conditions.push(`(cr.opened_at AT TIME ZONE 'America/Mexico_City')::date <= $${params.length}::date`);
+    }
+
+    return { params, where: `WHERE ${conditions.join(' AND ')}` };
+  }
+
   private async _hydrate(rows: CreditRow[]): Promise<InstanceType<typeof Credit>[]> {
     if (rows.length === 0) return [];
 
@@ -76,21 +100,9 @@ class CreditRepository {
     }));
   }
 
-  async findPaginated(page = 1, limit = 20, searchTerm = '', status?: CreditStatus) {
+  async findPaginated(page = 1, limit = 20, searchTerm = '', status?: CreditStatus, from?: string | null, to?: string | null) {
     const offset = (page - 1) * limit;
-    const conditions = ['cr.active = TRUE'];
-    const params: unknown[] = [];
-
-    if (status) {
-      params.push(status);
-      conditions.push(`cr.status = $${params.length}`);
-    }
-    if (searchTerm.trim()) {
-      params.push(`%${searchTerm.trim()}%`);
-      conditions.push(`(CAST(cr.id AS TEXT) ILIKE $${params.length} OR c.name ILIKE $${params.length} OR c.phone ILIKE $${params.length})`);
-    }
-
-    const where = `WHERE ${conditions.join(' AND ')}`;
+    const { params, where } = this._buildCreditFilters(searchTerm, status, from, to);
     const limitIndex = params.length + 1;
     const offsetIndex = params.length + 2;
     const [countRow, rows] = await Promise.all([
@@ -111,6 +123,15 @@ class CreditRepository {
       data: credits,
       pagination: { page, limit, total, totalPages, hasNext: page < totalPages, hasPrev: page > 1 },
     };
+  }
+
+  async findForPrint(searchTerm = '', status?: CreditStatus, from?: string | null, to?: string | null) {
+    const { params, where } = this._buildCreditFilters(searchTerm, status, from, to);
+    const rows = await db.getAll<CreditRow>(
+      `${CREDIT_SELECT} ${where} ORDER BY cr.opened_at DESC, cr.id DESC`,
+      params
+    );
+    return this._hydrate(rows);
   }
 
   async findById(id: number) {

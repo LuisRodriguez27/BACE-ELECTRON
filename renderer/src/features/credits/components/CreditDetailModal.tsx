@@ -10,6 +10,7 @@ import {
   LockOpen,
   PackagePlus,
   Phone,
+  Printer,
   Receipt,
   Trash2,
   User,
@@ -26,6 +27,7 @@ import type { Credit, CreditItem } from '../types';
 import AddCreditPaymentModal from './AddCreditPaymentModal';
 import CreditItemModal from './CreditItemModal';
 import CreditStatementModal from './CreditStatementModal';
+import { generateCreditDetailHtml } from '../logbook';
 
 interface Props {
   creditId: number;
@@ -121,6 +123,17 @@ const CreditDetailModal: React.FC<Props> = ({ creditId, canManage, onClose, onCh
     }
   };
 
+  const handlePrint = () => {
+    if (!credit) return;
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    if (!printWindow) {
+      toast.error('No se pudo abrir la ventana de impresión');
+      return;
+    }
+    printWindow.document.write(generateCreditDetailHtml(credit, formatDateMX(new Date(), 'DD/MM/YYYY HH:mm')));
+    printWindow.document.close();
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}>
       <div className="flex max-h-[95vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
@@ -153,6 +166,7 @@ const CreditDetailModal: React.FC<Props> = ({ creditId, canManage, onClose, onCh
                   {credit.closing_date && <span className="text-gray-500">· Cerrado {formatDateMX(credit.closing_date, 'DD/MM/YYYY HH:mm')}</span>}
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={handlePrint} className="gap-2"><Printer size={15} /> Imprimir</Button>
                   <Button variant="outline" onClick={() => setStatementOpen(true)} className="gap-2"><FileText size={15} /> Corte</Button>
                   {canManage && credit.status === 'open' && (
                     <>
@@ -332,4 +346,3 @@ const CreditDetailModal: React.FC<Props> = ({ creditId, canManage, onClose, onCh
 };
 
 export default CreditDetailModal;
-

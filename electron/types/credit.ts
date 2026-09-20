@@ -112,6 +112,9 @@ export interface CloseCreditData {
 export interface CreditFilters {
   searchTerm?: string;
   status?: CreditStatus | 'all';
+  /** Rango aplicado a la fecha de apertura del crédito (YYYY-MM-DD). */
+  from?: string | null;
+  to?: string | null;
 }
 
 export interface CreditStatementParams {

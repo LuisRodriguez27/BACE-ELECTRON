@@ -14,6 +14,7 @@ import type {
 export function registerCreditIpc(): void {
   ipcMain.handle('credits:getAll', async (_event, page: number, limit: number, filters: CreditFilters) =>
     await creditService.getAll(page, limit, filters));
+  ipcMain.handle('credits:getForPrint', async (_event, filters: CreditFilters) => await creditService.getForPrint(filters));
   ipcMain.handle('credits:getById', async (_event, id: number) => await creditService.getById(id));
   ipcMain.handle('credits:getOpenByClientId', async (_event, clientId: number) => await creditService.getOpenByClientId(clientId));
   ipcMain.handle('credits:create', async (_event, data: CreateCreditData) => await creditService.create(data));

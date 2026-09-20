@@ -129,10 +129,35 @@ class CreditService {
       if (limit < 1 || limit > 100) limit = 20;
       const status = filters.status && filters.status !== 'all' ? filters.status : undefined;
       if (status !== undefined && status !== 'open' && status !== 'closed') throw new Error('Estado de crédito inválido');
-      const result = await creditRepository.findPaginated(page, limit, filters.searchTerm?.trim() || '', status);
+      this.validatePrintFilters(filters);
+      const result = await creditRepository.findPaginated(page, limit, filters.searchTerm?.trim() || '', status, filters.from, filters.to);
       return { data: result.data.map((credit) => credit.toPlainObject()), pagination: result.pagination };
     } catch (error) {
       console.error('Error al obtener créditos:', error);
+      throw error;
+    }
+  }
+
+  private validatePrintFilters(filters: CreditFilters): void {
+    for (const [label, value] of [['Fecha inicial', filters.from], ['Fecha final', filters.to]] as const) {
+      if (value && (!/^\d{4}-\d{2}-\d{2}$/.test(value) || isNaN(new Date(`${value}T00:00:00`).getTime()))) {
+        throw new Error(`${label} inválida`);
+      }
+    }
+    if (filters.from && filters.to && filters.from > filters.to) {
+      throw new Error('La fecha inicial no puede ser posterior a la fecha final');
+    }
+  }
+
+  async getForPrint(filters: CreditFilters = {}) {
+    try {
+      const status = filters.status && filters.status !== 'all' ? filters.status : undefined;
+      if (status !== undefined && status !== 'open' && status !== 'closed') throw new Error('Estado de crédito inválido');
+      this.validatePrintFilters(filters);
+      const credits = await creditRepository.findForPrint(filters.searchTerm?.trim() || '', status, filters.from, filters.to);
+      return credits.map((credit) => credit.toPlainObject());
+    } catch (error) {
+      console.error('Error al preparar créditos para impresión:', error);
       throw error;
     }
   }

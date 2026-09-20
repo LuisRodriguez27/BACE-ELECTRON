@@ -6,10 +6,12 @@ import {
   Eye,
   Loader2,
   Plus,
+  Printer,
   Search,
   User,
   WalletCards,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
 import { formatDateMX } from '@/utils/dateUtils';
@@ -18,6 +20,7 @@ import { CreditApiService } from './CreditApiService';
 import type { Credit, CreditPagination, CreditStatus } from './types';
 import CreateCreditModal from './components/CreateCreditModal';
 import CreditDetailModal from './components/CreditDetailModal';
+import { generateCreditsLogbookHtml } from './logbook';
 
 const PAGE_LIMIT = 20;
 
@@ -36,6 +39,9 @@ const CreditsPage: React.FC = () => {
   const [status, setStatus] = useState<CreditStatus | 'all'>('open');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [printing, setPrinting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -58,7 +64,7 @@ const CreditsPage: React.FC = () => {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    CreditApiService.getAll(page, PAGE_LIMIT, { searchTerm: debouncedSearch, status })
+    CreditApiService.getAll(page, PAGE_LIMIT, { searchTerm: debouncedSearch, status, from: from || null, to: to || null })
       .then(result => {
         if (cancelled) return;
         setCredits(result.data);
@@ -71,7 +77,7 @@ const CreditsPage: React.FC = () => {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [canView, debouncedSearch, page, reloadKey, status]);
+  }, [canView, debouncedSearch, from, page, reloadKey, status, to]);
 
   const handleCreditChanged = useCallback((updated: Credit) => {
     setCredits(current => current.map(credit => credit.id === updated.id ? updated : credit));
@@ -80,6 +86,30 @@ const CreditsPage: React.FC = () => {
   const openCreate = () => {
     if (!checkPermission('Gestionar Creditos')) return;
     setCreateOpen(true);
+  };
+
+  const handlePrint = async () => {
+    if (from && to && from > to) {
+      toast.error('La fecha inicial no puede ser posterior a la fecha final');
+      return;
+    }
+    const printWindow = window.open('', '_blank', 'width=1100,height=750');
+    if (!printWindow) {
+      toast.error('No se pudo abrir la ventana de impresión');
+      return;
+    }
+    setPrinting(true);
+    try {
+      const filters = { searchTerm: debouncedSearch, status, from: from || null, to: to || null };
+      const printableCredits = await CreditApiService.getForPrint(filters);
+      printWindow.document.write(generateCreditsLogbookHtml(printableCredits, filters, formatDateMX(new Date(), 'DD/MM/YYYY HH:mm')));
+      printWindow.document.close();
+    } catch (err) {
+      printWindow.close();
+      toast.error(extractErrorMessage(err));
+    } finally {
+      setPrinting(false);
+    }
   };
 
   if (!canView) {
@@ -99,36 +129,49 @@ const CreditsPage: React.FC = () => {
           <h1 className="flex items-center gap-2 text-2xl font-bold text-gray-900"><WalletCards className="text-blue-600" /> Créditos</h1>
           <p className="mt-1 text-gray-600">Administra cuentas, trabajos, abonos y cortes de crédito.</p>
         </div>
-        {canManage && <Button onClick={openCreate} className="gap-2"><Plus size={16} /> Nuevo crédito</Button>}
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handlePrint} disabled={printing} className="gap-2"><Printer size={16} /> {printing ? 'Preparando...' : 'Imprimir créditos'}</Button>
+          {canManage && <Button onClick={openCreate} className="gap-2"><Plus size={16} /> Nuevo crédito</Button>}
+        </div>
       </div>
 
       <div className="mb-6 rounded-lg bg-white p-4 shadow">
-        <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="flex flex-col gap-3 xl:flex-row">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
             <input
               value={search}
               onChange={event => setSearch(event.target.value)}
-              className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 outline-none focus:ring-2 focus:ring-blue-500"
+              className="h-full w-full rounded-lg border border-gray-300 py-2 pl-10 pr-3 outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Buscar por ID, nombre o teléfono..."
             />
           </div>
-          <select
-            value={status}
-            onChange={event => { setStatus(event.target.value as CreditStatus | 'all'); setPage(1); }}
-            className="rounded-lg border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="open">Créditos abiertos</option>
-            <option value="closed">Créditos cerrados</option>
-            <option value="all">Todos los créditos</option>
-          </select>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <select
+              value={status}
+              onChange={event => { setStatus(event.target.value as CreditStatus | 'all'); setPage(1); }}
+              className="rounded-lg border border-gray-300 px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="open">Pendientes</option>
+              <option value="closed">Completados</option>
+              <option value="all">Todos los créditos</option>
+            </select>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-600">Apertura desde</label>
+            <input type="date" value={from} max={to || undefined} onChange={event => { setFrom(event.target.value); setPage(1); }} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-gray-600">Apertura hasta</label>
+            <input type="date" value={to} min={from || undefined} onChange={event => { setTo(event.target.value); setPage(1); }} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          </div>
         </div>
       </div>
 
       <div className="overflow-hidden rounded-lg border border-gray-100 bg-white shadow">
         <div className="flex items-center justify-between border-b px-5 py-4">
           <h2 className="font-semibold text-gray-900">
-            {status === 'open' ? 'Cuentas abiertas' : status === 'closed' ? 'Cuentas cerradas' : 'Todas las cuentas'}
+            {status === 'open' ? 'Créditos pendientes' : status === 'closed' ? 'Créditos completados' : 'Todas las cuentas'}
           </h2>
           {pagination && <span className="text-sm text-gray-500">{pagination.total} crédito{pagination.total === 1 ? '' : 's'}</span>}
         </div>
@@ -232,4 +275,3 @@ const CreditsPage: React.FC = () => {
 };
 
 export default CreditsPage;
-
