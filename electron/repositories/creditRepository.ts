@@ -151,6 +151,14 @@ class CreditRepository {
     return credit;
   }
 
+  async findByClientId(clientId: number) {
+    const rows = await db.getAll<CreditRow>(
+      `${CREDIT_SELECT} WHERE cr.client_id = $1 AND cr.active = TRUE ORDER BY cr.id DESC`,
+      [clientId]
+    );
+    return this._hydrate(rows);
+  }
+
   async lockById(id: number): Promise<boolean> {
     const row = await db.getOne<{ id: number }>(
       `SELECT id FROM credits WHERE id = $1 AND active = TRUE FOR UPDATE`,

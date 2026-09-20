@@ -22,6 +22,9 @@ export const CreditApiService = {
   getOpenByClientId: (clientId: number): Promise<Credit | null> =>
     window.api.getOpenCreditByClientId(clientId),
 
+  getByClientId: (clientId: number): Promise<Credit[]> =>
+    window.api.getCreditsByClientId(clientId),
+
   create: (data: CreateCreditPayload): Promise<Credit> => window.api.createCredit(data),
 
   addItem: (data: CreditItemPayload & { credit_id: number }): Promise<CreditItem> =>

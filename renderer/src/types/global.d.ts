@@ -162,6 +162,7 @@ declare global {
       getCreditsForPrint: (filters?: CreditFilters) => Promise<Credit[]>;
       getCreditById: (id: number) => Promise<Credit>;
       getOpenCreditByClientId: (clientId: number) => Promise<Credit | null>;
+      getCreditsByClientId: (clientId: number) => Promise<Credit[]>;
       createCredit: (data: CreateCreditPayload) => Promise<Credit>;
       addCreditItem: (data: CreditItemPayload & { credit_id: number }) => Promise<CreditItem>;
       updateCreditItem: (id: number, data: UpdateCreditItemPayload) => Promise<CreditItem>;

@@ -1,10 +1,10 @@
 import { Button } from '@/components/ui/button';
 import { usePermissions } from '@/hooks/use-permissions';
-import { Calculator, CreditCard, Edit3, Loader2, MapPin, MessageCircle, MoreVertical, Phone, Plus, Printer, Search, ShoppingBag, Trash2, Users } from 'lucide-react';
+import { Calculator, CreditCard, Edit3, Loader2, MapPin, MessageCircle, MoreVertical, Phone, Plus, Printer, Search, ShoppingBag, Trash2, Users, WalletCards } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { ClientApiService } from './ClientApiService';
-import { ClientColorIndicator, ClientOrdersModal, ClientPaymentsModal, CreateClientModal, DeleteClientModal, EditClientModal, ClientBudgetModal } from './components';
+import { ClientColorIndicator, ClientOrdersModal, ClientPaymentsModal, CreateClientModal, DeleteClientModal, EditClientModal, ClientBudgetModal, ClientCreditsModal } from './components';
 import { useWhatsAppClient } from './hooks/useWhatsAppClient';
 import type { Client } from './types';
 import { formatDateMX, nowISO } from '@/utils/dateUtils';
@@ -18,7 +18,8 @@ const ClientsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentSearchTerm, setCurrentSearchTerm] = useState('');
   const [searchDebounceTimer, setSearchDebounceTimer] = useState<number | null>(null);
-  const { checkPermission } = usePermissions();
+  const { canAccess, checkPermission } = usePermissions();
+  const canViewCredits = canAccess('Ver Creditos');
   const { sendWhatsApp, whatsappDialogElement } = useWhatsAppClient();
   const [pagination, setPagination] = useState<{
     page: number;
@@ -43,6 +44,7 @@ const ClientsPage: React.FC = () => {
   const [showOrdersModal, setShowOrdersModal] = useState(false);
   const [showPaymentsModal, setShowPaymentsModal] = useState(false);
   const [showBudgetModal, setShowBudgetModal] = useState(false);
+  const [showCreditsModal, setShowCreditsModal] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
 
@@ -179,6 +181,11 @@ const ClientsPage: React.FC = () => {
     setShowPaymentsModal(true);
   };
 
+  const openCreditsModal = (client: Client) => {
+    setSelectedClient(client);
+    setShowCreditsModal(true);
+  };
+
   const openCreateModal = () => {
     if (!checkPermission("Crear Cliente")) {
       return;
@@ -193,6 +200,7 @@ const ClientsPage: React.FC = () => {
     setShowOrdersModal(false);
     setShowPaymentsModal(false);
     setShowBudgetModal(false);
+    setShowCreditsModal(false);
     setSelectedClient(null);
     setOpenDropdownId(null);
   };
@@ -356,10 +364,10 @@ const ClientsPage: React.FC = () => {
                   <div 
                     key={client.id} 
                     ref={index === clients.length - 1 ? lastClientElementRef : null}
-                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                    className="relative border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                   >
                     <h2 className="text-sm text-gray-500 truncate">Identificador Unico: {client.id}</h2>
-                    <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2 min-w-0">
                         <ClientColorIndicator color={client.color} size="md" />
                         <h3 className="font-semibold text-gray-900 truncate" title={client.name}>{client.name}</h3>
@@ -392,6 +400,21 @@ const ClientsPage: React.FC = () => {
                         >
                           <CreditCard size={14} />
                         </Button>
+                      </div>
+                    </div>
+
+                    <div className="absolute right-4 top-[4.75rem] flex items-center justify-end gap-1">
+                        {canViewCredits && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openCreditsModal(client)}
+                            className="h-8 w-8 p-1 text-purple-600 hover:bg-purple-50 hover:text-purple-700"
+                            title="Ver créditos pendientes y completados"
+                          >
+                            <WalletCards size={14} />
+                          </Button>
+                        )}
 
                         {/* Dropdown for More Actions */}
                         <div className="relative">
@@ -459,7 +482,6 @@ const ClientsPage: React.FC = () => {
                           )}
                         </div>
                       </div>
-                    </div>
                     
                     <div className="space-y-2 text-sm text-gray-600">
                       <div className="flex items-center gap-2">
@@ -543,6 +565,12 @@ const ClientsPage: React.FC = () => {
 
       <ClientPaymentsModal
         isOpen={showPaymentsModal}
+        onClose={closeModals}
+        client={selectedClient}
+      />
+
+      <ClientCreditsModal
+        isOpen={showCreditsModal}
         onClose={closeModals}
         client={selectedClient}
       />

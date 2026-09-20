@@ -111,6 +111,8 @@ contextBridge.exposeInMainWorld('api', {
   getCreditById: (id: number): Promise<unknown> => ipcRenderer.invoke('credits:getById', id),
   getOpenCreditByClientId: (clientId: number): Promise<unknown> =>
     ipcRenderer.invoke('credits:getOpenByClientId', clientId),
+  getCreditsByClientId: (clientId: number): Promise<unknown> =>
+    ipcRenderer.invoke('credits:getByClientId', clientId),
   createCredit: (data: unknown): Promise<unknown> => ipcRenderer.invoke('credits:create', data),
   addCreditItem: (data: unknown): Promise<unknown> => ipcRenderer.invoke('credits:addItem', data),
   updateCreditItem: (id: number, data: unknown): Promise<unknown> =>

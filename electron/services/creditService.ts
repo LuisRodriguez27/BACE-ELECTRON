@@ -207,6 +207,17 @@ class CreditService {
     }
   }
 
+  async getByClientId(clientId: number) {
+    try {
+      const parsedClientId = this.parsePositiveId(clientId, 'ID de cliente');
+      const credits = await creditRepository.findByClientId(parsedClientId);
+      return credits.map((credit) => credit.toPlainObject());
+    } catch (error) {
+      console.error('Error al obtener créditos del cliente:', error);
+      throw error;
+    }
+  }
+
   async create(data: CreateCreditData) {
     try {
       const clientId = this.parsePositiveId(data.client_id, 'ID de cliente');
@@ -387,6 +398,14 @@ class CreditService {
         });
         if (!payment) throw new Error('No se pudo registrar el abono');
         await this.allocatePaymentFifo(creditId, payment.id, amount);
+
+        const updatedCredit = await creditRepository.findById(creditId);
+        if (!updatedCredit) throw new Error('No se pudo actualizar el saldo del crédito');
+        if (Math.abs(updatedCredit.getBalance()) <= 0.01) {
+          const closedCredit = await creditRepository.close(creditId);
+          if (!closedCredit) throw new Error('No se pudo cerrar el crédito liquidado');
+        }
+
         return payment.toPlainObject();
       });
 

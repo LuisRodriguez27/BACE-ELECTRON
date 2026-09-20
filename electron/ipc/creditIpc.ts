@@ -17,6 +17,7 @@ export function registerCreditIpc(): void {
   ipcMain.handle('credits:getForPrint', async (_event, filters: CreditFilters) => await creditService.getForPrint(filters));
   ipcMain.handle('credits:getById', async (_event, id: number) => await creditService.getById(id));
   ipcMain.handle('credits:getOpenByClientId', async (_event, clientId: number) => await creditService.getOpenByClientId(clientId));
+  ipcMain.handle('credits:getByClientId', async (_event, clientId: number) => await creditService.getByClientId(clientId));
   ipcMain.handle('credits:create', async (_event, data: CreateCreditData) => await creditService.create(data));
   ipcMain.handle('credits:addItem', async (_event, data: AddCreditItemData) => await creditService.addItem(data));
   ipcMain.handle('credits:updateItem', async (_event, id: number, data: UpdateCreditItemData) => await creditService.updateItem(id, data));

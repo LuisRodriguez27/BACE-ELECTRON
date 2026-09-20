@@ -6,3 +6,4 @@ export { default as ClientColorIndicator } from './ClientColorIndicator';
 export { default as ClientOrdersModal } from './ClientOrdersModal';
 export { default as ClientPaymentsModal } from './ClientPaymentsModal';
 export { default as ClientBudgetModal } from './ClientBudgetModal';
+export { default as ClientCreditsModal } from './ClientCreditsModal';
