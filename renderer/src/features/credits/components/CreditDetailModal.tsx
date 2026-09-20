@@ -28,6 +28,8 @@ import AddCreditPaymentModal from './AddCreditPaymentModal';
 import CreditItemModal from './CreditItemModal';
 import CreditStatementModal from './CreditStatementModal';
 import { generateCreditDetailHtml } from '../logbook';
+import { useOrderDetailsModal } from '@/hooks/use-order-details-modal';
+import { useSimpleOrderDetailsModal } from '@/hooks/use-simple-order-details-modal';
 
 interface Props {
   creditId: number;
@@ -42,6 +44,8 @@ const money = (value: number) => new Intl.NumberFormat('es-MX', {
 }).format(value);
 
 const CreditDetailModal: React.FC<Props> = ({ creditId, canManage, onClose, onChanged }) => {
+  const { openOrder, orderDetailsModal } = useOrderDetailsModal();
+  const { openSimpleOrder, simpleOrderDetailsModal } = useSimpleOrderDetailsModal();
   const [credit, setCredit] = useState<Credit | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -236,7 +240,7 @@ const CreditDetailModal: React.FC<Props> = ({ creditId, canManage, onClose, onCh
                       {credit.items.length === 0 ? (
                         <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">Sin cargos activos.</td></tr>
                       ) : credit.items.map(item => {
-                        const sourceId = item.order_id || item.simple_order_id;
+                        const sourceId = item.source_type === 'order' ? item.order_id : item.simple_order_id;
                         const differentSourceClient = item.source_client_name && item.source_client_name !== credit.client_name;
                         return (
                           <tr key={item.id} className="hover:bg-gray-50">
@@ -250,9 +254,18 @@ const CreditDetailModal: React.FC<Props> = ({ creditId, canManage, onClose, onCh
                                 <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-600">Manual</span>
                               ) : (
                                 <div>
-                                  <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (!sourceId) return;
+                                      if (item.source_type === 'order') openOrder(sourceId);
+                                      else openSimpleOrder(sourceId);
+                                    }}
+                                    className="rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                                    title={`Ver detalles de ${item.source_type === 'order' ? 'la orden' : 'la orden rápida'} #${sourceId}`}
+                                  >
                                     {item.source_type === 'order' ? 'Orden' : 'Rápida'} #{sourceId}
-                                  </span>
+                                  </button>
                                   {item.source_client_name && <p className={`mt-1 text-xs ${differentSourceClient ? 'font-medium text-amber-700' : 'text-gray-500'}`}>Pedido por: {item.source_client_name}</p>}
                                 </div>
                               )}
@@ -318,6 +331,8 @@ const CreditDetailModal: React.FC<Props> = ({ creditId, canManage, onClose, onCh
         />
       )}
       {credit && statementOpen && <CreditStatementModal credit={credit} onClose={() => setStatementOpen(false)} />}
+      {orderDetailsModal}
+      {simpleOrderDetailsModal}
 
       <ConfirmDialog
         isOpen={!!removeItem}
