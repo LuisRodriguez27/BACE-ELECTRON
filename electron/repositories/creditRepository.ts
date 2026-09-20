@@ -111,7 +111,7 @@ class CreditRepository {
         params
       ),
       db.getAll<CreditRow>(
-        `${CREDIT_SELECT} ${where} ORDER BY cr.opened_at DESC, cr.id DESC LIMIT $${limitIndex} OFFSET $${offsetIndex}`,
+        `${CREDIT_SELECT} ${where} ORDER BY cr.id DESC LIMIT $${limitIndex} OFFSET $${offsetIndex}`,
         [...params, limit, offset]
       ),
     ]);
