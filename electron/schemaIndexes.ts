@@ -49,6 +49,8 @@ const schemaIndexes: string = `
   CREATE UNIQUE INDEX IF NOT EXISTS idx_credit_items_unique_order        ON credit_items(order_id) WHERE active = TRUE AND order_id IS NOT NULL;
   CREATE UNIQUE INDEX IF NOT EXISTS idx_credit_items_unique_simple_order ON credit_items(simple_order_id) WHERE active = TRUE AND simple_order_id IS NOT NULL;
   CREATE INDEX IF NOT EXISTS idx_credit_items_date                       ON credit_items(date) WHERE active = TRUE;
+  CREATE INDEX IF NOT EXISTS idx_credit_payment_allocations_payment      ON credit_payment_allocations(credit_payment_id);
+  CREATE INDEX IF NOT EXISTS idx_credit_payment_allocations_item         ON credit_payment_allocations(credit_item_id);
 
   -- simple_order_payments
   CREATE INDEX IF NOT EXISTS idx_simple_order_payments_simple_order_id   ON simple_order_payments(simple_order_id);

@@ -5,6 +5,7 @@ import SimpleOrder from '../domain/simpleOrder';
 import type { SimpleOrderData, AddSimplePaymentData, UpdateSimplePaymentData } from '../types/simpleOrder';
 import db from '../db';
 import creditRepository from '../repositories/creditRepository';
+import paymentsRepository from '../repositories/paymentsRepository';
 
 class SimpleOrderService {
   async getAllSimpleOrders() {
@@ -146,11 +147,38 @@ class SimpleOrderService {
 
       const order = await simpleOrderRepository.getById(simple_order_id);
       if (!order || !order.isActive()) throw new Error('La orden rápida especificada no existe o está inactiva.');
-      const creditedAmount = await creditRepository.getCreditedAmountBySimpleOrder(simple_order_id);
-      const available = order.total - order.getTotalPaid() - creditedAmount;
-      if (amount > available + 0.01) throw new Error(`El pago excede el monto pendiente. Monto restante: ${available.toFixed(2)}`);
 
       const transaction = db.transaction(async () => {
+        const creditItem = await creditRepository.getActiveItemBySimpleOrder(simple_order_id);
+        if (creditItem) {
+          if (!await creditRepository.lockById(creditItem.credit_id)) throw new Error('El crédito relacionado no existe');
+          const credit = await creditRepository.findById(creditItem.credit_id);
+          if (!credit || !credit.isOpen()) throw new Error('No se pueden registrar pagos en un crédito cerrado');
+
+          const allocatedToSource = await creditRepository.getAllocatedAmountForItem(creditItem.id);
+          const sourcePending = creditItem.total - allocatedToSource;
+          if (amount > sourcePending + 0.01) throw new Error(`El pago excede el saldo pendiente de esta orden dentro del crédito. Monto restante: ${sourcePending.toFixed(2)}`);
+          if (amount > credit.getBalance() + 0.01) throw new Error(`El pago excede el saldo del crédito. Saldo pendiente: ${credit.getBalance().toFixed(2)}`);
+
+          const payment = await paymentsRepository.create({
+            order_id: null,
+            credit_id: credit.id,
+            created_by: user_id,
+            amount,
+            date: date || new Date().toISOString(),
+            descripcion: descripcion || null,
+            info: `Abono a crédito #${credit.id} desde orden rápida #${simple_order_id}`,
+            phone: credit.client_phone,
+            client_name: credit.client_name,
+          });
+          if (!payment) throw new Error('No se pudo registrar el abono al crédito');
+          await creditRepository.addPaymentAllocation(payment.id, creditItem.id, amount);
+          return payment.toPlainObject();
+        }
+
+        const creditedAmount = await creditRepository.getCreditedAmountBySimpleOrder(simple_order_id);
+        const available = order.total - order.getTotalPaid() - creditedAmount;
+        if (amount > available + 0.01) throw new Error(`El pago excede el monto pendiente. Monto restante: ${available.toFixed(2)}`);
         const newId = await simpleOrderRepository.addPayment({ simple_order_id, user_id, amount, date: date || new Date().toISOString(), descripcion });
         return await simpleOrderRepository.getPaymentById(newId);
       });
@@ -178,7 +206,7 @@ class SimpleOrderService {
       const order = await simpleOrderRepository.getById(existingPayment.simple_order_id);
       if (!order) throw new Error('La orden rápida relacionada no existe.');
       const creditedAmount = await creditRepository.getCreditedAmountBySimpleOrder(existingPayment.simple_order_id);
-      const otherPayments = order.getTotalPaid() - parseFloat(String(existingPayment.amount));
+      const otherPayments = await simpleOrderRepository.getDirectPaymentsTotal(existingPayment.simple_order_id) - parseFloat(String(existingPayment.amount));
       if (paymentData.amount + otherPayments + creditedAmount > order.total + 0.01) {
         const maximum = order.total - otherPayments - creditedAmount;
         throw new Error(`El pago actualizado excede el monto pendiente. Monto máximo: ${maximum.toFixed(2)}`);

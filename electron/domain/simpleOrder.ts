@@ -41,7 +41,7 @@ class SimpleOrder {
   }
 
   getTotalPaid(): number { return this.payments.reduce((sum: number, p: InstanceType<typeof SimpleOrderPayment>) => sum + p.amount, 0); }
-  getBalance(): number { return this.total - this.getTotalPaid() - this.credited_amount; }
+  getBalance(): number { return this.total - this.getTotalPaid(); }
 
   isValid(): boolean {
     return !!(this.user_id && this.user_id > 0 && this.concept && this.concept.trim().length > 0 && typeof this.total === 'number' && this.total >= 0 && !isNaN(this.total));

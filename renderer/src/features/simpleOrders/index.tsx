@@ -225,7 +225,7 @@ const SimpleOrdersPage: React.FC = () => {
   };
 
   const getPaymentBadge = (order: SimpleOrder) => {
-    if (order.balance <= 0 && (order.credited_amount || 0) > 0 && order.totalPaid < order.total) {
+    if ((order.credited_amount || 0) > 0 && order.totalPaid < order.total) {
       return (
         <span className="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
           <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span> En crédito
@@ -681,7 +681,7 @@ const SimpleOrdersPage: React.FC = () => {
           isOpen={showPaymentModal}
           onClose={closeModals}
           orderId={selectedOrderId}
-          orderTotal={(orders.find(o => o.id === selectedOrderId)?.total || 0) - (orders.find(o => o.id === selectedOrderId)?.credited_amount || 0)}
+          orderTotal={orders.find(o => o.id === selectedOrderId)?.total || 0}
           currentPayments={orders.find(o => o.id === selectedOrderId)?.totalPaid || 0}
           clientName={orders.find(o => o.id === selectedOrderId)?.concept || 'Orden Rápida'}
           onPaymentCreated={handlePaymentCreated}
@@ -707,18 +707,21 @@ const SimpleOrdersPage: React.FC = () => {
               ) : (
                 <div className="flex flex-col gap-3">
                   {orders.find(o => o.id === selectedOrderId)?.payments.map((payment: SimpleOrderPayment) => (
-                    <div key={payment.id} className="bg-gray-50 rounded p-3 border border-gray-100 flex justify-between items-center">
+                    <div key={`${payment.is_credit ? 'credit' : 'simple'}-${payment.id}`} className="bg-gray-50 rounded p-3 border border-gray-100 flex justify-between items-center">
                       <div>
                         <div className="flex items-center gap-2">
                           <p className="font-semibold text-gray-900">${payment.amount.toFixed(2)}</p>
                           {payment.descripcion && (
                             <span className="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full">{payment.descripcion}</span>
                           )}
+                          {payment.is_credit && (
+                            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">Abono a crédito</span>
+                          )}
                         </div>
                         <p className="text-xs text-gray-500 mt-1">{formatDateTime(payment.date || '')}</p>
                         <p className="text-xs text-gray-500 mt-1">Registrado por: <strong>{(payment as any).user_username || 'Sistema'}</strong></p>
                       </div>
-                      <button 
+                      {!payment.is_credit && <button
                         onClick={() => {
                           setSelectedPayment(payment);
                           setShowPaymentsListModal(false);
@@ -728,7 +731,7 @@ const SimpleOrdersPage: React.FC = () => {
                         title="Editar Pago"
                       >
                         <Pencil size={18} />
-                      </button>
+                      </button>}
                     </div>
                   ))}
                 </div>
@@ -743,7 +746,7 @@ const SimpleOrdersPage: React.FC = () => {
           isOpen={showEditPaymentModal}
           onClose={closeModals}
           payment={selectedPayment as any}
-          orderTotal={(orders.find(o => o.id === selectedOrderId)?.total || 0) - (orders.find(o => o.id === selectedOrderId)?.credited_amount || 0)}
+          orderTotal={orders.find(o => o.id === selectedOrderId)?.total || 0}
           currentPayments={(orders.find(o => o.id === selectedOrderId)?.totalPaid || 0) - (selectedPayment.amount || 0)}
           onPaymentUpdated={handlePaymentCreated}
           onPaymentDeleted={handlePaymentCreated}

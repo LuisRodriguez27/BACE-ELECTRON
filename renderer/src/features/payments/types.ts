@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const createPaymentSchema = z.object({
   orderId: z.number().int().min(1).optional(),
+  created_by: z.number().int().min(1).optional(),
   amount: z.number().min(1, 'El monto debe ser mayor a 0'),
   date: z.string().optional(),
   descripcion: z.string().optional(),

@@ -7,6 +7,28 @@ import db from '../db';
 import type { CreatePaymentData, UpdatePaymentData } from '../types/payment';
 
 class PaymentsService {
+  private async allocateCreditPaymentFifo(creditId: number, paymentId: number, amount: number): Promise<void> {
+    let remaining = amount;
+    const items = await creditRepository.getItemsWithOutstandingBalance(creditId);
+    for (const item of items) {
+      if (remaining <= 0.01) break;
+      const outstanding = item.total - item.allocated_amount;
+      const allocation = Math.min(remaining, outstanding);
+      if (allocation <= 0.01) continue;
+      await creditRepository.addPaymentAllocation(paymentId, item.id, allocation);
+      remaining -= allocation;
+    }
+    if (remaining > 0.01) throw new Error('El abono no pudo distribuirse entre los cargos pendientes del crédito');
+  }
+
+  private async reallocateCreditPaymentsFifo(creditId: number): Promise<void> {
+    await creditRepository.removeCreditPaymentAllocations(creditId);
+    const payments = await creditRepository.getPaymentAmountsByCreditId(creditId);
+    for (const payment of payments) {
+      await this.allocateCreditPaymentFifo(creditId, payment.id, payment.amount);
+    }
+  }
+
   async getAllPayments() {
     try {
       const payments = await paymentsRepository.findAll();
@@ -56,7 +78,7 @@ class PaymentsService {
 
   async createPayment(data: CreatePaymentData) {
     try {
-      const { orderId, amount, date, descripcion, info, phone, clientName } = data;
+      const { orderId, created_by, amount, date, descripcion, info, phone, clientName } = data;
       const activeSession = await cashSessionRepository.getActive();
       if (!activeSession) throw new Error('No hay una sesión de caja abierta. Abre la caja antes de registrar pagos.');
       if (!amount || isNaN(amount) || amount <= 0) throw new Error('Monto inválido. Debe ser un número mayor a 0');
@@ -71,7 +93,40 @@ class PaymentsService {
           if (!order) throw new Error('La orden especificada no existe');
           if (order.isCancelled()) throw new Error('No se pueden agregar pagos a órdenes canceladas');
 
-          const currentPaymentsTotal = await paymentsRepository.getTotalPaymentsByOrderId(orderId);
+          const creditItem = await creditRepository.getActiveItemByOrder(orderId);
+          if (creditItem) {
+            if (!created_by || created_by <= 0) throw new Error('No hay un usuario activo para registrar el abono al crédito');
+            if (!await creditRepository.lockById(creditItem.credit_id)) throw new Error('El crédito relacionado no existe');
+            const credit = await creditRepository.findById(creditItem.credit_id);
+            if (!credit || !credit.isOpen()) throw new Error('No se pueden registrar pagos en un crédito cerrado');
+
+            const allocatedToSource = await creditRepository.getAllocatedAmountForItem(creditItem.id);
+            const sourcePending = creditItem.total - allocatedToSource;
+            if (amount > sourcePending + 0.01) {
+              throw new Error(`El pago excede el saldo pendiente de esta orden dentro del crédito. Monto restante: ${new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(sourcePending)}`);
+            }
+            if (amount > credit.getBalance() + 0.01) {
+              throw new Error(`El pago excede el saldo del crédito. Saldo pendiente: ${new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(credit.getBalance())}`);
+            }
+
+            const payment = await paymentsRepository.create({
+              order_id: null,
+              credit_id: credit.id,
+              created_by: created_by ?? null,
+              amount,
+              date: paymentDate.toISOString(),
+              descripcion: descripcion?.trim() ?? null,
+              info: info?.trim() || `Abono a crédito #${credit.id} desde orden #${orderId}`,
+              phone: credit.client_phone,
+              client_name: credit.client_name,
+            });
+            if (!payment) throw new Error('Error al registrar el abono al crédito');
+            await creditRepository.addPaymentAllocation(payment.id, creditItem.id, amount);
+            // El cliente lo inició desde la orden: devolver esa referencia para que la UI se actualice de inmediato.
+            return { ...payment.toPlainObject(), order_id: orderId };
+          }
+
+          const currentPaymentsTotal = await paymentsRepository.getDirectPaymentsByOrderId(orderId);
           const creditedAmount = await creditRepository.getCreditedAmountByOrder(orderId);
           const newTotal = currentPaymentsTotal + creditedAmount + amount;
           if (newTotal > order.total) {
@@ -144,7 +199,7 @@ class PaymentsService {
             throw new Error(`El pago actualizado excede el saldo del crédito. Monto máximo: ${new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(maximum)}`);
           }
         } else if (existingPayment.hasOrder() && existingPayment.order) {
-          const currentPaymentsTotal = await paymentsRepository.getTotalPaymentsByOrderId(existingPayment.order_id as number);
+          const currentPaymentsTotal = await paymentsRepository.getDirectPaymentsByOrderId(existingPayment.order_id as number);
           const creditedAmount = await creditRepository.getCreditedAmountByOrder(existingPayment.order_id as number);
           const newTotal = currentPaymentsTotal - existingPayment.amount + creditedAmount + amount;
           if (newTotal > (existingPayment.order.total as number)) {
@@ -170,6 +225,9 @@ class PaymentsService {
       }
 
       const transaction = db.transaction(async () => {
+        if (existingPayment.credit_id && !await creditRepository.lockById(existingPayment.credit_id)) {
+          throw new Error('El crédito relacionado ya no existe');
+        }
         const updated = await paymentsRepository.update(id, {
           amount: amount !== undefined ? amount : existingPayment.amount,
           descripcion: descripcion !== undefined ? (descripcion?.trim() || null) : existingPayment.descripcion,
@@ -178,6 +236,10 @@ class PaymentsService {
           client_name: resolvedName !== undefined ? (resolvedName?.trim() || null) : existingPayment.client_name,
         });
         if (!updated) throw new Error('Error al actualizar pago');
+
+        if (existingPayment.credit_id && amount !== undefined) {
+          await this.reallocateCreditPaymentsFifo(existingPayment.credit_id);
+        }
 
         const updatedPayment = await paymentsRepository.findById(id);
         if (!updatedPayment) throw new Error('Error al obtener pago actualizado');
@@ -208,8 +270,12 @@ class PaymentsService {
       }
 
       const transaction = db.transaction(async () => {
+        if (existingPayment.credit_id && !await creditRepository.lockById(existingPayment.credit_id)) {
+          throw new Error('El crédito relacionado ya no existe');
+        }
         const deleted = await paymentsRepository.delete(id);
         if (!deleted) throw new Error('Error al eliminar pago');
+        if (existingPayment.credit_id) await this.reallocateCreditPaymentsFifo(existingPayment.credit_id);
       });
 
       await transaction();

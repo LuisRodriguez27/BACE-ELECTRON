@@ -27,6 +27,8 @@ export interface SimpleOrderPaymentRow {
   date: string;
   descripcion: string | null;
   cash_session_id?: number | null;
+  is_credit?: boolean;
+  credit_payment_id?: number | null;
   /** Joined desde users */
   user_username: string | null;
 }

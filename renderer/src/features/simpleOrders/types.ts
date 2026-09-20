@@ -6,6 +6,8 @@ export interface SimpleOrderPayment {
   amount: number;
   date: string;
   descripcion?: string;
+  is_credit?: boolean;
+  credit_payment_id?: number | null;
 }
 
 export interface SimpleOrder {

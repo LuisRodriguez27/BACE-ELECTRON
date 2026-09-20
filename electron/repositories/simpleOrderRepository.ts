@@ -43,11 +43,35 @@ class SimpleOrderRepository {
   }
 
   async getPayments(orderId: number): Promise<SimpleOrderPaymentRow[]> {
-    return await db.getAll<SimpleOrderPaymentRow>(`SELECT p.*, u.username as user_username FROM simple_order_payments p LEFT JOIN users u ON p.user_id = u.id WHERE p.simple_order_id = $1 ORDER BY p.date ASC`, [orderId]);
+    return await db.getAll<SimpleOrderPaymentRow>(`
+      SELECT p.id, p.simple_order_id, p.user_id, p.cash_session_id, p.amount, p.date, p.descripcion,
+             u.username AS user_username, false AS is_credit, CAST(NULL AS INTEGER) AS credit_payment_id
+      FROM simple_order_payments p
+      LEFT JOIN users u ON p.user_id = u.id
+      WHERE p.simple_order_id = $1
+      UNION ALL
+      SELECT cpa.id, ci.simple_order_id, COALESCE(p.created_by, ci.created_by) AS user_id,
+             p.cash_session_id, cpa.amount, p.date, p.descripcion,
+             u.username AS user_username, true AS is_credit, p.id AS credit_payment_id
+      FROM credit_payment_allocations cpa
+      JOIN credit_items ci ON ci.id = cpa.credit_item_id AND ci.active = TRUE
+      JOIN payments p ON p.id = cpa.credit_payment_id
+      LEFT JOIN users u ON u.id = p.created_by
+      WHERE ci.simple_order_id = $1
+      ORDER BY date ASC, id ASC
+    `, [orderId]);
   }
 
   async getPaymentById(id: number): Promise<SimpleOrderPaymentRow | null> {
     return await db.getOne<SimpleOrderPaymentRow>(`SELECT p.*, u.username as user_username FROM simple_order_payments p LEFT JOIN users u ON p.user_id = u.id WHERE p.id = $1`, [id]);
+  }
+
+  async getDirectPaymentsTotal(orderId: number): Promise<number> {
+    const row = await db.getOne<{ total: number }>(
+      `SELECT COALESCE(SUM(amount), 0) AS total FROM simple_order_payments WHERE simple_order_id = $1`,
+      [orderId]
+    );
+    return parseFloat(String(row?.total || 0));
   }
 
   async addPayment(paymentData: { simple_order_id: number; user_id: number; amount: number; date: string; descripcion?: string | null }): Promise<number> {
@@ -92,10 +116,19 @@ class SimpleOrderRepository {
     }
 
     const statsResult = await db.getOne<{ total_count: string; total_amount: string; total_paid: string; total_pending: string }>(`
-      WITH order_payments AS (SELECT simple_order_id, COALESCE(SUM(amount), 0) as total_paid FROM simple_order_payments GROUP BY simple_order_id),
+      WITH order_payments AS (
+             SELECT simple_order_id, COALESCE(SUM(amount), 0) AS total_paid FROM simple_order_payments GROUP BY simple_order_id
+             UNION ALL
+             SELECT ci.simple_order_id, COALESCE(SUM(cpa.amount), 0) AS total_paid
+             FROM credit_payment_allocations cpa
+             JOIN credit_items ci ON ci.id = cpa.credit_item_id
+             WHERE ci.simple_order_id IS NOT NULL AND ci.active = TRUE
+             GROUP BY ci.simple_order_id
+           ),
            credit_totals AS (SELECT simple_order_id, COALESCE(SUM(total), 0) as total_credited FROM credit_items WHERE active = TRUE AND simple_order_id IS NOT NULL GROUP BY simple_order_id)
-      SELECT COUNT(*) as total_count, COALESCE(SUM(o.total), 0) as total_amount, COALESCE(SUM(COALESCE(p.total_paid, 0)), 0) as total_paid, COALESCE(SUM(GREATEST(0, o.total - COALESCE(p.total_paid, 0) - COALESCE(c.total_credited, 0))), 0) as total_pending
-      FROM simple_orders o LEFT JOIN order_payments p ON o.id = p.simple_order_id LEFT JOIN credit_totals c ON o.id = c.simple_order_id WHERE o.active = true
+      , paid_totals AS (SELECT simple_order_id, SUM(total_paid) AS total_paid FROM order_payments GROUP BY simple_order_id)
+      SELECT COUNT(*) as total_count, COALESCE(SUM(o.total), 0) as total_amount, COALESCE(SUM(COALESCE(p.total_paid, 0)), 0) as total_paid, COALESCE(SUM(GREATEST(0, o.total - COALESCE(p.total_paid, 0))), 0) as total_pending
+      FROM simple_orders o LEFT JOIN paid_totals p ON o.id = p.simple_order_id LEFT JOIN credit_totals c ON o.id = c.simple_order_id WHERE o.active = true
     `);
 
     return {

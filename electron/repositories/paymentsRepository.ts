@@ -104,7 +104,28 @@ class PaymentsRepository {
   }
 
   async findByOrderId(orderId: number): Promise<Payment[]> {
-    const rows = await db.getAll<PaymentUnionRow>(`SELECT * FROM (${this._getBaseQuery()}) p WHERE p.order_id = $1 AND p.is_simple_order = FALSE ORDER BY p.date DESC`, [orderId]);
+    const rows = await db.getAll<PaymentUnionRow>(`
+      SELECT * FROM (${this._getBaseQuery()}) p
+      WHERE p.order_id = $1 AND p.is_simple_order = FALSE
+      UNION ALL
+      SELECT
+        p.id, ci.order_id, CAST(NULL AS INTEGER) AS simple_order_id,
+        p.credit_id, p.created_by, p.cash_session_id, cpa.amount, p.date,
+        p.descripcion, p.info, p.phone, p.client_name, false AS is_simple_order, true AS is_credit,
+        o.id AS o_id, o.client_id AS o_client_id, o.status AS o_status, o.total AS o_total,
+        c.name AS o_client_name, o.description AS o_description, o.notes AS o_notes, c.phone AS o_client_phone,
+        cr.id AS cr_id, cr.client_id AS cr_client_id, cr.status AS cr_status,
+        cc.name AS cr_client_name, cc.phone AS cr_client_phone
+      FROM credit_payment_allocations cpa
+      JOIN payments p ON p.id = cpa.credit_payment_id
+      JOIN credit_items ci ON ci.id = cpa.credit_item_id AND ci.active = TRUE
+      JOIN orders o ON o.id = ci.order_id
+      JOIN clients c ON c.id = o.client_id
+      JOIN credits cr ON cr.id = p.credit_id
+      JOIN clients cc ON cc.id = cr.client_id
+      WHERE ci.order_id = $1
+      ORDER BY date DESC, id DESC
+    `, [orderId]);
     return rows.map(r => this._mapRow(r));
   }
 
@@ -137,7 +158,25 @@ class PaymentsRepository {
   }
 
   async getTotalPaymentsByOrderId(orderId: number): Promise<number> {
-    const result = await db.getOne<{ total: string }>(`SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE order_id = $1`, [orderId]);
+    const result = await db.getOne<{ total: string }>(`
+      SELECT COALESCE(SUM(amount), 0) AS total
+      FROM (
+        SELECT amount FROM payments WHERE order_id = $1
+        UNION ALL
+        SELECT cpa.amount
+        FROM credit_payment_allocations cpa
+        JOIN credit_items ci ON ci.id = cpa.credit_item_id
+        WHERE ci.order_id = $1 AND ci.active = TRUE
+      ) payment_amounts
+    `, [orderId]);
+    return result ? parseFloat(result.total) || 0 : 0;
+  }
+
+  async getDirectPaymentsByOrderId(orderId: number): Promise<number> {
+    const result = await db.getOne<{ total: string }>(
+      `SELECT COALESCE(SUM(amount), 0) AS total FROM payments WHERE order_id = $1`,
+      [orderId]
+    );
     return result ? parseFloat(result.total) || 0 : 0;
   }
 

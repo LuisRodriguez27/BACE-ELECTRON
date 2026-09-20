@@ -1076,6 +1076,76 @@ const MIGRATIONS: Migration[] = [
       `);
     }
   },
+  // v37: Distribuir abonos de crédito entre sus cargos para reflejarlos FIFO en órdenes.
+  {
+    version: 37,
+    name: 'add_credit_payment_allocations',
+    isApplied: async (client: PoolClient) => {
+      const { rows: [state] } = await client.query<{ pending: string }>(`
+        SELECT COUNT(*) AS pending
+        FROM payments p
+        LEFT JOIN credit_payment_allocations cpa ON cpa.credit_payment_id = p.id
+        WHERE p.credit_id IS NOT NULL
+        GROUP BY p.id, p.amount
+        HAVING COALESCE(SUM(cpa.amount), 0) <> p.amount
+      `);
+      return !state || parseInt(state.pending, 10) === 0;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS credit_payment_allocations (
+          id                SERIAL        PRIMARY KEY,
+          credit_payment_id INTEGER       NOT NULL REFERENCES payments(id) ON DELETE CASCADE,
+          credit_item_id    INTEGER       NOT NULL REFERENCES credit_items(id),
+          amount            DECIMAL(10,2) NOT NULL CHECK (amount > 0),
+          CONSTRAINT credit_payment_allocations_unique_item UNIQUE (credit_payment_id, credit_item_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_credit_payment_allocations_payment ON credit_payment_allocations(credit_payment_id);
+        CREATE INDEX IF NOT EXISTS idx_credit_payment_allocations_item ON credit_payment_allocations(credit_item_id);
+      `);
+
+      // Los abonos existentes no tenían destino por orden. Se les asigna el
+      // historial disponible siguiendo la misma regla FIFO usada en adelante.
+      await client.query(`
+        DO $$
+        DECLARE
+          payment_row RECORD;
+          item_row RECORD;
+          remaining NUMERIC;
+          item_remaining NUMERIC;
+          allocated NUMERIC;
+        BEGIN
+          FOR payment_row IN
+            SELECT p.id, p.credit_id, p.amount
+            FROM payments p
+            WHERE p.credit_id IS NOT NULL
+            ORDER BY p.credit_id, p.date, p.id
+          LOOP
+            remaining := payment_row.amount;
+            FOR item_row IN
+              SELECT ci.id,
+                     ci.total - COALESCE(SUM(cpa.amount), 0) AS outstanding
+              FROM credit_items ci
+              LEFT JOIN credit_payment_allocations cpa ON cpa.credit_item_id = ci.id
+              WHERE ci.credit_id = payment_row.credit_id AND ci.active = TRUE
+              GROUP BY ci.id, ci.total, ci.date
+              HAVING ci.total - COALESCE(SUM(cpa.amount), 0) > 0
+              ORDER BY ci.date, ci.id
+            LOOP
+              EXIT WHEN remaining <= 0;
+              item_remaining := item_row.outstanding;
+              allocated := LEAST(remaining, item_remaining);
+              INSERT INTO credit_payment_allocations (credit_payment_id, credit_item_id, amount)
+              VALUES (payment_row.id, item_row.id, allocated)
+              ON CONFLICT (credit_payment_id, credit_item_id)
+              DO UPDATE SET amount = credit_payment_allocations.amount + EXCLUDED.amount;
+              remaining := remaining - allocated;
+            END LOOP;
+          END LOOP;
+        END $$;
+      `);
+    }
+  },
 ];
 
 // ─── RUNNER PRINCIPAL ───────────────────────────────────────────────────────

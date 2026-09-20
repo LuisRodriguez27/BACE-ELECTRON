@@ -200,6 +200,22 @@ class CreditRepository {
     return row ? new CreditItem(row) : null;
   }
 
+  async getActiveItemByOrder(orderId: number) {
+    const row = await db.getOne<CreditItemRow>(
+      `${CREDIT_ITEM_SELECT} WHERE ci.order_id = $1 AND ci.active = TRUE`,
+      [orderId]
+    );
+    return row ? new CreditItem(row) : null;
+  }
+
+  async getActiveItemBySimpleOrder(simpleOrderId: number) {
+    const row = await db.getOne<CreditItemRow>(
+      `${CREDIT_ITEM_SELECT} WHERE ci.simple_order_id = $1 AND ci.active = TRUE`,
+      [simpleOrderId]
+    );
+    return row ? new CreditItem(row) : null;
+  }
+
   async addItem(data: {
     credit_id: number;
     order_id: number | null;
@@ -248,6 +264,76 @@ class CreditRepository {
       `SELECT COALESCE(SUM(amount), 0) AS total FROM payments WHERE credit_id = $1`,
       [creditId]
     );
+    return parseFloat(String(row?.total || 0));
+  }
+
+  async getAllocatedAmountForItem(creditItemId: number): Promise<number> {
+    const row = await db.getOne<{ total: number }>(
+      `SELECT COALESCE(SUM(amount), 0) AS total
+       FROM credit_payment_allocations WHERE credit_item_id = $1`,
+      [creditItemId]
+    );
+    return parseFloat(String(row?.total || 0));
+  }
+
+  async getItemsWithOutstandingBalance(creditId: number): Promise<Array<CreditItemRow & { allocated_amount: number }>> {
+    const rows = await db.getAll<CreditItemRow & { allocated_amount: number }>(`
+      SELECT ci.*, COALESCE(SUM(cpa.amount), 0) AS allocated_amount
+      FROM credit_items ci
+      LEFT JOIN credit_payment_allocations cpa ON cpa.credit_item_id = ci.id
+      WHERE ci.credit_id = $1 AND ci.active = TRUE
+      GROUP BY ci.id
+      HAVING ci.total - COALESCE(SUM(cpa.amount), 0) > 0
+      ORDER BY ci.date ASC, ci.id ASC
+    `, [creditId]);
+    return rows.map((row) => ({ ...row, allocated_amount: parseFloat(String(row.allocated_amount)) || 0 }));
+  }
+
+  async addPaymentAllocation(creditPaymentId: number, creditItemId: number, amount: number): Promise<void> {
+    await db.execute(
+      `INSERT INTO credit_payment_allocations (credit_payment_id, credit_item_id, amount)
+       VALUES ($1, $2, $3)`,
+      [creditPaymentId, creditItemId, amount]
+    );
+  }
+
+  async removePaymentAllocations(creditPaymentId: number): Promise<void> {
+    await db.execute(`DELETE FROM credit_payment_allocations WHERE credit_payment_id = $1`, [creditPaymentId]);
+  }
+
+  async removeCreditPaymentAllocations(creditId: number): Promise<void> {
+    await db.execute(`
+      DELETE FROM credit_payment_allocations cpa
+      USING payments p
+      WHERE cpa.credit_payment_id = p.id AND p.credit_id = $1
+    `, [creditId]);
+  }
+
+  async getPaymentAmountsByCreditId(creditId: number): Promise<Array<{ id: number; amount: number }>> {
+    const rows = await db.getAll<{ id: number; amount: number }>(
+      `SELECT id, amount FROM payments WHERE credit_id = $1 ORDER BY date ASC, id ASC`,
+      [creditId]
+    );
+    return rows.map((row) => ({ id: row.id, amount: parseFloat(String(row.amount)) || 0 }));
+  }
+
+  async getAllocatedAmountByOrder(orderId: number): Promise<number> {
+    const row = await db.getOne<{ total: number }>(`
+      SELECT COALESCE(SUM(cpa.amount), 0) AS total
+      FROM credit_payment_allocations cpa
+      JOIN credit_items ci ON ci.id = cpa.credit_item_id
+      WHERE ci.order_id = $1 AND ci.active = TRUE
+    `, [orderId]);
+    return parseFloat(String(row?.total || 0));
+  }
+
+  async getAllocatedAmountBySimpleOrder(simpleOrderId: number): Promise<number> {
+    const row = await db.getOne<{ total: number }>(`
+      SELECT COALESCE(SUM(cpa.amount), 0) AS total
+      FROM credit_payment_allocations cpa
+      JOIN credit_items ci ON ci.id = cpa.credit_item_id
+      WHERE ci.simple_order_id = $1 AND ci.active = TRUE
+    `, [simpleOrderId]);
     return parseFloat(String(row?.total || 0));
   }
 

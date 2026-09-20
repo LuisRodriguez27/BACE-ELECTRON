@@ -186,6 +186,14 @@ const schemaTables: string = `
     CONSTRAINT credit_items_single_source_check CHECK (order_id IS NULL OR simple_order_id IS NULL)
   );
 
+  CREATE TABLE IF NOT EXISTS credit_payment_allocations (
+    id                SERIAL        PRIMARY KEY,
+    credit_payment_id INTEGER       NOT NULL REFERENCES payments(id) ON DELETE CASCADE,
+    credit_item_id    INTEGER       NOT NULL REFERENCES credit_items(id),
+    amount            DECIMAL(10,2) NOT NULL CHECK (amount > 0),
+    CONSTRAINT credit_payment_allocations_unique_item UNIQUE (credit_payment_id, credit_item_id)
+  );
+
   CREATE TABLE IF NOT EXISTS suppliers (
     id              SERIAL        PRIMARY KEY,
     name            VARCHAR(150)  NOT NULL,

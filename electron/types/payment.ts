@@ -46,6 +46,7 @@ export interface PaymentRow {
 
 export interface CreatePaymentData {
   orderId?: number | null;
+  created_by?: number | null;
   amount: number;
   date: string;
   descripcion?: string | null;

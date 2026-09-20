@@ -33,6 +33,28 @@ interface NormalizedCreditItem {
 }
 
 class CreditService {
+  private async allocatePaymentFifo(creditId: number, paymentId: number, amount: number): Promise<void> {
+    let remaining = amount;
+    const items = await creditRepository.getItemsWithOutstandingBalance(creditId);
+    for (const item of items) {
+      if (remaining <= 0.01) break;
+      const outstanding = item.total - item.allocated_amount;
+      const allocation = Math.min(remaining, outstanding);
+      if (allocation <= 0.01) continue;
+      await creditRepository.addPaymentAllocation(paymentId, item.id, allocation);
+      remaining -= allocation;
+    }
+    if (remaining > 0.01) throw new Error('El abono no pudo distribuirse entre los cargos pendientes del crédito');
+  }
+
+  private async reallocatePaymentsFifo(creditId: number): Promise<void> {
+    await creditRepository.removeCreditPaymentAllocations(creditId);
+    const payments = await creditRepository.getPaymentAmountsByCreditId(creditId);
+    for (const payment of payments) {
+      await this.allocatePaymentFifo(creditId, payment.id, payment.amount);
+    }
+  }
+
   private parsePositiveId(value: number | string | null | undefined, field: string): number {
     const parsed = Number(value);
     if (!Number.isInteger(parsed) || parsed <= 0) throw new Error(`${field} inválido`);
@@ -239,6 +261,7 @@ class CreditService {
 
         const item = await creditRepository.addItem({ credit_id: creditId, ...normalizedItem });
         if (!item) throw new Error('No se pudo agregar el cargo');
+        await this.reallocatePaymentsFifo(creditId);
         return item.toPlainObject();
       });
 
@@ -277,12 +300,17 @@ class CreditService {
 
         const charges = await creditRepository.getTotalCharges(lockedItem.credit_id);
         const payments = await creditRepository.getTotalPayments(lockedItem.credit_id);
+        const allocatedToItem = await creditRepository.getAllocatedAmountForItem(itemId);
+        if (normalized.total < allocatedToItem - 0.01) {
+          throw new Error('El nuevo total no puede ser menor a los abonos ya aplicados a este cargo');
+        }
         if (charges - lockedItem.total + normalized.total < payments - 0.01) {
           throw new Error('El nuevo total dejaría los pagos por encima de los cargos del crédito');
         }
 
         const updated = await creditRepository.updateItem(itemId, { ...normalized, edited_by: editedBy });
         if (!updated) throw new Error('No se pudo actualizar el cargo');
+        await this.reallocatePaymentsFifo(lockedItem.credit_id);
         return updated.toPlainObject();
       });
 
@@ -312,6 +340,7 @@ class CreditService {
         }
         const removed = await creditRepository.removeItem(itemId);
         if (!removed) throw new Error('No se pudo eliminar el cargo');
+        await this.reallocatePaymentsFifo(lockedItem.credit_id);
       });
 
       await transaction();
@@ -357,6 +386,7 @@ class CreditService {
           client_name: credit.client_name,
         });
         if (!payment) throw new Error('No se pudo registrar el abono');
+        await this.allocatePaymentFifo(creditId, payment.id, amount);
         return payment.toPlainObject();
       });
 

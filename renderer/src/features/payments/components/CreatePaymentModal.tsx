@@ -37,6 +37,7 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<CreatePaymentForm>({
     orderId: orderId,
+    created_by: user?.id,
     amount: 0,
     date: todayDateInputMX(),
     descripcion: '',
@@ -57,7 +58,8 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
       const validatedData = createPaymentSchema.parse({
         ...formData,
         date: preserveTimeOrStartOfDay(formData.date || ''),
-        orderId: orderId
+        orderId: orderId,
+        created_by: user?.id,
       });
 
       // Si tiene orden, verificar monto pendiente
@@ -117,6 +119,7 @@ const CreatePaymentModal: React.FC<CreatePaymentModalProps> = ({
   const handleClose = () => {
     setFormData({
       orderId: orderId,
+      created_by: user?.id,
       amount: 0,
       date: todayDateInputMX(),
       descripcion: '',

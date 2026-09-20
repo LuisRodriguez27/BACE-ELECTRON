@@ -8,8 +8,10 @@ class SimpleOrderPayment {
   date: string;
   descripcion: string | null;
   user_username: string | null;
+  is_credit: boolean;
+  credit_payment_id: number | null;
 
-  constructor({ id, simple_order_id, user_id, amount, date, descripcion, user_username }: SimpleOrderPaymentRow) {
+  constructor({ id, simple_order_id, user_id, amount, date, descripcion, user_username, is_credit = false, credit_payment_id = null }: SimpleOrderPaymentRow) {
     this.id = id;
     this.simple_order_id = simple_order_id;
     this.user_id = user_id;
@@ -17,6 +19,8 @@ class SimpleOrderPayment {
     this.date = date;
     this.descripcion = descripcion || null;
     this.user_username = user_username || null;
+    this.is_credit = is_credit;
+    this.credit_payment_id = credit_payment_id || null;
   }
 
   isValid(): boolean {
@@ -28,7 +32,7 @@ class SimpleOrderPayment {
   }
 
   toPlainObject() {
-    return { id: this.id, simple_order_id: this.simple_order_id, user_id: this.user_id, amount: this.amount, date: this.date, descripcion: this.descripcion, user_username: this.user_username };
+    return { id: this.id, simple_order_id: this.simple_order_id, user_id: this.user_id, amount: this.amount, date: this.date, descripcion: this.descripcion, user_username: this.user_username, is_credit: this.is_credit, credit_payment_id: this.credit_payment_id };
   }
 }
 

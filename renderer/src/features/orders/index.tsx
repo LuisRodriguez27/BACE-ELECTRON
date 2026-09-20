@@ -298,7 +298,7 @@ const OrdersPage: React.FC = () => {
 
   const getRemainingAmount = (order: Order): number => {
     const totalPaid = getTotalPaid(order.id);
-    return order.total - totalPaid - (order.credited_amount || 0);
+    return order.total - totalPaid;
   };
 
   const handlePaymentCreated = (newPayment: Payment) => {
@@ -314,9 +314,9 @@ const OrdersPage: React.FC = () => {
   const getPaymentStatus = (order: Order): { status: 'paid' | 'credited' | 'partial' | 'pending'; icon: React.ReactNode; color: string; text: string } => {
     const totalPaid = getTotalPaid(order.id);
     const credited = order.credited_amount || 0;
-    const remaining = order.total - totalPaid - credited;
+    const remaining = order.total - totalPaid;
 
-    if (remaining <= 0 && credited > 0 && totalPaid < order.total) {
+    if (credited > 0 && totalPaid < order.total) {
       return {
         status: 'credited',
         icon: <CreditCard className="h-4 w-4" />,
@@ -708,7 +708,7 @@ const OrdersPage: React.FC = () => {
           isOpen={showPaymentModal}
           onClose={closeModals}
           orderId={selectedOrderId}
-          orderTotal={(orders.find(o => o.id === selectedOrderId)?.total || 0) - (orders.find(o => o.id === selectedOrderId)?.credited_amount || 0)}
+          orderTotal={orders.find(o => o.id === selectedOrderId)?.total || 0}
           currentPayments={getTotalPaid(selectedOrderId)}
           clientName={orders.find(o => o.id === selectedOrderId)?.client?.name || 'Cliente'}
           onPaymentCreated={handlePaymentCreated}
