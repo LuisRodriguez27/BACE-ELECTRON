@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { DollarSign, Edit3, Hash, Package, Plus, Search, Trash2, Printer, Layers, Loader2, ArrowUpDown } from 'lucide-react';
+import { DollarSign, Edit3, Hash, Package, Plus, Search, Trash2, Printer, Layers, Loader2, ArrowUpDown, LayoutGrid, List } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { CreateProductModal, DeleteProductModal, EditProductModal, ProductDetailView, SimilarNamesModal } from './components';
@@ -20,6 +20,7 @@ const ProductsPage: React.FC = () => {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [currentSearchTerm, setCurrentSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'default' | 'price_asc' | 'price_desc'>('default');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const [pagination, setPagination] = useState<{
     page: number;
@@ -511,8 +512,8 @@ const ProductsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Filtro por precio */}
-          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+          {/* Filtro por precio y Selector de Vista */}
+          <div className="flex items-center gap-3 w-full sm:w-auto shrink-0">
             <div className="relative w-full sm:w-56">
               <ArrowUpDown className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
               <select
@@ -527,6 +528,34 @@ const ProductsPage: React.FC = () => {
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400 text-xs">
                 ▼
               </div>
+            </div>
+
+            {/* Switcher de Vista: Grid vs List */}
+            <div className="flex items-center bg-gray-100 p-1 rounded-lg border border-gray-200 shrink-0">
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                title="Vista en cuadros"
+                className={`p-1.5 rounded-md transition-all ${
+                  viewMode === 'grid'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                <LayoutGrid size={18} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                title="Vista horizontal en lista"
+                className={`p-1.5 rounded-md transition-all ${
+                  viewMode === 'list'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                <List size={18} />
+              </button>
             </div>
           </div>
         </div>
@@ -575,141 +604,240 @@ const ProductsPage: React.FC = () => {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
-                {filteredProducts.map((product, index) => (
-                  <div 
-                    key={product.id} 
-                    ref={index === filteredProducts.length - 1 ? lastProductElementRef : null}
-                    className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow flex"
-                  >
+              {(() => {
+                const renderPriceInfo = (product: Product) => {
+                  let activePrice = product.price;
+                  let isPromo = false;
+                  let isDiscount = false;
 
-                    {/* Columna izquierda — Información */}
-                    <div className="w-[60%] p-4 flex flex-col min-w-0">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex flex-col overflow-hidden mr-2">
-                          <h3 className="font-semibold text-gray-900 truncate" title={product.name}>
-                            <span className="text-gray-500 font-normal mr-2">#{product.id}</span>
-                            {product.name}
-                          </h3>
-                          <span className="inline-flex items-center text-xs text-gray-500 mt-1">
-                            <Layers size={12} className="mr-1" />
-                            {product.templates?.length || 0} {(product.templates?.length || 0) === 1 ? 'plantilla' : 'plantillas'}
+                  if (product.promo_price !== null && product.promo_price !== undefined && product.promo_price < product.price) {
+                    activePrice = product.promo_price;
+                    isPromo = true;
+                  }
+
+                  if (product.discount_price !== null && product.discount_price !== undefined && product.discount_price < activePrice) {
+                    activePrice = product.discount_price;
+                    isPromo = false;
+                    isDiscount = true;
+                  }
+
+                  if (isPromo || isDiscount) {
+                    return (
+                      <div className="flex flex-col gap-0.5 sm:items-end">
+                        <div className="flex items-center gap-1">
+                          <DollarSign size={11} className="text-gray-400" />
+                          <span className="text-gray-400 line-through text-xs">
+                            ${product.price.toFixed(2)} MXN
                           </span>
                         </div>
-                        <div className="flex items-center gap-1 shrink-0">
+                        <div className="flex items-center gap-1">
+                          <DollarSign size={13} className={isPromo ? "text-blue-600" : "text-orange-600"} />
+                          <span className={`font-bold text-xs sm:text-sm ${isPromo ? "text-blue-600" : "text-orange-600"}`}>
+                            ${activePrice.toFixed(2)} MXN
+                          </span>
+                          <span className={`px-1 py-0.5 text-[9px] font-medium rounded ${isPromo ? "bg-blue-100 text-blue-800" : "bg-orange-100 text-orange-800"}`}>
+                            {isPromo ? 'Promo' : 'Desc'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="flex items-center gap-1">
+                      <DollarSign size={13} className="text-green-600" />
+                      <span className="font-bold text-xs sm:text-sm text-green-600">
+                        ${product.price.toFixed(2)} MXN
+                      </span>
+                    </div>
+                  );
+                };
+
+                if (viewMode === 'grid') {
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3">
+                      {filteredProducts.map((product, index) => (
+                        <div 
+                          key={product.id} 
+                          ref={index === filteredProducts.length - 1 ? lastProductElementRef : null}
+                          className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow flex bg-white"
+                        >
+                          {/* Columna izquierda — Información */}
+                          <div className="w-[62%] p-3 flex flex-col min-w-0">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex flex-col overflow-hidden mr-1">
+                                <h3 className="font-semibold text-sm text-gray-900 truncate" title={product.name}>
+                                  <span className="text-gray-400 font-normal mr-1">#{product.id}</span>
+                                  {product.name}
+                                </h3>
+                                <span className="inline-flex items-center text-[11px] text-gray-500 mt-0.5">
+                                  <Layers size={11} className="mr-1" />
+                                  {product.templates?.length || 0} {(product.templates?.length || 0) === 1 ? 'plantilla' : 'plantillas'}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-0.5 shrink-0">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => openEditModal(product)}
+                                  className='p-1 h-7 w-7'
+                                >
+                                  <Edit3 size={13} />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => openDeleteModal(product)}
+                                  className="p-1 h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 size={13} />
+                                </Button>
+                              </div>
+                            </div>
+
+                            <div className="space-y-1.5 text-xs text-gray-600 flex-1">
+                              {product.serial_number && (
+                                <div className="flex items-center gap-1.5">
+                                  <Hash size={12} />
+                                  <span className="font-mono text-[11px] truncate">{product.serial_number}</span>
+                                </div>
+                              )}
+
+                              {renderPriceInfo(product)}
+
+                              {product.description && (
+                                <p className="text-[11px] text-gray-500 line-clamp-1 mt-1">
+                                  {product.description}
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
+                              <span className={`px-1.5 py-0.5 text-[10px] rounded-full font-medium ${product.active === true
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                                }`}>
+                                {product.active === true ? 'Activo' : 'Inactivo'}
+                              </span>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openProductDetail(product.id)}
+                                className="text-xs h-7 px-2"
+                              >
+                                Ver Detalles
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Columna derecha — Imagen */}
+                          <div className="w-[38%] shrink-0 border-l border-gray-100 bg-gray-50">
+                            <ProductImageCarousel
+                              images={product.images}
+                              productName={product.name}
+                              height={undefined}
+                              showEmptyState
+                              fillContainer
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+
+                return (
+                  /* Vista Horizontal (Lista Compacta) */
+                  <div className="flex flex-col gap-2">
+                    {filteredProducts.map((product, index) => (
+                      <div 
+                        key={product.id} 
+                        ref={index === filteredProducts.length - 1 ? lastProductElementRef : null}
+                        className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow flex flex-col sm:flex-row items-stretch sm:items-center bg-white p-2 sm:p-2.5 gap-3"
+                      >
+                        {/* Imagen miniatura ultra-compacta */}
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-md overflow-hidden border border-gray-100 bg-gray-50">
+                          <ProductImageCarousel
+                            images={product.images}
+                            productName={product.name}
+                            height={undefined}
+                            showEmptyState
+                            fillContainer
+                          />
+                        </div>
+
+                        {/* Información principal */}
+                        <div className="flex-1 min-w-0 space-y-0.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-gray-400 text-xs font-mono">#{product.id}</span>
+                            <h3 className="font-semibold text-gray-900 text-sm truncate" title={product.name}>
+                              {product.name}
+                            </h3>
+                            <span className={`px-1.5 py-0.5 text-[9px] font-medium rounded-full ${product.active === true
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                              }`}>
+                              {product.active === true ? 'Activo' : 'Inactivo'}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
+                            {product.serial_number && (
+                              <span className="flex items-center gap-1 font-mono text-[11px]">
+                                <Hash size={12} />
+                                {product.serial_number}
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1 text-[11px]">
+                              <Layers size={12} />
+                              {product.templates?.length || 0} {(product.templates?.length || 0) === 1 ? 'plantilla' : 'plantillas'}
+                            </span>
+                          </div>
+
+                          {product.description && (
+                            <p className="text-[11px] text-gray-500 line-clamp-1">
+                              {product.description}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Precio */}
+                        <div className="shrink-0 sm:text-right px-1">
+                          {renderPriceInfo(product)}
+                        </div>
+
+                        {/* Botones de Acción */}
+                        <div className="flex items-center gap-1 shrink-0 sm:pl-2 sm:border-l border-gray-100 justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openProductDetail(product.id)}
+                            className="text-xs h-7 px-2"
+                          >
+                            Ver Detalles
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => openEditModal(product)}
-                            className='p-1 h-8 w-8'
+                            className="p-1 h-7 w-7 text-gray-600 hover:text-gray-900"
                           >
-                            <Edit3 size={14} />
+                            <Edit3 size={13} />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => openDeleteModal(product)}
-                            className="p-1 h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="p-1 h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={13} />
                           </Button>
                         </div>
                       </div>
-
-                      <div className="space-y-2 text-sm text-gray-600 flex-1">
-                        {product.serial_number && (
-                          <div className="flex items-center gap-2">
-                            <Hash size={14} />
-                            <span className="font-mono text-xs">{product.serial_number}</span>
-                          </div>
-                        )}
-
-                        {(() => {
-                          let activePrice = product.price;
-                          let isPromo = false;
-                          let isDiscount = false;
-
-                          if (product.promo_price !== null && product.promo_price !== undefined && product.promo_price < product.price) {
-                            activePrice = product.promo_price;
-                            isPromo = true;
-                          }
-
-                          if (product.discount_price !== null && product.discount_price !== undefined && product.discount_price < activePrice) {
-                            activePrice = product.discount_price;
-                            isPromo = false;
-                            isDiscount = true;
-                          }
-
-                          if (isPromo || isDiscount) {
-                            return (
-                              <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-2">
-                                  <DollarSign size={12} className="text-gray-400" />
-                                  <span className="text-gray-400 line-through text-xs">
-                                    ${product.price.toFixed(2)} MXN
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <DollarSign size={14} className={isPromo ? "text-blue-600" : "text-orange-600"} />
-                                  <span className={`font-semibold ${isPromo ? "text-blue-600" : "text-orange-600"}`}>
-                                    ${activePrice.toFixed(2)} MXN
-                                  </span>
-                                  <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${isPromo ? "bg-blue-100 text-blue-800" : "bg-orange-100 text-orange-800"}`}>
-                                    {isPromo ? 'Promo' : 'Desc'}
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          }
-
-                          return (
-                            <div className="flex items-center gap-2">
-                              <DollarSign size={14} />
-                              <span className="font-semibold text-green-600">
-                                ${product.price.toFixed(2)} MXN
-                              </span>
-                            </div>
-                          );
-                        })()}
-
-                        {product.description && (
-                          <p className="text-xs text-gray-500 line-clamp-2 mt-2">
-                            {product.description}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-                        <span className={`px-2 py-1 text-xs rounded-full ${product.active === true
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                          }`}>
-                          {product.active === true ? 'Activo' : 'Inactivo'}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openProductDetail(product.id)}
-                        >
-                          Ver Detalles
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Columna derecha — Imagen (contenedor fijo) */}
-                    <div className="w-[40%] shrink-0 border-l border-gray-100 bg-gray-50">
-                      <ProductImageCarousel
-                        images={product.images}
-                        productName={product.name}
-                        height={undefined}
-                        showEmptyState
-                        fillContainer
-                      />
-                    </div>
-
+                    ))}
                   </div>
-                ))}
-              </div>
+                );
+              })()}
 
               {/* Loading indicator para scroll infinito */}
               {loadingMore && (
