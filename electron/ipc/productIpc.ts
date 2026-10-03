@@ -12,7 +12,7 @@ export function registerProductIpc(): void {
   ipcMain.handle('products:getAllWithTemplates', async () => await productService.getAllProductsWithTemplates());
   ipcMain.handle('products:search', async (_event, searchTerm: string) => await productService.searchProducts(searchTerm));
   ipcMain.handle('products:searchWithTemplates', async (_event, searchTerm: string) => await productService.searchProductsWithTemplates(searchTerm));
-  ipcMain.handle('products:getPaginated', async (_event, page: number, limit: number, searchTerm: string) =>
-    await productService.getProductsPaginated(page, limit, searchTerm));
+  ipcMain.handle('products:getPaginated', async (_event, page: number, limit: number, searchTerm: string, sortBy?: 'default' | 'price_asc' | 'price_desc') =>
+    await productService.getProductsPaginated(page, limit, searchTerm, sortBy));
   ipcMain.handle('products:findSimilarNames', async () => await productService.getProductsWithSimilarNames());
 }

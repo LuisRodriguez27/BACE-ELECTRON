@@ -56,8 +56,8 @@ contextBridge.exposeInMainWorld('api', {
   searchProducts: (searchTerm: string): Promise<unknown> => ipcRenderer.invoke('products:search', searchTerm),
   searchProductsWithTemplates: (searchTerm: string): Promise<unknown> =>
     ipcRenderer.invoke('products:searchWithTemplates', searchTerm),
-  getProductsPaginated: (page: number, limit: number, searchTerm: string): Promise<unknown> =>
-    ipcRenderer.invoke('products:getPaginated', page, limit, searchTerm),
+  getProductsPaginated: (page: number, limit: number, searchTerm: string, sortBy?: string): Promise<unknown> =>
+    ipcRenderer.invoke('products:getPaginated', page, limit, searchTerm, sortBy),
   findSimilarNames: (): Promise<unknown> => ipcRenderer.invoke('products:findSimilarNames'),
 
   // Plantillas de productos

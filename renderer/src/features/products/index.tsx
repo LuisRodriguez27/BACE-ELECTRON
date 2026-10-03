@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { DollarSign, Edit3, Hash, Package, Plus, Search, Trash2, Printer, Layers, Loader2 } from 'lucide-react';
+import { DollarSign, Edit3, Hash, Package, Plus, Search, Trash2, Printer, Layers, Loader2, ArrowUpDown } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { CreateProductModal, DeleteProductModal, EditProductModal, ProductDetailView, SimilarNamesModal } from './components';
@@ -19,6 +19,7 @@ const ProductsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [currentSearchTerm, setCurrentSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<'default' | 'price_asc' | 'price_desc'>('default');
 
   const [pagination, setPagination] = useState<{
     page: number;
@@ -75,7 +76,12 @@ const ProductsPage: React.FC = () => {
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  const loadProducts = async (page: number = 1, reset: boolean = true, searchQuery: string = '') => {
+  const loadProducts = async (
+    page: number = 1,
+    reset: boolean = true,
+    searchQuery: string = currentSearchTerm,
+    sortOption: 'default' | 'price_asc' | 'price_desc' = sortBy
+  ) => {
     try {
       if (page === 1) {
         setLoading(true);
@@ -83,7 +89,7 @@ const ProductsPage: React.FC = () => {
         setLoadingMore(true);
       }
 
-      const response = await ProductsApiService.findPaginated(page, 10, searchQuery);
+      const response = await ProductsApiService.findPaginated(page, 10, searchQuery, sortOption);
 
       if (reset) {
         setProducts(response.data);
@@ -107,22 +113,27 @@ const ProductsPage: React.FC = () => {
 
   const loadMoreProducts = () => {
     if (!loadingMore && pagination.hasNext) {
-      loadProducts(pagination.page + 1, false, currentSearchTerm);
+      loadProducts(pagination.page + 1, false, currentSearchTerm, sortBy);
     }
   };
 
   // Carga inicial
   useEffect(() => {
-    loadProducts(1, true, '');
+    loadProducts(1, true, '', sortBy);
   }, []);
 
   // Fetch products when debounced search term changes
   useEffect(() => {
     if (debouncedSearch !== currentSearchTerm) {
       setIsSearching(true);
-      loadProducts(1, true, debouncedSearch);
+      loadProducts(1, true, debouncedSearch, sortBy);
     }
   }, [debouncedSearch]);
+
+  const handleSortChange = (newSortBy: 'default' | 'price_asc' | 'price_desc') => {
+    setSortBy(newSortBy);
+    loadProducts(1, true, debouncedSearch, newSortBy);
+  };
 
   // Ya no filtramos localmente, la BD hace el trabajo pesado y mejorado
   const filteredProducts = products.filter(product => {
@@ -480,8 +491,8 @@ const ProductsPage: React.FC = () => {
 
       {/* Filtros y búsqueda */}
       <div className="bg-white rounded-lg shadow p-4 mb-6">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
+        <div className="flex flex-col sm:flex-row gap-4 items-center">
+          <div className="flex-1 w-full">
             <div className="relative">
               {isSearching ? (
                 <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
@@ -495,17 +506,37 @@ const ProductsPage: React.FC = () => {
                 placeholder="Buscar productos..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               />
             </div>
-            {searchTerm && (
-              <p className="text-xs text-blue-600 mt-2 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-                Búsqueda activa: se imprimirán únicamente los {filteredProducts.length} productos filtrados.
-              </p>
-            )}
+          </div>
+
+          {/* Filtro por precio */}
+          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+            <div className="relative w-full sm:w-56">
+              <ArrowUpDown className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+              <select
+                value={sortBy}
+                onChange={e => handleSortChange(e.target.value as 'default' | 'price_asc' | 'price_desc')}
+                className="w-full pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer appearance-none"
+              >
+                <option value="default">Orden por defecto</option>
+                <option value="price_desc">Precio: Mayor a Menor</option>
+                <option value="price_asc">Precio: Menor a Mayor</option>
+              </select>
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400 text-xs">
+                ▼
+              </div>
+            </div>
           </div>
         </div>
+
+        {searchTerm && (
+          <p className="text-xs text-blue-600 mt-2 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+            Búsqueda activa: se imprimirán únicamente los {filteredProducts.length} productos filtrados.
+          </p>
+        )}
       </div>
 
       {/* Lista de productos */}

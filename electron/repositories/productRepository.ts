@@ -111,15 +111,22 @@ class ProductRepository {
     }));
   }
 
-  async findPaginatedWithTemplates(page = 1, limit = 10, searchTerm = '') {
+  async findPaginatedWithTemplates(page = 1, limit = 10, searchTerm = '', sortBy: 'default' | 'price_asc' | 'price_desc' = 'default') {
     const offset = (page - 1) * limit;
     let products: InstanceType<typeof Product>[] = [];
     let total = 0;
 
+    let orderByClause = 'ORDER BY id DESC';
+    if (sortBy === 'price_asc') {
+      orderByClause = 'ORDER BY LEAST(price, COALESCE(promo_price, price), COALESCE(discount_price, price)) ASC, id DESC';
+    } else if (sortBy === 'price_desc') {
+      orderByClause = 'ORDER BY LEAST(price, COALESCE(promo_price, price), COALESCE(discount_price, price)) DESC, id DESC';
+    }
+
     if (!searchTerm || !searchTerm.trim()) {
       const countResult = await db.getOne<{ total: string }>('SELECT COUNT(*) as total FROM products WHERE active = true');
       total = parseInt(countResult!.total, 10) || 0;
-      const raw = await db.getAll<ProductRow>(`SELECT * FROM products WHERE active = true ORDER BY id DESC LIMIT $1 OFFSET $2`, [limit, offset]);
+      const raw = await db.getAll<ProductRow>(`SELECT * FROM products WHERE active = true ${orderByClause} LIMIT $1 OFFSET $2`, [limit, offset]);
       products = raw.map((p) => new Product(p));
     } else {
       const cleanTerm = searchTerm.trim();
@@ -139,7 +146,15 @@ class ProductRepository {
       const countResult = await db.getOne<{ total: string }>(`SELECT COUNT(*) as total FROM products WHERE ${whereClause}`, params);
       total = parseInt(countResult!.total, 10) || 0;
       const limitIdx = paramIndex, offsetIdx = paramIndex + 1;
-      const raw = await db.getAll<ProductRow>(`SELECT *, similarity(unaccent(name), unaccent($3)) as sim_name, word_similarity(unaccent($3), unaccent(name)) as wsim_name FROM products WHERE ${whereClause} ORDER BY (unaccent(name) ILIKE unaccent($1)) DESC, wsim_name DESC, sim_name DESC, name LIMIT $${limitIdx} OFFSET $${offsetIdx}`, [...params, limit, offset]);
+
+      let searchOrderBy = `ORDER BY (unaccent(name) ILIKE unaccent($1)) DESC, wsim_name DESC, sim_name DESC, name`;
+      if (sortBy === 'price_asc') {
+        searchOrderBy = 'ORDER BY LEAST(price, COALESCE(promo_price, price), COALESCE(discount_price, price)) ASC, name';
+      } else if (sortBy === 'price_desc') {
+        searchOrderBy = 'ORDER BY LEAST(price, COALESCE(promo_price, price), COALESCE(discount_price, price)) DESC, name';
+      }
+
+      const raw = await db.getAll<ProductRow>(`SELECT *, similarity(unaccent(name), unaccent($3)) as sim_name, word_similarity(unaccent($3), unaccent(name)) as wsim_name FROM products WHERE ${whereClause} ${searchOrderBy} LIMIT $${limitIdx} OFFSET $${offsetIdx}`, [...params, limit, offset]);
       products = raw.map((p) => new Product(p));
     }
 

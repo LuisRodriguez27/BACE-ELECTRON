@@ -9,7 +9,8 @@ export const ProductsApiService = {
   findPaginated: async (
     page: number,
     limit: number,
-    searchTerm: string
+    searchTerm: string,
+    sortBy: 'default' | 'price_asc' | 'price_desc' = 'default'
   ): Promise<{
     data: (Product & { templates?: ProductTemplate[] })[];
     pagination: {
@@ -21,7 +22,7 @@ export const ProductsApiService = {
       hasPrev: boolean;
     };
   }> => {
-    return window.api.getProductsPaginated(page, limit, searchTerm);
+    return window.api.getProductsPaginated(page, limit, searchTerm, sortBy);
   },
 
   findById: async (id: number): Promise<Product> => {

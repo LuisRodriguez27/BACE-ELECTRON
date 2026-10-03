@@ -212,11 +212,11 @@ class ProductService {
     }
   }
 
-  async getProductsPaginated(page = 1, limit = 10, searchTerm = '') {
+  async getProductsPaginated(page = 1, limit = 10, searchTerm = '', sortBy: 'default' | 'price_asc' | 'price_desc' = 'default') {
     try {
       if (page < 1) page = 1;
       if (limit < 1 || limit > 100) limit = 10;
-      const result = await productRepository.findPaginatedWithTemplates(page, limit, searchTerm);
+      const result = await productRepository.findPaginatedWithTemplates(page, limit, searchTerm, sortBy);
       return { data: result.data, pagination: result.pagination, searchTerm: result.searchTerm };
     } catch (error) {
       console.error('Error al obtener productos paginados:', error);
