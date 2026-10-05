@@ -256,6 +256,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       clientSearch.loadClients();
+      loadProducts();
       loadTemplates();
     }
   }, [isOpen]);
