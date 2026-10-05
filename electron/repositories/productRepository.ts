@@ -142,7 +142,18 @@ class ProductRepository {
         paramIndex++;
       }
       const wordsWhereClause = wordConditions.length > 0 ? wordConditions.join(' AND ') : 'false';
-      const whereClause = `active = true AND ((unaccent(name) ILIKE unaccent($1) OR unaccent(serial_number) ILIKE unaccent($1) OR unaccent(description) ILIKE unaccent($1)) OR (unaccent(REPLACE(name, ' ', '')) ILIKE unaccent($2)) OR (${wordsWhereClause}) OR (similarity(unaccent(name), unaccent($3)) > 0.25 OR word_similarity(unaccent($3), unaccent(name)) > 0.4))`;
+
+      // Si el término es numérico, añadir condición de precio
+      const isNumericTerm = /^\d*\.?\d+$/.test(cleanTerm);
+      const priceCondition = isNumericTerm
+        ? `OR CAST(price AS TEXT) LIKE $${paramIndex}`
+        : '';
+      if (isNumericTerm) {
+        params.push(`${cleanTerm}%`);
+        paramIndex++;
+      }
+
+      const whereClause = `active = true AND ((unaccent(name) ILIKE unaccent($1) OR unaccent(serial_number) ILIKE unaccent($1) OR unaccent(description) ILIKE unaccent($1)) OR (unaccent(REPLACE(name, ' ', '')) ILIKE unaccent($2)) OR (${wordsWhereClause}) OR (similarity(unaccent(name), unaccent($3)) > 0.25 OR word_similarity(unaccent($3), unaccent(name)) > 0.4) ${priceCondition})`;
       const countResult = await db.getOne<{ total: string }>(`SELECT COUNT(*) as total FROM products WHERE ${whereClause}`, params);
       total = parseInt(countResult!.total, 10) || 0;
       const limitIdx = paramIndex, offsetIdx = paramIndex + 1;

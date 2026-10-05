@@ -11,7 +11,7 @@ import { ProductTemplatesApiService } from '@/features/productTemplates/ProductT
 import type { ProductTemplate } from '@/features/productTemplates/types';
 import { extractErrorMessage } from '@/utils/errorHandling';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Calendar, DollarSign, Layers, Loader, Package, Plus, ReceiptText, Search, ShoppingBag, Trash2, X } from 'lucide-react';
+import { ArrowDownNarrowWide, ArrowUpNarrowWide, Calendar, DollarSign, Layers, Loader, Package, Plus, ReceiptText, Search, ShoppingBag, Trash2, X } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';
@@ -58,6 +58,8 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
   const [showDropdowns, setShowDropdowns] = useState<{ [key: number]: boolean }>({});
   const [dropdownPositions, setDropdownPositions] = useState<{ [key: number]: { top?: number, bottom?: number, left: number, width: number, maxHeight?: number } }>({});
   const [selectedCategory, setSelectedCategory] = useState<{ [key: number]: 'all' | 'products' | 'templates' }>({});
+  const [priceSorts, setPriceSorts] = useState<{ [key: number]: 'asc' | 'desc' | null }>({});
+  const [activeRowIndex, setActiveRowIndex] = useState<number | null>(null);
   const [nextBudgetId, setNextBudgetId] = useState<number>(0);
 
   const {
@@ -221,6 +223,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
 
   // Función mejorada para mostrar dropdown
   const showDropdown = (index: number) => {
+    setActiveRowIndex(index);
     updateDropdownPosition(index);
     setShowDropdowns(prev => ({ ...prev, [index]: true }));
   };
@@ -253,10 +256,45 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       clientSearch.loadClients();
-      loadProducts();
       loadTemplates();
     }
   }, [isOpen]);
+
+  // Búsqueda dinámica con debounce de productos para la fila activa
+  useEffect(() => {
+    if (activeRowIndex === null) return;
+    if (!showDropdowns[activeRowIndex]) return;
+
+    const searchTerm = searchTerms[activeRowIndex] || '';
+    const priceSort = priceSorts[activeRowIndex] ?? null;
+    const sortBy: 'default' | 'price_asc' | 'price_desc' =
+      priceSort === 'asc' ? 'price_asc' : priceSort === 'desc' ? 'price_desc' : 'default';
+
+    const fetchProducts = async () => {
+      try {
+        setLoadingProducts(true);
+        const response = await window.api.getProductsPaginated(1, 50, searchTerm, sortBy);
+        setProducts(response.data.filter((p: Product) => p.active === true));
+      } catch (err) {
+        console.error('Error searching products:', err);
+      } finally {
+        setLoadingProducts(false);
+      }
+    };
+
+    if (searchTerm === '' && priceSort === null) {
+      fetchProducts();
+      return;
+    }
+
+    const timer = setTimeout(fetchProducts, 300);
+    return () => clearTimeout(timer);
+  }, [
+    activeRowIndex,
+    activeRowIndex !== null ? showDropdowns[activeRowIndex] : false,
+    activeRowIndex !== null ? searchTerms[activeRowIndex] : undefined,
+    activeRowIndex !== null ? priceSorts[activeRowIndex] : undefined,
+  ]);
 
   // Recalcular posiciones cuando cambie el tamaño de la ventana
   useEffect(() => {
@@ -309,8 +347,8 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
   const loadProducts = async () => {
     try {
       setLoadingProducts(true);
-      const response = await window.api.getAllProducts();
-      setProducts(response.filter(p => p.active === true));
+      const response = await window.api.getProductsPaginated(1, 50, '');
+      setProducts(response.data.filter((p: Product) => p.active === true));
     } catch (err) {
       console.error('Error loading products:', err);
       setError('Error al cargar los productos');
@@ -373,6 +411,12 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
       delete newPositions[index];
       return newPositions;
     });
+    setPriceSorts(prev => {
+      const next = { ...prev };
+      delete next[index];
+      return next;
+    });
+    if (activeRowIndex === index) setActiveRowIndex(null);
   };
 
   // Actualizar item específico
@@ -382,46 +426,58 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
     ));
   };
 
+  // Helper para precio de un item del dropdown
+  const getItemPrice = (filteredItem: { type: 'product' | 'template', item: Product | ProductTemplate }): number => {
+    if (filteredItem.type === 'product') return (filteredItem.item as Product).price ?? 0;
+    return (filteredItem.item as ProductTemplate).final_price ?? 0;
+  };
+
   // Obtener items filtrados (productos + plantillas) para búsqueda
   const getFilteredItems = useCallback((index: number) => {
     const searchTerm = searchTerms[index] || '';
     const category = selectedCategory[index] || 'all';
+    const priceSort = priceSorts[index] ?? null;
     const items: Array<{ type: 'product' | 'template', item: Product | ProductTemplate }> = [];
 
-    // Agregar productos si corresponde
+    // Detectar si el término es numérico (búsqueda por precio)
+    const isPriceSearch = searchTerm !== '' && /^\d*\.?\d+$/.test(searchTerm.trim());
+
+    // Productos: ya vienen filtrados y ordenados desde el backend
     if (category === 'all' || category === 'products') {
       products.forEach(product => {
-        const matchesSearch = !searchTerm ||
-          product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (product.serial_number && product.serial_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
-
-        if (matchesSearch) {
-          items.push({
-            type: 'product',
-            item: product,
-          });
-        }
+        items.push({ type: 'product', item: product });
       });
     }
 
-    // Agregar plantillas si corresponde
+    // Plantillas: filtrado client-side
     if (category === 'all' || category === 'templates') {
       templates.forEach(template => {
         const baseProduct = products.find(p => p.id === template.product_id);
         const templateName = baseProduct ? `${baseProduct.name} (Plantilla)` : `Plantilla #${template.id}`;
 
-        const matchesSearch = !searchTerm ||
-          templateName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (template.description && template.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (template.colors && template.colors.toLowerCase().includes(searchTerm.toLowerCase()));
-
-        if (matchesSearch) {
-          items.push({
-            type: 'template',
-            item: { ...template, name: templateName, product_name: baseProduct?.name } as any
-          });
+        if (isPriceSearch) {
+          const priceStr = template.final_price?.toFixed(2) ?? '0.00';
+          if (!priceStr.startsWith(searchTerm.trim())) return;
+        } else {
+          const matchesSearch = !searchTerm ||
+            templateName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (template.description && template.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (template.colors && template.colors.toLowerCase().includes(searchTerm.toLowerCase()));
+          if (!matchesSearch) return;
         }
+
+        items.push({
+          type: 'template',
+          item: { ...template, name: templateName, product_name: baseProduct?.name } as any
+        });
+      });
+    }
+
+    // Si hay ordenamiento por precio activo, retornar lista plana ordenada por precio
+    if (priceSort !== null) {
+      return [...items].sort((a, b) => {
+        const diff = getItemPrice(a) - getItemPrice(b);
+        return priceSort === 'asc' ? diff : -diff;
       });
     }
 
@@ -429,12 +485,10 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
     const productItems = items.filter((i): i is { type: 'product', item: Product } => i.type === 'product');
     const templateItems = items.filter((i): i is { type: 'template', item: ProductTemplate } => i.type === 'template');
 
-    const sortedProducts = [...productItems].sort((a, b) => a.item.name.localeCompare(b.item.name));
-
     const grouped: Array<{ type: 'product' | 'template', item: Product | ProductTemplate }> = [];
     const usedTemplateIds = new Set<number>();
 
-    sortedProducts.forEach(productItem => {
+    productItems.forEach(productItem => {
       grouped.push(productItem);
       const children = templateItems
         .filter(t => t.item.product_id === productItem.item.id)
@@ -445,13 +499,12 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
       });
     });
 
-    // Plantillas cuyo producto no está en la lista actual (p. ej. filtro solo "templates")
     const orphanTemplates = templateItems
       .filter(t => !usedTemplateIds.has(t.item.id))
       .sort((a, b) => (a.item as any).name.localeCompare((b.item as any).name));
 
     return [...grouped, ...orphanTemplates];
-  }, [searchTerms, selectedCategory, products, templates]);
+  }, [searchTerms, selectedCategory, priceSorts, products, templates]);
 
   // Seleccionar item (producto o plantilla)
   const selectItem = (index: number, type: 'product' | 'template', item: Product | ProductTemplate) => {
@@ -565,6 +618,8 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
     setShowDropdowns({});
     setDropdownPositions({});
     setSelectedCategory({});
+    setPriceSorts({});
+    setActiveRowIndex(null);
     setSelectedProductForTemplate(null);
     clientSearch.reset();
     setOriginalBudgetDate(null);
@@ -878,7 +933,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
                               {showDropdowns[index] && dropdownPositions[index] && createPortal(
                                 <div
                                   id={`item-dropdown-${index}`}
-                                  className="fixed z-9999 bg-white border border-gray-300 rounded-md shadow-lg overflow-y-auto"
+                                  className="fixed z-[9999] bg-white border border-gray-300 rounded-md shadow-lg overflow-hidden flex flex-col"
                                   style={{
                                     ...(dropdownPositions[index].top !== undefined
                                       ? { top: `${dropdownPositions[index].top}px` }
@@ -888,89 +943,123 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
                                     maxHeight: `${dropdownPositions[index].maxHeight || 200}px`
                                   }}
                                 >
-                                  {getFilteredItems(index).length > 0 ? (
-                                    getFilteredItems(index).map((filteredItem, _) => (
-                                      <div
-                                        key={`${filteredItem.type}-${filteredItem.item.id}`}
-                                        className="px-3 py-1.5 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 group"
-                                      >
-                                        <div className="flex justify-between items-center">
-                                          <div
-                                            className="flex-1 flex items-start gap-2"
-                                            onClick={() => selectItem(index, filteredItem.type, filteredItem.item)}
-                                          >
-                                            <div className="flex items-center gap-2 flex-1">
-                                              {filteredItem.type === 'product' ? (
-                                                <Package className="h-4 w-4 text-blue-500" />
-                                              ) : (
-                                                <Layers className="h-4 w-4 text-purple-500" />
-                                              )}
-                                              <div className="flex-1">
-                                                <div className="font-medium text-sm text-gray-900">
-                                                  {filteredItem.type === 'product'
-                                                    ? (filteredItem.item as Product).name
-                                                    : (filteredItem.item as ProductTemplate).description
-                                                  }
+                                  {/* Barra de ordenamiento por precio */}
+                                  <div className="flex items-center gap-1 px-2 py-1 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+                                    <span className="text-xs text-gray-500 mr-1">Precio:</span>
+                                    <button
+                                      type="button"
+                                      title="Precio: menor a mayor"
+                                      onClick={() => setPriceSorts(prev => ({ ...prev, [index]: priceSorts[index] === 'asc' ? null : 'asc' }))}
+                                      className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium transition-colors ${
+                                        priceSorts[index] === 'asc'
+                                          ? 'bg-blue-500 text-white'
+                                          : 'bg-white border border-gray-300 text-gray-600 hover:bg-blue-50 hover:border-blue-400'
+                                      }`}
+                                    >
+                                      <ArrowUpNarrowWide className="h-3 w-3" />
+                                      Asc
+                                    </button>
+                                    <button
+                                      type="button"
+                                      title="Precio: mayor a menor"
+                                      onClick={() => setPriceSorts(prev => ({ ...prev, [index]: priceSorts[index] === 'desc' ? null : 'desc' }))}
+                                      className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium transition-colors ${
+                                        priceSorts[index] === 'desc'
+                                          ? 'bg-blue-500 text-white'
+                                          : 'bg-white border border-gray-300 text-gray-600 hover:bg-blue-50 hover:border-blue-400'
+                                      }`}
+                                    >
+                                      <ArrowDownNarrowWide className="h-3 w-3" />
+                                      Desc
+                                    </button>
+                                  </div>
+
+                                  {/* Lista de resultados */}
+                                  <div className="overflow-y-auto flex-1">
+                                    {getFilteredItems(index).length > 0 ? (
+                                      getFilteredItems(index).map((filteredItem, _) => (
+                                        <div
+                                          key={`${filteredItem.type}-${filteredItem.item.id}`}
+                                          className="px-3 py-1.5 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0 group"
+                                        >
+                                          <div className="flex justify-between items-center">
+                                            <div
+                                              className="flex-1 flex items-start gap-2"
+                                              onClick={() => selectItem(index, filteredItem.type, filteredItem.item)}
+                                            >
+                                              <div className="flex items-center gap-2 flex-1">
+                                                {filteredItem.type === 'product' ? (
+                                                  <Package className="h-4 w-4 text-blue-500" />
+                                                ) : (
+                                                  <Layers className="h-4 w-4 text-purple-500" />
+                                                )}
+                                                <div className="flex-1">
+                                                  <div className="font-medium text-sm text-gray-900">
+                                                    {filteredItem.type === 'product'
+                                                      ? (filteredItem.item as Product).name
+                                                      : (filteredItem.item as ProductTemplate).description
+                                                    }
+                                                  </div>
+                                                  {filteredItem.type === 'product' && (filteredItem.item as Product).serial_number && (
+                                                    <div className="text-xs text-gray-500">
+                                                      SN: {(filteredItem.item as Product).serial_number}
+                                                    </div>
+                                                  )}
+                                                  {filteredItem.type === 'template' && (
+                                                    <div className="text-xs text-gray-500">
+                                                      {(filteredItem.item as ProductTemplate).product_name && (
+                                                        <span>Producto: {(filteredItem.item as ProductTemplate).product_name}</span>
+                                                      )}
+                                                      {(filteredItem.item as ProductTemplate).width && (filteredItem.item as ProductTemplate).height && (
+                                                        <span className="ml-2">{(filteredItem.item as ProductTemplate).width}x{(filteredItem.item as ProductTemplate).height}cm</span>
+                                                      )}
+                                                    </div>
+                                                  )}
                                                 </div>
-                                                {filteredItem.type === 'product' && (filteredItem.item as Product).serial_number && (
-                                                  <div className="text-xs text-gray-500">
-                                                    SN: {(filteredItem.item as Product).serial_number}
-                                                  </div>
-                                                )}
-                                                {filteredItem.type === 'template' && (
-                                                  <div className="text-xs text-gray-500">
-                                                    {(filteredItem.item as ProductTemplate).product_name && (
-                                                      <span>Producto: {(filteredItem.item as ProductTemplate).product_name}</span>
-                                                    )}
-                                                    {(filteredItem.item as ProductTemplate).width && (filteredItem.item as ProductTemplate).height && (
-                                                      <span className="ml-2">{(filteredItem.item as ProductTemplate).width}x{(filteredItem.item as ProductTemplate).height}cm</span>
-                                                    )}
-                                                  </div>
-                                                )}
+                                              </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                              <div className="text-sm font-semibold text-green-600">
+                                                ${filteredItem.type === 'product'
+                                                  ? (filteredItem.item as Product).price.toFixed(2)
+                                                  : (filteredItem.item as ProductTemplate).final_price.toFixed(2)
+                                                }
                                               </div>
                                             </div>
                                           </div>
-                                          <div className="flex items-center gap-2">
-                                            <div className="text-sm font-semibold text-green-600">
-                                              ${filteredItem.type === 'product'
-                                                ? (filteredItem.item as Product).price.toFixed(2)
-                                                : (filteredItem.item as ProductTemplate).final_price.toFixed(2)
-                                              }
-                                            </div>
-                                          </div>
                                         </div>
-                                      </div>
-                                    ))
-                                  ) : (
-                                    <div className="px-3 py-4 text-center">
-                                      <div className="flex flex-col items-center gap-2">
-                                        <div className="text-gray-400">
-                                          {selectedCategory[index] === 'products' ? (
-                                            <Package className="h-8 w-8" />
-                                          ) : selectedCategory[index] === 'templates' ? (
-                                            <Layers className="h-8 w-8" />
-                                          ) : (
-                                            <Search className="h-8 w-8" />
+                                      ))
+                                    ) : (
+                                      <div className="px-3 py-4 text-center">
+                                        <div className="flex flex-col items-center gap-2">
+                                          <div className="text-gray-400">
+                                            {selectedCategory[index] === 'products' ? (
+                                              <Package className="h-8 w-8" />
+                                            ) : selectedCategory[index] === 'templates' ? (
+                                              <Layers className="h-8 w-8" />
+                                            ) : (
+                                              <Search className="h-8 w-8" />
+                                            )}
+                                          </div>
+                                          <p className="text-sm text-gray-500 mb-2">No se encontraron items</p>
+                                          {searchTerms[index] && (
+                                            <Button
+                                              type="button"
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() => {
+                                                setSearchTerms(prev => ({ ...prev, [index]: '' }));
+                                                setSelectedCategory(prev => ({ ...prev, [index]: 'all' }));
+                                              }}
+                                              className="text-xs"
+                                            >
+                                              Limpiar búsqueda
+                                            </Button>
                                           )}
                                         </div>
-                                        <p className="text-sm text-gray-500 mb-2">No se encontraron items</p>
-                                        {searchTerms[index] && (
-                                          <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="outline"
-                                            onClick={() => {
-                                              setSearchTerms(prev => ({ ...prev, [index]: '' }));
-                                              setSelectedCategory(prev => ({ ...prev, [index]: 'all' }));
-                                            }}
-                                            className="text-xs"
-                                          >
-                                            Limpiar búsqueda
-                                          </Button>
-                                        )}
                                       </div>
-                                    </div>
-                                  )}
+                                    )}
+                                  </div>
                                 </div>,
                                 document.body
                               )}

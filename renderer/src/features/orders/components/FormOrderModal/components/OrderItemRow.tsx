@@ -26,6 +26,8 @@ const OrderItemRow: React.FC<OrderItemRowProps> = ({
     showDropdowns,
     dropdownPositions,
     selectedCategory,
+    priceSorts,
+    setPriceSorts,
     updateOrderItem,
     removeOrderItem,
     getFilteredItems,
@@ -174,8 +176,12 @@ const OrderItemRow: React.FC<OrderItemRowProps> = ({
                 dropdownPosition={dropdownPositions[index]}
                 selectedCategory={selectedCategory[index] || 'all'}
                 searchTerm={searchTerms[index] || ''}
+                priceSort={priceSorts[index] ?? null}
                 onSelectItem={selectItem}
                 onClearSearch={handleClearSearch}
+                onPriceSortChange={(idx, direction) =>
+                  setPriceSorts(prev => ({ ...prev, [idx]: direction }))
+                }
               />
             )}
           </div>
