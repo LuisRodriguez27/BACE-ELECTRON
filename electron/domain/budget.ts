@@ -2,7 +2,7 @@ import type { BudgetRow, BudgetProductRow } from '../types/domain';
 
 class Budget {
   id: number;
-  client_id: number;
+  client_id: number | null;
   user_id: number;
   edited_by: number | null;
   date: string;
@@ -38,7 +38,10 @@ class Budget {
   hasItems(): boolean { return this.hasProducts(); }
   wasEdited(): boolean { return this.edited_by !== null; }
 
-  getClient() { return { id: this.client_id, name: this.client_name, phone: this.client_phone, color: this.client_color }; }
+  getClient() {
+    if (!this.client_id) return null;
+    return { id: this.client_id, name: this.client_name, phone: this.client_phone, color: this.client_color };
+  }
   getUser() { return { id: this.user_id, username: this.user_username }; }
   getEditedByUser() { if (!this.edited_by) return null; return { id: this.edited_by, username: this.edited_by_username }; }
 
@@ -57,7 +60,7 @@ class Budget {
   }
 
   isValid(): boolean {
-    return !!(this.client_id && this.client_id > 0 && this.user_id && this.user_id > 0 && typeof this.total === 'number' && this.total >= 0 && !isNaN(this.total) && this.hasProducts());
+    return !!(this.client_name?.trim() && this.user_id && this.user_id > 0 && typeof this.total === 'number' && this.total >= 0 && !isNaN(this.total) && this.hasProducts());
   }
 
   getProductsCount(): number { if (!this.budgetProducts) return 0; return this.budgetProducts.filter(item => item.product_id !== null).length; }
@@ -81,7 +84,7 @@ class Budget {
   canEdit(): boolean { return !this.converted_to_order && this.isActive(); }
 
   toPlainObject() {
-    return { id: this.id, client_id: this.client_id, user_id: this.user_id, edited_by: this.edited_by, date: this.date, total: this.total, converted_to_order: this.converted_to_order, active: this.active, client: this.getClient(), user: this.getUser(), editedByUser: this.getEditedByUser(), budgetProducts: this.budgetProducts };
+    return { id: this.id, client_id: this.client_id, client_name: this.client_name, user_id: this.user_id, edited_by: this.edited_by, date: this.date, total: this.total, converted_to_order: this.converted_to_order, active: this.active, client: this.getClient(), user: this.getUser(), editedByUser: this.getEditedByUser(), budgetProducts: this.budgetProducts };
   }
 }
 

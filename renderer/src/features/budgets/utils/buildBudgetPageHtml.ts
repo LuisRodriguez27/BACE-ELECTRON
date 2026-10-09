@@ -115,7 +115,7 @@ function buildBudgetPageHtml(params: {
         <div style="display:grid;grid-template-columns:272px 128px 128px;column-gap:${layout.infoColumnGap}px;align-items:center;">
           <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;display:flex;align-items:center;gap:8px;min-width:0;">
             ${clientColor ? `<span style="width:16px;height:16px;border-radius:9999px;background:${clientColor};flex:none;"></span>` : ''}
-            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(budgetData.client?.name || 'Cliente no especificado')}</span>
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(budgetData.client?.name || budgetData.client_name || 'Cliente no especificado')}</span>
           </div>
           <div style="text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(budgetData.client?.phone || '')}</div>
           <div style="text-align:center;white-space:nowrap;">${escapeHtml(formatDateMX(budgetData.date, 'DD/MM/YYYY'))}</div>
@@ -195,7 +195,7 @@ export function buildBudgetPrintHtml(params: {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Presupuesto - ${escapeHtml(params.budgetData.client?.name || params.budgetData.id)}</title>
+  <title>Presupuesto - ${escapeHtml(params.budgetData.client?.name || params.budgetData.client_name || params.budgetData.id)}</title>
   <style>
     * { box-sizing:border-box;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;font-family:Arial,sans-serif!important; }
     @page { size:${BUDGET_PAGE.widthCm}cm ${BUDGET_PAGE.heightCm}cm landscape;margin:0; }

@@ -420,6 +420,8 @@ const BudgetsPage: React.FC = () => {
                             variant="outline"
                             size="sm"
                             onClick={() => handleTransformToOrder(budget.id)}
+                            disabled={!budget.client_id}
+                            title={!budget.client_id ? 'Selecciona un cliente registrado antes de convertirla en orden' : undefined}
                             className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50"
                           >
                             <ArrowRight size={14} />
@@ -438,21 +440,19 @@ const BudgetsPage: React.FC = () => {
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
-                        {budget.client && (
-                          <div>
+                        <div>
                             <span className="text-sm font-medium text-gray-700">Cliente:</span>
-                            <p className="text-xs text-gray-600">ID: {budget.client.id}</p>
-                            <p className="text-sm text-gray-600">{budget.client.name}</p>
+                            {budget.client ? <p className="text-xs text-gray-600">ID: {budget.client.id}</p> : <p className="text-xs text-gray-500">No registrado</p>}
+                            <p className="text-sm text-gray-600">{budget.client?.name || budget.client_name || 'Sin nombre'}</p>
                             <div className="flex items-center gap-2 mt-1">
-                              {budget.client.phone && (
+                              {budget.client?.phone && (
                                 <p className="text-xs text-gray-500">{budget.client.phone}</p>
                               )}
-                              {budget.client.color && (
+                              {budget.client?.color && (
                                 <ClientColorIndicator color={budget.client.color as ClientColor} size="sm" />
                               )}
                             </div>
-                          </div>
-                        )}
+                        </div>
 
                         {budget.user && (
                           <div>

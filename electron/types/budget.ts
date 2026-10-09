@@ -7,7 +7,7 @@
 
 export interface BudgetRow {
   id: number;
-  client_id: number;
+  client_id: number | null;
   user_id: number;
   edited_by: number | null;
   date: string;
@@ -45,7 +45,8 @@ export interface BudgetItem {
 }
 
 export interface BudgetData {
-  client_id?: number;
+  client_id?: number | null;
+  client_name?: string | null;
   user_id?: number;
   date?: string;
   edited_by?: number | null;

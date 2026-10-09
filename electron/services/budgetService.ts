@@ -67,13 +67,17 @@ class BudgetService {
         throw new Error('El presupuesto debe incluir items (productos o plantillas).');
       }
 
-      if (!client_id || client_id <= 0) throw new Error('ID de cliente inválido.');
+      const freeClientName = budgetData.client_name?.trim() || null;
+      if (!client_id && !freeClientName) throw new Error('Selecciona un cliente o escribe su nombre.');
       if (!user_id || user_id <= 0) throw new Error('ID de usuario inválido.');
       if (!date) throw new Error('La fecha es requerida');
       if (!items || !Array.isArray(items) || items.length === 0) throw new Error('La orden debe contener al menos un producto o plantilla');
 
-      const client = await clientRepository.findById(client_id);
-      if (!client) throw new Error('El cliente especificado no existe');
+      if (client_id) {
+        if (client_id <= 0) throw new Error('ID de cliente inválido.');
+        const client = await clientRepository.findById(client_id);
+        if (!client) throw new Error('El cliente especificado no existe');
+      }
       const user = await userRepository.findById(user_id);
       if (!user) throw new Error('El usuario especificado no existe');
 
@@ -92,7 +96,8 @@ class BudgetService {
       }
 
       const budgetToCreate = {
-        client_id,
+        client_id: client_id || null,
+        client_name: freeClientName,
         user_id,
         date: orderDate.toISOString(),
         items: items.map(item => ({
@@ -131,6 +136,8 @@ class BudgetService {
         const client = await clientRepository.findById(client_id);
         if (!client) throw new Error('El cliente especificado no existe');
       }
+      const freeClientName = budgetData.client_name?.trim();
+      if (client_id === null && !freeClientName) throw new Error('Escribe el nombre del cliente o selecciona uno registrado');
       if (edited_by) {
         if (edited_by <= 0) throw new Error('ID de usuario editor inválido');
         const editorUser = await userRepository.findById(edited_by);
@@ -153,7 +160,8 @@ class BudgetService {
 
       const updatePayload: BudgetData = {
         date: date ? new Date(date).toISOString() : existingBudget.date,
-        client_id: client_id ? client_id : existingBudget.client_id,
+        client_id: client_id === undefined ? existingBudget.client_id : client_id,
+        client_name: client_id ? null : (freeClientName ?? existingBudget.client_name),
         edited_by: edited_by ? edited_by : existingBudget.edited_by,
       };
 

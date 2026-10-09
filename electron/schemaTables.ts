@@ -62,7 +62,8 @@ const schemaTables: string = `
 
   CREATE TABLE IF NOT EXISTS budgets (
     id                    SERIAL        PRIMARY KEY,
-    client_id             INTEGER       NOT NULL REFERENCES clients(id),
+    client_id             INTEGER       REFERENCES clients(id),
+    client_name           VARCHAR(255),
     user_id               INTEGER       NOT NULL REFERENCES users(id),
     edited_by             INTEGER       REFERENCES users(id),
     date                  TIMESTAMPTZ   NOT NULL,

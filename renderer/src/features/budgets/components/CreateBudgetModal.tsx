@@ -96,6 +96,8 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
       clientSearch.setSelectedClientId(budgetToEdit.client_id);
       if (budgetToEdit.client) {
         clientSearch.setClientSearchTerm(`${budgetToEdit.client.name} - ${budgetToEdit.client.phone}`);
+      } else {
+        clientSearch.setClientSearchTerm(budgetToEdit.client_name || '');
       }
 
       // Convertir productos del presupuesto a items del formulario
@@ -561,9 +563,11 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
         return;
       }
 
-      // Validar que se seleccionó un cliente
-      if (!clientSearch.selectedClientId) {
-        setError('Debe seleccionar un cliente');
+      const freeClientName = clientSearch.selectedClientId
+        ? undefined
+        : clientSearch.clientSearchTerm.trim();
+      if (!clientSearch.selectedClientId && !freeClientName) {
+        setError('Selecciona un cliente o escribe su nombre');
         return;
       }
 
@@ -572,6 +576,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
           ...formData,
           date: preserveTimeOrStartOfDay(formData.date, originalBudgetDate),
           client_id: clientSearch.selectedClientId,
+          client_name: freeClientName,
           // Si estamos editando, usamos edited_by en lugar de user_id
           edited_by: currentUserId
         };
@@ -592,7 +597,8 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
         const budgetData: CreateBudgetForm = {
           ...formData,
           date: preserveTimeOrStartOfDay(formData.date, null),
-          client_id: clientSearch.selectedClientId!,
+          client_id: clientSearch.selectedClientId,
+          client_name: freeClientName,
           user_id: currentUserId
         };
 
@@ -704,7 +710,12 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
                   register={register}
                   errors={errors}
                   onOpenCreateClientModal={() => setShowCreateClientModal(true)}
+                  required={false}
+                  allowFreeText
                 />
+                <p className="-mt-3 text-xs text-gray-500 md:col-span-2">
+                  Si no eliges un cliente registrado, el texto se guardará solo en esta cotización.
+                </p>
 
                 {/* Fecha del presupuesto */}
                 <div>
@@ -1161,7 +1172,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting || budgetItems.length === 0 || !clientSearch.selectedClientId}
+              disabled={isSubmitting || budgetItems.length === 0 || (!clientSearch.selectedClientId && !clientSearch.clientSearchTerm.trim())}
               className="flex items-center gap-2"
             >
               {isSubmitting && <Loader className="animate-spin" size={16} />}
@@ -1202,13 +1213,14 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
       )}
 
       {/* Modal de vista previa de impresión */}
-      {showPrintPreview && clientSearch.selectedClientId && (
+      {showPrintPreview && (
         <BudgetPrintPreviewModal
           isOpen={showPrintPreview}
           onClose={() => setShowPrintPreview(false)}
           budgetData={{
             id: nextBudgetId,
-            client_id: clientSearch.selectedClientId || 0,
+            client_id: clientSearch.selectedClientId,
+            client_name: clientSearch.selectedClientId ? undefined : clientSearch.clientSearchTerm.trim(),
             user_id: currentUserId,
             date: (document.getElementById('date') as HTMLInputElement)?.value || todayDateInputMX(),
             total: total,

@@ -10,6 +10,8 @@ interface ClientSearchFieldProps {
   register: UseFormRegister<any>;
   errors: FieldErrors<FieldValues>;
   onOpenCreateClientModal: () => void;
+  required?: boolean;
+  allowFreeText?: boolean;
 }
 
 const ClientSearchField: React.FC<ClientSearchFieldProps> = ({
@@ -17,6 +19,8 @@ const ClientSearchField: React.FC<ClientSearchFieldProps> = ({
   register,
   errors,
   onOpenCreateClientModal,
+  required = true,
+  allowFreeText = false,
 }) => {
   const {
     clients,
@@ -36,7 +40,7 @@ const ClientSearchField: React.FC<ClientSearchFieldProps> = ({
     <div className="md:col-span-2">
       <div className="flex items-center justify-between mb-1">
         <Label htmlFor="client_id" className="text-sm font-medium text-gray-700">
-          Cliente *
+          Cliente{required ? ' *' : ''}
         </Label>
         <Button
           type="button"
@@ -78,7 +82,7 @@ const ClientSearchField: React.FC<ClientSearchFieldProps> = ({
               <Input
                 id="client-search-input"
                 type="text"
-                placeholder="Buscar cliente por nombre, teléfono o ID..."
+                placeholder={allowFreeText ? 'Busca un cliente o escribe un nombre...' : 'Buscar cliente por nombre, teléfono o ID...'}
                 value={clientSearchTerm}
                 onChange={(e) => handleClientInputChange(e.target.value)}
                 onFocus={() => setShowClientDropdown(true)}
@@ -100,7 +104,7 @@ const ClientSearchField: React.FC<ClientSearchFieldProps> = ({
                   type="hidden"
                   {...register('client_id', {
                     valueAsNumber: true,
-                    required: 'Debe seleccionar un cliente'
+                    required: required ? 'Debe seleccionar un cliente' : false
                   })}
                   value={selectedClientId}
                 />
@@ -183,7 +187,7 @@ const ClientSearchField: React.FC<ClientSearchFieldProps> = ({
           </div>
         )}
       </div>
-      {errors.client_id && (
+      {required && errors.client_id && (
         <p className="mt-1 text-sm text-red-600">{errors.client_id.message as string}</p>
       )}
     </div>

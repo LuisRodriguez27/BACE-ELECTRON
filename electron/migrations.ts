@@ -1146,6 +1146,33 @@ const MIGRATIONS: Migration[] = [
       `);
     }
   },
+  // v38: Las cotizaciones pueden guardarse con un nombre libre, sin crear un cliente ficticio.
+  {
+    version: 38,
+    name: 'allow_budgets_without_registered_client',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ is_nullable: string; has_client_name: boolean }>(`
+        SELECT c.is_nullable,
+               EXISTS (
+                 SELECT 1 FROM information_schema.columns
+                 WHERE table_schema = current_schema()
+                   AND table_name = 'budgets'
+                   AND column_name = 'client_name'
+               ) AS has_client_name
+        FROM information_schema.columns c
+        WHERE c.table_schema = current_schema()
+          AND c.table_name = 'budgets'
+          AND c.column_name = 'client_id'
+      `);
+      return rows[0]?.is_nullable === 'YES' && rows[0]?.has_client_name === true;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        ALTER TABLE budgets ALTER COLUMN client_id DROP NOT NULL;
+        ALTER TABLE budgets ADD COLUMN IF NOT EXISTS client_name VARCHAR(255);
+      `);
+    }
+  },
 ];
 
 // ─── RUNNER PRINCIPAL ───────────────────────────────────────────────────────

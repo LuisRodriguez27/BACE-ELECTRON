@@ -5,10 +5,10 @@ import type { BudgetItem, BudgetRow, BudgetProductRow, BudgetData } from '../typ
 const BUDGET_SELECT = `
   SELECT b.id, b.client_id, b.user_id, b.edited_by, b.date,
          b.total, b.converted_to_order, b.active,
-         c.name AS client_name, c.phone AS client_phone, c.color AS client_color,
+         COALESCE(c.name, b.client_name) AS client_name, c.phone AS client_phone, c.color AS client_color,
          u.username AS user_username, ue.username AS edited_by_username
   FROM budgets b
-  JOIN clients c ON b.client_id = c.id
+  LEFT JOIN clients c ON b.client_id = c.id
   JOIN users u ON b.user_id = u.id
   LEFT JOIN users ue ON b.edited_by = ue.id
 `;
@@ -45,12 +45,12 @@ class BudgetRepository {
 
     if (searchTerm && searchTerm.trim()) {
       const term = `%${searchTerm.trim()}%`;
-      searchCondition = `AND (CAST(b.id AS TEXT) ILIKE $${paramIndex} OR c.name ILIKE $${paramIndex} OR c.phone ILIKE $${paramIndex} OR EXISTS (SELECT 1 FROM budget_products bp LEFT JOIN products p ON bp.product_id = p.id LEFT JOIN product_templates pt ON bp.template_id = pt.id LEFT JOIN products pt_p ON pt.product_id = pt_p.id WHERE bp.budget_id = b.id AND (p.name ILIKE $${paramIndex} OR p.description ILIKE $${paramIndex} OR pt.description ILIKE $${paramIndex} OR pt_p.name ILIKE $${paramIndex})))`;
+      searchCondition = `AND (CAST(b.id AS TEXT) ILIKE $${paramIndex} OR COALESCE(c.name, b.client_name) ILIKE $${paramIndex} OR c.phone ILIKE $${paramIndex} OR EXISTS (SELECT 1 FROM budget_products bp LEFT JOIN products p ON bp.product_id = p.id LEFT JOIN product_templates pt ON bp.template_id = pt.id LEFT JOIN products pt_p ON pt.product_id = pt_p.id WHERE bp.budget_id = b.id AND (p.name ILIKE $${paramIndex} OR p.description ILIKE $${paramIndex} OR pt.description ILIKE $${paramIndex} OR pt_p.name ILIKE $${paramIndex})))`;
       searchParams = [term];
       paramIndex = 2;
     }
 
-    const countResult = await db.getOne<{ total: string }>(`SELECT COUNT(*) as total FROM budgets b JOIN clients c ON b.client_id = c.id WHERE b.active = true AND b.converted_to_order = false ${searchCondition}`, searchParams);
+    const countResult = await db.getOne<{ total: string }>(`SELECT COUNT(*) as total FROM budgets b LEFT JOIN clients c ON b.client_id = c.id WHERE b.active = true AND b.converted_to_order = false ${searchCondition}`, searchParams);
     const total = parseInt(countResult!.total, 10);
     const budgets = await db.getAll<BudgetRow>(`${BUDGET_SELECT} WHERE b.active = true AND b.converted_to_order = false ${searchCondition} ORDER BY b.id DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`, [...searchParams, limit, offset]);
 
@@ -64,7 +64,7 @@ class BudgetRepository {
 
   async create(budgetData: BudgetData) {
     const date = budgetData.date ? new Date(budgetData.date).toISOString() : new Date().toISOString();
-    const result = await db.execute(`INSERT INTO budgets (client_id, user_id, date, total, converted_to_order, active) VALUES ($1, $2, $3, 0, false, true)`, [budgetData.client_id, budgetData.user_id, date]);
+    const result = await db.execute(`INSERT INTO budgets (client_id, client_name, user_id, date, total, converted_to_order, active) VALUES ($1, $2, $3, $4, 0, false, true)`, [budgetData.client_id || null, budgetData.client_name || null, budgetData.user_id, date]);
     const budgetId = result.lastInsertRowid!;
 
     if (budgetData.items && Array.isArray(budgetData.items)) {
@@ -84,6 +84,7 @@ class BudgetRepository {
     const fieldsToUpdate: Partial<BudgetRow> = {};
     if (budgetData.date !== undefined) fieldsToUpdate.date = budgetData.date;
     if (budgetData.client_id !== undefined) fieldsToUpdate.client_id = budgetData.client_id;
+    if (budgetData.client_name !== undefined) fieldsToUpdate.client_name = budgetData.client_name;
     if (budgetData.edited_by !== undefined) fieldsToUpdate.edited_by = budgetData.edited_by;
 
     const fieldEntries = Object.entries(fieldsToUpdate);
@@ -135,6 +136,7 @@ class BudgetRepository {
     const budget = await this.findById(budgetId);
     if (!budget) throw new Error('El presupuesto no existe');
     if (budget.converted_to_order) throw new Error('Este presupuesto ya fue convertido a orden');
+    if (!budget.client_id) throw new Error('Asigna un cliente registrado antes de convertir la cotización en una orden');
 
     const budgetProducts = await this.getBudgetProducts(budgetId);
     if (!budgetProducts || budgetProducts.length === 0) throw new Error('El presupuesto no tiene productos');

@@ -17,7 +17,8 @@ export const budgetItemSchema = z.object({
 
 // Crear orden - nueva estructura con items
 export const createBudgetSchema = z.object({
-  client_id: z.number({ error: 'El cliente es obligatorio' }).int().min(1, 'El cliente es obligatorio'),
+  client_id: z.number().int().min(1).nullable().optional(),
+  client_name: z.string().trim().min(1).max(255).optional(),
   user_id: z.number({ error: 'El usuario es obligatorio' }).int().min(1, 'El usuario es obligatorio'),
   date: z.string().min(1, 'La fecha es obligatoria'), 
   items: z.array(budgetItemSchema).min(1, 'La orden debe tener al menos un producto o plantilla')
@@ -25,7 +26,8 @@ export const createBudgetSchema = z.object({
 
 // Editar presupuesto
 export const editBudgetSchema = z.object({
-  client_id: z.number().int().min(1).optional(),
+  client_id: z.number().int().min(1).nullable().optional(),
+  client_name: z.string().trim().min(1).max(255).optional(),
   user_id: z.number().int().min(1).optional(),
   edited_by: z.number().int().min(1).optional(),
   date: z.string().optional(),
@@ -39,7 +41,8 @@ export type BudgetItem = z.infer<typeof budgetItemSchema>;
 // Interfaces de entidades
 export interface Budget {
   id: number;
-  client_id: number;
+  client_id: number | null;
+  client_name?: string | null;
   user_id: number;
   edited_by?: number;
   date: string; // ISO date string
