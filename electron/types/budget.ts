@@ -12,6 +12,7 @@ export interface BudgetRow {
   edited_by: number | null;
   date: string;
   total: number;
+  budget_type: 'catalog' | 'notebook';
   converted_to_order: boolean;
   active: boolean;
   /** Joined desde clients */
@@ -40,6 +41,7 @@ export interface BudgetProductRow {
 export interface BudgetItem {
   product_id?: number | null;
   template_id?: number | null;
+  product_name?: string;
   quantity: number;
   unit_price: number;
 }
@@ -50,6 +52,7 @@ export interface BudgetData {
   user_id?: number;
   date?: string;
   edited_by?: number | null;
+  budget_type?: 'catalog' | 'notebook';
   items?: BudgetItem[];
   /** @deprecated Usar `items` en su lugar */
   products?: Array<{

@@ -4,7 +4,7 @@ import type { BudgetItem, BudgetRow, BudgetProductRow, BudgetData } from '../typ
 
 const BUDGET_SELECT = `
   SELECT b.id, b.client_id, b.user_id, b.edited_by, b.date,
-         b.total, b.converted_to_order, b.active,
+         b.total, b.budget_type, b.converted_to_order, b.active,
          COALESCE(c.name, b.client_name) AS client_name, c.phone AS client_phone, c.color AS client_color,
          u.username AS user_username, ue.username AS edited_by_username
   FROM budgets b
@@ -64,7 +64,7 @@ class BudgetRepository {
 
   async create(budgetData: BudgetData) {
     const date = budgetData.date ? new Date(budgetData.date).toISOString() : new Date().toISOString();
-    const result = await db.execute(`INSERT INTO budgets (client_id, client_name, user_id, date, total, converted_to_order, active) VALUES ($1, $2, $3, $4, 0, false, true)`, [budgetData.client_id || null, budgetData.client_name || null, budgetData.user_id, date]);
+    const result = await db.execute(`INSERT INTO budgets (client_id, client_name, user_id, date, total, budget_type, converted_to_order, active) VALUES ($1, $2, $3, $4, 0, $5, false, true)`, [budgetData.client_id || null, budgetData.client_name || null, budgetData.user_id, date, budgetData.budget_type || 'catalog']);
     const budgetId = result.lastInsertRowid!;
 
     if (budgetData.items && Array.isArray(budgetData.items)) {
@@ -114,7 +114,7 @@ class BudgetRepository {
       const quantity = Number(item.quantity);
       const unitPrice = Number(item.unit_price);
       if (isNaN(quantity) || quantity <= 0) throw new Error('Cada item debe tener una cantidad válida mayor a 0');
-      if (isNaN(unitPrice) || unitPrice <= 0) throw new Error('Cada item debe tener un precio unitario válido mayor a 0');
+      if (isNaN(unitPrice) || unitPrice < 0) throw new Error('Cada item debe tener un precio unitario válido mayor o igual a 0');
     }
   }
 

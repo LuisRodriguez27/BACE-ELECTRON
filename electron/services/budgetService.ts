@@ -8,6 +8,34 @@ import type { BudgetItem, BudgetData } from '../types/budget';
 import db from '../db';
 
 class BudgetService {
+  private async resolveNotebookItems(items: BudgetItem[]): Promise<BudgetItem[]> {
+    return Promise.all(items.map(async (item, index) => {
+      const name = item.product_name?.trim();
+      if (!name) throw new Error(`Item ${index + 1}: Escribe el nombre del producto`);
+      if (!item.quantity || isNaN(Number(item.quantity)) || Number(item.quantity) < 0.0001) throw new Error(`Item ${index + 1}: Cantidad inválida`);
+      if (item.unit_price == null || isNaN(Number(item.unit_price)) || Number(item.unit_price) < 0) throw new Error(`Item ${index + 1}: Precio unitario inválido`);
+
+      let productId = item.product_id ?? null;
+      if (productId) {
+        const product = await productRepository.findById(productId);
+        if (!product) throw new Error(`Item ${index + 1}: El producto especificado no existe`);
+      } else {
+        const existing = await db.getOne<{ id: number }>(
+          'SELECT id FROM products WHERE active = true AND LOWER(TRIM(name)) = LOWER(TRIM($1)) LIMIT 1',
+          [name]
+        );
+        if (existing) {
+          productId = existing.id;
+        } else {
+          const created = await productRepository.create({ name, price: Number(item.unit_price) });
+          productId = created.id;
+        }
+      }
+
+      return { product_id: productId, template_id: null, quantity: Number(item.quantity), unit_price: Number(item.unit_price) };
+    }));
+  }
+
   async getAllBudgets() {
     try {
       const budgets = await budgetRepository.findAll();
@@ -84,10 +112,15 @@ class BudgetService {
       const orderDate = new Date(date);
       if (isNaN(orderDate.getTime())) throw new Error('Fecha de orden inválida');
 
+      const isNotebook = budgetData.budget_type === 'notebook';
+      if (isNotebook && items.some(item => item.template_id != null)) {
+        throw new Error('El bloc de notas no admite plantillas');
+      }
+
       for (const [index, item] of items.entries()) {
         const hasProduct = item.product_id != null;
         const hasTemplate = item.template_id != null;
-        if (!hasProduct && !hasTemplate) throw new Error(`Item ${index + 1}: Debe especificar un product_id o template_id`);
+        if (!hasProduct && !hasTemplate && !(isNotebook && item.product_name?.trim())) throw new Error(`Item ${index + 1}: Debe especificar un producto`);
         if (hasProduct && hasTemplate) throw new Error(`Item ${index + 1}: No puede tener tanto product_id como template_id`);
         if (!item.quantity || isNaN(item.quantity) || item.quantity < 0.0001) throw new Error(`Item ${index + 1}: Cantidad inválida`);
         if (item.unit_price === undefined || item.unit_price === null || isNaN(item.unit_price) || item.unit_price < 0) throw new Error(`Item ${index + 1}: Precio unitario inválido`);
@@ -95,11 +128,12 @@ class BudgetService {
         if (hasTemplate) { const e = await productTemplateRepository.findById(item.template_id!); if (!e) throw new Error(`Item ${index + 1}: La plantilla especificada no existe`); }
       }
 
-      const budgetToCreate = {
+      const budgetToCreate: BudgetData = {
         client_id: client_id || null,
         client_name: freeClientName,
         user_id,
         date: orderDate.toISOString(),
+        budget_type: isNotebook ? 'notebook' as const : 'catalog' as const,
         items: items.map(item => ({
           product_id: item.product_id ? item.product_id : null,
           template_id: item.template_id ? item.template_id : null,
@@ -109,6 +143,7 @@ class BudgetService {
       };
 
       const transaction = db.transaction(async () => {
+        if (isNotebook) budgetToCreate.items = await this.resolveNotebookItems(items);
         const budget = await budgetRepository.create(budgetToCreate);
         if (!budget) throw new Error('Error al crear presupuesto');
         return budget.toPlainObject();
@@ -144,12 +179,14 @@ class BudgetService {
         if (!editorUser) throw new Error('El usuario editor especificado no existe');
       }
 
+      const isNotebook = existingBudget.budget_type === 'notebook';
       if (items) {
         if (!Array.isArray(items)) throw new Error('El campo "items" debe ser un array');
         if (items.length === 0) throw new Error('El presupuesto debe contener al menos un producto o plantilla');
+        if (isNotebook && items.some(item => item.template_id != null)) throw new Error('El bloc de notas no admite plantillas');
         for (const [index, item] of items.entries()) {
           const hasProduct = item.product_id != null; const hasTemplate = item.template_id != null;
-          if (!hasProduct && !hasTemplate) throw new Error(`Item ${index + 1}: Debe especificar un product_id o template_id`);
+          if (!hasProduct && !hasTemplate && !(isNotebook && item.product_name?.trim())) throw new Error(`Item ${index + 1}: Debe especificar un producto`);
           if (hasProduct && hasTemplate) throw new Error(`Item ${index + 1}: No puede tener tanto product_id como template_id`);
           if (!item.quantity || isNaN(item.quantity) || item.quantity < 0.0001) throw new Error(`Item ${index + 1}: Cantidad inválida`);
           if (item.unit_price == null || isNaN(item.unit_price) || item.unit_price < 0) throw new Error(`Item ${index + 1}: Precio unitario inválido`);
@@ -175,6 +212,7 @@ class BudgetService {
       }
 
       const transaction = db.transaction(async () => {
+        if (items && isNotebook) updatePayload.items = await this.resolveNotebookItems(items);
         const updatedBudget = await budgetRepository.update(id, updatePayload);
         if (!updatedBudget) throw new Error('Error al actualizar presupuesto');
         return updatedBudget.toPlainObject();

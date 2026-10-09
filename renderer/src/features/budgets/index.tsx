@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useAuthStore } from '@/store/auth';
-import { ArrowRight, Calendar, Copy, DollarSign, FileText, Loader2, MessageCircle, Plus, Printer, Search, Trash2, Pencil } from 'lucide-react';
+import { ArrowRight, Calendar, ChevronDown, Copy, DollarSign, FileText, Loader2, MessageCircle, Plus, Printer, Search, Trash2, Pencil } from 'lucide-react';
 import { formatDateMX } from '@/utils/dateUtils';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -42,6 +42,8 @@ const BudgetsPage: React.FC = () => {
   });
 
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newBudgetType, setNewBudgetType] = useState<'catalog' | 'notebook' | null>(null);
+  const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showTransformDialog, setShowTransformDialog] = useState(false);
   const [selectedBudgetId, setSelectedBudgetId] = useState<number | null>(null);
@@ -61,6 +63,7 @@ const BudgetsPage: React.FC = () => {
   } = useWhatsAppBudget();
 
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const createMenuRef = useRef<HTMLDivElement | null>(null);
   const lastBudgetElementRef = useCallback((node: HTMLDivElement) => {
     if (loadingMore) return;
     if (observerRef.current) observerRef.current.disconnect();
@@ -118,6 +121,14 @@ const BudgetsPage: React.FC = () => {
 
   useEffect(() => {
     loadBudgets();
+  }, []);
+
+  useEffect(() => {
+    const closeMenu = (event: MouseEvent) => {
+      if (createMenuRef.current && !createMenuRef.current.contains(event.target as Node)) setShowCreateMenu(false);
+    };
+    document.addEventListener('mousedown', closeMenu);
+    return () => document.removeEventListener('mousedown', closeMenu);
   }, []);
 
   useEffect(() => {
@@ -208,11 +219,13 @@ const BudgetsPage: React.FC = () => {
     }
   };
 
-  const openCreateModal = () => {
+  const openCreateModal = (type: 'catalog' | 'notebook' | null = null) => {
     if (!checkPermission("Crear Presupuestos")) {
       return;
     }
     setEditingBudget(null);
+    setNewBudgetType(type);
+    setShowCreateMenu(false);
     setShowCreateModal(true);
   };
 
@@ -221,11 +234,13 @@ const BudgetsPage: React.FC = () => {
         return;
     }
     setEditingBudget(budget);
+    setNewBudgetType(null);
     setShowCreateModal(true);
   };
 
   const closeModals = () => {
     setShowCreateModal(false);
+    setNewBudgetType(null);
     setEditingBudget(null);
   };
 
@@ -253,13 +268,25 @@ const BudgetsPage: React.FC = () => {
             Administra los presupuestos creados para clientes
           </p>
         </div>
-        <Button
-          className="flex items-center gap-2"
-          onClick={openCreateModal}
-        >
-          <Plus size={16} />
-          Nuevo Presupuesto
-        </Button>
+        <div ref={createMenuRef} className="relative">
+          <Button className="flex items-center gap-2" onClick={() => setShowCreateMenu(current => !current)}>
+            <Plus size={16} />
+            Nuevo Presupuesto
+            <ChevronDown size={16} />
+          </Button>
+          {showCreateMenu && (
+            <div className="absolute right-0 z-30 mt-2 w-64 rounded-lg border border-gray-200 bg-white p-1 shadow-lg">
+              <button type="button" onClick={() => openCreateModal('catalog')} className="w-full rounded-md px-3 py-2 text-left hover:bg-gray-50">
+                <span className="block text-sm font-medium text-gray-900">Catálogo y plantillas</span>
+                <span className="block text-xs text-gray-500">Selecciona productos o plantillas existentes.</span>
+              </button>
+              <button type="button" onClick={() => openCreateModal('notebook')} className="w-full rounded-md px-3 py-2 text-left hover:bg-gray-50">
+                <span className="block text-sm font-medium text-gray-900">Bloc de notas</span>
+                <span className="block text-xs text-gray-500">Captura productos libres con sugerencias.</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow p-4 mb-6">
@@ -338,7 +365,7 @@ const BudgetsPage: React.FC = () => {
                   </p>
                   <Button
                     className="flex items-center gap-2 mx-auto"
-                    onClick={openCreateModal}
+                    onClick={() => openCreateModal('catalog')}
                   >
                     <Plus size={16} />
                     Crear Primer Presupuesto
@@ -416,17 +443,35 @@ const BudgetsPage: React.FC = () => {
                             <Printer size={16} />
                             Imprimir
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleTransformToOrder(budget.id)}
-                            disabled={!budget.client_id}
-                            title={!budget.client_id ? 'Selecciona un cliente registrado antes de convertirla en orden' : undefined}
-                            className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50"
-                          >
-                            <ArrowRight size={14} />
-                            Convertir a Orden
-                          </Button>
+                          {!budget.client_id ? (
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              title="Asigna un cliente registrado antes de convertirla en orden"
+                              onClick={() => toast.error('Asigna un cliente registrado al presupuesto antes de convertirlo en orden.')}
+                              onKeyDown={(event) => {
+                                if (event.key === 'Enter' || event.key === ' ') {
+                                  event.preventDefault();
+                                  toast.error('Asigna un cliente registrado al presupuesto antes de convertirlo en orden.');
+                                }
+                              }}
+                            >
+                              <Button variant="outline" size="sm" disabled className="pointer-events-none flex items-center gap-2">
+                                <ArrowRight size={14} />
+                                Convertir a Orden
+                              </Button>
+                            </span>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleTransformToOrder(budget.id)}
+                              className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+                            >
+                              <ArrowRight size={14} />
+                              Convertir a Orden
+                            </Button>
+                          )}
                           <Button
                             variant="outline"
                             size="sm"
@@ -508,6 +553,7 @@ const BudgetsPage: React.FC = () => {
         onBudgetUpdated={handleBudgetUpdated}
         currentUserId={user?.id!}
         budgetToEdit={editingBudget}
+        initialBudgetType={newBudgetType ?? undefined}
       />
 
       <ConfirmDialog

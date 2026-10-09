@@ -30,6 +30,7 @@ const ClientSearchField: React.FC<ClientSearchFieldProps> = ({
     showClientDropdown,
     setShowClientDropdown,
     selectedClientId,
+    setSelectedClientId,
     highlightClient,
     getFilteredClients,
     selectClient,
@@ -59,7 +60,7 @@ const ClientSearchField: React.FC<ClientSearchFieldProps> = ({
             <Loader className="animate-spin" size={16} />
             <span className="text-sm text-gray-500">Cargando clientes...</span>
           </div>
-        ) : clients.length === 0 && !clientSearchTerm ? (
+        ) : clients.length === 0 && !clientSearchTerm && !allowFreeText ? (
           <div className="flex items-center justify-between p-3 border border-dashed border-gray-300 rounded-lg">
             <div className="flex items-center gap-2 text-gray-500">
               <User size={16} />
@@ -153,6 +154,19 @@ const ClientSearchField: React.FC<ClientSearchFieldProps> = ({
                       <p className="text-sm text-gray-500 mb-2">No se encontraron clientes</p>
                       {clientSearchTerm && (
                         <div className="flex flex-col gap-2">
+                          {allowFreeText && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedClientId(null);
+                                setShowClientDropdown(false);
+                              }}
+                              className="text-xs"
+                            >
+                              Continuar con cliente temporal
+                            </Button>
+                          )}
                           <Button
                             type="button"
                             size="sm"

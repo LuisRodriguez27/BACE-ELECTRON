@@ -1173,6 +1173,24 @@ const MIGRATIONS: Migration[] = [
       `);
     }
   },
+  {
+    version: 39,
+    name: 'add_budget_type',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query(`
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = current_schema() AND table_name = 'budgets' AND column_name = 'budget_type'
+      `);
+      return rows.length > 0;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        ALTER TABLE budgets
+        ADD COLUMN IF NOT EXISTS budget_type VARCHAR(20) NOT NULL DEFAULT 'catalog'
+        CHECK (budget_type IN ('catalog', 'notebook'));
+      `);
+    }
+  },
 ];
 
 // ─── RUNNER PRINCIPAL ───────────────────────────────────────────────────────

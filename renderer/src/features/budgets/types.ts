@@ -21,7 +21,8 @@ export const createBudgetSchema = z.object({
   client_name: z.string().trim().min(1).max(255).optional(),
   user_id: z.number({ error: 'El usuario es obligatorio' }).int().min(1, 'El usuario es obligatorio'),
   date: z.string().min(1, 'La fecha es obligatoria'), 
-  items: z.array(budgetItemSchema).min(1, 'La orden debe tener al menos un producto o plantilla')
+  items: z.array(budgetItemSchema).min(1, 'La orden debe tener al menos un producto o plantilla'),
+  budget_type: z.enum(['catalog', 'notebook']).optional()
 });
 
 // Editar presupuesto
@@ -47,6 +48,7 @@ export interface Budget {
   edited_by?: number;
   date: string; // ISO date string
   total: number;
+  budget_type?: 'catalog' | 'notebook';
   converted_to_order?: boolean;
   active?: boolean;
 
@@ -98,6 +100,23 @@ export interface BudgetProduct {
   template_final_price?: number;
   template_created_by_username?: string;
   template_base_product_name?: string;
+}
+
+export interface NotebookBudgetItem {
+  product_id?: number | null;
+  product_name: string;
+  suggested_price?: number;
+  quantity: number;
+  unit_price: number;
+}
+
+export interface CreateNotebookBudgetForm {
+  client_id?: number | null;
+  client_name?: string;
+  user_id: number;
+  date: string;
+  budget_type: 'notebook';
+  items: NotebookBudgetItem[];
 }
 
 // Tipos para el formulario del frontend

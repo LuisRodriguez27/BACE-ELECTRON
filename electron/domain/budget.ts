@@ -7,6 +7,7 @@ class Budget {
   edited_by: number | null;
   date: string;
   total: number;
+  budget_type: 'catalog' | 'notebook';
   converted_to_order: boolean;
   active: boolean;
   client_name: string | null;
@@ -16,13 +17,14 @@ class Budget {
   edited_by_username: string | null;
   budgetProducts: BudgetProductRow[];
 
-  constructor({ id, client_id, user_id, edited_by, date, total, converted_to_order, active = true, client_name, client_phone, client_color, user_username, edited_by_username, budgetProducts = [] }: BudgetRow & { budgetProducts?: BudgetProductRow[] }) {
+  constructor({ id, client_id, user_id, edited_by, date, total, budget_type = 'catalog', converted_to_order, active = true, client_name, client_phone, client_color, user_username, edited_by_username, budgetProducts = [] }: BudgetRow & { budgetProducts?: BudgetProductRow[] }) {
     this.id = id;
     this.client_id = client_id;
     this.user_id = user_id;
     this.edited_by = edited_by || null;
     this.date = date;
     this.total = parseFloat(String(total)) || 0;
+    this.budget_type = budget_type;
     this.converted_to_order = !!converted_to_order;
     this.active = active;
     this.client_name = client_name || null;
@@ -84,7 +86,7 @@ class Budget {
   canEdit(): boolean { return !this.converted_to_order && this.isActive(); }
 
   toPlainObject() {
-    return { id: this.id, client_id: this.client_id, client_name: this.client_name, user_id: this.user_id, edited_by: this.edited_by, date: this.date, total: this.total, converted_to_order: this.converted_to_order, active: this.active, client: this.getClient(), user: this.getUser(), editedByUser: this.getEditedByUser(), budgetProducts: this.budgetProducts };
+    return { id: this.id, client_id: this.client_id, client_name: this.client_name, user_id: this.user_id, edited_by: this.edited_by, date: this.date, total: this.total, budget_type: this.budget_type, converted_to_order: this.converted_to_order, active: this.active, client: this.getClient(), user: this.getUser(), editedByUser: this.getEditedByUser(), budgetProducts: this.budgetProducts };
   }
 }
 

@@ -18,6 +18,7 @@ import { useForm } from 'react-hook-form';
 import { calculateBudgetTotal, type CreateBudgetForm, createBudgetItemFromFormItem, createBudgetSchema, type Budget, type BudgetFormItem } from "../types";
 import { toast } from 'sonner';
 import BudgetPrintPreviewModal from './BudgetPrintPreviewModal';
+import NotebookBudgetModal from './NotebookBudgetModal';
 import { BudgetApiService } from '../BudgetApiService';
 
 interface CreateBudgetModalProps {
@@ -27,6 +28,7 @@ interface CreateBudgetModalProps {
   onBudgetUpdated?: (budget: Budget) => void;
   currentUserId: number;
   budgetToEdit?: Budget | null;
+  initialBudgetType?: 'catalog' | 'notebook';
 }
 
 
@@ -37,7 +39,8 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
   onBudgetCreated,
   onBudgetUpdated,
   currentUserId,
-  budgetToEdit
+  budgetToEdit,
+  initialBudgetType
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,6 +64,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
   const [priceSorts, setPriceSorts] = useState<{ [key: number]: 'asc' | 'desc' | null }>({});
   const [activeRowIndex, setActiveRowIndex] = useState<number | null>(null);
   const [nextBudgetId, setNextBudgetId] = useState<number>(0);
+  const [newBudgetType, setNewBudgetType] = useState<'catalog' | 'notebook' | null>(null);
 
   const {
     register,
@@ -631,6 +635,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
     clientSearch.reset();
     setOriginalBudgetDate(null);
     setError(null);
+    setNewBudgetType(null);
     onClose();
   };
 
@@ -647,6 +652,50 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
   };
 
   if (!isOpen) return null;
+
+  if (budgetToEdit?.budget_type === 'notebook') {
+    return <NotebookBudgetModal
+      isOpen={isOpen}
+      onClose={handleClose}
+      onBudgetCreated={onBudgetCreated}
+      onBudgetUpdated={onBudgetUpdated}
+      currentUserId={currentUserId}
+      budgetToEdit={budgetToEdit}
+    />;
+  }
+
+  const selectedBudgetType = newBudgetType ?? initialBudgetType;
+
+  if (!budgetToEdit && !selectedBudgetType) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50">
+        <div className="bg-white rounded-lg shadow-xl max-w-xl w-full mx-4 p-6">
+          <div className="flex items-start justify-between mb-5">
+            <div><h2 className="text-lg font-semibold text-gray-900">Nuevo Presupuesto</h2><p className="text-sm text-gray-500 mt-1">Selecciona cómo deseas capturar los productos.</p></div>
+            <Button variant="ghost" size="sm" onClick={handleClose}><X size={16} /></Button>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <button type="button" onClick={() => setNewBudgetType('catalog')} className="text-left border rounded-lg p-4 hover:border-blue-500 hover:bg-blue-50 transition-colors">
+              <h3 className="font-semibold text-gray-900">Catálogo y plantillas</h3><p className="text-sm text-gray-500 mt-2">El flujo actual: selecciona productos o plantillas del catálogo.</p>
+            </button>
+            <button type="button" onClick={() => setNewBudgetType('notebook')} className="text-left border rounded-lg p-4 hover:border-blue-500 hover:bg-blue-50 transition-colors">
+              <h3 className="font-semibold text-gray-900">Bloc de notas</h3><p className="text-sm text-gray-500 mt-2">Captura renglones libres con sugerencias de productos y precios.</p>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!budgetToEdit && selectedBudgetType === 'notebook') {
+    return <NotebookBudgetModal
+      isOpen={isOpen}
+      onClose={handleClose}
+      onBudgetCreated={onBudgetCreated}
+      onBudgetUpdated={onBudgetUpdated}
+      currentUserId={currentUserId}
+    />;
+  }
 
   return (
     <div
