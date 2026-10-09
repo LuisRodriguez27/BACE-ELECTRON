@@ -136,7 +136,7 @@ const CreateSimpleOrderModal: React.FC<CreateSimpleOrderModalProps> = ({
       className="fixed inset-0 flex items-center justify-center z-50"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[95vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[95vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
@@ -180,7 +180,7 @@ const CreateSimpleOrderModal: React.FC<CreateSimpleOrderModalProps> = ({
             <div className="mt-1 relative">
               <textarea
                 id="concept"
-                rows={3}
+                rows={7}
                 value={concept}
                 onChange={(e) => setConcept(e.target.value)}
                 onKeyDown={handleKeyDown}
