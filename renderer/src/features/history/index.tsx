@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import OrderDetailsModal from '../orders/components/OrderDetailsModal';
 import CreateOrderModal from '../orders/components/FormOrderModal';
 import type { Order } from '../orders/types';
+import type { OrderStatusType } from '../orders/types';
 import { PaymentsApiService } from '../payments/PaymentsApiService';
 import type { Payment } from '../payments/types';
 import { SalesApiService } from './SalesApiService';
@@ -13,6 +14,9 @@ import { usePermissions } from '@/hooks/use-permissions';
 import ClientColorIndicator from '../clients/components/ClientColorIndicator';
 import type { ClientColor } from '../clients/types';
 import { getOrderItemDisplayName } from '../orders/types';
+import { OrdersApiService } from '../orders/OrdersApiService';
+import OrderStatusSelect from '../orders/components/OrderStatusSelect';
+import { toast } from 'sonner';
 
 interface PaginationInfo {
   page: number;
@@ -43,6 +47,7 @@ const OrdersPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentSearchTerm, setCurrentSearchTerm] = useState(''); // Para saber qué término se está usando actualmente
   const [searchDebounceTimer, setSearchDebounceTimer] = useState<number | null>(null);
+  const [updatingOrderIds, setUpdatingOrderIds] = useState<Set<number>>(new Set());
   
   const { checkPermission } = usePermissions();
   const { user } = useAuthStore();
@@ -209,6 +214,28 @@ const OrdersPage: React.FC = () => {
     }
     setSelectedOrderId(orderId);
     setShowEditModal(true);
+  };
+
+  const handleStatusChange = async (order: Order, status: OrderStatusType) => {
+    if (status === order.status || !checkPermission('Editar Órdenes')) return;
+
+    setUpdatingOrderIds(prev => new Set(prev).add(order.id));
+    try {
+      const updatedOrder = await OrdersApiService.update(order.id, {
+        status,
+        edited_by: user?.id,
+      });
+      handleOrderUpdated(updatedOrder);
+    } catch (err) {
+      console.error('Error changing order status:', err);
+      toast.error('No se pudo actualizar el estado de la orden');
+    } finally {
+      setUpdatingOrderIds(prev => {
+        const next = new Set(prev);
+        next.delete(order.id);
+        return next;
+      });
+    }
   };
 
   const handleOrderUpdated = (updatedOrder: Order) => {
@@ -387,11 +414,11 @@ const OrdersPage: React.FC = () => {
                 <div 
                       key={order.id} 
                       ref={index === orders.length - 1 ? lastOrderElementRef : null}
-                      className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
+                      className="border border-gray-200 rounded-lg p-4 sm:p-6 hover:shadow-md transition-shadow"
                     >
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <div className="flex items-center gap-3 mb-2">
+                    <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-start 2xl:justify-between mb-4">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
                           <h3 className="font-semibold text-gray-900">Orden #{order.id}</h3>
                           <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(order.status)}`}>
                             Completada
@@ -434,7 +461,14 @@ const OrdersPage: React.FC = () => {
                         </div>
                       </div>
                     
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap gap-2 2xl:shrink-0 2xl:justify-end">
+                      {checkPermission('Editar Órdenes') && (
+                        <OrderStatusSelect
+                          status={order.status}
+                          isUpdating={updatingOrderIds.has(order.id)}
+                          onChange={(status) => handleStatusChange(order, status)}
+                        />
+                      )}
                       {checkPermission("Editar Órdenes") && (
                         <Button
                           variant="outline"

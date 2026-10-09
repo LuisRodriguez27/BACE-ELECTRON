@@ -10,6 +10,7 @@ import OrderDetailsModal from './components/OrderDetailsModal';
 // import OrderEditModal from './components/OrderEditModal'; // Ya no se usa, ahora CreateOrderModal maneja todo
 import { OrdersApiService } from './OrdersApiService';
 import type { Order } from './types';
+import type { OrderStatusType } from './types';
 import { getOrderItemDisplayName } from './types';
 import { generateLogbookHtml } from './logbook';
 import { usePermissions } from '@/hooks/use-permissions';
@@ -18,6 +19,8 @@ import type { ClientColor } from '../clients/types';
 import { formatDateMX, formatDateOnlyMX, nowISO } from '@/utils/dateUtils';
 import AssignOrderToCreditModal from '../credits/components/AssignOrderToCreditModal';
 import type { Credit, CreditAssignmentSource } from '../credits/types';
+import OrderStatusSelect from './components/OrderStatusSelect';
+import { toast } from 'sonner';
 
 const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -33,6 +36,7 @@ const OrdersPage: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [creditSource, setCreditSource] = useState<CreditAssignmentSource | null>(null);
+  const [updatingOrderIds, setUpdatingOrderIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -119,6 +123,28 @@ const OrdersPage: React.FC = () => {
     }
     setSelectedOrderId(orderId);
     setShowEditModal(true);
+  };
+
+  const handleStatusChange = async (order: Order, status: OrderStatusType) => {
+    if (status === order.status || !checkPermission('Editar Órdenes')) return;
+
+    setUpdatingOrderIds(prev => new Set(prev).add(order.id));
+    try {
+      const updatedOrder = await OrdersApiService.update(order.id, {
+        status,
+        edited_by: user?.id,
+      });
+      handleOrderUpdated(updatedOrder);
+    } catch (err) {
+      console.error('Error changing order status:', err);
+      toast.error('No se pudo actualizar el estado de la orden');
+    } finally {
+      setUpdatingOrderIds(prev => {
+        const next = new Set(prev);
+        next.delete(order.id);
+        return next;
+      });
+    }
   };
 
   const handleAddPayment = (orderId: number) => {
@@ -482,10 +508,10 @@ const OrdersPage: React.FC = () => {
                 const paymentsCount = getOrderPayments(order.id).length;
 
                 return (
-                  <div key={order.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <div className="flex items-center gap-3 mb-2">
+                  <div key={order.id} className="border border-gray-200 rounded-lg p-4 sm:p-6 hover:shadow-md transition-shadow">
+                    <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-start 2xl:justify-between mb-4">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
                           <h3 className="font-semibold text-gray-900 wrap-break-word">Orden #{order.id}</h3>
                           <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(order.status)}`}>
                             {getStatusText(order.status)}
@@ -534,8 +560,15 @@ const OrdersPage: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="flex flex-col items-end gap-2">
-                        <div className="flex flex-wrap justify-end gap-2">
+                      <div className="flex 2xl:items-end 2xl:shrink-0">
+                        <div className="flex flex-wrap gap-2 2xl:justify-end">
+                          {checkPermission('Editar Órdenes') && (
+                            <OrderStatusSelect
+                              status={order.status}
+                              isUpdating={updatingOrderIds.has(order.id)}
+                              onChange={(status) => handleStatusChange(order, status)}
+                            />
+                          )}
                           <Button
                             variant="outline"
                             size="sm"
@@ -547,31 +580,35 @@ const OrdersPage: React.FC = () => {
                             <MessageCircle size={14} />
                             WhatsApp
                           </Button>
-                          <Button variant="outline" size="sm" onClick={() => handleEditOrder(order.id)} className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"><Edit3 size={14} />Edición</Button>
-                          <Button variant="outline" size="sm" onClick={() => handleViewDetails(order.id)} className="flex items-center gap-2"><Eye size={14} />Ver Detalles</Button>
-                        </div>
-                        <div className="flex flex-wrap justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleAddToCredit(order)}
-                          className="flex items-center gap-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-                          disabled={getRemainingAmount(order) <= 0 || (order.credited_amount || 0) > 0}
-                          title={(order.credited_amount || 0) > 0 ? 'La orden ya está relacionada con un crédito' : 'Agregar esta orden a un crédito'}
-                        >
-                          <CreditCard size={14} />
-                          {(order.credited_amount || 0) > 0 ? 'En crédito' : 'A crédito'}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleAddPayment(order.id)}
-                          className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50"
-                          disabled={getRemainingAmount(order) <= 0}
-                        >
-                          <DollarSign size={14} />
-                          Agregar Pago
-                        </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleEditOrder(order.id)} className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                            <Edit3 size={14} />
+                            Edición
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleViewDetails(order.id)} className="flex items-center gap-2">
+                            <Eye size={14} />
+                            Ver Detalles
+                          </Button>                        
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleAddToCredit(order)}
+                            className="flex items-center gap-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                            disabled={getRemainingAmount(order) <= 0 || (order.credited_amount || 0) > 0}
+                            title={(order.credited_amount || 0) > 0 ? 'La orden ya está relacionada con un crédito' : 'Agregar esta orden a un crédito'}
+                          >
+                            <CreditCard size={14} />
+                            {(order.credited_amount || 0) > 0 ? 'En crédito' : 'A crédito'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleAddPayment(order.id)}
+                            className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+                            disabled={getRemainingAmount(order) <= 0}
+                          >
+                            <DollarSign size={14} />
+                            Agregar Pago
+                          </Button>
                         </div>
                       </div>
                     </div>
