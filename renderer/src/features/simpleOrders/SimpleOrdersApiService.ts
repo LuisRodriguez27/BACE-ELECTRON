@@ -5,10 +5,15 @@ import type {
   CreateSimpleOrderPaymentForm,
   UpdateSimpleOrderPaymentForm
 } from './types';
+import type { PaginatedResult } from '../cashSession/types';
 
 export const SimpleOrdersApiService = {
   getAll: async (): Promise<SimpleOrder[]> => {
     return window.api.getAllSimpleOrders();
+  },
+
+  getPaginated: async (page: number, limit: number, searchTerm: string): Promise<PaginatedResult<SimpleOrder> & { stats: { totalCount: number, totalRevenues: number, totalPending: number } }> => {
+    return window.api.getSimpleOrdersPaginated(page, limit, searchTerm);
   },
 
   getById: async (id: number): Promise<SimpleOrder> => {

@@ -1,7 +1,9 @@
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
+import 'dayjs/locale/es';
 
+dayjs.locale('es');
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
@@ -106,7 +108,7 @@ export const nowDatetimeLocalMX = (): string => {
 /**
  * To ensure absolute UTC Z format strictly.
  */
-export const toUTCISO = (dateString: string): string => {
+export const toUTCISO = (dateString: string | Date | null | undefined): string => {
      if (!dateString) return '';
      return dayjs(dateString).utc().format();
 }
@@ -136,3 +138,67 @@ export const preserveTimeOrStartOfDay = (newDateInput: string, originalISO?: str
     // Si escogieron un día manual distinto al hoy (histórico o futuro sin edición), asignamos la hora 00:00:00Z UTC.
     return startOfDayUTC(newDateInput);
 };
+
+/**
+ * Formats a date string (YYYY-MM-DD or ISO) into "dddd D [de] MMMM [de] YYYY" in Spanish (capitalized first letter).
+ */
+export const formatDateHeaderMX = (dateStr: string | Date | null | undefined): string => {
+    if (!dateStr) return '';
+    const isDateOnly = typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr);
+    const d = isDateOnly ? dayjs.utc(dateStr) : dayjs(dateStr).tz(MX_TZ);
+    const formatted = d.format('dddd D [de] MMMM [de] YYYY');
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+};
+
+/**
+ * Checks if a given timestamp/date is before the current time.
+ */
+export const isBeforeNow = (isoString: string | Date | null | undefined): boolean => {
+    if (!isoString) return false;
+    return dayjs(isoString).isBefore(dayjs());
+};
+
+/**
+ * Deserializes an ISO UTC string/Date into individual pieces (date, hour12, minute, ampm) in Mexico City timezone.
+ */
+export const parseDeliveryDateTimeMX = (isoString: string | Date | null | undefined) => {
+    const d = dayjs(isoString || new Date()).tz(MX_TZ);
+    const date = d.format('YYYY-MM-DD');
+    let hour12 = d.hour() % 12;
+    if (hour12 === 0) hour12 = 12;
+    return {
+        date,
+        hour12: String(hour12).padStart(2, '0'),
+        minute: String(d.minute()).padStart(2, '0'),
+        ampm: d.hour() >= 12 ? ('PM' as const) : ('AM' as const),
+        time24: d.format('HH:mm')
+    };
+};
+
+/**
+ * Returns the default delivery date and time (current time + 1 hour, minutes rounded to nearest 5)
+ * in Mexico City timezone.
+ */
+export const getDefaultDeliveryDateTimeMX = () => {
+    const d = dayjs().tz(MX_TZ).add(1, 'hour');
+    const date = d.format('YYYY-MM-DD');
+    let hour12 = d.hour() % 12;
+    if (hour12 === 0) hour12 = 12;
+    const rawMinutes = d.minute();
+    const roundedMinutes = String(Math.round(rawMinutes / 5) * 5 % 60).padStart(2, '0');
+    
+    // Calculate 24h hour, considering minute rollover if rawMinutes rounded up to 60
+    let hour24 = d.hour();
+    if (Math.round(rawMinutes / 5) * 5 === 60) {
+      hour24 = (hour24 + 1) % 24;
+    }
+    
+    return {
+        date,
+        hour12: String(hour12).padStart(2, '0'),
+        minute: roundedMinutes,
+        ampm: d.hour() >= 12 ? ('PM' as const) : ('AM' as const),
+        time24: `${String(hour24).padStart(2, '0')}:${roundedMinutes}`
+    };
+};
+

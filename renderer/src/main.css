@@ -58,13 +58,14 @@ button:focus-visible {
 
 @media (prefers-color-scheme: light) {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    color: #1f2937; /* Tailwind gray-800 */
+    background-color: #f3f4f6; /* Tailwind gray-100 for better contrast with bg-white cards */
   }
   a:hover {
     color: #747bff;
   }
   button {
-    background-color: #f9f9f9;
+    background-color: #ffffff; /* Make buttons white with borders or let tailwind handle it */
+    border: 1px solid #d1d5db; /* Add a subtle border */
   }
 }

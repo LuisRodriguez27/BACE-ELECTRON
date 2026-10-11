@@ -17,6 +17,7 @@ interface PaymentsListProps {
   payments: Payment[];
   orderId: number;
   orderTotal: number;
+  creditedAmount?: number;
   clientName: string;
   onPaymentsChange: () => void;
   className?: string;
@@ -26,6 +27,7 @@ const PaymentsList: React.FC<PaymentsListProps> = ({
   payments,
   orderId,
   orderTotal,
+  creditedAmount = 0,
   clientName,
   onPaymentsChange,
   className = ''
@@ -36,7 +38,7 @@ const PaymentsList: React.FC<PaymentsListProps> = ({
   const { checkPermission } = usePermissions();
 
   const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
-  const remainingAmount = orderTotal - totalPaid;
+  const remainingAmount = orderTotal - totalPaid - creditedAmount;
   const isFullyPaid = remainingAmount <= 0;
 
   const handleEditPayment = (payment: Payment) => {
@@ -89,9 +91,11 @@ const PaymentsList: React.FC<PaymentsListProps> = ({
   };
 
   const getPaymentStatusIcon = () => {
-    if (isFullyPaid) {
+    if (isFullyPaid && creditedAmount > 0 && totalPaid < orderTotal) {
+      return <DollarSign className="h-5 w-5 text-purple-600" />;
+    } else if (isFullyPaid) {
       return <CheckCircle className="h-5 w-5 text-green-600" />;
-    } else if (totalPaid > 0) {
+    } else if (totalPaid > 0 || creditedAmount > 0) {
       return <AlertCircle className="h-5 w-5 text-orange-600" />;
     } else {
       return <Clock className="h-5 w-5 text-gray-400" />;
@@ -99,19 +103,23 @@ const PaymentsList: React.FC<PaymentsListProps> = ({
   };
 
   const getPaymentStatusText = () => {
-    if (isFullyPaid) {
+    if (isFullyPaid && creditedAmount > 0 && totalPaid < orderTotal) {
+      return 'Cubierto con crédito';
+    } else if (isFullyPaid) {
       return 'Totalmente Pagado';
     } else if (totalPaid > 0) {
-      return 'Pago Parcial';
+      return creditedAmount > 0 && totalPaid <= 0 ? 'Parcial en crédito' : 'Pago Parcial';
     } else {
       return 'Sin Pagos';
     }
   };
 
   const getPaymentStatusColor = () => {
-    if (isFullyPaid) {
+    if (isFullyPaid && creditedAmount > 0 && totalPaid < orderTotal) {
+      return 'text-purple-600';
+    } else if (isFullyPaid) {
       return 'text-green-600';
-    } else if (totalPaid > 0) {
+    } else if (totalPaid > 0 || creditedAmount > 0) {
       return 'text-orange-600';
     } else {
       return 'text-gray-500';
@@ -154,7 +162,7 @@ const PaymentsList: React.FC<PaymentsListProps> = ({
 
       {/* Resumen financiero */}
       <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+        <div className={`grid grid-cols-1 ${creditedAmount > 0 ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4 text-sm`}>
           <div>
             <span className="text-gray-600">Total de la orden:</span>
             <p className="font-semibold text-gray-900">${orderTotal.toFixed(2)}</p>
@@ -163,6 +171,12 @@ const PaymentsList: React.FC<PaymentsListProps> = ({
             <span className="text-gray-600">Total pagado:</span>
             <p className="font-semibold text-green-600">${totalPaid.toFixed(2)}</p>
           </div>
+          {creditedAmount > 0 && (
+            <div>
+              <span className="text-gray-600">Trasladado a crédito:</span>
+              <p className="font-semibold text-purple-600">${creditedAmount.toFixed(2)}</p>
+            </div>
+          )}
           <div>
             <span className="text-gray-600">Monto pendiente:</span>
             <p className={`font-semibold ${isFullyPaid ? 'text-green-600' : 'text-orange-600'}`}>
@@ -175,14 +189,14 @@ const PaymentsList: React.FC<PaymentsListProps> = ({
         <div className="mt-3">
           <div className="flex justify-between text-xs text-gray-600 mb-1">
             <span>Progreso de pago</span>
-            <span>{totalPaid > 0 ? ((totalPaid / orderTotal) * 100).toFixed(1) : 0}%</span>
+            <span>{totalPaid + creditedAmount > 0 ? (((totalPaid + creditedAmount) / orderTotal) * 100).toFixed(1) : 0}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div 
               className={`h-2 rounded-full transition-all duration-300 ${
                 isFullyPaid ? 'bg-green-500' : 'bg-blue-500'
               }`}
-              style={{ width: `${Math.min((totalPaid / orderTotal) * 100, 100)}%` }}
+              style={{ width: `${Math.min(((totalPaid + creditedAmount) / orderTotal) * 100, 100)}%` }}
             />
           </div>
         </div>
@@ -269,7 +283,7 @@ const PaymentsList: React.FC<PaymentsListProps> = ({
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         orderId={orderId}
-        orderTotal={orderTotal}
+        orderTotal={orderTotal - creditedAmount}
         currentPayments={totalPaid}
         onPaymentCreated={handlePaymentCreated}
         clientName={clientName}
@@ -279,7 +293,7 @@ const PaymentsList: React.FC<PaymentsListProps> = ({
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
         payment={selectedPayment}
-        orderTotal={orderTotal}
+        orderTotal={orderTotal - creditedAmount}
         currentPayments={selectedPayment ? getCurrentPaymentsExcluding(selectedPayment.id) : 0}
         onPaymentUpdated={handlePaymentUpdated}
         onPaymentDeleted={handlePaymentDeleted}

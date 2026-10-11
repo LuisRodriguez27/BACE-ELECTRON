@@ -2,14 +2,17 @@
   "name": "bace",
   "version": "5.4.0",
   "description": "Aplicación BACE Electron",
-  "main": "electron/index.js",
+  "main": "electron/dist-electron/index.js",
   "author": "Luis Rodriguez",
   "license": "ISC",
   "scripts": {
     "postinstall": "",
-    "dev:electron": "electron ./electron --no-sandbox",
-    "dev": "concurrently -k --success first \"pnpm run dev:electron\" \"cd renderer && pnpm run dev\"",
-    "build": "cd renderer && pnpm run build",
+    "build:electron": "tsc",
+    "build:renderer": "cd renderer && pnpm run build",
+    "build": "pnpm run build:electron && pnpm run build:renderer",
+    "watch:electron": "tsc -w",
+    "dev:electron": "electron ./electron/dist-electron --no-sandbox",
+    "dev": "tsc && concurrently -k --success first \"tsc -w\" \"pnpm run dev:electron\" \"cd renderer && pnpm run dev\"",
     "dist": "pnpm run build && electron-builder",
     "dist:win": "pnpm run build && electron-builder --win",
     "dist:git": "pnpm run build && electron-builder --win -p always"
@@ -18,13 +21,21 @@
   "packageManager": "pnpm@10.29.1",
   "devDependencies": {
     "@electron/rebuild": "3.2.13",
+    "@types/bcryptjs": "2.4.6",
+    "@types/fs-extra": "^11.0.1",
+    "@types/mime-types": "2.1.4",
+    "@types/node": "^16.18.0",
+    "@types/pg": "^8.10.9",
+    "@types/uuid": "^9.0.7",
     "concurrently": "^8.2.2",
     "electron": "22.3.9",
-    "electron-builder": "^26.0.12"
+    "electron-builder": "^26.0.12",
+    "typescript": "5.2.2"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "dotenv": "^16.4.5",
+    "electron-log": "5.1.4",
     "fs-extra": "^11.1.1",
     "mime-types": "^2.1.35",
     "pg": "^8.11.5",
@@ -45,7 +56,7 @@
       "buildResources": "build"
     },
     "files": [
-      "electron/**/*",
+      "electron/dist-electron/**/*",
       "renderer/dist/**/*",
       "node_modules/**/*",
       ".env",

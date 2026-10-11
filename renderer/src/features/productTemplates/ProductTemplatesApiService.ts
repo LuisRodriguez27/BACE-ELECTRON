@@ -33,4 +33,22 @@ export const ProductTemplatesApiService = {
   search: async (searchTerm: string): Promise<ProductTemplate[]> => {
     return window.api.searchTemplates(searchTerm);
   },
+
+  findPaginated: async (
+    page: number,
+    limit: number,
+    searchTerm: string
+  ): Promise<{
+    data: ProductTemplate[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+      hasNext: boolean;
+      hasPrev: boolean;
+    };
+  }> => {
+    return window.api.getTemplatesPaginated(page, limit, searchTerm);
+  },
 };

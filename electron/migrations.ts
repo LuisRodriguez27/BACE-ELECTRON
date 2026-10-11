@@ -1,0 +1,1274 @@
+// SISTEMA DE MIGRACIONES VERSIONADO
+// Cada migración se ejecuta UNA SOLA VEZ y queda registrada
+// en la tabla schema_migrations. Si la app inicia y ya están
+// todas aplicadas, no hace ningún trabajo extra.
+//
+// Reglas para agregar migraciones nuevas:
+//   1. Agrega un objeto al array MIGRATIONS con el siguiente
+//      número de versión disponible.
+//   2. Escribe toda la lógica usando `client.query()` (no db.xxx)
+//      para que quede dentro de la misma transacción.
+//   3. NUNCA modifiques o elimines migraciones ya aplicadas.
+
+import { PoolClient } from 'pg';
+import type { Db } from './types/db';
+import type { Migration } from './types/migrations';
+import * as bcryptjs from 'bcryptjs';
+import * as log from 'electron-log';
+
+const MIGRATIONS: Migration[] = [
+
+  // v1: Seed inicial — usuario admin + todos los permisos base
+  {
+    version: 1,
+    name: 'initial_seed',
+    up: async (client: PoolClient) => {
+      const hash = bcryptjs.hashSync('admin123', 10);
+
+      const { rows: [admin] } = await client.query<{ id: number }>(
+        `INSERT INTO users (username, password, active) VALUES ($1, $2, true) RETURNING id`,
+        ['admin', hash]
+      );
+
+      const permissions: [string, string][] = [
+        ['Gestionar Usuario', 'Permite crear, editar o desactivar usuarios'],
+        ['Gestionar Permisos', 'Permite asignar o revocar permisos a los usuarios'],
+        ['Crear Cliente', 'Permite registrar nuevos clientes'],
+        ['Editar Cliente', 'Permite modificar datos de clientes'],
+        ['Eliminar Cliente', 'Permite eliminar o desactivar clientes'],
+        ['Crear Producto', 'Permite registrar nuevos productos'],
+        ['Editar Producto', 'Permite modificar información de productos'],
+        ['Eliminar Producto', 'Permite eliminar o desactivar productos'],
+        ['Crear Plantilla', 'Permite crear plantillas de productos'],
+        ['Editar Plantilla', 'Permite modificar plantillas de productos'],
+        ['Eliminar Plantilla', 'Permite eliminar plantillas de productos'],
+        ['Crear Órdenes', 'Permite registrar nuevas órdenes'],
+        ['Editar Órdenes', 'Permite modificar órdenes'],
+        ['Cancelar Órdenes', 'Permite cancelar órdenes'],
+        ['Crear Presupuestos', 'Permite registrar nuevos presupuestos'],
+        ['Eliminar Presupuestos', 'Permite eliminar presupuestos'],
+        ['Editar Presupuestos', 'Permite editar los presupuestos registrados'],
+        ['Ver pagos', 'Permite ver los pagos registrados'],
+        ['Registrar Pagos', 'Permite registrar pagos en órdenes'],
+        ['Eliminar Pagos', 'Permite eliminar o anular pagos'],
+        ['Estadisticas', 'Permite visualizar las estadisticas de ventas'],
+        ['Estadisticas: Filtros', 'Permite filtrar las estadisticas'],
+        ['Estadisticas: Hoy', 'Permite ver solo las estadisticas de hoy'],
+      ];
+
+      for (const [name, description] of permissions) {
+        const { rows: [perm] } = await client.query<{ id: number }>(
+          `INSERT INTO permissions (name, description, active) VALUES ($1, $2, true)
+           ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description RETURNING id`,
+          [name, description]
+        );
+        await client.query(
+          `INSERT INTO user_permissions (user_id, permission_id, active) VALUES ($1, $2, true)
+           ON CONFLICT DO NOTHING`,
+          [admin.id, perm.id]
+        );
+      }
+    }
+  },
+
+  // v2: Asegurar permisos nuevos en admin (para BDs pre-v1)
+  {
+    version: 2,
+    name: 'ensure_new_permissions_on_admin',
+    up: async (client: PoolClient) => {
+      const newPerms: [string, string][] = [
+        ['Estadisticas', 'Permite visualizar las estadisticas de ventas'],
+        ['Editar Presupuestos', 'Permite editar los presupuestos registrados'],
+        ['Ver Pagos', 'Permite ver los pagos registrados'],
+        ['Estadisticas: Filtros', 'Permite filtrar las estadisticas'],
+        ['Estadisticas: Hoy', 'Permite ver solo las estadisticas de hoy'],
+      ];
+
+      const { rows: admins } = await client.query<{ id: number }>(
+        `SELECT id FROM users WHERE username = 'admin'`
+      );
+
+      for (const [name, description] of newPerms) {
+        const { rows: [perm] } = await client.query<{ id: number }>(
+          `INSERT INTO permissions (name, description, active) VALUES ($1, $2, true)
+           ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description RETURNING id`,
+          [name, description]
+        );
+        for (const admin of admins) {
+          await client.query(
+            `INSERT INTO user_permissions (user_id, permission_id, active) VALUES ($1, $2, true)
+             ON CONFLICT DO NOTHING`,
+            [admin.id, perm.id]
+          );
+        }
+      }
+    }
+  },
+
+  // v3: Normalizar estados de órdenes (de SQLite legacy)
+  {
+    version: 3,
+    name: 'normalize_order_statuses',
+    up: async (client: PoolClient) => {
+      await client.query(`UPDATE orders SET status = 'Revision'   WHERE status = 'pendiente'`);
+      await client.query(`UPDATE orders SET status = 'Produccion' WHERE status = 'en proceso'`);
+      await client.query(`UPDATE orders SET status = 'Completado' WHERE status = 'completado'`);
+      await client.query(`UPDATE orders SET status = 'Cancelado'  WHERE status = 'cancelado'`);
+    }
+  },
+
+  // v4: Nuevas columnas en products
+  {
+    version: 4,
+    name: 'add_product_price_columns',
+    up: async (client: PoolClient) => {
+      await client.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS promo_price    DECIMAL(10,2)`);
+      await client.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS discount_price DECIMAL(10,2)`);
+      await client.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS images         TEXT`);
+    }
+  },
+
+  // v5: Nuevas columnas en product_templates y simple_orders
+  {
+    version: 5,
+    name: 'add_template_and_simple_orders_columns',
+    up: async (client: PoolClient) => {
+      await client.query(`ALTER TABLE product_templates ADD COLUMN IF NOT EXISTS promo_price    DECIMAL(10,2)`);
+      await client.query(`ALTER TABLE product_templates ADD COLUMN IF NOT EXISTS discount_price DECIMAL(10,2)`);
+      await client.query(`ALTER TABLE simple_orders     ADD COLUMN IF NOT EXISTS client_name    VARCHAR(255)`);
+    }
+  },
+
+  // v6: payments.order_id nullable + columna info
+  {
+    version: 6,
+    name: 'payments_nullable_order_id_and_info',
+    up: async (client: PoolClient) => {
+      await client.query(`ALTER TABLE payments ALTER COLUMN order_id DROP NOT NULL`);
+      await client.query(`ALTER TABLE payments ADD COLUMN IF NOT EXISTS info TEXT`);
+    }
+  },
+
+  // v7: Arrancar el SERIAL de orders desde 14549
+  {
+    version: 7,
+    name: 'orders_id_seq_min_value',
+    up: async (client: PoolClient) => {
+      await client.query(`SELECT setval('orders_id_seq', 14549, false)`);
+    }
+  },
+
+  // v8: Convertir columnas active de INTEGER → BOOLEAN
+  {
+    version: 8,
+    name: 'convert_active_to_boolean',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ data_type: string; column_default: string | null }>(
+        `SELECT data_type, column_default FROM information_schema.columns
+         WHERE table_name = 'users' AND column_name = 'active'`
+      );
+      return rows.length > 0 && rows[0].data_type === 'boolean' && rows[0].column_default !== null;
+    },
+    up: async (client: PoolClient) => {
+      const tables = [
+        'users', 'permissions', 'user_permissions', 'clients',
+        'products', 'product_templates', 'budgets', 'orders', 'simple_orders'
+      ];
+      for (const table of tables) {
+        const { rows } = await client.query<{ data_type: string }>(
+          `SELECT data_type FROM information_schema.columns
+           WHERE table_name = $1 AND column_name = 'active'`,
+          [table]
+        );
+        if (rows.length > 0 && rows[0].data_type !== 'boolean') {
+          await client.query(`ALTER TABLE ${table} ALTER COLUMN active DROP DEFAULT`);
+          await client.query(`ALTER TABLE ${table} ALTER COLUMN active TYPE BOOLEAN USING (active = 1)`);
+        }
+        await client.query(`ALTER TABLE ${table} ALTER COLUMN active SET DEFAULT TRUE`);
+      }
+    }
+  },
+
+  // v9: Convertir columnas date de TIMESTAMP → TIMESTAMPTZ
+  {
+    version: 9,
+    name: 'convert_timestamp_to_timestamptz',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ data_type: string }>(
+        `SELECT data_type FROM information_schema.columns
+         WHERE table_name = 'orders' AND column_name = 'date'`
+      );
+      return rows.length > 0 && rows[0].data_type === 'timestamp with time zone';
+    },
+    up: async (client: PoolClient) => {
+      const columns = [
+        { table: 'budgets', column: 'date' },
+        { table: 'orders', column: 'date' },
+        { table: 'orders', column: 'estimated_delivery_date' },
+        { table: 'payments', column: 'date' },
+        { table: 'simple_orders', column: 'date' },
+        { table: 'simple_order_payments', column: 'date' },
+      ];
+      for (const { table, column } of columns) {
+        const { rows } = await client.query<{ data_type: string }>(
+          `SELECT data_type FROM information_schema.columns
+           WHERE table_name = $1 AND column_name = $2`,
+          [table, column]
+        );
+        if (rows.length > 0 && rows[0].data_type === 'timestamp without time zone') {
+          await client.query(
+            `ALTER TABLE ${table} ALTER COLUMN ${column} TYPE TIMESTAMPTZ
+             USING ${column} AT TIME ZONE 'UTC'`
+          );
+        }
+      }
+    }
+  },
+
+  // v10: Crear índices para todas las llaves foráneas
+  {
+    version: 10,
+    name: 'create_fk_indexes',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ '?column?': number }>(
+        `SELECT 1 FROM pg_indexes WHERE indexname = 'idx_orders_client_id'`
+      );
+      return rows.length > 0;
+    },
+    up: async (client: PoolClient) => {
+      const indexes = [
+        `CREATE INDEX IF NOT EXISTS idx_user_permissions_user_id               ON user_permissions(user_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_user_permissions_permission_id          ON user_permissions(permission_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_product_templates_product_id            ON product_templates(product_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_product_templates_created_by            ON product_templates(created_by)`,
+        `CREATE INDEX IF NOT EXISTS idx_budgets_client_id                       ON budgets(client_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_budgets_user_id                         ON budgets(user_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_budgets_edited_by                       ON budgets(edited_by)`,
+        `CREATE INDEX IF NOT EXISTS idx_budgets_converted_to_order_id           ON budgets(converted_to_order_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_budgets_active                          ON budgets(active)`,
+        `CREATE INDEX IF NOT EXISTS idx_orders_client_id                        ON orders(client_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_orders_user_id                          ON orders(user_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_orders_edited_by                        ON orders(edited_by)`,
+        `CREATE INDEX IF NOT EXISTS idx_orders_created_from_budget_id           ON orders(created_from_budget_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_orders_status                           ON orders(status)`,
+        `CREATE INDEX IF NOT EXISTS idx_order_products_order_id                 ON order_products(order_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_order_products_product_id               ON order_products(product_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_order_products_template_id              ON order_products(template_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_budget_products_budget_id               ON budget_products(budget_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_budget_products_product_id              ON budget_products(product_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_budget_products_template_id             ON budget_products(template_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_payments_order_id                       ON payments(order_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_products_active                         ON products(active)`,
+        `CREATE INDEX IF NOT EXISTS idx_simple_orders_user_id                   ON simple_orders(user_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_simple_order_payments_simple_order_id   ON simple_order_payments(simple_order_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_simple_order_payments_user_id           ON simple_order_payments(user_id)`,
+      ];
+      for (const sql of indexes) {
+        await client.query(sql);
+      }
+    }
+  },
+
+  // v11: Crear tablas para egreso y caja
+  {
+    version: 11,
+    name: 'create_cash/expenses_tables',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(
+        `SELECT COUNT(*) FROM information_schema.tables
+         WHERE table_name IN ('cash_sessions', 'expenses')`
+      );
+      return parseInt(rows[0].count) === 2;
+    },
+    up: async (client: PoolClient) => {
+      const schema = `
+        CREATE TABLE IF NOT EXISTS cash_sessions (
+          id               SERIAL        PRIMARY KEY,
+          opening_date     TIMESTAMPTZ   NOT NULL,
+          closing_date     TIMESTAMPTZ,
+          opening_balance  DECIMAL(10,2) NOT NULL DEFAULT 0,
+          expected_balance DECIMAL(10,2) NOT NULL DEFAULT 0,
+          closing_balance  DECIMAL(10,2) NOT NULL DEFAULT 0,
+          status           VARCHAR(50)   NOT NULL DEFAULT 'open',
+          notes            TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS expenses (
+          id                SERIAL        PRIMARY KEY,
+          cash_session_id   INTEGER       NOT NULL REFERENCES cash_sessions(id),
+          user_id           INTEGER       NOT NULL REFERENCES users(id),
+          edited_by         INTEGER       REFERENCES users(id),
+          amount            DECIMAL(10,2) NOT NULL,
+          description       TEXT          NOT NULL,
+          date              TIMESTAMPTZ   NOT NULL,
+          active            BOOLEAN       NOT NULL DEFAULT TRUE
+        );
+
+        -- Índices
+        CREATE INDEX IF NOT EXISTS idx_cash_sessions_active_status             ON cash_sessions(status) WHERE status = 'open';
+        CREATE INDEX IF NOT EXISTS idx_cash_sessions_date_range                ON cash_sessions(opening_date, closing_date);
+        CREATE INDEX IF NOT EXISTS idx_expenses_session_active                 ON expenses(cash_session_id) WHERE active = TRUE;
+        CREATE INDEX IF NOT EXISTS idx_expenses_user_date_active               ON expenses(user_id, date) WHERE active = TRUE;
+        CREATE INDEX IF NOT EXISTS idx_expenses_active_true                    ON expenses(date)   WHERE active = TRUE;
+      `;
+      await client.query(schema);
+    }
+  },
+
+  // v12: Agregar cash_session_id a payments y simple_order_payments
+  {
+    version: 12,
+    name: 'add_cash_session_id_to_payments',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name IN ('payments', 'simple_order_payments')
+          AND column_name = 'cash_session_id'
+      `);
+      return parseInt(rows[0].count) === 2;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        ALTER TABLE payments
+          ADD COLUMN IF NOT EXISTS cash_session_id INTEGER REFERENCES cash_sessions(id)
+      `);
+      await client.query(`
+        ALTER TABLE simple_order_payments
+          ADD COLUMN IF NOT EXISTS cash_session_id INTEGER REFERENCES cash_sessions(id)
+      `);
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS idx_payments_cash_session_id
+          ON payments(cash_session_id)
+      `);
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS idx_simple_order_payments_cash_session_id
+          ON simple_order_payments(cash_session_id)
+      `);
+    }
+  },
+
+  {
+    version: 13,
+    name: 'add_cash_permissions',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ id: number }>(`
+        SELECT id FROM permissions
+        WHERE name = 'Abrir caja'
+        LIMIT 1;
+      `);
+      return rows.length > 0;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        INSERT INTO permissions (name, description, active)
+        VALUES
+          ('Abrir Caja', 'Abre una caja', true),
+          ('Cerrar Caja', 'Cierra una caja', true),
+          ('Ver Caja', 'Puede ver los movimientos de la caja', true),
+          ('Registrar Egreso', 'Puede registrar egresos', true);
+      `);
+      await client.query(`
+        INSERT INTO user_permissions (user_id, permission_id, active)
+        SELECT u.id, p.id, true
+        FROM users u
+        CROSS JOIN permissions p
+        WHERE u.id = 1
+        AND p.name IN ('Abrir Caja', 'Cerrar Caja', 'Ver Caja', 'Registrar Egreso')
+      `);
+    }
+  },
+
+  {
+    version: 14,
+    name: 'add_delivered_and_paid_to_order_products',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name = 'order_products'
+          AND column_name IN ('is_delivered', 'is_paid')
+      `);
+      return parseInt(rows[0].count) === 2;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        ALTER TABLE order_products
+          ADD COLUMN IF NOT EXISTS is_delivered BOOLEAN NOT NULL DEFAULT FALSE
+      `);
+      await client.query(`
+        ALTER TABLE order_products
+          ADD COLUMN IF NOT EXISTS is_paid BOOLEAN NOT NULL DEFAULT FALSE
+      `);
+    }
+  },
+
+  // v15: Crear extensiones unaccent y pg_trgm para búsquedas difusas
+  {
+    version: 15,
+    name: 'add_search_extensions',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM pg_extension
+        WHERE extname IN ('unaccent', 'pg_trgm')
+      `);
+      return parseInt(rows[0].count) >= 2;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`CREATE EXTENSION IF NOT EXISTS unaccent`);
+      await client.query(`CREATE EXTENSION IF NOT EXISTS pg_trgm`);
+    }
+  },
+
+  // v16: Agregar columna client_phone a simple_orders
+  {
+    version: 16,
+    name: 'add_client_phone_to_simple_orders',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name = 'simple_orders'
+          AND column_name = 'client_phone'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        ALTER TABLE simple_orders
+          ADD COLUMN IF NOT EXISTS client_phone VARCHAR(50)
+      `);
+    }
+  },
+
+  // v17: Agregar columna phone a payments para pagos libres
+  {
+    version: 17,
+    name: 'add_phone_to_payments',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name = 'payments'
+          AND column_name = 'phone'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        ALTER TABLE payments
+          ADD COLUMN IF NOT EXISTS phone VARCHAR(50)
+      `);
+    }
+  },
+
+  // v18: Agregar columna client_name a payments para pagos libres
+  {
+    version: 18,
+    name: 'add_client_name_to_payments',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name = 'payments'
+          AND column_name = 'client_name'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        ALTER TABLE payments
+          ADD COLUMN IF NOT EXISTS client_name VARCHAR(255)
+      `);
+    }
+  },
+
+  // v19: Agregar permisos de mayoristas
+  {
+    version: 19,
+    name: 'add_supplier_permissions',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ id: number }>(`
+        SELECT id FROM permissions
+        WHERE name = 'Ver Mayoristas'
+        LIMIT 1;
+      `);
+      return rows.length > 0;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        INSERT INTO permissions (name, description, active)
+        VALUES
+          ('Ver Mayoristas', 'Permite ver el módulo de mayoristas/proveedores', true),
+          ('Crear Orden Mayorista', 'Permite crear una orden para un mayorista', true)
+        ON CONFLICT (name) DO UPDATE SET active = true;
+      `);
+      await client.query(`
+        INSERT INTO user_permissions (user_id, permission_id, active)
+        SELECT u.id, p.id, true
+        FROM users u
+        CROSS JOIN permissions p
+        WHERE u.id = 1
+          AND p.name IN ('Ver Mayoristas', 'Crear Orden Mayorista')
+        ON CONFLICT DO NOTHING;
+      `);
+    }
+  },
+
+  // v20: Agregar columna user_id a supplier_orders
+  {
+    version: 20,
+    name: 'add_user_id_to_supplier_orders',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name = 'supplier_orders'
+          AND column_name = 'user_id'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        ALTER TABLE supplier_orders
+          ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)
+      `);
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS idx_supplier_orders_user_id
+          ON supplier_orders(user_id)
+      `);
+    }
+  },
+
+  // v21: Agregar permiso de reabrir caja
+  {
+    version: 21,
+    name: 'add_reopen_cash_permission',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ id: number }>(`
+        SELECT id FROM permissions
+        WHERE name = 'Reabrir Caja'
+        LIMIT 1;
+      `);
+      return rows.length > 0;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        INSERT INTO permissions (name, description, active)
+        VALUES
+          ('Reabrir Caja', 'Permite volver a abrir una sesión de caja cerrada', true)
+        ON CONFLICT (name) DO UPDATE SET active = true;
+      `);
+      await client.query(`
+        INSERT INTO user_permissions (user_id, permission_id, active)
+        SELECT u.id, p.id, true
+        FROM users u
+        CROSS JOIN permissions p
+        WHERE u.id = 1
+          AND p.name = 'Reabrir Caja'
+        ON CONFLICT DO NOTHING;
+      `);
+    }
+  },
+
+  // v22: Crear tabla de bitácora de impresión y agregar permisos correspondientes
+  {
+    version: 22,
+    name: 'create_print_logs_table',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM information_schema.tables
+        WHERE table_name = 'print_logs'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS print_logs (
+          id                   SERIAL        PRIMARY KEY,
+          order_id             INTEGER       REFERENCES orders(id) ON DELETE SET NULL,
+          descripcion          TEXT          NOT NULL,
+          hora_entrega         TIMESTAMPTZ   NOT NULL,
+          responsable          VARCHAR(255)  NOT NULL CHECK (responsable IN ('most', 'maq')),
+          observaciones        TEXT,
+          envio                VARCHAR(255)  NOT NULL,
+          pago                 DECIMAL(10,2),
+          maquila_completada   BOOLEAN       NOT NULL DEFAULT FALSE,
+          mostrador_completado BOOLEAN       NOT NULL DEFAULT FALSE,
+          created_at           TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+          active               BOOLEAN       NOT NULL DEFAULT TRUE
+        );
+      `);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_print_logs_order_id ON print_logs(order_id);`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_print_logs_active ON print_logs(active);`);
+      await client.query(`
+        INSERT INTO permissions (name, description, active)
+        VALUES
+          ('Ver Bitacora de Impresion', 'Permite ver la bitácora de impresión', true),
+          ('Gestionar Bitacora de Impresion', 'Permite crear, editar y eliminar registros de la bitácora de impresión', true)
+        ON CONFLICT (name) DO UPDATE SET active = true;
+      `);
+      await client.query(`
+        INSERT INTO user_permissions (user_id, permission_id, active)
+        SELECT u.id, p.id, true
+        FROM users u
+        CROSS JOIN permissions p
+        WHERE u.id = 1
+          AND p.name IN ('Ver Bitacora de Impresion', 'Gestionar Bitacora de Impresion')
+        ON CONFLICT DO NOTHING;
+      `);
+    }
+  },
+
+  // v23: Agregar columnas faltantes a print_logs si ya existía la tabla
+  {
+    version: 23,
+    name: 'add_print_logs_missing_columns',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name = 'print_logs' AND column_name = 'created_at'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        ALTER TABLE print_logs
+          ADD COLUMN IF NOT EXISTS maquila_completada BOOLEAN NOT NULL DEFAULT FALSE,
+          ADD COLUMN IF NOT EXISTS mostrador_completado BOOLEAN NOT NULL DEFAULT FALSE,
+          ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+      `);
+      await client.query(`
+        ALTER TABLE print_logs
+          DROP CONSTRAINT IF EXISTS chk_responsable,
+          ADD CONSTRAINT chk_responsable CHECK (responsable IN ('most', 'maq'));
+      `);
+    }
+  },
+
+  // v24: Agregar columna status a print_logs
+  {
+    version: 24,
+    name: 'add_print_logs_status_column',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name = 'print_logs' AND column_name = 'status'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        ALTER TABLE print_logs
+          ADD COLUMN IF NOT EXISTS status VARCHAR(50) NOT NULL DEFAULT 'Pendiente'
+          CHECK (status IN ('Pendiente', 'En Proceso', 'Realizado'));
+      `);
+    }
+  },
+
+  // v25: Renombrar maquila_completada → completado y eliminar mostrador_completado
+  {
+    version: 25,
+    name: 'rename_maquila_completada_to_completado_and_drop_mostrador_completado',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name = 'print_logs' AND column_name = 'completado'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name = 'print_logs' AND column_name = 'completado'
+      `);
+      if (parseInt(rows[0].count) === 1) {
+        // `completado` ya existe (BD creada desde cero con el esquema actual): solo limpiar la columna vieja.
+        await client.query(`ALTER TABLE print_logs DROP COLUMN IF EXISTS maquila_completada;`);
+      } else {
+        await client.query(`ALTER TABLE print_logs RENAME COLUMN maquila_completada TO completado;`);
+      }
+      await client.query(`ALTER TABLE print_logs DROP COLUMN IF EXISTS mostrador_completado;`);
+    }
+  },
+
+  // v26: total en supplier_orders, supplier_order_id en expenses, normalizar estados
+  {
+    version: 26,
+    name: 'add_total_to_supplier_orders_and_supplier_order_id_to_expenses_and_normalize_statuses',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name = 'supplier_orders' AND column_name = 'total'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`ALTER TABLE supplier_orders ADD COLUMN IF NOT EXISTS total DECIMAL(10,2) DEFAULT 0`);
+      await client.query(`ALTER TABLE expenses ADD COLUMN IF NOT EXISTS supplier_order_id INTEGER REFERENCES supplier_orders(id)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_expenses_supplier_order_id ON expenses(supplier_order_id)`);
+      await client.query(`
+        UPDATE supplier_orders
+        SET status = 'pendiente'
+        WHERE LOWER(status) = 'recibido' OR LOWER(status) = 'pendiente' OR status IS NULL
+      `);
+      await client.query(`
+        UPDATE supplier_orders
+        SET status = 'cancelado'
+        WHERE LOWER(status) = 'cancelado'
+      `);
+    }
+  },
+
+  // v27: Actualizar estados entregado → pagado en supplier_orders
+  {
+    version: 27,
+    name: 'update_supplier_order_statuses_to_remove_entregado',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM schema_migrations WHERE version = 27
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        UPDATE supplier_orders
+        SET status = 'pagado'
+        WHERE LOWER(status) = 'entregado'
+      `);
+    }
+  },
+
+  // v28: Convertir budgets.converted_to_order de INTEGER → BOOLEAN
+  {
+    version: 28,
+    name: 'convert_converted_to_order_to_boolean',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ data_type: string }>(
+        `SELECT data_type FROM information_schema.columns
+         WHERE table_name = 'budgets' AND column_name = 'converted_to_order'`
+      );
+      return rows.length > 0 && rows[0].data_type === 'boolean';
+    },
+    up: async (client: PoolClient) => {
+      const { rows } = await client.query<{ data_type: string }>(
+        `SELECT data_type FROM information_schema.columns
+         WHERE table_name = 'budgets' AND column_name = 'converted_to_order'`
+      );
+      if (rows.length > 0 && rows[0].data_type !== 'boolean') {
+        await client.query(`ALTER TABLE budgets ALTER COLUMN converted_to_order DROP DEFAULT`);
+        await client.query(`ALTER TABLE budgets ALTER COLUMN converted_to_order TYPE BOOLEAN USING (converted_to_order = 1)`);
+        await client.query(`ALTER TABLE budgets ALTER COLUMN converted_to_order SET DEFAULT FALSE`);
+      }
+    }
+  },
+
+  // v29: Quitar constraint único de username en users y agregar índice único parcial para usuarios activos
+  {
+    version: 29,
+    name: 'remove_users_username_unique_constraint_and_add_partial_unique_index',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM pg_indexes
+        WHERE indexname = 'idx_users_username_active'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`ALTER TABLE users DROP CONSTRAINT IF EXISTS users_username_key`);
+      await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_active ON users(username) WHERE active = true`);
+    }
+  },
+
+  // v30: Crear tabla de bitácora de producción y agregar permisos correspondientes
+  {
+    version: 30,
+    name: 'create_production_logs_table',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM information_schema.tables
+        WHERE table_name = 'production_logs'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS production_logs (
+          id           SERIAL        PRIMARY KEY,
+          order_id     INTEGER       REFERENCES orders(id) ON DELETE SET NULL,
+          created_by   INTEGER       REFERENCES users(id),
+          delivery_at  TIMESTAMPTZ   NOT NULL,
+          cantidad     DECIMAL(10,4) NOT NULL,
+          descripcion  TEXT          NOT NULL,
+          responsable  VARCHAR(255)  NOT NULL CHECK (responsable IN ('most', 'maq')),
+          completado   BOOLEAN       NOT NULL DEFAULT FALSE,
+          created_at   TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+          active       BOOLEAN       NOT NULL DEFAULT TRUE
+        );
+      `);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_production_logs_order_id ON production_logs(order_id);`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_production_logs_created_by ON production_logs(created_by);`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_production_logs_active ON production_logs(active);`);
+      await client.query(`
+        INSERT INTO permissions (name, description, active)
+        VALUES
+          ('Ver Bitacora de Produccion', 'Permite ver la bitácora de producción', true),
+          ('Gestionar Bitacora de Produccion', 'Permite crear, editar y eliminar registros de la bitácora de producción', true)
+        ON CONFLICT (name) DO UPDATE SET active = true;
+      `);
+      await client.query(`
+        INSERT INTO user_permissions (user_id, permission_id, active)
+        SELECT u.id, p.id, true
+        FROM users u
+        CROSS JOIN permissions p
+        WHERE u.id = 1
+          AND p.name IN ('Ver Bitacora de Produccion', 'Gestionar Bitacora de Produccion')
+        ON CONFLICT DO NOTHING;
+      `);
+    }
+  },
+
+  // v31: Crear tablas de lista de compras (sesiones tipo caja) y permisos correspondientes
+  {
+    version: 31,
+    name: 'create_shopping_list_tables',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM information_schema.tables
+        WHERE table_name IN ('shopping_lists', 'shopping_list_items')
+      `);
+      return parseInt(rows[0].count) === 2;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS shopping_lists (
+          id           SERIAL        PRIMARY KEY,
+          opening_date TIMESTAMPTZ   NOT NULL,
+          closing_date TIMESTAMPTZ,
+          status       VARCHAR(50)   NOT NULL DEFAULT 'open',
+          notes        TEXT,
+          created_by   INTEGER       REFERENCES users(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS shopping_list_items (
+          id                SERIAL        PRIMARY KEY,
+          shopping_list_id  INTEGER       NOT NULL REFERENCES shopping_lists(id),
+          product_id        INTEGER       NOT NULL REFERENCES products(id),
+          quantity          DECIMAL(10,2) NOT NULL DEFAULT 0,
+          purchased         BOOLEAN       NOT NULL DEFAULT FALSE,
+          created_by        INTEGER       REFERENCES users(id),
+          active            BOOLEAN       NOT NULL DEFAULT TRUE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_shopping_lists_status            ON shopping_lists(status);
+        CREATE INDEX IF NOT EXISTS idx_shopping_list_items_list_id      ON shopping_list_items(shopping_list_id);
+        CREATE INDEX IF NOT EXISTS idx_shopping_list_items_product_id  ON shopping_list_items(product_id);
+      `);
+      await client.query(`
+        INSERT INTO permissions (name, description, active)
+        VALUES
+          ('Ver Lista de Compras', 'Permite ver la lista de compras', true),
+          ('Gestionar Lista de Compras', 'Permite abrir/cerrar la lista de compras y agregar, editar o quitar productos', true)
+        ON CONFLICT (name) DO UPDATE SET active = true;
+      `);
+      await client.query(`
+        INSERT INTO user_permissions (user_id, permission_id, active)
+        SELECT u.id, p.id, true
+        FROM users u
+        CROSS JOIN permissions p
+        WHERE u.id = 1
+          AND p.name IN ('Ver Lista de Compras', 'Gestionar Lista de Compras')
+        ON CONFLICT DO NOTHING;
+      `);
+    }
+  },
+
+  // v32: Agregar columna affordable a products — solo productos comprables se pueden agregar a la lista de compras
+  {
+    version: 32,
+    name: 'add_affordable_to_products',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name = 'products' AND column_name = 'affordable'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        ALTER TABLE products
+          ADD COLUMN IF NOT EXISTS affordable BOOLEAN NOT NULL DEFAULT FALSE
+      `);
+    }
+  },
+
+  // v33: Renombrar estado 'Realizado' → 'Impreso' en print_logs
+  {
+    version: 33,
+    name: 'rename_print_logs_status_realizado_to_impreso',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM pg_constraint c
+        JOIN pg_class t ON c.conrelid = t.oid
+        WHERE t.relname = 'print_logs' AND c.contype = 'c'
+          AND pg_get_constraintdef(c.oid) LIKE '%Impreso%'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`ALTER TABLE print_logs DROP CONSTRAINT IF EXISTS print_logs_status_check`);
+      await client.query(`UPDATE print_logs SET status = 'Impreso' WHERE status = 'Realizado'`);
+      await client.query(`ALTER TABLE print_logs ADD CONSTRAINT print_logs_status_check CHECK (status IN ('Pendiente', 'En Proceso', 'Impreso')) NOT VALID;
+  `);
+    }
+  },
+
+  // v34: Agregar columna order_id a shopping_list_items — para referenciar opcionalmente
+  // la orden de la que proviene el producto agregado a la lista de compras.
+  {
+    version: 34,
+    name: 'add_order_id_to_shopping_list_items',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM information_schema.columns
+        WHERE table_name = 'shopping_list_items' AND column_name = 'order_id'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        ALTER TABLE shopping_list_items
+          ADD COLUMN IF NOT EXISTS order_id INTEGER REFERENCES orders(id) ON DELETE SET NULL
+      `);
+    }
+  },
+
+  // v35: Crear tabla notes — feature "Bloc de Notas"
+  {
+    version: 35,
+    name: 'create_notes_table',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ count: string }>(`
+        SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'notes'
+      `);
+      return parseInt(rows[0].count) === 1;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS notes (
+          id          SERIAL        PRIMARY KEY,
+          created_by  INTEGER       NOT NULL REFERENCES users(id),
+          edited_by   INTEGER       NOT NULL REFERENCES users(id),
+          client      VARCHAR(255),
+          phone       VARCHAR(50),
+          text        TEXT,
+          date        TIMESTAMPTZ   NOT NULL,
+          status      VARCHAR(50)   NOT NULL DEFAULT 'Pendiente' CHECK (status IN ('Pendiente', 'Resuelta', 'Archivada')),
+          active      BOOLEAN       NOT NULL DEFAULT TRUE
+        )
+      `);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_notes_created_by ON notes(created_by)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_notes_edited_by ON notes(edited_by)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_notes_active_date ON notes(date) WHERE active = TRUE`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_notes_status ON notes(status)`);
+      await client.query(`
+        INSERT INTO permissions (name, description, active)
+        VALUES
+          ('Ver Notas', 'Permite ver el bloc de notas', true),
+          ('Gestionar Notas', 'Permite crear, editar, archivar y eliminar notas', true)
+        ON CONFLICT (name) DO UPDATE SET active = true;
+      `);
+      await client.query(`
+        INSERT INTO user_permissions (user_id, permission_id, active)
+        SELECT u.id, p.id, true
+        FROM users u
+        CROSS JOIN permissions p
+        WHERE u.id = 1
+          AND p.name IN ('Ver Notas', 'Gestionar Notas')
+        ON CONFLICT DO NOTHING;
+      `);
+    }
+  },
+
+  // v36: Crear módulo de créditos y relacionar sus abonos con payments/caja
+  {
+    version: 36,
+    name: 'create_credits_module',
+    isApplied: async (client: PoolClient) => {
+      const { rows: [state] } = await client.query<{ tables_count: string; columns_count: string; permissions_count: string }>(`
+        SELECT
+          (SELECT COUNT(*) FROM information_schema.tables WHERE table_name IN ('credits', 'credit_items')) AS tables_count,
+          (SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'payments' AND column_name IN ('credit_id', 'created_by')) AS columns_count,
+          (SELECT COUNT(*) FROM permissions WHERE name IN ('Ver Creditos', 'Gestionar Creditos')) AS permissions_count
+      `);
+      return parseInt(state.tables_count) === 2
+        && parseInt(state.columns_count) === 2
+        && parseInt(state.permissions_count) === 2;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS credits (
+          id            SERIAL       PRIMARY KEY,
+          client_id     INTEGER      NOT NULL REFERENCES clients(id),
+          opened_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+          closing_date  TIMESTAMPTZ,
+          status        VARCHAR(20)  NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'closed')),
+          notes         TEXT,
+          created_by    INTEGER      NOT NULL REFERENCES users(id),
+          active        BOOLEAN      NOT NULL DEFAULT TRUE
+        );
+
+        CREATE TABLE IF NOT EXISTS credit_items (
+          id               SERIAL        PRIMARY KEY,
+          credit_id        INTEGER       NOT NULL REFERENCES credits(id),
+          order_id         INTEGER       REFERENCES orders(id),
+          simple_order_id  INTEGER       REFERENCES simple_orders(id),
+          date             TIMESTAMPTZ   NOT NULL,
+          product          TEXT          NOT NULL,
+          quantity         DECIMAL(10,4) NOT NULL DEFAULT 1 CHECK (quantity > 0),
+          unit_price       DECIMAL(10,2) NOT NULL CHECK (unit_price > 0),
+          total            DECIMAL(10,2) NOT NULL CHECK (total > 0),
+          created_by       INTEGER       NOT NULL REFERENCES users(id),
+          edited_by        INTEGER       REFERENCES users(id),
+          active           BOOLEAN       NOT NULL DEFAULT TRUE,
+          CONSTRAINT credit_items_single_source_check CHECK (order_id IS NULL OR simple_order_id IS NULL)
+        );
+
+        ALTER TABLE payments
+          ADD COLUMN IF NOT EXISTS credit_id INTEGER REFERENCES credits(id),
+          ADD COLUMN IF NOT EXISTS created_by INTEGER REFERENCES users(id);
+      `);
+
+      await client.query(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint WHERE conname = 'payments_single_reference_check'
+          ) THEN
+            ALTER TABLE payments
+              ADD CONSTRAINT payments_single_reference_check
+              CHECK (order_id IS NULL OR credit_id IS NULL);
+          END IF;
+        END $$;
+      `);
+
+      await client.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_credits_one_open_per_client      ON credits(client_id) WHERE active = TRUE AND status = 'open';
+        CREATE INDEX IF NOT EXISTS idx_credits_client_id                       ON credits(client_id);
+        CREATE INDEX IF NOT EXISTS idx_credits_status                          ON credits(status) WHERE active = TRUE;
+        CREATE INDEX IF NOT EXISTS idx_credit_items_credit_id                  ON credit_items(credit_id) WHERE active = TRUE;
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_credit_items_unique_order        ON credit_items(order_id) WHERE active = TRUE AND order_id IS NOT NULL;
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_credit_items_unique_simple_order ON credit_items(simple_order_id) WHERE active = TRUE AND simple_order_id IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS idx_credit_items_date                       ON credit_items(date) WHERE active = TRUE;
+        CREATE INDEX IF NOT EXISTS idx_payments_credit_id                      ON payments(credit_id);
+        CREATE INDEX IF NOT EXISTS idx_payments_created_by                     ON payments(created_by);
+      `);
+
+      await client.query(`
+        INSERT INTO permissions (name, description, active)
+        VALUES
+          ('Ver Creditos', 'Permite consultar créditos, cargos, abonos y cortes', true),
+          ('Gestionar Creditos', 'Permite crear, editar, abonar, cerrar y reabrir créditos', true)
+        ON CONFLICT (name) DO UPDATE SET active = true;
+      `);
+      await client.query(`
+        INSERT INTO user_permissions (user_id, permission_id, active)
+        SELECT u.id, p.id, true
+        FROM users u
+        CROSS JOIN permissions p
+        WHERE u.id = 1
+          AND p.name IN ('Ver Creditos', 'Gestionar Creditos')
+        ON CONFLICT DO NOTHING;
+      `);
+    }
+  },
+  // v37: Distribuir abonos de crédito entre sus cargos para reflejarlos FIFO en órdenes.
+  {
+    version: 37,
+    name: 'add_credit_payment_allocations',
+    isApplied: async (client: PoolClient) => {
+      const { rows: [state] } = await client.query<{ pending: string }>(`
+        SELECT COUNT(*) AS pending
+        FROM payments p
+        LEFT JOIN credit_payment_allocations cpa ON cpa.credit_payment_id = p.id
+        WHERE p.credit_id IS NOT NULL
+        GROUP BY p.id, p.amount
+        HAVING COALESCE(SUM(cpa.amount), 0) <> p.amount
+      `);
+      return !state || parseInt(state.pending, 10) === 0;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS credit_payment_allocations (
+          id                SERIAL        PRIMARY KEY,
+          credit_payment_id INTEGER       NOT NULL REFERENCES payments(id) ON DELETE CASCADE,
+          credit_item_id    INTEGER       NOT NULL REFERENCES credit_items(id),
+          amount            DECIMAL(10,2) NOT NULL CHECK (amount > 0),
+          CONSTRAINT credit_payment_allocations_unique_item UNIQUE (credit_payment_id, credit_item_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_credit_payment_allocations_payment ON credit_payment_allocations(credit_payment_id);
+        CREATE INDEX IF NOT EXISTS idx_credit_payment_allocations_item ON credit_payment_allocations(credit_item_id);
+      `);
+
+      // Los abonos existentes no tenían destino por orden. Se les asigna el
+      // historial disponible siguiendo la misma regla FIFO usada en adelante.
+      await client.query(`
+        DO $$
+        DECLARE
+          payment_row RECORD;
+          item_row RECORD;
+          remaining NUMERIC;
+          item_remaining NUMERIC;
+          allocated NUMERIC;
+        BEGIN
+          FOR payment_row IN
+            SELECT p.id, p.credit_id, p.amount
+            FROM payments p
+            WHERE p.credit_id IS NOT NULL
+            ORDER BY p.credit_id, p.date, p.id
+          LOOP
+            remaining := payment_row.amount;
+            FOR item_row IN
+              SELECT ci.id,
+                     ci.total - COALESCE(SUM(cpa.amount), 0) AS outstanding
+              FROM credit_items ci
+              LEFT JOIN credit_payment_allocations cpa ON cpa.credit_item_id = ci.id
+              WHERE ci.credit_id = payment_row.credit_id AND ci.active = TRUE
+              GROUP BY ci.id, ci.total, ci.date
+              HAVING ci.total - COALESCE(SUM(cpa.amount), 0) > 0
+              ORDER BY ci.date, ci.id
+            LOOP
+              EXIT WHEN remaining <= 0;
+              item_remaining := item_row.outstanding;
+              allocated := LEAST(remaining, item_remaining);
+              INSERT INTO credit_payment_allocations (credit_payment_id, credit_item_id, amount)
+              VALUES (payment_row.id, item_row.id, allocated)
+              ON CONFLICT (credit_payment_id, credit_item_id)
+              DO UPDATE SET amount = credit_payment_allocations.amount + EXCLUDED.amount;
+              remaining := remaining - allocated;
+            END LOOP;
+          END LOOP;
+        END $$;
+      `);
+    }
+  },
+  // v38: Las cotizaciones pueden guardarse con un nombre libre, sin crear un cliente ficticio.
+  {
+    version: 38,
+    name: 'allow_budgets_without_registered_client',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query<{ is_nullable: string; has_client_name: boolean }>(`
+        SELECT c.is_nullable,
+               EXISTS (
+                 SELECT 1 FROM information_schema.columns
+                 WHERE table_schema = current_schema()
+                   AND table_name = 'budgets'
+                   AND column_name = 'client_name'
+               ) AS has_client_name
+        FROM information_schema.columns c
+        WHERE c.table_schema = current_schema()
+          AND c.table_name = 'budgets'
+          AND c.column_name = 'client_id'
+      `);
+      return rows[0]?.is_nullable === 'YES' && rows[0]?.has_client_name === true;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        ALTER TABLE budgets ALTER COLUMN client_id DROP NOT NULL;
+        ALTER TABLE budgets ADD COLUMN IF NOT EXISTS client_name VARCHAR(255);
+      `);
+    }
+  },
+  {
+    version: 39,
+    name: 'add_budget_type',
+    isApplied: async (client: PoolClient) => {
+      const { rows } = await client.query(`
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = current_schema() AND table_name = 'budgets' AND column_name = 'budget_type'
+      `);
+      return rows.length > 0;
+    },
+    up: async (client: PoolClient) => {
+      await client.query(`
+        ALTER TABLE budgets
+        ADD COLUMN IF NOT EXISTS budget_type VARCHAR(20) NOT NULL DEFAULT 'catalog'
+        CHECK (budget_type IN ('catalog', 'notebook'));
+      `);
+    }
+  },
+];
+
+// ─── RUNNER PRINCIPAL ───────────────────────────────────────────────────────
+
+export async function runMigrations(db: Db, client: PoolClient): Promise<void> {
+  // 1. Crear tabla de control si no existe
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      version    INTEGER      PRIMARY KEY,
+      name       VARCHAR(255) NOT NULL,
+      applied_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  // 2. Leer versiones ya aplicadas
+  const { rows: appliedRows } = await client.query<{ version: number }>(
+    `SELECT version FROM schema_migrations ORDER BY version ASC`
+  );
+  const appliedVersions = new Set(appliedRows.map(r => r.version));
+
+  // 3. Bootstrap: BD existente sin registro de versiones.
+  //    Llama a isApplied() por migración para detectar el estado
+  //    real de la BD. Las migraciones sin isApplied() (v1-v7)
+  //    se asumen aplicadas si la BD ya tiene usuarios.
+  if (appliedVersions.size === 0) {
+    const { rows: [{ count }] } = await client.query<{ count: string }>(
+      `SELECT COUNT(*) as count FROM users`
+    );
+    if (parseInt(count) > 0) {
+      console.log('Bootstrap: BD existente detectada. Inspeccionando estado...');
+      for (const m of MIGRATIONS) {
+        const alreadyApplied = m.isApplied
+          ? await m.isApplied(client)
+          : true; // v1-v7 sin función de detección → asumir aplicadas
+        if (alreadyApplied) {
+          await client.query(
+            `INSERT INTO schema_migrations (version, name) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+            [m.version, m.name]
+          );
+          appliedVersions.add(m.version);
+          console.log(`v${m.version} (${m.name}): ya aplicada.`);
+        } else {
+          console.log(`v${m.version} (${m.name}): pendiente, se aplicará ahora.`);
+        }
+      }
+      console.log('Bootstrap completado.');
+    }
+  }
+
+  // 4. Ejecutar migraciones pendientes en orden estricto
+  let ran = 0;
+  for (const migration of MIGRATIONS) {
+    if (appliedVersions.has(migration.version)) continue;
+
+    console.log(`Migración v${migration.version} (${migration.name})...`);
+    try {
+      await client.query('BEGIN');
+      await migration.up(client);
+      await client.query(
+        `INSERT INTO schema_migrations (version, name) VALUES ($1, $2)`,
+        [migration.version, migration.name]
+      );
+      await client.query('COMMIT');
+      console.log(`v${migration.version} aplicada.`);
+      ran++;
+    } catch (e) {
+      await client.query('ROLLBACK');
+      const err = e as Error;
+      console.error(`Error en migración v${migration.version}: ${err.message}`);
+      log.error(`Error en migración v${migration.version} (${migration.name}): ${err.message}`);
+      throw new Error(`Fallo en migración v${migration.version} — se hizo rollback: ${err.message}`);
+    }
+  }
+
+  if (ran === 0) {
+    console.log('No hay migraciones pendientes.');
+  } else {
+    console.log(`${ran} migración(es) aplicada(s) exitosamente.`);
+  }
+}
+

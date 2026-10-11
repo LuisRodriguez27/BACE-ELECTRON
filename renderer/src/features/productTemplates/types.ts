@@ -10,7 +10,7 @@ export const createProductTemplateSchema = z.object({
   colors: z.string().optional(),
   position: z.string().optional(),
   texts: z.string().optional(),
-  description: z.string().optional(),
+  description: z.string().min(1, 'El nombre de la plantilla es obligatorio'),
   created_by: z.number().int().optional()
 });
 
@@ -24,7 +24,7 @@ export const editProductTemplateSchema = z.object({
   colors: z.string().optional(),
   position: z.string().optional(),
   texts: z.string().optional(),
-  description: z.string().optional(),
+  description: z.string().min(1, 'El nombre de la plantilla es obligatorio'),
   created_by: z.number().int().optional()
 });
 
@@ -42,7 +42,7 @@ export interface ProductTemplate {
   colors?: string;
   position?: string;
   texts?: string;
-  description?: string;
+  description: string;
   created_by?: number;
   active: boolean;
 

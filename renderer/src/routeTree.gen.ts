@@ -15,12 +15,18 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as DashboardUsersRouteImport } from './routes/dashboard.users'
+import { Route as DashboardSuppliersRouteImport } from './routes/dashboard.suppliers'
 import { Route as DashboardStatsRouteImport } from './routes/dashboard.stats'
 import { Route as DashboardSimpleOrdersRouteImport } from './routes/dashboard.simple-orders'
+import { Route as DashboardShoppingListRouteImport } from './routes/dashboard.shopping-list'
 import { Route as DashboardProductsRouteImport } from './routes/dashboard.products'
+import { Route as DashboardProductionLogsRouteImport } from './routes/dashboard.production-logs'
+import { Route as DashboardPrintLogsRouteImport } from './routes/dashboard.print-logs'
 import { Route as DashboardPaymentsRouteImport } from './routes/dashboard.payments'
 import { Route as DashboardOrdersRouteImport } from './routes/dashboard.orders'
+import { Route as DashboardNotesRouteImport } from './routes/dashboard.notes'
 import { Route as DashboardHistoryRouteImport } from './routes/dashboard.history'
+import { Route as DashboardCreditsRouteImport } from './routes/dashboard.credits'
 import { Route as DashboardConfigurationsRouteImport } from './routes/dashboard.configurations'
 import { Route as DashboardClientsRouteImport } from './routes/dashboard.clients'
 import { Route as DashboardCashSessionRouteImport } from './routes/dashboard.cash-session'
@@ -83,6 +89,11 @@ const DashboardUsersRoute = DashboardUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardSuppliersRoute = DashboardSuppliersRouteImport.update({
+  id: '/suppliers',
+  path: '/suppliers',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardStatsRoute = DashboardStatsRouteImport.update({
   id: '/stats',
   path: '/stats',
@@ -93,9 +104,24 @@ const DashboardSimpleOrdersRoute = DashboardSimpleOrdersRouteImport.update({
   path: '/simple-orders',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardShoppingListRoute = DashboardShoppingListRouteImport.update({
+  id: '/shopping-list',
+  path: '/shopping-list',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardProductsRoute = DashboardProductsRouteImport.update({
   id: '/products',
   path: '/products',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardProductionLogsRoute = DashboardProductionLogsRouteImport.update({
+  id: '/production-logs',
+  path: '/production-logs',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardPrintLogsRoute = DashboardPrintLogsRouteImport.update({
+  id: '/print-logs',
+  path: '/print-logs',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardPaymentsRoute = DashboardPaymentsRouteImport.update({
@@ -108,9 +134,19 @@ const DashboardOrdersRoute = DashboardOrdersRouteImport.update({
   path: '/orders',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardNotesRoute = DashboardNotesRouteImport.update({
+  id: '/notes',
+  path: '/notes',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardHistoryRoute = DashboardHistoryRouteImport.update({
   id: '/history',
   path: '/history',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardCreditsRoute = DashboardCreditsRouteImport.update({
+  id: '/credits',
+  path: '/credits',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardConfigurationsRoute = DashboardConfigurationsRouteImport.update({
@@ -147,12 +183,18 @@ export interface FileRoutesByFullPath {
   '/dashboard/cash-session': typeof DashboardCashSessionRoute
   '/dashboard/clients': typeof DashboardClientsRoute
   '/dashboard/configurations': typeof DashboardConfigurationsRoute
+  '/dashboard/credits': typeof DashboardCreditsRoute
   '/dashboard/history': typeof DashboardHistoryRoute
+  '/dashboard/notes': typeof DashboardNotesRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/payments': typeof DashboardPaymentsRoute
+  '/dashboard/print-logs': typeof DashboardPrintLogsRoute
+  '/dashboard/production-logs': typeof DashboardProductionLogsRoute
   '/dashboard/products': typeof DashboardProductsRoute
+  '/dashboard/shopping-list': typeof DashboardShoppingListRoute
   '/dashboard/simple-orders': typeof DashboardSimpleOrdersRoute
   '/dashboard/stats': typeof DashboardStatsRoute
+  '/dashboard/suppliers': typeof DashboardSuppliersRoute
   '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
@@ -168,12 +210,18 @@ export interface FileRoutesByTo {
   '/dashboard/cash-session': typeof DashboardCashSessionRoute
   '/dashboard/clients': typeof DashboardClientsRoute
   '/dashboard/configurations': typeof DashboardConfigurationsRoute
+  '/dashboard/credits': typeof DashboardCreditsRoute
   '/dashboard/history': typeof DashboardHistoryRoute
+  '/dashboard/notes': typeof DashboardNotesRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/payments': typeof DashboardPaymentsRoute
+  '/dashboard/print-logs': typeof DashboardPrintLogsRoute
+  '/dashboard/production-logs': typeof DashboardProductionLogsRoute
   '/dashboard/products': typeof DashboardProductsRoute
+  '/dashboard/shopping-list': typeof DashboardShoppingListRoute
   '/dashboard/simple-orders': typeof DashboardSimpleOrdersRoute
   '/dashboard/stats': typeof DashboardStatsRoute
+  '/dashboard/suppliers': typeof DashboardSuppliersRoute
   '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard': typeof DashboardIndexRoute
 }
@@ -191,12 +239,18 @@ export interface FileRoutesById {
   '/dashboard/cash-session': typeof DashboardCashSessionRoute
   '/dashboard/clients': typeof DashboardClientsRoute
   '/dashboard/configurations': typeof DashboardConfigurationsRoute
+  '/dashboard/credits': typeof DashboardCreditsRoute
   '/dashboard/history': typeof DashboardHistoryRoute
+  '/dashboard/notes': typeof DashboardNotesRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/payments': typeof DashboardPaymentsRoute
+  '/dashboard/print-logs': typeof DashboardPrintLogsRoute
+  '/dashboard/production-logs': typeof DashboardProductionLogsRoute
   '/dashboard/products': typeof DashboardProductsRoute
+  '/dashboard/shopping-list': typeof DashboardShoppingListRoute
   '/dashboard/simple-orders': typeof DashboardSimpleOrdersRoute
   '/dashboard/stats': typeof DashboardStatsRoute
+  '/dashboard/suppliers': typeof DashboardSuppliersRoute
   '/dashboard/users': typeof DashboardUsersRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
@@ -215,12 +269,18 @@ export interface FileRouteTypes {
     | '/dashboard/cash-session'
     | '/dashboard/clients'
     | '/dashboard/configurations'
+    | '/dashboard/credits'
     | '/dashboard/history'
+    | '/dashboard/notes'
     | '/dashboard/orders'
     | '/dashboard/payments'
+    | '/dashboard/print-logs'
+    | '/dashboard/production-logs'
     | '/dashboard/products'
+    | '/dashboard/shopping-list'
     | '/dashboard/simple-orders'
     | '/dashboard/stats'
+    | '/dashboard/suppliers'
     | '/dashboard/users'
     | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
@@ -236,12 +296,18 @@ export interface FileRouteTypes {
     | '/dashboard/cash-session'
     | '/dashboard/clients'
     | '/dashboard/configurations'
+    | '/dashboard/credits'
     | '/dashboard/history'
+    | '/dashboard/notes'
     | '/dashboard/orders'
     | '/dashboard/payments'
+    | '/dashboard/print-logs'
+    | '/dashboard/production-logs'
     | '/dashboard/products'
+    | '/dashboard/shopping-list'
     | '/dashboard/simple-orders'
     | '/dashboard/stats'
+    | '/dashboard/suppliers'
     | '/dashboard/users'
     | '/dashboard'
   id:
@@ -258,12 +324,18 @@ export interface FileRouteTypes {
     | '/dashboard/cash-session'
     | '/dashboard/clients'
     | '/dashboard/configurations'
+    | '/dashboard/credits'
     | '/dashboard/history'
+    | '/dashboard/notes'
     | '/dashboard/orders'
     | '/dashboard/payments'
+    | '/dashboard/print-logs'
+    | '/dashboard/production-logs'
     | '/dashboard/products'
+    | '/dashboard/shopping-list'
     | '/dashboard/simple-orders'
     | '/dashboard/stats'
+    | '/dashboard/suppliers'
     | '/dashboard/users'
     | '/dashboard/'
   fileRoutesById: FileRoutesById
@@ -351,6 +423,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardUsersRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/suppliers': {
+      id: '/dashboard/suppliers'
+      path: '/suppliers'
+      fullPath: '/dashboard/suppliers'
+      preLoaderRoute: typeof DashboardSuppliersRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/stats': {
       id: '/dashboard/stats'
       path: '/stats'
@@ -365,11 +444,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardSimpleOrdersRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/shopping-list': {
+      id: '/dashboard/shopping-list'
+      path: '/shopping-list'
+      fullPath: '/dashboard/shopping-list'
+      preLoaderRoute: typeof DashboardShoppingListRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/products': {
       id: '/dashboard/products'
       path: '/products'
       fullPath: '/dashboard/products'
       preLoaderRoute: typeof DashboardProductsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/production-logs': {
+      id: '/dashboard/production-logs'
+      path: '/production-logs'
+      fullPath: '/dashboard/production-logs'
+      preLoaderRoute: typeof DashboardProductionLogsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/print-logs': {
+      id: '/dashboard/print-logs'
+      path: '/print-logs'
+      fullPath: '/dashboard/print-logs'
+      preLoaderRoute: typeof DashboardPrintLogsRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/payments': {
@@ -386,11 +486,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardOrdersRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/notes': {
+      id: '/dashboard/notes'
+      path: '/notes'
+      fullPath: '/dashboard/notes'
+      preLoaderRoute: typeof DashboardNotesRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/history': {
       id: '/dashboard/history'
       path: '/history'
       fullPath: '/dashboard/history'
       preLoaderRoute: typeof DashboardHistoryRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/credits': {
+      id: '/dashboard/credits'
+      path: '/credits'
+      fullPath: '/dashboard/credits'
+      preLoaderRoute: typeof DashboardCreditsRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/configurations': {
@@ -429,12 +543,18 @@ interface DashboardRouteChildren {
   DashboardCashSessionRoute: typeof DashboardCashSessionRoute
   DashboardClientsRoute: typeof DashboardClientsRoute
   DashboardConfigurationsRoute: typeof DashboardConfigurationsRoute
+  DashboardCreditsRoute: typeof DashboardCreditsRoute
   DashboardHistoryRoute: typeof DashboardHistoryRoute
+  DashboardNotesRoute: typeof DashboardNotesRoute
   DashboardOrdersRoute: typeof DashboardOrdersRoute
   DashboardPaymentsRoute: typeof DashboardPaymentsRoute
+  DashboardPrintLogsRoute: typeof DashboardPrintLogsRoute
+  DashboardProductionLogsRoute: typeof DashboardProductionLogsRoute
   DashboardProductsRoute: typeof DashboardProductsRoute
+  DashboardShoppingListRoute: typeof DashboardShoppingListRoute
   DashboardSimpleOrdersRoute: typeof DashboardSimpleOrdersRoute
   DashboardStatsRoute: typeof DashboardStatsRoute
+  DashboardSuppliersRoute: typeof DashboardSuppliersRoute
   DashboardUsersRoute: typeof DashboardUsersRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
@@ -444,12 +564,18 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardCashSessionRoute: DashboardCashSessionRoute,
   DashboardClientsRoute: DashboardClientsRoute,
   DashboardConfigurationsRoute: DashboardConfigurationsRoute,
+  DashboardCreditsRoute: DashboardCreditsRoute,
   DashboardHistoryRoute: DashboardHistoryRoute,
+  DashboardNotesRoute: DashboardNotesRoute,
   DashboardOrdersRoute: DashboardOrdersRoute,
   DashboardPaymentsRoute: DashboardPaymentsRoute,
+  DashboardPrintLogsRoute: DashboardPrintLogsRoute,
+  DashboardProductionLogsRoute: DashboardProductionLogsRoute,
   DashboardProductsRoute: DashboardProductsRoute,
+  DashboardShoppingListRoute: DashboardShoppingListRoute,
   DashboardSimpleOrdersRoute: DashboardSimpleOrdersRoute,
   DashboardStatsRoute: DashboardStatsRoute,
+  DashboardSuppliersRoute: DashboardSuppliersRoute,
   DashboardUsersRoute: DashboardUsersRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }

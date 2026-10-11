@@ -8,11 +8,16 @@ import {
   ChevronDown,
   ChevronUp,
   Printer,
+  LockOpen,
 } from 'lucide-react';
 import { formatDateMX } from '@/utils/dateUtils';
 import { CashSessionApiService } from '../CashSessionApiService';
 import type { CashSession, CashSessionSummary } from '../types';
 import CashSessionPrintModal from './CashSessionPrintModal';
+import { usePermissions } from '@/hooks/use-permissions';
+import { useOrderDetailsModal } from '@/hooks/use-order-details-modal';
+import { toast } from 'sonner';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -27,6 +32,8 @@ const fmtDate = (d: string | null) =>
 interface Props {
   sessionId: number;
   onClose: () => void;
+  hasActiveSession?: boolean;
+  onReopenSuccess?: () => void;
 }
 
 // ── Accordion section ─────────────────────────────────────────────────────────
@@ -59,11 +66,15 @@ const Section: React.FC<{
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
 
-const SessionDetailModal: React.FC<Props> = ({ sessionId, onClose }) => {
+const SessionDetailModal: React.FC<Props> = ({ sessionId, onClose, hasActiveSession = false, onReopenSuccess }) => {
   const [session, setSession] = useState<CashSession | null>(null);
   const [summary, setSummary] = useState<CashSessionSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [showPrint, setShowPrint] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [reopenLoading, setReopenLoading] = useState(false);
+  const { canAccess } = usePermissions();
+  const { openOrder, orderDetailsModal } = useOrderDetailsModal();
 
   useEffect(() => {
     const load = async () => {
@@ -82,6 +93,33 @@ const SessionDetailModal: React.FC<Props> = ({ sessionId, onClose }) => {
     };
     load();
   }, [sessionId]);
+
+  const handleReopenClick = () => {
+    if (!session) return;
+    if (hasActiveSession) {
+      toast.error('Ya existe una sesión de caja abierta. Ciérrala antes de reabrir otra.');
+      return;
+    }
+    setShowConfirm(true);
+  };
+
+  const executeReopen = async () => {
+    if (!session) return;
+    setReopenLoading(true);
+    try {
+      await CashSessionApiService.reopen(session.id);
+      toast.success('Sesión de caja reabierta correctamente');
+      setShowConfirm(false);
+      if (onReopenSuccess) {
+        onReopenSuccess();
+      }
+      onClose();
+    } catch (err: any) {
+      toast.error(err.message || 'Error al reabrir la sesión de caja');
+    } finally {
+      setReopenLoading(false);
+    }
+  };
 
   const orderPaymentsWithOrder = session?.order_payments?.filter(p => p.order_id != null) || [];
   const orderPaymentsWithoutOrder = session?.order_payments?.filter(p => p.order_id == null) || [];
@@ -102,12 +140,28 @@ const SessionDetailModal: React.FC<Props> = ({ sessionId, onClose }) => {
           </h2>
           <div className="flex items-center gap-2">
             {!loading && session && (
-              <button
-                onClick={() => setShowPrint(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                <Printer size={14} /> Imprimir
-              </button>
+              <>
+                {session.status === 'closed' && canAccess('Reabrir Caja') && (
+                  <button
+                    onClick={handleReopenClick}
+                    disabled={hasActiveSession}
+                    title={hasActiveSession ? 'Ya existe una sesión de caja activa' : 'Reabrir esta sesión de caja'}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border rounded-md transition-colors ${
+                      hasActiveSession
+                        ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                        : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                    }`}
+                  >
+                    <LockOpen size={14} /> Reabrir
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowPrint(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  <Printer size={14} /> Imprimir
+                </button>
+              </>
             )}
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
               <X size={20} />
@@ -219,7 +273,18 @@ const SessionDetailModal: React.FC<Props> = ({ sessionId, onClose }) => {
                   <tbody className="divide-y divide-gray-50">
                     {orderPaymentsWithOrder.map(p => (
                       <tr key={p.id} className="hover:bg-gray-50">
-                        <td className="px-3 py-2 text-gray-600">{p.order_id ? `#${p.order_id}` : '—'}</td>
+                        <td className="px-3 py-2 text-gray-600">
+                          {p.order_id ? (
+                            <button
+                              type="button"
+                              onClick={() => openOrder(p.order_id!)}
+                              className="font-medium text-blue-700 hover:underline cursor-pointer"
+                              title="Ver orden"
+                            >
+                              #{p.order_id}
+                            </button>
+                          ) : '—'}
+                        </td>
                         <td className="px-3 py-2 text-gray-500">{fmtDate(p.date)}</td>
                         <td className="px-3 py-2 text-gray-500">{p.descripcion || '—'}</td>
                         <td className="px-3 py-2 text-right font-medium text-blue-700">{fmt(p.amount)}</td>
@@ -328,6 +393,20 @@ const SessionDetailModal: React.FC<Props> = ({ sessionId, onClose }) => {
         onClose={() => setShowPrint(false)}
       />
     )}
+
+    <ConfirmDialog
+      isOpen={showConfirm}
+      onClose={() => setShowConfirm(false)}
+      onConfirm={executeReopen}
+      title="Reabrir Sesión de Caja"
+      message="¿Estás seguro de que deseas volver a abrir esta sesión de caja? Esto la marcará como abierta y podrás registrar nuevos movimientos."
+      confirmText="Reabrir Caja"
+      cancelText="Cancelar"
+      type="warning"
+      isLoading={reopenLoading}
+    />
+
+    {orderDetailsModal}
     </>
   );
 };

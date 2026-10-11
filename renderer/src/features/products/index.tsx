@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
-import { DollarSign, Edit3, Hash, Package, Plus, Search, Trash2, Printer, Layers } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { DollarSign, Edit3, Hash, Package, Plus, Search, Trash2, Printer, Layers, Loader2, ArrowUpDown, LayoutGrid, List } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { CreateProductModal, DeleteProductModal, EditProductModal, ProductDetailView, SimilarNamesModal } from './components';
 import ProductImageCarousel from './components/ProductImageCarousel';
@@ -14,8 +14,29 @@ import { formatDateMX, nowISO } from '@/utils/dateUtils';
 const ProductsPage: React.FC = () => {
   const [products, setProducts] = useState<(Product & { templates?: ProductTemplate[] })[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [currentSearchTerm, setCurrentSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<'default' | 'price_asc' | 'price_desc'>('default');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  const [pagination, setPagination] = useState<{
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  }>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false
+  });
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -33,42 +54,104 @@ const ProductsPage: React.FC = () => {
   // Precargar imágenes en background cuando la lista de productos esté disponible
   useImagePreloader(products);
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        const data = await ProductsApiService.findAllWithTemplates();
-        setProducts(data);
-      } catch (err) {
-        console.error('Error fetching products:', err);
-        setError('Error al cargar productos');
-      } finally {
-        setLoading(false);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const lastProductElementRef = useCallback((node: HTMLDivElement) => {
+    if (loadingMore) return;
+    if (observerRef.current) observerRef.current.disconnect();
+    observerRef.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && pagination.hasNext) {
+        loadMoreProducts();
       }
-    };
-    fetchProducts();
+    });
+    if (node) observerRef.current.observe(node);
+  }, [loadingMore, pagination.hasNext]);
+
+  // Update debounced search term
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  const loadProducts = async (
+    page: number = 1,
+    reset: boolean = true,
+    searchQuery: string = currentSearchTerm,
+    sortOption: 'default' | 'price_asc' | 'price_desc' = sortBy
+  ) => {
+    try {
+      if (page === 1) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+
+      const response = await ProductsApiService.findPaginated(page, 10, searchQuery, sortOption);
+
+      if (reset) {
+        setProducts(response.data);
+      } else {
+        setProducts(prev => [...prev, ...response.data]);
+      }
+
+      setPagination(response.pagination);
+      setCurrentSearchTerm(searchQuery);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching products:', err);
+      setError('Error al cargar productos');
+      toast.error('Error al cargar los productos');
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+      setIsSearching(false);
+    }
+  };
+
+  const loadMoreProducts = () => {
+    if (!loadingMore && pagination.hasNext) {
+      loadProducts(pagination.page + 1, false, currentSearchTerm, sortBy);
+    }
+  };
+
+  // Carga inicial
+  useEffect(() => {
+    loadProducts(1, true, '', sortBy);
   }, []);
 
-  // Validar que los datos sean válidos y filtrar
+  // Fetch products when debounced search term changes
+  useEffect(() => {
+    if (debouncedSearch !== currentSearchTerm) {
+      setIsSearching(true);
+      loadProducts(1, true, debouncedSearch, sortBy);
+    }
+  }, [debouncedSearch]);
+
+  const handleSortChange = (newSortBy: 'default' | 'price_asc' | 'price_desc') => {
+    setSortBy(newSortBy);
+    loadProducts(1, true, debouncedSearch, newSortBy);
+  };
+
+  // Ya no filtramos localmente, la BD hace el trabajo pesado y mejorado
   const filteredProducts = products.filter(product => {
-    // Validación defensiva: asegurar que el product sea válido
     if (!product || typeof product !== 'object' || !product.id || !product.name) {
       console.warn('Producto inválido encontrado en la lista:', product);
       return false;
     }
-
-    const searchLower = searchTerm.toLowerCase();
-
-    return (
-      product.name.toLowerCase().includes(searchLower) ||
-      (product.serial_number && product.serial_number.toLowerCase().includes(searchLower)) ||
-      (product.id && product.id.toString().includes(searchLower))
-    );
+    return true; // Mostrar todo lo que devuelva la BD
   });
 
   const handleProductCreated = (newProduct: Product) => {
     // Prepend the new product so it shows at the top of the list immediately
     setProducts(prevProducts => [newProduct, ...prevProducts]);
+    setPagination(prev => ({
+      ...prev,
+      total: prev.total + 1
+    }));
     toast.success('Producto creado exitosamente');
   };
 
@@ -93,6 +176,10 @@ const ProductsPage: React.FC = () => {
     setProducts(prevProducts =>
       prevProducts.filter(product => product.id !== deletedProductId)
     );
+    setPagination(prev => ({
+      ...prev,
+      total: Math.max(0, prev.total - 1)
+    }));
     toast.success(`Producto ${deletedProduct?.name} eliminado exitosamente`);
   };
 
@@ -138,15 +225,20 @@ const ProductsPage: React.FC = () => {
 
   const handlePrintInventory = async () => {
     try {
-      const toastId = toast.loading('Preparando documento de impresión...');
+      const toastId = toast.loading(
+        searchTerm 
+          ? 'Preparando impresión de resultados filtrados...' 
+          : 'Preparando impresión del inventario completo...'
+      );
 
-      // Obtener todos los productos con sus plantillas (subproductos)
-      const productsWithTemplates = await ProductsApiService.findAllWithTemplates();
+      // Obtener el catálogo completo (sin paginación) para el reporte
+      const productsForPrint = searchTerm
+        ? await ProductsApiService.searchWithTemplates(searchTerm)
+        : await ProductsApiService.findAllWithTemplates();
 
-      // Filtrar si hay búsqueda activa (opcional, pero consistente con la UI)
-      // Si el usuario quiere imprimir TODO el inventario siempre, quitamos este filtro.
-      // Asumiremos que quiere imprimir lo que ve o todo? El prompt dice "imprimir todos los productos que tengo en la app".
-      // Usaremos productsWithTemplates completo.
+      // El backend devuelve los productos más recientes primero (id DESC);
+      // para el reporte impreso se ordenan por id ascendente
+      const filteredForPrint = [...productsForPrint].sort((a, b) => a.id - b.id);
 
       // Generar HTML
       const printHTML = `
@@ -158,7 +250,13 @@ const ProductsPage: React.FC = () => {
           <style>
             @page {
               size: letter;
-              margin: 1.5cm;
+              margin: 1.5cm 1.5cm 2cm 1.5cm;
+              @bottom-right {
+                content: "Página " counter(page) " de " counter(pages);
+                font-family: 'Segoe UI', Arial, sans-serif;
+                font-size: 9px;
+                color: #6b7280;
+              }
             }
             body {
               font-family: 'Segoe UI', Arial, sans-serif;
@@ -255,10 +353,10 @@ const ProductsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              ${productsWithTemplates.map(p => {
+              ${filteredForPrint.map((p, index) => {
         const productRow = `
                   <tr class="product-row">
-                    <td>${p.name}</td>
+                    <td>${index + 1}. ${p.name}</td>
                     <td class="serial-col">${p.serial_number || '-'}</td>
                     <td class="price-col">$${p.price.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</td>
                   </tr>
@@ -338,29 +436,13 @@ const ProductsPage: React.FC = () => {
     );
   }
 
-  if (loading) {
-    return (
-      <div className="p-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2 mb-6"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-48 bg-gray-200 rounded"></div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <p className="text-red-800">{error}</p>
           <Button
-            onClick={() => window.location.reload()}
+            onClick={() => loadProducts(1, true, currentSearchTerm)}
             className="mt-2"
             size="sm"
           >
@@ -388,7 +470,7 @@ const ProductsPage: React.FC = () => {
             onClick={handlePrintInventory}
           >
             <Printer size={16} />
-            Imprimir Inventario
+            {searchTerm ? 'Imprimir Resultados' : 'Imprimir Inventario'}
           </Button>
           <Button
             variant="outline"
@@ -410,177 +492,373 @@ const ProductsPage: React.FC = () => {
 
       {/* Filtros y búsqueda */}
       <div className="bg-white rounded-lg shadow p-4 mb-6">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
+        <div className="flex flex-col sm:flex-row gap-4 items-center">
+          <div className="flex-1 w-full">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+              {isSearching ? (
+                <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+                </div>
+              ) : (
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+              )}
               <input
                 type="text"
                 placeholder="Buscar productos..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               />
             </div>
           </div>
+
+          {/* Filtro por precio y Selector de Vista */}
+          <div className="flex items-center gap-3 w-full sm:w-auto shrink-0">
+            <div className="relative w-full sm:w-56">
+              <ArrowUpDown className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
+              <select
+                value={sortBy}
+                onChange={e => handleSortChange(e.target.value as 'default' | 'price_asc' | 'price_desc')}
+                className="w-full pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer appearance-none"
+              >
+                <option value="default">Orden por defecto</option>
+                <option value="price_desc">Precio: Mayor a Menor</option>
+                <option value="price_asc">Precio: Menor a Mayor</option>
+              </select>
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400 text-xs">
+                ▼
+              </div>
+            </div>
+
+            {/* Switcher de Vista: Grid vs List */}
+            <div className="flex items-center bg-gray-100 p-1 rounded-lg border border-gray-200 shrink-0">
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                title="Vista en cuadros"
+                className={`p-1.5 rounded-md transition-all ${
+                  viewMode === 'grid'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                <LayoutGrid size={18} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                title="Vista horizontal en lista"
+                className={`p-1.5 rounded-md transition-all ${
+                  viewMode === 'list'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                <List size={18} />
+              </button>
+            </div>
+          </div>
         </div>
+
+        {searchTerm && (
+          <p className="text-xs text-blue-600 mt-2 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+            Búsqueda activa: se imprimirán únicamente los {filteredProducts.length} productos filtrados.
+          </p>
+        )}
       </div>
 
       {/* Lista de productos */}
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">
-            Productos ({filteredProducts.length})
+            Productos ({pagination.total})
           </h2>
         </div>
         <div className="p-6">
-          {filteredProducts.length === 0 ? (
+          {loading ? (
+            <div className="animate-pulse grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-48 bg-gray-200 rounded-lg"></div>
+              ))}
+            </div>
+          ) : filteredProducts.length === 0 ? (
             <div className="text-center py-12">
               <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No hay productos</h3>
               <p className="text-gray-500 mb-4">
-                Comienza agregando tu primer producto al catálogo
+                {currentSearchTerm 
+                  ? `No se encontraron productos que coincidan con "${currentSearchTerm}"`
+                  : 'Comienza agregando tu primer producto al catálogo'
+                }
               </p>
-              <Button
-                className="flex items-center gap-2 mx-auto"
-                onClick={openCreateModal}
-              >
-                <Plus size={16} />
-                Agregar Primer Producto
-              </Button>
+              {!currentSearchTerm && (
+                <Button
+                  className="flex items-center gap-2 mx-auto"
+                  onClick={openCreateModal}
+                >
+                  <Plus size={16} />
+                  Agregar Primer Producto
+                </Button>
+              )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
-              {filteredProducts.map((product) => (
-                <div key={product.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow flex">
+            <>
+              {(() => {
+                const renderPriceInfo = (product: Product) => {
+                  let activePrice = product.price;
+                  let isPromo = false;
+                  let isDiscount = false;
 
-                  {/* Columna izquierda — Información */}
-                  <div className="w-[60%] p-4 flex flex-col min-w-0">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex flex-col overflow-hidden mr-2">
-                        <h3 className="font-semibold text-gray-900 truncate" title={product.name}>
-                          <span className="text-gray-500 font-normal mr-2">#{product.id}</span>
-                          {product.name}
-                        </h3>
-                        <span className="inline-flex items-center text-xs text-gray-500 mt-1">
-                          <Layers size={12} className="mr-1" />
-                          {product.templates?.length || 0} {(product.templates?.length || 0) === 1 ? 'plantilla' : 'plantillas'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEditModal(product)}
-                          className='p-1 h-8 w-8'
-                        >
-                          <Edit3 size={14} />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openDeleteModal(product)}
-                          className="p-1 h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 size={14} />
-                        </Button>
-                      </div>
-                    </div>
+                  if (product.promo_price !== null && product.promo_price !== undefined && product.promo_price < product.price) {
+                    activePrice = product.promo_price;
+                    isPromo = true;
+                  }
 
-                    <div className="space-y-2 text-sm text-gray-600 flex-1">
-                      {product.serial_number && (
-                        <div className="flex items-center gap-2">
-                          <Hash size={14} />
-                          <span className="font-mono text-xs">{product.serial_number}</span>
+                  if (product.discount_price !== null && product.discount_price !== undefined && product.discount_price < activePrice) {
+                    activePrice = product.discount_price;
+                    isPromo = false;
+                    isDiscount = true;
+                  }
+
+                  if (isPromo || isDiscount) {
+                    return (
+                      <div className="flex flex-col gap-0.5 sm:items-end">
+                        <div className="flex items-center gap-1">
+                          <DollarSign size={11} className="text-gray-400" />
+                          <span className="text-gray-400 line-through text-xs">
+                            ${product.price.toFixed(2)} MXN
+                          </span>
                         </div>
-                      )}
+                        <div className="flex items-center gap-1">
+                          <DollarSign size={13} className={isPromo ? "text-blue-600" : "text-orange-600"} />
+                          <span className={`font-bold text-xs sm:text-sm ${isPromo ? "text-blue-600" : "text-orange-600"}`}>
+                            ${activePrice.toFixed(2)} MXN
+                          </span>
+                          <span className={`px-1 py-0.5 text-[9px] font-medium rounded ${isPromo ? "bg-blue-100 text-blue-800" : "bg-orange-100 text-orange-800"}`}>
+                            {isPromo ? 'Promo' : 'Desc'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  }
 
-                      {(() => {
-                        let activePrice = product.price;
-                        let isPromo = false;
-                        let isDiscount = false;
+                  return (
+                    <div className="flex items-center gap-1">
+                      <DollarSign size={13} className="text-green-600" />
+                      <span className="font-bold text-xs sm:text-sm text-green-600">
+                        ${product.price.toFixed(2)} MXN
+                      </span>
+                    </div>
+                  );
+                };
 
-                        if (product.promo_price !== null && product.promo_price !== undefined && product.promo_price < product.price) {
-                          activePrice = product.promo_price;
-                          isPromo = true;
-                        }
-
-                        if (product.discount_price !== null && product.discount_price !== undefined && product.discount_price < activePrice) {
-                          activePrice = product.discount_price;
-                          isPromo = false;
-                          isDiscount = true;
-                        }
-
-                        if (isPromo || isDiscount) {
-                          return (
-                            <div className="flex flex-col gap-1">
-                              <div className="flex items-center gap-2">
-                                <DollarSign size={12} className="text-gray-400" />
-                                <span className="text-gray-400 line-through text-xs">
-                                  ${product.price.toFixed(2)} MXN
+                if (viewMode === 'grid') {
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3">
+                      {filteredProducts.map((product, index) => (
+                        <div 
+                          key={product.id} 
+                          ref={index === filteredProducts.length - 1 ? lastProductElementRef : null}
+                          className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow flex bg-white"
+                        >
+                          {/* Columna izquierda — Información */}
+                          <div className="w-[62%] p-3 flex flex-col min-w-0">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex flex-col overflow-hidden mr-1">
+                                <h3 className="font-semibold text-sm text-gray-900 truncate" title={product.name}>
+                                  <span className="text-gray-400 font-normal mr-1">#{product.id}</span>
+                                  {product.name}
+                                </h3>
+                                <span className="inline-flex items-center text-[11px] text-gray-500 mt-0.5">
+                                  <Layers size={11} className="mr-1" />
+                                  {product.templates?.length || 0} {(product.templates?.length || 0) === 1 ? 'plantilla' : 'plantillas'}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <DollarSign size={14} className={isPromo ? "text-blue-600" : "text-orange-600"} />
-                                <span className={`font-semibold ${isPromo ? "text-blue-600" : "text-orange-600"}`}>
-                                  ${activePrice.toFixed(2)} MXN
-                                </span>
-                                <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${isPromo ? "bg-blue-100 text-blue-800" : "bg-orange-100 text-orange-800"}`}>
-                                  {isPromo ? 'Promo' : 'Desc'}
-                                </span>
+                              <div className="flex items-center gap-0.5 shrink-0">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => openEditModal(product)}
+                                  className='p-1 h-7 w-7'
+                                >
+                                  <Edit3 size={13} />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => openDeleteModal(product)}
+                                  className="p-1 h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 size={13} />
+                                </Button>
                               </div>
                             </div>
-                          );
-                        }
 
-                        return (
-                          <div className="flex items-center gap-2">
-                            <DollarSign size={14} />
-                            <span className="font-semibold text-green-600">
-                              ${product.price.toFixed(2)} MXN
+                            <div className="space-y-1.5 text-xs text-gray-600 flex-1">
+                              {product.serial_number && (
+                                <div className="flex items-center gap-1.5">
+                                  <Hash size={12} />
+                                  <span className="font-mono text-[11px] truncate">{product.serial_number}</span>
+                                </div>
+                              )}
+
+                              {renderPriceInfo(product)}
+
+                              {product.description && (
+                                <p className="text-[11px] text-gray-500 line-clamp-1 mt-1">
+                                  {product.description}
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
+                              <span className={`px-1.5 py-0.5 text-[10px] rounded-full font-medium ${product.active === true
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                                }`}>
+                                {product.active === true ? 'Activo' : 'Inactivo'}
+                              </span>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openProductDetail(product.id)}
+                                className="text-xs h-7 px-2"
+                              >
+                                Ver Detalles
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Columna derecha — Imagen */}
+                          <div className="w-[38%] shrink-0 border-l border-gray-100 bg-gray-50">
+                            <ProductImageCarousel
+                              images={product.images}
+                              productName={product.name}
+                              height={undefined}
+                              showEmptyState
+                              fillContainer
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+
+                return (
+                  /* Vista Horizontal (Lista Compacta) */
+                  <div className="flex flex-col gap-2">
+                    {filteredProducts.map((product, index) => (
+                      <div 
+                        key={product.id} 
+                        ref={index === filteredProducts.length - 1 ? lastProductElementRef : null}
+                        className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow flex flex-col sm:flex-row items-stretch sm:items-center bg-white p-2 sm:p-2.5 gap-3"
+                      >
+                        {/* Imagen miniatura ultra-compacta */}
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-md overflow-hidden border border-gray-100 bg-gray-50">
+                          <ProductImageCarousel
+                            images={product.images}
+                            productName={product.name}
+                            height={undefined}
+                            showEmptyState
+                            fillContainer
+                          />
+                        </div>
+
+                        {/* Información principal */}
+                        <div className="flex-1 min-w-0 space-y-0.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-gray-400 text-xs font-mono">#{product.id}</span>
+                            <h3 className="font-semibold text-gray-900 text-sm truncate" title={product.name}>
+                              {product.name}
+                            </h3>
+                            <span className={`px-1.5 py-0.5 text-[9px] font-medium rounded-full ${product.active === true
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                              }`}>
+                              {product.active === true ? 'Activo' : 'Inactivo'}
                             </span>
                           </div>
-                        );
-                      })()}
 
-                      {product.description && (
-                        <p className="text-xs text-gray-500 line-clamp-2 mt-2">
-                          {product.description}
-                        </p>
-                      )}
-                    </div>
+                          <div className="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
+                            {product.serial_number && (
+                              <span className="flex items-center gap-1 font-mono text-[11px]">
+                                <Hash size={12} />
+                                {product.serial_number}
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1 text-[11px]">
+                              <Layers size={12} />
+                              {product.templates?.length || 0} {(product.templates?.length || 0) === 1 ? 'plantilla' : 'plantillas'}
+                            </span>
+                          </div>
 
-                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-                      <span className={`px-2 py-1 text-xs rounded-full ${product.active === true
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                        }`}>
-                        {product.active === true ? 'Activo' : 'Inactivo'}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openProductDetail(product.id)}
-                      >
-                        Ver Detalles
-                      </Button>
-                    </div>
+                          {product.description && (
+                            <p className="text-[11px] text-gray-500 line-clamp-1">
+                              {product.description}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Precio */}
+                        <div className="shrink-0 sm:text-right px-1">
+                          {renderPriceInfo(product)}
+                        </div>
+
+                        {/* Botones de Acción */}
+                        <div className="flex items-center gap-1 shrink-0 sm:pl-2 sm:border-l border-gray-100 justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openProductDetail(product.id)}
+                            className="text-xs h-7 px-2"
+                          >
+                            Ver Detalles
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEditModal(product)}
+                            className="p-1 h-7 w-7 text-gray-600 hover:text-gray-900"
+                          >
+                            <Edit3 size={13} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openDeleteModal(product)}
+                            className="p-1 h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 size={13} />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
+                );
+              })()}
 
-                  {/* Columna derecha — Imagen (contenedor fijo) */}
-                  <div className="w-[40%] shrink-0 border-l border-gray-100 bg-gray-50">
-                    <ProductImageCarousel
-                      images={product.images}
-                      productName={product.name}
-                      height={undefined}
-                      showEmptyState
-                      fillContainer
-                    />
-                  </div>
-
+              {/* Loading indicator para scroll infinito */}
+              {loadingMore && (
+                <div className="flex justify-center items-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                  <span className="ml-2 text-gray-600">Cargando más productos...</span>
                 </div>
-              ))}
-            </div>
+              )}
+
+              {/* Mensaje cuando se han cargado todos los productos */}
+              {!loadingMore && !pagination.hasNext && filteredProducts.length > 0 && (
+                <div className="text-center py-8 border-t border-gray-100 mt-6">
+                  <p className="text-gray-500">
+                    {currentSearchTerm 
+                      ? `Se encontraron ${pagination.total} resultado${pagination.total !== 1 ? 's' : ''} para "${currentSearchTerm}"`
+                      : `Has visto todos los productos (${pagination.total})`
+                    }
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

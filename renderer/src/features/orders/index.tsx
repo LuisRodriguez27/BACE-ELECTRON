@@ -1,21 +1,26 @@
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/auth';
-import { AlertCircle, Calendar, CheckCircle, Clock, DollarSign, Edit3, Eye, Plus, Printer, Search, ShoppingCart } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle, Clock, CreditCard, DollarSign, Edit3, Eye, MessageCircle, Plus, Printer, Search, ShoppingCart } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { PaymentsApiService } from '../payments/PaymentsApiService';
 import CreatePaymentModal from '../payments/components/CreatePaymentModal';
 import type { Payment } from '../payments/types';
-import CreateOrderModal from './components/CreateOrderModal';
+import CreateOrderModal from './components/FormOrderModal';
 import OrderDetailsModal from './components/OrderDetailsModal';
 // import OrderEditModal from './components/OrderEditModal'; // Ya no se usa, ahora CreateOrderModal maneja todo
 import { OrdersApiService } from './OrdersApiService';
 import type { Order } from './types';
+import type { OrderStatusType } from './types';
 import { getOrderItemDisplayName } from './types';
 import { generateLogbookHtml } from './logbook';
 import { usePermissions } from '@/hooks/use-permissions';
 import ClientColorIndicator from '../clients/components/ClientColorIndicator';
 import type { ClientColor } from '../clients/types';
 import { formatDateMX, formatDateOnlyMX, nowISO } from '@/utils/dateUtils';
+import AssignOrderToCreditModal from '../credits/components/AssignOrderToCreditModal';
+import type { Credit, CreditAssignmentSource } from '../credits/types';
+import OrderStatusSelect from './components/OrderStatusSelect';
+import { toast } from 'sonner';
 
 const OrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -30,6 +35,8 @@ const OrdersPage: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const [creditSource, setCreditSource] = useState<CreditAssignmentSource | null>(null);
+  const [updatingOrderIds, setUpdatingOrderIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -92,6 +99,12 @@ const OrdersPage: React.FC = () => {
   };
 
   const handleOrderUpdated = (updatedOrder: Order) => {
+    // La orden ya no cumple el criterio de OrdersApiService.findAll() (excluye 'Completado'),
+    // así que debe quitarse de la lista en vez de solo actualizarse in-place.
+    if (updatedOrder.status === 'Completado') {
+      setOrders(prevOrders => prevOrders.filter(order => order.id !== updatedOrder.id));
+      return;
+    }
     setOrders(prevOrders =>
       prevOrders.map(order =>
         order.id === updatedOrder.id ? updatedOrder : order
@@ -112,12 +125,73 @@ const OrdersPage: React.FC = () => {
     setShowEditModal(true);
   };
 
+  const handleStatusChange = async (order: Order, status: OrderStatusType) => {
+    if (status === order.status || !checkPermission('Editar Órdenes')) return;
+
+    setUpdatingOrderIds(prev => new Set(prev).add(order.id));
+    try {
+      const updatedOrder = await OrdersApiService.update(order.id, {
+        status,
+        edited_by: user?.id,
+      });
+      handleOrderUpdated(updatedOrder);
+    } catch (err) {
+      console.error('Error changing order status:', err);
+      toast.error('No se pudo actualizar el estado de la orden');
+    } finally {
+      setUpdatingOrderIds(prev => {
+        const next = new Set(prev);
+        next.delete(order.id);
+        return next;
+      });
+    }
+  };
+
   const handleAddPayment = (orderId: number) => {
     if (!checkPermission("Registrar Pagos")) {
       return;
     }
     setSelectedOrderId(orderId);
     setShowPaymentModal(true);
+  };
+
+  const handleAddToCredit = (order: Order) => {
+    if (!checkPermission('Gestionar Creditos')) return;
+    const paid = getTotalPaid(order.id);
+    const credited = order.credited_amount || 0;
+    const available = Math.max(0, order.total - paid - credited);
+    if (available <= 0.01 || credited > 0.01) return;
+    setCreditSource({
+      source_type: 'order',
+      id: order.id,
+      client_id: order.client_id,
+      date: order.date,
+      product: order.description?.trim() || `Orden #${order.id}`,
+      client_name: order.client?.name || order.client_name || null,
+      client_phone: order.client?.phone || null,
+      total: order.total,
+      paid,
+      credited,
+      available,
+    });
+  };
+
+  const handleCreditCreated = (credit: Credit) => {
+    if (!creditSource) return;
+    const linkedItem = credit.items.find(item => item.order_id === creditSource.id);
+    const creditedAmount = linkedItem?.total || creditSource.available;
+    setOrders(current => current.map(order => order.id === creditSource.id
+      ? { ...order, credited_amount: (order.credited_amount || 0) + creditedAmount }
+      : order));
+    setCreditSource(null);
+  };
+
+  const handleOpenWhatsAppChat = async (order: Order) => {
+    const rawPhone = (order.client?.phone || '').replace(/\D/g, '');
+    if (!rawPhone) return;
+
+    const phoneWithCountry = rawPhone.length === 10 ? `52${rawPhone}` : rawPhone;
+    await window.api.openExternal(`https://web.whatsapp.com/send?phone=${phoneWithCountry}`);
   };
 
   const openCreateModal = () => {
@@ -263,23 +337,31 @@ const OrdersPage: React.FC = () => {
     }));
   };
 
-  const getPaymentStatus = (order: Order): { status: 'paid' | 'partial' | 'pending'; icon: React.ReactNode; color: string; text: string } => {
+  const getPaymentStatus = (order: Order): { status: 'paid' | 'credited' | 'partial' | 'pending'; icon: React.ReactNode; color: string; text: string } => {
     const totalPaid = getTotalPaid(order.id);
+    const credited = order.credited_amount || 0;
     const remaining = order.total - totalPaid;
 
-    if (remaining <= 0) {
+    if (credited > 0 && totalPaid < order.total) {
+      return {
+        status: 'credited',
+        icon: <CreditCard className="h-4 w-4" />,
+        color: 'text-purple-600',
+        text: 'En crédito'
+      };
+    } else if (remaining <= 0) {
       return {
         status: 'paid',
         icon: <CheckCircle className="h-4 w-4" />,
         color: 'text-green-600',
         text: 'Pagado'
       };
-    } else if (totalPaid > 0) {
+    } else if (totalPaid > 0 || credited > 0) {
       return {
         status: 'partial',
         icon: <AlertCircle className="h-4 w-4" />,
         color: 'text-orange-600',
-        text: 'Pago parcial'
+        text: credited > 0 && totalPaid <= 0 ? 'En crédito' : 'Pago parcial'
       };
     } else {
       return {
@@ -426,10 +508,10 @@ const OrdersPage: React.FC = () => {
                 const paymentsCount = getOrderPayments(order.id).length;
 
                 return (
-                  <div key={order.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <div className="flex items-center gap-3 mb-2">
+                  <div key={order.id} className="border border-gray-200 rounded-lg p-4 sm:p-6 hover:shadow-md transition-shadow">
+                    <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-start 2xl:justify-between mb-4">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
                           <h3 className="font-semibold text-gray-900 wrap-break-word">Orden #{order.id}</h3>
                           <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(order.status)}`}>
                             {getStatusText(order.status)}
@@ -465,42 +547,69 @@ const OrdersPage: React.FC = () => {
 
                           <div className="flex items-center gap-2">
                             <DollarSign size={14} />
-                            <span className={`font-semibold ${paymentStatus.status === 'paid' ? 'text-green-600' : paymentStatus.status === 'partial' ? 'text-orange-600' : 'text-gray-500'}`}>
+                            <span className={`font-semibold ${paymentStatus.status === 'paid' ? 'text-green-600' : paymentStatus.status === 'credited' ? 'text-purple-600' : paymentStatus.status === 'partial' ? 'text-orange-600' : 'text-gray-500'}`}>
                               Pagado: ${totalPaid.toFixed(2)}
                             </span>
                           </div>
+                          {(order.credited_amount || 0) > 0 && (
+                            <div className="flex items-center gap-2">
+                              <CreditCard size={14} />
+                              <span className="font-semibold text-purple-600">A crédito: ${(order.credited_amount || 0).toFixed(2)}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleAddPayment(order.id)}
-                          className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50"
-                          disabled={getRemainingAmount(order) <= 0}
-                        >
-                          <DollarSign size={14} />
-                          Agregar Pago
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditOrder(order.id)}
-                          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                        >
-                          <Edit3 size={14} />
-                          Edición
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewDetails(order.id)}
-                          className="flex items-center gap-2"
-                        >
-                          <Eye size={14} />
-                          Ver Detalles
-                        </Button>
+                      <div className="flex 2xl:items-end 2xl:shrink-0">
+                        <div className="flex flex-wrap gap-2 2xl:justify-end">
+                          {checkPermission('Editar Órdenes') && (
+                            <OrderStatusSelect
+                              status={order.status}
+                              isUpdating={updatingOrderIds.has(order.id)}
+                              onChange={(status) => handleStatusChange(order, status)}
+                            />
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenWhatsAppChat(order)}
+                            className="flex items-center gap-2 text-[#128C7E] hover:text-[#075E54] hover:bg-green-50"
+                            disabled={!order.client?.phone?.replace(/\D/g, '')}
+                            title={order.client?.phone ? `Abrir chat de ${order.client.name}` : 'El cliente no tiene teléfono registrado'}
+                          >
+                            <MessageCircle size={14} />
+                            WhatsApp
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleEditOrder(order.id)} className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                            <Edit3 size={14} />
+                            Edición
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleViewDetails(order.id)} className="flex items-center gap-2">
+                            <Eye size={14} />
+                            Ver Detalles
+                          </Button>                        
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleAddToCredit(order)}
+                            className="flex items-center gap-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                            disabled={getRemainingAmount(order) <= 0 || (order.credited_amount || 0) > 0}
+                            title={(order.credited_amount || 0) > 0 ? 'La orden ya está relacionada con un crédito' : 'Agregar esta orden a un crédito'}
+                          >
+                            <CreditCard size={14} />
+                            {(order.credited_amount || 0) > 0 ? 'En crédito' : 'A crédito'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleAddPayment(order.id)}
+                            className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+                            disabled={getRemainingAmount(order) <= 0}
+                          >
+                            <DollarSign size={14} />
+                            Agregar Pago
+                          </Button>
+                        </div>
                       </div>
                     </div>
 
@@ -521,64 +630,72 @@ const OrdersPage: React.FC = () => {
                     )}
 
                     {/* Información adicional */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
-                      {order.client && (
-                        <div>
-                          <span className="text-sm font-medium text-gray-700">Cliente:</span>
-                          <div className="text-gray-500 wrap-break-word font-sm">ID: {order.client_id}</div>
-                          <p className="text-sm text-gray-600">{order.client.name}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            {order.client.phone && (
-                              <p className="text-xs text-gray-500">{order.client.phone}</p>
-                            )}
-                            {order.client.color && (
-                              <ClientColorIndicator color={order.client.color as ClientColor} size="sm" />
-                            )}
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-4 border-t border-gray-100 mt-4">
+                      {/* Columna Izquierda: Cliente y Pagos (35% / 4 de 12 columnas) */}
+                      <div className="md:col-span-4 space-y-3">
+                        {order.client && (
+                          <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                            <span className="text-xs font-semibold text-indigo-800 uppercase tracking-wider block mb-1">Cliente</span>
+                            <div className="flex items-center gap-2">
+                              {order.client.color && (
+                                <ClientColorIndicator color={order.client.color as ClientColor} size="sm" />
+                              )}
+                              <p className="text-sm font-semibold text-indigo-900 leading-tight">{order.client.name}</p>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1 text-xs text-indigo-700">
+                              <span>ID: {order.client_id}</span>
+                              {order.client.phone && (
+                                <>
+                                  <span>•</span>
+                                  <span>{order.client.phone}</span>
+                                </>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {/* {order.user && (
-                        <div>
-                          <span className="text-sm font-medium text-gray-700">Creado por:</span>
-                          <p className="text-sm text-gray-600">{order.user.username}</p>
-                        </div>
-                      )}
-                      
-                      {order.editedByUser && (
-                        <div>
-                          <span className="text-sm font-medium text-gray-700">Editado por:</span>
-                          <p className="text-sm text-gray-600">{order.editedByUser.username}</p>
-                        </div>
-                      )} */}
-
-                      {/* Información de pagos */}
-                      {paymentsCount > 0 && (
-                        <div>
-                          <span className="text-sm font-medium text-gray-700">Pagos:</span>
-                          <p className="text-sm text-gray-600">
-                            {paymentsCount} pago{paymentsCount !== 1 ? 's' : ''} registrado{paymentsCount !== 1 ? 's' : ''}
-                          </p>
-                          {remaining > 0 && (
-                            <p className="text-xs text-orange-600">
-                              Pendiente: ${remaining.toFixed(2)}
+                        {/* Información de pagos */}
+                        {paymentsCount > 0 && (
+                          <div>
+                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">Estado de Pago</span>
+                            <p className="text-xs text-gray-600">
+                              {paymentsCount} pago{paymentsCount !== 1 ? 's' : ''} registrado{paymentsCount !== 1 ? 's' : ''}
                             </p>
-                          )}
-                        </div>
-                      )}
-
-                      {order.orderProducts && order.orderProducts.length > 0 && (
-                        <div className={paymentsCount > 0 ? "" : "md:col-span-2"}>
-                          <span className="text-sm font-medium text-gray-700">Productos:</span>
-                          <div className="flex flex-wrap gap-2 mt-1">
-                            {order.orderProducts.map((op, index) => (
-                              <span key={index} className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded">
-                                {getOrderItemDisplayName(op)} (x{op.quantity})
-                              </span>
-                            ))}
+                            {remaining > 0 ? (
+                              <p className="text-xs font-semibold text-orange-600">
+                                Pendiente: ${remaining.toFixed(2)}
+                              </p>
+                            ) : (
+                              <p className="text-xs font-semibold text-green-600">
+                                Liquidado
+                              </p>
+                            )}
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
+
+                      {/* Columna Derecha: Productos (65% / 8 de 12 columnas) */}
+                      <div className="md:col-span-8">
+                        {order.orderProducts && order.orderProducts.length > 0 && (
+                          <div>
+                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Productos</span>
+                            <div className="flex flex-wrap gap-2">
+                              {order.orderProducts.map((op, index) => (
+                                <span key={index} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-md border border-blue-100">
+                                  {getOrderItemDisplayName(op)}
+                                  <span className="bg-blue-100 text-blue-800 px-1 rounded text-[10px] font-bold">x{op.quantity}</span>
+                                  {op.is_delivered && (
+                                    <span className="text-[9px] bg-green-100 text-green-800 font-semibold px-1 rounded border border-green-200" title="Entregado">E</span>
+                                  )}
+                                  {op.is_paid && (
+                                    <span className="text-[9px] bg-emerald-100 text-emerald-800 font-semibold px-1 rounded border border-emerald-200" title="Liquidado">L</span>
+                                  )}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -632,6 +749,14 @@ const OrdersPage: React.FC = () => {
           currentPayments={getTotalPaid(selectedOrderId)}
           clientName={orders.find(o => o.id === selectedOrderId)?.client?.name || 'Cliente'}
           onPaymentCreated={handlePaymentCreated}
+        />
+      )}
+
+      {creditSource && (
+        <AssignOrderToCreditModal
+          source={creditSource}
+          onClose={() => setCreditSource(null)}
+          onAssigned={handleCreditCreated}
         />
       )}
 

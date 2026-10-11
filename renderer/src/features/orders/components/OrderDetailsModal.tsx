@@ -5,6 +5,7 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock,
+  Copy,
   DollarSign,
   Edit3,
   FileText,
@@ -17,6 +18,7 @@ import {
   Phone,
   Printer,
   Receipt,
+  ShoppingBasket,
   Tag,
   User,
   X,
@@ -27,7 +29,8 @@ import PrintPreviewModal from './PrintPreviewModal';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/use-auth';
 import { OrdersApiService } from '../OrdersApiService';
-import { getOrderItemDisplayName, getOrderItemType, type Order, type OrderProduct } from '../types';
+import { getOrderItemDisplayName, getOrderItemProductId, getOrderItemType, isOrderItemAffordable, type Order, type OrderProduct } from '../types';
+import QuickAddToShoppingListModal from '@/features/shoppingList/components/QuickAddToShoppingListModal';
 import { PaymentsApiService } from '../../payments/PaymentsApiService';
 import { PaymentsList } from '../../payments/components';
 import type { Payment } from '../../payments/types';
@@ -66,7 +69,14 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   });
   const { user } = useAuth();
   const { checkPermission } = usePermissions();
-  const { isSendingWhatsApp, sendWhatsApp, whatsappDialogElement } = useWhatsAppOrder();
+  const [shoppingListTarget, setShoppingListTarget] = useState<OrderProduct | null>(null);
+  const {
+    isSendingWhatsApp,
+    isCopyingImage,
+    sendWhatsApp,
+    copyImage,
+    whatsappDialogElement,
+  } = useWhatsAppOrder();
 
   // Cargar datos de la orden al abrir el modal
   useEffect(() => {
@@ -281,6 +291,15 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     return orderProducts.reduce((sum, product) => sum + product.total_price, 0);
   };
 
+  const handleAddToShoppingListClick = (product: OrderProduct) => {
+    if (!checkPermission('Gestionar Lista de Compras')) return;
+    if (!getOrderItemProductId(product)) {
+      toast.error('No se pudo determinar el producto de esta plantilla');
+      return;
+    }
+    setShoppingListTarget(product);
+  };
+
   const handlePrint = () => {
     if (!order || !orderProducts) {
       toast.error('No hay datos para imprimir');
@@ -326,15 +345,25 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-3">
             <Button
               size="sm"
               onClick={() => order && sendWhatsApp(order, orderProducts, payments)}
-              disabled={isSendingWhatsApp || !order}
+              disabled={isSendingWhatsApp || isCopyingImage || !order}
               className="flex items-center gap-2 bg-[#25D366] hover:bg-[#1ebe5d] text-white border-0"
             >
               <MessageCircle size={16} />
               {isSendingWhatsApp ? 'Preparando...' : 'Enviar por WhatsApp'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => order && copyImage(order, orderProducts, payments)}
+              disabled={isCopyingImage || isSendingWhatsApp || !order}
+              className="flex items-center gap-2"
+            >
+              {isCopyingImage ? <Loader size={16} className="animate-spin" /> : <Copy size={16} />}
+              {isCopyingImage ? 'Copiando...' : 'Copiar imagen'}
             </Button>
             <Button
               variant="outline"
@@ -527,7 +556,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                   <div className="bg-gray-50 rounded-lg p-4">
                     <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                       <FileText className="h-5 w-5" />
-                      Notas
+                      Notas (Internas)
                     </h3>
                     {isEditing ? (
                       <textarea
@@ -657,8 +686,8 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                                         {getOrderItemDisplayName(product)}
                                       </h4>
                                       <span className={`px-2 py-1 text-xs rounded ${type === 'product'
-                                          ? 'bg-blue-100 text-blue-800'
-                                          : 'bg-purple-100 text-purple-800'
+                                        ? 'bg-blue-100 text-blue-800'
+                                        : 'bg-purple-100 text-purple-800'
                                         }`}>
                                         {type === 'product' ? (
                                           <><Package className="h-3 w-3 inline mr-1" />Producto</>
@@ -666,6 +695,16 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                                           <><Layers className="h-3 w-3 inline mr-1" />Plantilla</>
                                         )}
                                       </span>
+                                      {product.is_delivered && (
+                                        <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-800 border border-green-200">
+                                          Entregado
+                                        </span>
+                                      )}
+                                      {product.is_paid && (
+                                        <span className="px-2 py-1 text-xs rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                          Liquidado
+                                        </span>
+                                      )}
                                       {isPriceModified && (
                                         <span className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-amber-100 text-amber-800" title={`Precio original: $${Number(originalPrice).toFixed(2)}`}>
                                           <Tag className="h-3 w-3 inline" />
@@ -728,6 +767,17 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                               )}
                             </div>
                           )}
+
+                          {isOrderItemAffordable(product) && (
+                            <div className="flex justify-end mt-3 pt-3 border-t border-gray-100">
+                              <button
+                                onClick={() => handleAddToShoppingListClick(product)}
+                                className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                              >
+                                <ShoppingBasket size={12} /> Agregar a lista de compras
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -758,6 +808,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                 payments={payments}
                 orderId={order.id}
                 orderTotal={order.total}
+                creditedAmount={order.credited_amount || 0}
                 clientName={order.client?.name || 'Cliente'}
                 onPaymentsChange={loadPayments}
               />
@@ -808,6 +859,16 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       />
 
       {whatsappDialogElement}
+
+      {shoppingListTarget && order && (
+        <QuickAddToShoppingListModal
+          productId={getOrderItemProductId(shoppingListTarget)!}
+          productName={getOrderItemDisplayName(shoppingListTarget)}
+          defaultQuantity={shoppingListTarget.quantity}
+          orderId={order.id}
+          onClose={() => setShoppingListTarget(null)}
+        />
+      )}
     </div>
   );
 };

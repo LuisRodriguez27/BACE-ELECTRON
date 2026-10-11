@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { X, User as UserIcon, Lock, Loader } from 'lucide-react';
+import { X, User as UserIcon, Lock, Loader, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,6 +22,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -53,6 +54,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
   const handleClose = () => {
     reset();
     setError(null);
+    setShowPassword(false);
     onClose();
   };
 
@@ -123,11 +125,18 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="Ingresa la contraseña"
-                  className="pl-10"
+                  className="pl-10 pr-10"
                   {...register('password')}
                 />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
               {errors.password && (
                 <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>

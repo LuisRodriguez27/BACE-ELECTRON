@@ -12,7 +12,13 @@ const AboutModal: React.FC<AboutModalProps> = ({ onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 z-999999 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-all"
+      data-darkreader-ignore="true"
+      className="fixed inset-0 z-999999 flex items-center justify-center transition-all"
+      style={{
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)'
+      }}
       onClick={onClose}
     >
       <div

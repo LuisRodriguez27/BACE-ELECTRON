@@ -1,68 +1,9 @@
-// import { z } from 'zod';
-// import { budgetItemSchema, type BudgetFormItem } from '@/features/budgets/types';
-
-// // Item de presupuesto - misma estructura que orden
-// export const budgetItemSchema = budgetItemSchema;
-
-// // Crear presupuesto - solo campos básicos
-// export const createBudgetSchema = z.object({
-//   client_name: z.string().min(1, 'El nombre del cliente es obligatorio'),
-//   client_phone: z.string().min(1, 'El teléfono del cliente es obligatorio'),
-//   date: z.string().min(1, 'La fecha es obligatoria'), 
-//   notes: z.string().optional(),
-//   items: z.array(budgetItemSchema).min(1, 'El presupuesto debe tener al menos un producto o plantilla')
-// });
-
-// export type CreateBudgetForm = z.infer<typeof createBudgetSchema>;
-// export type BudgetItem = z.infer<typeof budgetItemSchema>;
-
-// // Tipos para el formulario del frontend (reutilizamos de budgets)
-// export type BudgetFormItem = BudgetFormItem;
-
-// // Interface para el presupuesto (solo para manejo en memoria)
-// export interface Budget {
-//   client_name: string;
-//   client_phone: string;
-//   date: string; // ISO date string
-//   total: number;
-//   notes?: string;
-//   items: BudgetFormItem[];
-// }
-
-// // Funciones de utilidad
-// export const createBudgetItemFromFormItem = (formItem: BudgetFormItem): BudgetItem => {
-//   if (formItem.type === 'product') {
-//     return {
-//       product_id: formItem.id,
-//       template_id: null,
-//       quantity: formItem.quantity,
-//       unit_price: formItem.unit_price
-//     };
-//   } else {
-//     return {
-//       product_id: null,
-//       template_id: formItem.id,
-//       quantity: formItem.quantity,
-//       unit_price: formItem.unit_price
-//     };
-//   }
-// };
-
-// export const calculateBudgetTotal = (items: BudgetFormItem[]): number => {
-//   return items.reduce((total, item) => total + (item.quantity * item.unit_price), 0);
-// };
-
-
-
-
-
-
 import { z } from 'zod';
 
 // Item de orden - puede ser producto o plantilla
 export const budgetItemSchema = z.object({
-  product_id: z.number().int().min(1).nullable().optional(),
-  template_id: z.number().int().min(1).nullable().optional(),
+  product_id: z.number().int().min(1, 'Debe seleccionar un producto o una plantilla').nullable().optional(),
+  template_id: z.number().int().min(1, 'Debe seleccionar un producto o una plantilla').nullable().optional(),
   quantity: z.number().min(0.0001, 'La cantidad debe ser al menos 0.0001'),
   unit_price: z.number().min(0, 'El precio debe ser un número positivo'),
 }).refine((data) => {
@@ -76,15 +17,18 @@ export const budgetItemSchema = z.object({
 
 // Crear orden - nueva estructura con items
 export const createBudgetSchema = z.object({
-  client_id: z.number().int().min(1, 'El ID del cliente es obligatorio'),
-  user_id: z.number().int().min(1, 'El ID del usuario es obligatorio'),
+  client_id: z.number().int().min(1).nullable().optional(),
+  client_name: z.string().trim().min(1).max(255).optional(),
+  user_id: z.number({ required_error: 'El usuario es obligatorio', invalid_type_error: 'El usuario es obligatorio' }).int().min(1, 'El usuario es obligatorio'),
   date: z.string().min(1, 'La fecha es obligatoria'), 
-  items: z.array(budgetItemSchema).min(1, 'La orden debe tener al menos un producto o plantilla')
+  items: z.array(budgetItemSchema).min(1, 'La orden debe tener al menos un producto o plantilla'),
+  budget_type: z.enum(['catalog', 'notebook']).optional()
 });
 
 // Editar presupuesto
 export const editBudgetSchema = z.object({
-  client_id: z.number().int().min(1).optional(),
+  client_id: z.number().int().min(1).nullable().optional(),
+  client_name: z.string().trim().min(1).max(255).optional(),
   user_id: z.number().int().min(1).optional(),
   edited_by: z.number().int().min(1).optional(),
   date: z.string().optional(),
@@ -98,11 +42,13 @@ export type BudgetItem = z.infer<typeof budgetItemSchema>;
 // Interfaces de entidades
 export interface Budget {
   id: number;
-  client_id: number;
+  client_id: number | null;
+  client_name?: string | null;
   user_id: number;
   edited_by?: number;
   date: string; // ISO date string
   total: number;
+  budget_type?: 'catalog' | 'notebook';
   converted_to_order?: boolean;
   active?: boolean;
 
@@ -153,6 +99,24 @@ export interface BudgetProduct {
   template_description?: string;
   template_final_price?: number;
   template_created_by_username?: string;
+  template_base_product_name?: string;
+}
+
+export interface NotebookBudgetItem {
+  product_id?: number | null;
+  product_name: string;
+  suggested_price?: number;
+  quantity: number;
+  unit_price: number;
+}
+
+export interface CreateNotebookBudgetForm {
+  client_id?: number | null;
+  client_name?: string;
+  user_id: number;
+  date: string;
+  budget_type: 'notebook';
+  items: NotebookBudgetItem[];
 }
 
 // Tipos para el formulario del frontend
@@ -195,11 +159,12 @@ export const getBudgetItemDisplayName = (budgetProduct: BudgetProduct): string =
   if (budgetProduct.product_id) {
     return budgetProduct.product_name || `Producto #${budgetProduct.product_id}`;
   } else if (budgetProduct.template_id) {
-    const baseName = budgetProduct.product_name || 'Producto';
+    const baseName = budgetProduct.template_base_product_name || budgetProduct.product_name || 'Producto';
     return `${baseName} (Plantilla)`;
   }
   return 'Item desconocido';
 };
+
 
 export const getBudgetItemDescription = (budgetProduct: BudgetProduct): string => {
   if (budgetProduct.product_id) {
@@ -217,5 +182,5 @@ export const getBudgetItemType = (budgetProduct: BudgetProduct): 'product' | 'te
 };
 
 export const calculateBudgetTotal = (items: BudgetFormItem[]): number => {
-  return items.reduce((total, item) => total + (item.quantity * item.unit_price), 0);
+  return items.reduce((total, item) => total + ((item.quantity || 0) * (item.unit_price || 0)), 0);
 };

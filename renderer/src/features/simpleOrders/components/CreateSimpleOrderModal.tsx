@@ -4,6 +4,7 @@ import { X, DollarSign, Loader } from 'lucide-react';
 import { toast } from 'sonner';
 import { SimpleOrdersApiService } from '../SimpleOrdersApiService';
 import { useAuthStore } from '@/store/auth';
+import SimpleOrderClientFields from './SimpleOrderClientFields';
 
 interface CreateSimpleOrderModalProps {
   isOpen: boolean;
@@ -22,12 +23,13 @@ const CreateSimpleOrderModal: React.FC<CreateSimpleOrderModalProps> = ({
 
   const [concept, setConcept] = useState('');
   const [client_name, setClientName] = useState('');
+  const [client_phone, setClientPhone] = useState('');
   const [total, setTotal] = useState<number | ''>('');
   const [abono, setAbono] = useState<number | ''>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent | React.KeyboardEvent) => {
+    if (e) e.preventDefault();
     if (!user?.id) {
       toast.error('No hay un usuario activo detectado');
       return;
@@ -55,6 +57,11 @@ const CreateSimpleOrderModal: React.FC<CreateSimpleOrderModalProps> = ({
       return;
     }
 
+    if (client_phone.trim() && client_phone.length !== 10) {
+      setError('El teléfono debe tener exactamente 10 dígitos');
+      return;
+    }
+
     setError(null);
     setLoading(true);
 
@@ -65,6 +72,7 @@ const CreateSimpleOrderModal: React.FC<CreateSimpleOrderModalProps> = ({
         concept,
         total: Number(total),
         client_name: client_name,
+        client_phone: client_phone,
       });
 
       // 2. Si hay abono inicial, creamos el pago automáticamente
@@ -89,9 +97,31 @@ const CreateSimpleOrderModal: React.FC<CreateSimpleOrderModalProps> = ({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter') {
+      if (e.shiftKey) {
+        e.preventDefault();
+        const target = e.currentTarget;
+        const start = target.selectionStart;
+        const end = target.selectionEnd;
+        const newValue = concept.substring(0, start) + '\n' + concept.substring(end);
+        setConcept(newValue);
+        
+        // Put cursor after the inserted newline in the next tick
+        setTimeout(() => {
+          target.selectionStart = target.selectionEnd = start + 1;
+        }, 0);
+      } else if (!e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        handleSubmit(e);
+      }
+    }
+  };
+
   const handleClose = () => {
     setConcept('');
     setClientName('');
+    setClientPhone('');
     setTotal('');
     setAbono('');
     setPaymentMethod('');
@@ -106,7 +136,7 @@ const CreateSimpleOrderModal: React.FC<CreateSimpleOrderModalProps> = ({
       className="fixed inset-0 flex items-center justify-center z-50"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
     >
-      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[95vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[95vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
@@ -133,21 +163,14 @@ const CreateSimpleOrderModal: React.FC<CreateSimpleOrderModalProps> = ({
             </div>
           )}
 
-          {/* Cliente (Opcional) */}
-          <div>
-            <Label htmlFor="clientName" className="text-sm font-medium text-gray-700">
-              Cliente (Opcional)
-            </Label>
-            <div className="mt-1 relative">
-              <Input
-                id="clientName"
-                value={client_name}
-                onChange={(e) => setClientName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                placeholder="Nombre del cliente..."
-              />
-            </div>
-          </div>
+          <SimpleOrderClientFields
+            isOpen={isOpen}
+            clientName={client_name}
+            clientPhone={client_phone}
+            onClientNameChange={setClientName}
+            onClientPhoneChange={setClientPhone}
+            idPrefix="create-simple-order"
+          />
 
           {/* Concepto */}
           <div>
@@ -157,9 +180,10 @@ const CreateSimpleOrderModal: React.FC<CreateSimpleOrderModalProps> = ({
             <div className="mt-1 relative">
               <textarea
                 id="concept"
-                rows={3}
+                rows={7}
                 value={concept}
                 onChange={(e) => setConcept(e.target.value)}
+                onKeyDown={handleKeyDown}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 placeholder="Ej. Impresión de 50 hojas a color, diseño por maquila..."
                 required

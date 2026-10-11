@@ -66,7 +66,7 @@ const ClientBudgetModal: React.FC<ClientBudgetsModalProps> = ({
     >
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[80vh] flex flex-col">
         {/* Header */}
-        <div className="flex justify-between items-center p-6 bbudget-b bbudget-gray-200">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 rounded-lg">
               <ShoppingBag className="text-blue-600" size={20} />
@@ -94,12 +94,12 @@ const ClientBudgetModal: React.FC<ClientBudgetsModalProps> = ({
         <div className="flex-1 overflow-auto p-6">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 bbudget-b-2 bbudget-blue-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               <span className="ml-3 text-gray-600">Cargando presupuestos...</span>
             </div>
           ) : error ? (
             <div className="text-center py-12">
-              <div className="bg-red-50 bbudget bbudget-red-200 rounded-lg p-4 inline-block">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 inline-block">
                 <p className="text-red-800">{error}</p>
                 <Button 
                   onClick={() => client.id && fetchClientBudgets(client.id)}
@@ -135,7 +135,7 @@ const ClientBudgetModal: React.FC<ClientBudgetsModalProps> = ({
                 {budgets.map((budget) => (
                   <div 
                     key={budget.id} 
-                    className="bbudget bbudget-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                   >
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center gap-3">
@@ -178,7 +178,7 @@ const ClientBudgetModal: React.FC<ClientBudgetsModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 p-6 bbudget-t bbudget-gray-200">
+        <div className="flex justify-end gap-3 p-6 border-t border-gray-200">
           <Button variant="outline" onClick={onClose}>
             Cerrar
           </Button>

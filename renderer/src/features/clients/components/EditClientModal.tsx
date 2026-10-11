@@ -41,7 +41,7 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
   useEffect(() => {
     if (client && isOpen) {
       setValue('name', client.name);
-      setValue('phone', client.phone);
+      setValue('phone', (client.phone || '').replace(/\D/g, '').slice(-10));
       setValue('address', client.address || '');
       setValue('description', client.description || '');
       setValue('color', client.color || undefined);
@@ -147,7 +147,12 @@ const EditClientModal: React.FC<EditClientModalProps> = ({
                   type="tel"
                   placeholder="Número de teléfono"
                   className="pl-10"
-                  {...register('phone')}
+                  maxLength={10}
+                  {...register('phone', {
+                    onChange: (e) => {
+                      e.target.value = e.target.value.replace(/\D/g, '');
+                    }
+                  })}
                 />
               </div>
               {errors.phone && (

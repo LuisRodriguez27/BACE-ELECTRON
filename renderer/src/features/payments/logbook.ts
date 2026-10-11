@@ -3,26 +3,46 @@ import type { Payment } from './types';
 import type { Order } from '../orders/types';
 
 // ─── Tipos auxiliares ──────────────────────────────────────────────────────
+export type PaymentMethodFilter = 'Efectivo' | 'Transferencia' | 'Tarjeta' | 'Otro';
+
 export interface PaymentLogbookFilters {
   dateFrom?: string;  // YYYY-MM-DD
   dateTo?: string;    // YYYY-MM-DD
+  paymentMethod?: PaymentMethodFilter; // Filtro por método de pago
+  paymentType?: 'all' | 'orders' | 'free' | 'simple'; // Filtro por tipo de pago
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 const fmt = (n: number) =>
   n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const filterByDate = (payments: Payment[], filters: PaymentLogbookFilters) => {
+const filterPayments = (payments: Payment[], filters: PaymentLogbookFilters) => {
   return payments.filter(p => {
-    if (!p.date) return true;
-    const d = new Date(p.date);
-    if (filters.dateFrom) {
-      const from = new Date(filters.dateFrom + 'T00:00:00');
-      if (d < from) return false;
+    // Filtro por fecha
+    if (p.date) {
+      const d = new Date(p.date);
+      if (filters.dateFrom) {
+        const from = new Date(filters.dateFrom + 'T00:00:00');
+        if (d < from) return false;
+      }
+      if (filters.dateTo) {
+        const to = new Date(filters.dateTo + 'T23:59:59');
+        if (d > to) return false;
+      }
     }
-    if (filters.dateTo) {
-      const to = new Date(filters.dateTo + 'T23:59:59');
-      if (d > to) return false;
+    // Filtro por método de pago (campo descripcion)
+    if (filters.paymentMethod) {
+      if (p.descripcion !== filters.paymentMethod) return false;
+    }
+    // Filtro por tipo de pago (Órdenes, Pagos Libres, Órdenes Rápidas)
+    if (filters.paymentType && filters.paymentType !== 'all') {
+      if (filters.paymentType === 'orders') {
+        if (!p.order_id || p.is_simple_order) return false;
+      } else if (filters.paymentType === 'free') {
+        if (p.order_id || p.is_simple_order) return false;
+      } else if (filters.paymentType === 'simple') {
+        if (!p.is_simple_order) return false;
+      }
     }
     return true;
   });
@@ -41,6 +61,7 @@ const commonStyles = `
   .total-row td { background-color: #f0f0f0 !important; font-weight: bold; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .badge-libre { background-color: #fef3c7; color: #92400e; padding: 1px 4px; border-radius: 3px; font-size: 9px; }
   .badge-orden { background-color: #dbeafe; color: #1e40af; padding: 1px 4px; border-radius: 3px; font-size: 9px; }
+  .badge-rapida { background-color: #f3e8ff; color: #6b21a8; padding: 1px 4px; border-radius: 3px; font-size: 9px; }
   .bg-pendiente { background-color: #fde8d0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .bg-sin-pago  { background-color: #fecaca !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .bg-pagado    { background-color: #dcfce7 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -67,38 +88,50 @@ export const generatePaymentsReceivedLogbook = (
   currentDate: string,
   orders: Order[] = []
 ): string => {
-  const filtered = filterByDate(payments, filters);
-
-  const rangeLabel = filters.dateFrom || filters.dateTo
-    ? `Período: ${filters.dateFrom ?? '—'} al ${filters.dateTo ?? '—'}`
-    : 'Todos los registros';
+  const filtered = filterPayments(payments, filters);
+  const typeLabelMap = {
+    all: 'Todos los registros',
+    orders: 'Solo Órdenes',
+    free: 'Solo Pagos Libres',
+    simple: 'Solo Órdenes Rápidas'
+  };
+  const typeText = filters.paymentType ? typeLabelMap[filters.paymentType] : 'Todos los registros';
+  const methodLabel = filters.paymentMethod ? ` · Método: ${filters.paymentMethod}` : '';
+  const rangeLabel = (filters.dateFrom || filters.dateTo)
+    ? `${typeText} · Período: ${filters.dateFrom ?? '—'} al ${filters.dateTo ?? '—'}${methodLabel}`
+    : `${typeText}${methodLabel}`;
 
   const totalAmount = filtered.reduce((acc, p) => acc + p.amount, 0);
 
   const rows = filtered.length === 0
     ? `<tr><td colspan="7" class="center">No hay pagos en el período seleccionado</td></tr>`
     : filtered.map(p => {
-        const dateStr = p.date ? formatDateMX(p.date, 'DD/MM/YYYY HH:mm') : '—';
-        const orderBadge = p.order_id
-          ? `<span class="badge-orden">Orden #${p.order_id}</span>`
-          : `<span class="badge-libre">Libre</span>`;
-        const clienteStr = p.order ? (p.order.client_name ?? '—') : '—';
-        
-        let descripcionStr = p.info ? p.info : '—';
-        if (p.order_id) {
-          let orderDesc = p.order?.description || p.order?.notes;
-          if (orders && orders.length > 0) {
-            const relatedOrder = orders.find(o => o.id === p.order_id);
-            if (relatedOrder) {
-              orderDesc = relatedOrder.description || relatedOrder.notes || orderDesc;
-            }
-          }
-          if (orderDesc) {
-            descripcionStr = p.info ? `${orderDesc} (Pago: ${p.info})` : orderDesc;
+      const dateStr = p.date ? formatDateMX(p.date, 'DD/MM/YYYY HH:mm') : '—';
+      let orderBadge = '';
+      if (p.is_simple_order) {
+        orderBadge = `<span class="badge-rapida">Rápida #${p.simple_order_id}</span>`;
+      } else if (p.order_id) {
+        orderBadge = `<span class="badge-orden">Orden #${p.order_id}</span>`;
+      } else {
+        orderBadge = `<span class="badge-libre">Libre</span>`;
+      }
+      const clienteStr = p.client_name || p.order?.client_name || '—';
+
+      let descripcionStr = p.info ? p.info : '—';
+      if (p.order_id) {
+        let orderDesc = p.order?.description || p.order?.notes;
+        if (orders && orders.length > 0) {
+          const relatedOrder = orders.find(o => o.id === p.order_id);
+          if (relatedOrder) {
+            orderDesc = relatedOrder.description || relatedOrder.notes || orderDesc;
           }
         }
-        
-        return `
+        if (orderDesc) {
+          descripcionStr = p.info ? `${orderDesc} (Pago: ${p.info})` : orderDesc;
+        }
+      }
+
+      return `
           <tr>
             <td class="center"><strong>${p.id}</strong></td>
             <td class="center">${dateStr}</td>
@@ -108,7 +141,7 @@ export const generatePaymentsReceivedLogbook = (
             <td class="center">${p.descripcion ?? '—'}</td>
             <td class="right"><strong>$${fmt(p.amount)}</strong></td>
           </tr>`;
-      }).join('');
+    }).join('');
 
   return `<!DOCTYPE html>
 <html>
@@ -184,11 +217,11 @@ export const generatePendingPaymentsLogbook = (
   const rows = filtered.length === 0
     ? `<tr><td colspan="7" class="center">No hay órdenes con pagos pendientes en el período seleccionado</td></tr>`
     : filtered.map(o => {
-        const dateStr = formatDateMX(o.date, 'DD/MM/YYYY');
-        const isSinPago = o.totalPaid <= 0 && o.balance > 0;
-        const rowClass = isSinPago ? 'bg-sin-pago' : 'bg-pendiente';
-        const clientName = o.client?.name ?? o.client_name ?? '—';
-        return `
+      const dateStr = formatDateMX(o.date, 'DD/MM/YYYY');
+      const isSinPago = o.totalPaid <= 0 && o.balance > 0;
+      const rowClass = isSinPago ? 'bg-sin-pago' : 'bg-pendiente';
+      const clientName = o.client?.name ?? o.client_name ?? '—';
+      return `
           <tr class="${rowClass}">
             <td class="center"><strong>#${o.id}</strong></td>
             <td class="center">${dateStr}</td>
@@ -198,7 +231,7 @@ export const generatePendingPaymentsLogbook = (
             <td class="right">$${fmt(o.totalPaid)}</td>
             <td class="right"><strong>$${fmt(o.balance)}</strong></td>
           </tr>`;
-      }).join('');
+    }).join('');
 
   return `<!DOCTYPE html>
 <html>

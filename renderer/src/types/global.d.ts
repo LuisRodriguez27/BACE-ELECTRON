@@ -1,12 +1,14 @@
 import { Client, CreateClientForm, EditClientForm } from "../features/clients/types";
 import { User, CreateUserForm, EditUserForm } from "../features/users/types";
-import { Permission, CreatePermissionForm, EditPermissionForm } from "../features/permissions/types";
+import { Permission, CreatePermissionForm, EditPermissionForm, AssignPermissionData } from "../features/permissions/types";
 import { Product, CreateProductForm, EditProductForm, SimilarNameResult } from "../features/products/types";
 import { ProductTemplate, CreateProductTemplateForm, EditProductTemplateForm } from "../features/productTemplates/types";
 import { Order, CreateOrderForm, EditOrderForm, OrderProduct, CreateOrderProductForm, EditOrderProductForm } from "../features/orders/types";
-import { Payment, CreatePaymentForm, EditPaymentForm } from "../features/payments/types";
+import { Payment, CreatePaymentForm, EditPaymentForm, PaymentFilters, PaginatedPayments } from "../features/payments/types";
 import type { LoginCredentials, LoginResponse } from "@/features/auth/types";
 import type { Budget, BudgetProduct, CreateBudgetForm } from "@/features/budgets";
+import { PrintLog, CreatePrintLogForm, EditPrintLogForm, GroupedPrintLogs, PaginatedPrintLogs } from "../features/printLogs/types";
+import { ProductionLog, CreateProductionLogForm, EditProductionLogForm, GroupedProductionLogs, PaginatedProductionLogs } from "../features/productionLogs/types";
 import {
   SimpleOrder,
   CreateSimpleOrderForm,
@@ -25,6 +27,41 @@ import type {
   UpdateCashSessionForm,
   PaginatedResult,
 } from "../features/cashSession/types";
+import {
+  Supplier,
+  CreateSupplierForm,
+  EditSupplierForm,
+  SupplierOrder,
+  CreateSupplierOrderForm
+} from "../features/suppliers/types";
+import type {
+  ShoppingList,
+  ShoppingListItem,
+  OpenShoppingListForm,
+  CloseShoppingListForm,
+  AddShoppingListItemForm,
+  UpdateShoppingListItemForm,
+} from "../features/shoppingList/types";
+import type {
+  Note,
+  CreateNoteForm,
+  UpdateNoteForm,
+  ArchiveNotesForm,
+  PaginatedNotes,
+  NoteStatus,
+} from "../features/notes/types";
+import type {
+  AddCreditPaymentPayload,
+  Credit,
+  CreditFilters,
+  CreditItem,
+  CreditItemPayload,
+  CreditSourceSearchResult,
+  CreditStatement,
+  CreateCreditPayload,
+  PaginatedCredits,
+  UpdateCreditItemPayload,
+} from "../features/credits/types";
 
 declare global {
   interface Window {
@@ -54,16 +91,18 @@ declare global {
       updatePermission: (id: number, data: EditPermissionForm) => Promise<Permission>;
       deletePermission: (id: number) => Promise<void>;
       // Corregidos los tipos de parámetros - deben ser objetos, no strings
-      assignPermissionToUser: (data: { userId: number; permissionId: number }) => Promise<User>;
-      removePermissionFromUser: (data: { userId: number; permissionId: number }) => Promise<User>;
+      assignPermissionToUser: (data: AssignPermissionData) => Promise<User>;
+      removePermissionFromUser: (data: AssignPermissionData) => Promise<User>;
 
       // Clientes
       getAllClients: () => Promise<Client[]>;
+      getAllInvestedClients: () => Promise<Client[]>;
       getClientById: (id: number) => Promise<Client>;
       createClient: (data: CreateClientForm) => Promise<Client>;
       updateClient: (id: number, data: EditClientForm) => Promise<Client>;
       deleteClient: (id: number) => Promise<void>;
       searchClients: (searchTerm: string) => Promise<Client[]>;
+      getClientsPaginated: (page: number, limit: number, searchTerm: string) => Promise<{ data: Client[], pagination: { page: number, limit: number, total: number, totalPages: number, hasNext: boolean, hasPrev: boolean } }>;
 
       // Productos
       getAllProducts: () => Promise<Product[]>;
@@ -78,8 +117,10 @@ declare global {
 
       // Funciones avanzadas de productos
       getProductWithTemplates: (productId: number) => Promise<Product & { templates: ProductTemplate[] }>;
-      getAllProductsWithTemplates: () => Promise<(Product & { templates: ProductTemplate[] })[]>;
+      getAllProductsWithTemplates: () => Promise<(Product & { templates?: ProductTemplate[] })[]>;
       searchProducts: (searchTerm: string) => Promise<Product[]>;
+      searchProductsWithTemplates: (searchTerm: string) => Promise<(Product & { templates?: ProductTemplate[] })[]>;
+      getProductsPaginated: (page: number, limit: number, searchTerm: string, sortBy?: 'default' | 'price_asc' | 'price_desc') => Promise<{ data: (Product & { templates?: ProductTemplate[] })[], pagination: { page: number, limit: number, total: number, totalPages: number, hasNext: boolean, hasPrev: boolean } }>;
       findSimilarNames: () => Promise<SimilarNameResult[]>;
 
       // Plantillas de productos
@@ -90,6 +131,7 @@ declare global {
       updateTemplate: (id: number, data: EditProductTemplateForm) => Promise<ProductTemplate>;
       deleteTemplate: (id: number) => Promise<void>;
       searchTemplates: (searchTerm: string) => Promise<ProductTemplate[]>;
+      getTemplatesPaginated: (page: number, limit: number, searchTerm: string) => Promise<{ data: ProductTemplate[], pagination: { page: number, limit: number, total: number, totalPages: number, hasNext: boolean, hasPrev: boolean } }>;
 
       // Ordenes
       getAllOrders: () => Promise<Order[]>;
@@ -107,12 +149,30 @@ declare global {
 
       // Pagos
       getAllPayments: () => Promise<Payment[]>;
+      getPaymentsPaginated: (page: number, limit: number, filters?: PaymentFilters) => Promise<PaginatedPayments>;
       getPaymentsByOrderId: (orderId: number) => Promise<Payment[]>;
       getPaymentById: (id: number) => Promise<Payment>;
       createPayment: (data: CreatePaymentForm) => Promise<Payment>;
       updatePayment: (id: number, data: EditPaymentForm) => Promise<Payment>;
       deletePayment: (id: number) => Promise<void>;
       getPaymentsByClientId: (clientId: number) => Promise<Payment[]>;
+
+      // Créditos
+      getCredits: (page: number, limit: number, filters?: CreditFilters) => Promise<PaginatedCredits>;
+      getCreditsForPrint: (filters?: CreditFilters) => Promise<Credit[]>;
+      getCreditById: (id: number) => Promise<Credit>;
+      getOpenCreditByClientId: (clientId: number) => Promise<Credit | null>;
+      getCreditsByClientId: (clientId: number) => Promise<Credit[]>;
+      createCredit: (data: CreateCreditPayload) => Promise<Credit>;
+      addCreditItem: (data: CreditItemPayload & { credit_id: number }) => Promise<CreditItem>;
+      updateCreditItem: (id: number, data: UpdateCreditItemPayload) => Promise<CreditItem>;
+      removeCreditItem: (id: number) => Promise<void>;
+      addCreditPayment: (data: AddCreditPaymentPayload) => Promise<Payment>;
+      updateCreditNotes: (id: number, notes: string | null) => Promise<Credit>;
+      closeCredit: (id: number, data: { notes?: string | null }) => Promise<Credit>;
+      reopenCredit: (id: number) => Promise<Credit>;
+      getCreditStatement: (id: number, params: { from?: string | null; to: string }) => Promise<CreditStatement>;
+      searchCreditSources: (searchTerm: string, limit: number, sourceType?: 'order' | 'simple_order') => Promise<CreditSourceSearchResult[]>;
 
       // Presupuestos
       getAllBudgets: () => Promise<Budget[]>;
@@ -136,6 +196,7 @@ declare global {
 
       // Órdenes Rápidas (Simple Orders)
       getAllSimpleOrders: () => Promise<SimpleOrder[]>;
+      getSimpleOrdersPaginated: (page: number, limit: number, searchTerm: string) => Promise<PaginatedResult<SimpleOrder> & { stats: { totalCount: number, totalRevenues: number, totalPending: number } }>;
       getSimpleOrderById: (id: number) => Promise<SimpleOrder>;
       createSimpleOrder: (data: CreateSimpleOrderForm) => Promise<SimpleOrder>;
       updateSimpleOrder: (id: number, data: Partial<CreateSimpleOrderForm>) => Promise<SimpleOrder>;
@@ -157,6 +218,7 @@ declare global {
       openCashSession: (data: OpenCashSessionForm) => Promise<CashSession>;
       closeCashSession: (id: number, data: CloseCashSessionForm) => Promise<CashSession>;
       updateCashSession: (id: number, data: UpdateCashSessionForm) => Promise<CashSession>;
+      reopenCashSession: (id: number) => Promise<CashSession>;
 
       // Gastos
       getExpenses: (page: number, limit: number) => Promise<PaginatedResult<Expense>>;
@@ -165,6 +227,66 @@ declare global {
       createExpense: (data: CreateExpenseForm) => Promise<Expense>;
       updateExpense: (id: number, data: UpdateExpenseForm) => Promise<Expense>;
       deleteExpense: (id: number) => Promise<void>;
+
+      // Proveedores (Suppliers)
+      getAllSuppliers: () => Promise<Supplier[]>;
+      getSupplierById: (id: number) => Promise<Supplier>;
+      createSupplier: (data: CreateSupplierForm) => Promise<Supplier>;
+      updateSupplier: (id: number, data: EditSupplierForm) => Promise<Supplier>;
+      deleteSupplier: (id: number) => Promise<void>;
+      searchSuppliers: (searchTerm: string) => Promise<Supplier[]>;
+
+      // Ordenes de Proveedor (Supplier Orders)
+      getAllSupplierOrders: () => Promise<SupplierOrder[]>;
+      getSupplierOrderById: (id: number) => Promise<SupplierOrder>;
+      getSupplierOrdersBySupplierId: (supplierId: number) => Promise<SupplierOrder[]>;
+      getSupplierOrdersByOrderId: (orderId: number) => Promise<SupplierOrder[]>;
+      createSupplierOrder: (data: CreateSupplierOrderForm) => Promise<SupplierOrder>;
+      updateSupplierOrder: (id: number, data: Partial<CreateSupplierOrderForm>) => Promise<SupplierOrder>;
+      deleteSupplierOrder: (id: number) => Promise<void>;
+      getPreviousSupplierOrderItems: (supplierId: number) => Promise<any[]>;
+
+      // Bitácora de Impresión
+      getActivePrintLogs: () => Promise<GroupedPrintLogs[]>;
+      getPrintLogsPaginated: (page: number, limit: number, searchTerm: string, searchDate: string | null) => Promise<PaginatedPrintLogs>;
+      getPrintLogsHistoryDays: (todayLocalStr: string, page: number, limit: number, searchTerm: string, searchDate: string | null) => Promise<any>;
+      getPrintLogsByDay: (dateStr: string) => Promise<PrintLog[]>;
+      getPrintLogById: (id: number) => Promise<PrintLog>;
+      getPrintLogsByOrderId: (orderId: number) => Promise<PrintLog[]>;
+      createPrintLog: (data: CreatePrintLogForm) => Promise<PrintLog>;
+      updatePrintLog: (id: number, data: EditPrintLogForm) => Promise<PrintLog>;
+      updatePrintLogCheckboxes: (id: number, data: { completado?: boolean }) => Promise<PrintLog>;
+      deletePrintLog: (id: number) => Promise<void>;
+
+      // Bitácora de Producción
+      getActiveProductionLogs: () => Promise<GroupedProductionLogs[]>;
+      getProductionLogsPaginated: (page: number, limit: number, searchTerm: string, searchDate: string | null) => Promise<PaginatedProductionLogs>;
+      getProductionLogsHistoryDays: (todayLocalStr: string, page: number, limit: number, searchTerm: string, searchDate: string | null) => Promise<any>;
+      getProductionLogsByDay: (dateStr: string) => Promise<ProductionLog[]>;
+      getProductionLogById: (id: number) => Promise<ProductionLog>;
+      getProductionLogsByOrderId: (orderId: number) => Promise<ProductionLog[]>;
+      createProductionLog: (data: CreateProductionLogForm) => Promise<ProductionLog>;
+      updateProductionLog: (id: number, data: EditProductionLogForm) => Promise<ProductionLog>;
+      updateProductionLogCheckboxes: (id: number, data: { completado?: boolean }) => Promise<ProductionLog>;
+      deleteProductionLog: (id: number) => Promise<void>;
+
+      // Lista de compras
+      getActiveShoppingList: () => Promise<ShoppingList | null>;
+      getShoppingListById: (id: number) => Promise<ShoppingList>;
+      getShoppingListHistory: (page: number, limit: number) => Promise<PaginatedResult<ShoppingList>>;
+      openShoppingList: (data: OpenShoppingListForm) => Promise<ShoppingList>;
+      closeShoppingList: (id: number, data: CloseShoppingListForm) => Promise<ShoppingList>;
+      addShoppingListItem: (data: AddShoppingListItemForm) => Promise<ShoppingListItem>;
+      updateShoppingListItem: (id: number, data: UpdateShoppingListItemForm) => Promise<ShoppingListItem>;
+      removeShoppingListItem: (id: number) => Promise<void>;
+
+      // Bloc de Notas
+      getNotes: (page: number, limit: number, status?: NoteStatus) => Promise<PaginatedNotes>;
+      getNoteById: (id: number) => Promise<Note>;
+      createNote: (data: CreateNoteForm) => Promise<Note>;
+      updateNote: (id: number, data: UpdateNoteForm) => Promise<Note>;
+      deleteNote: (id: number) => Promise<void>;
+      archiveNotes: (data: ArchiveNotesForm) => Promise<{ archived: number }>;
 
       // Shell / Utilidades
       openExternal: (url: string) => Promise<void>;

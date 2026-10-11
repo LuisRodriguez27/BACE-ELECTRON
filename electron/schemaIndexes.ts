@@ -1,0 +1,104 @@
+const schemaIndexes: string = `
+
+  -- users
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_active ON users(username) WHERE active = true;
+
+  -- user_permissions
+  CREATE INDEX IF NOT EXISTS idx_user_permissions_user_id               ON user_permissions(user_id);
+  CREATE INDEX IF NOT EXISTS idx_user_permissions_permission_id          ON user_permissions(permission_id);
+
+  -- product_templates
+  CREATE INDEX IF NOT EXISTS idx_product_templates_product_id            ON product_templates(product_id);
+  CREATE INDEX IF NOT EXISTS idx_product_templates_created_by            ON product_templates(created_by);
+
+  -- budgets
+  CREATE INDEX IF NOT EXISTS idx_budgets_client_id                       ON budgets(client_id);
+  CREATE INDEX IF NOT EXISTS idx_budgets_user_id                         ON budgets(user_id);
+  CREATE INDEX IF NOT EXISTS idx_budgets_edited_by                       ON budgets(edited_by);
+  CREATE INDEX IF NOT EXISTS idx_budgets_converted_to_order_id           ON budgets(converted_to_order_id);
+  CREATE INDEX IF NOT EXISTS idx_budgets_active                          ON budgets(active);
+
+  -- orders
+  CREATE INDEX IF NOT EXISTS idx_orders_client_id                        ON orders(client_id);
+  CREATE INDEX IF NOT EXISTS idx_orders_user_id                          ON orders(user_id);
+  CREATE INDEX IF NOT EXISTS idx_orders_edited_by                        ON orders(edited_by);
+  CREATE INDEX IF NOT EXISTS idx_orders_created_from_budget_id           ON orders(created_from_budget_id);
+  CREATE INDEX IF NOT EXISTS idx_orders_status                           ON orders(status);
+
+  -- order_products
+  CREATE INDEX IF NOT EXISTS idx_order_products_order_id                 ON order_products(order_id);
+  CREATE INDEX IF NOT EXISTS idx_order_products_product_id               ON order_products(product_id);
+  CREATE INDEX IF NOT EXISTS idx_order_products_template_id              ON order_products(template_id);
+
+  -- budget_products
+  CREATE INDEX IF NOT EXISTS idx_budget_products_budget_id               ON budget_products(budget_id);
+  CREATE INDEX IF NOT EXISTS idx_budget_products_product_id              ON budget_products(product_id);
+  CREATE INDEX IF NOT EXISTS idx_budget_products_template_id             ON budget_products(template_id);
+
+  -- payments
+  CREATE INDEX IF NOT EXISTS idx_payments_order_id                       ON payments(order_id);
+  CREATE INDEX IF NOT EXISTS idx_payments_cash_session_id                ON payments(cash_session_id);
+  CREATE INDEX IF NOT EXISTS idx_payments_credit_id                      ON payments(credit_id);
+  CREATE INDEX IF NOT EXISTS idx_payments_created_by                     ON payments(created_by);
+
+  -- credits / credit_items
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_credits_one_open_per_client      ON credits(client_id) WHERE active = TRUE AND status = 'open';
+  CREATE INDEX IF NOT EXISTS idx_credits_client_id                       ON credits(client_id);
+  CREATE INDEX IF NOT EXISTS idx_credits_status                          ON credits(status) WHERE active = TRUE;
+  CREATE INDEX IF NOT EXISTS idx_credit_items_credit_id                  ON credit_items(credit_id) WHERE active = TRUE;
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_credit_items_unique_order        ON credit_items(order_id) WHERE active = TRUE AND order_id IS NOT NULL;
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_credit_items_unique_simple_order ON credit_items(simple_order_id) WHERE active = TRUE AND simple_order_id IS NOT NULL;
+  CREATE INDEX IF NOT EXISTS idx_credit_items_date                       ON credit_items(date) WHERE active = TRUE;
+  CREATE INDEX IF NOT EXISTS idx_credit_payment_allocations_payment      ON credit_payment_allocations(credit_payment_id);
+  CREATE INDEX IF NOT EXISTS idx_credit_payment_allocations_item         ON credit_payment_allocations(credit_item_id);
+
+  -- simple_order_payments
+  CREATE INDEX IF NOT EXISTS idx_simple_order_payments_simple_order_id   ON simple_order_payments(simple_order_id);
+  CREATE INDEX IF NOT EXISTS idx_simple_order_payments_user_id           ON simple_order_payments(user_id);
+  CREATE INDEX IF NOT EXISTS idx_simple_order_payments_cash_session_id   ON simple_order_payments(cash_session_id);
+
+  -- products
+  CREATE INDEX IF NOT EXISTS idx_products_active                         ON products(active);
+
+  -- simple_orders
+  CREATE INDEX IF NOT EXISTS idx_simple_orders_user_id                   ON simple_orders(user_id);
+
+  -- cash_sessions
+  CREATE INDEX IF NOT EXISTS idx_cash_sessions_active_status             ON cash_sessions(status) WHERE status = 'open';
+  CREATE INDEX IF NOT EXISTS idx_cash_sessions_date_range                ON cash_sessions(opening_date, closing_date);
+
+  -- expenses
+  CREATE INDEX IF NOT EXISTS idx_expenses_session_active                 ON expenses(cash_session_id) WHERE active = TRUE;
+  CREATE INDEX IF NOT EXISTS idx_expenses_user_date_active               ON expenses(user_id, date) WHERE active = TRUE;
+  CREATE INDEX IF NOT EXISTS idx_expenses_active_true                    ON expenses(date) WHERE active = TRUE;
+  CREATE INDEX IF NOT EXISTS idx_expenses_supplier_order_id              ON expenses(supplier_order_id);
+
+  -- suppliers
+  CREATE INDEX IF NOT EXISTS idx_supplier_orders_date ON supplier_orders(date);
+  CREATE INDEX IF NOT EXISTS idx_supplier_orders_supplier ON supplier_orders(supplier_id);
+  CREATE INDEX IF NOT EXISTS idx_supplier_orders_user_id ON supplier_orders(user_id);
+  CREATE INDEX IF NOT EXISTS idx_supplier_order_items_order ON supplier_order_items(supplier_order_id);
+
+  -- print_logs
+  CREATE INDEX IF NOT EXISTS idx_print_logs_order_id ON print_logs(order_id);
+  CREATE INDEX IF NOT EXISTS idx_print_logs_active   ON print_logs(active);
+
+  -- production_logs
+  CREATE INDEX IF NOT EXISTS idx_production_logs_order_id ON production_logs(order_id);
+  CREATE INDEX IF NOT EXISTS idx_production_logs_created_by ON production_logs(created_by);
+  CREATE INDEX IF NOT EXISTS idx_production_logs_active   ON production_logs(active);
+
+  -- shopping_lists / shopping_list_items
+  CREATE INDEX IF NOT EXISTS idx_shopping_lists_status           ON shopping_lists(status);
+  CREATE INDEX IF NOT EXISTS idx_shopping_list_items_list_id     ON shopping_list_items(shopping_list_id);
+  CREATE INDEX IF NOT EXISTS idx_shopping_list_items_product_id  ON shopping_list_items(product_id);
+
+  -- notes
+  CREATE INDEX IF NOT EXISTS idx_notes_created_by                ON notes(created_by);
+  CREATE INDEX IF NOT EXISTS idx_notes_edited_by                 ON notes(edited_by);
+  CREATE INDEX IF NOT EXISTS idx_notes_active_date                ON notes(date) WHERE active = TRUE;
+  CREATE INDEX IF NOT EXISTS idx_notes_status                     ON notes(status);
+
+`;
+
+export default schemaIndexes;

@@ -1,6 +1,6 @@
 import { Button, Input, Label } from '@/components/ui';
 import { extractErrorMessage } from '@/utils/errorHandling';
-import { DollarSign, FileText, Loader, Trash2, X } from 'lucide-react';
+import { DollarSign, FileText, Loader, Trash2, X, Phone, User, Info } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { PaymentsApiService } from '../PaymentsApiService';
@@ -35,16 +35,24 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [formData, setFormData] = useState<EditPaymentForm>({
     amount: 0,
-    descripcion: ''
+    descripcion: '',
+    info: '',
+    phone: '',
+    clientName: ''
   });
 
   const pendingAmount = orderTotal - currentPayments;
+  const isCreditPayment = !!payment?.is_credit || !!payment?.credit_id;
+  const maximumAmount = isCreditPayment ? undefined : pendingAmount + (payment?.amount || 0);
 
   useEffect(() => {
     if (payment && isOpen) {
       setFormData({
         amount: payment.amount,
-        descripcion: payment.descripcion || ''
+        descripcion: payment.descripcion || '',
+        info: payment.info || '',
+        phone: payment.phone || '',
+        clientName: payment.client_name || ''
       });
       setError(null);
       setShowDeleteConfirm(false);
@@ -63,8 +71,22 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
       const validatedData = editPaymentSchema.parse(formData);
 
       // Verificar que el nuevo monto no exceda lo disponible
-      if (validatedData.amount > pendingAmount + payment.amount) {
-        setError(`El monto no puede exceder el disponible: $${(pendingAmount + payment.amount).toFixed(2)}`);
+      if (maximumAmount !== undefined && validatedData.amount > maximumAmount) {
+        setError(`El monto no puede exceder el disponible: $${maximumAmount.toFixed(2)}`);
+        setLoading(false);
+        return;
+      }
+
+      const isFreePayment = !payment.order_id && !isSimpleOrder && !isCreditPayment;
+
+      if (isFreePayment && (!formData.info || formData.info.trim() === '')) {
+        setError('El campo "Información/Concepto" es requerido para pagos sin orden');
+        setLoading(false);
+        return;
+      }
+
+      if (isFreePayment && formData.phone && formData.phone.trim().length !== 10) {
+        setError('El teléfono debe tener exactamente 10 dígitos');
         setLoading(false);
         return;
       }
@@ -77,13 +99,17 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
           descripcion: validatedData.descripcion
         }) as any;
       } else {
-        updatedPayment = await PaymentsApiService.update(payment.id, {
-          ...payment,
-          ...validatedData
-        });
+        updatedPayment = await PaymentsApiService.update(payment.id, isCreditPayment ? {
+          amount: validatedData.amount,
+          descripcion: validatedData.descripcion,
+          info: validatedData.info,
+        } : validatedData);
       }
 
       toast.success('Pago actualizado exitosamente');
+      if (updatedPayment.clientCreated) {
+        toast.info('Cliente registrado exitosamente');
+      }
       onPaymentUpdated(updatedPayment);
       handleClose();
     } catch (err) {
@@ -122,7 +148,10 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
   const handleClose = () => {
     setFormData({
       amount: 0,
-      descripcion: ''
+      descripcion: '',
+      info: '',
+      phone: '',
+      clientName: ''
     });
     setError(null);
     setShowDeleteConfirm(false);
@@ -234,7 +263,7 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
                 <div>
                   <span className="text-gray-600">Monto disponible para edición:</span>
                   <p className="font-semibold text-green-600">
-                    ${(pendingAmount + payment.amount).toFixed(2)}
+                    {isCreditPayment ? 'Validado contra el saldo actual del crédito' : `$${maximumAmount!.toFixed(2)}`}
                   </p>
                 </div>
               </div>
@@ -252,7 +281,7 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
                   type="number"
                   step="0.01"
                   min="1"
-                  max={pendingAmount + payment.amount}
+                  max={maximumAmount}
                   value={formData.amount || ''}
                   onChange={(e) => setFormData(prev => ({
                     ...prev,
@@ -264,9 +293,75 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
                 />
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Máximo: ${(pendingAmount + payment.amount).toFixed(2)}
+                {isCreditPayment ? 'El máximo se valida con los cargos y demás abonos del crédito.' : `Máximo: $${maximumAmount!.toFixed(2)}`}
               </p>
             </div>
+
+            {/* Campos editables para pago libre */}
+            {!payment.order_id && !isSimpleOrder && !isCreditPayment && (
+              <>
+                {/* Nombre de cliente */}
+                <div>
+                  <Label htmlFor="clientName" className="text-sm font-medium text-gray-700">
+                    Cliente / Nombre (Opcional)
+                  </Label>
+                  <div className="mt-1 relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                    <Input
+                      id="clientName"
+                      type="text"
+                      value={formData.clientName || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, clientName: e.target.value }))}
+                      className="pl-10"
+                      placeholder="Nombre del cliente..."
+                    />
+                  </div>
+                </div>
+
+                {/* Teléfono */}
+                <div>
+                  <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
+                    Teléfono (Opcional)
+                  </Label>
+                  <div className="mt-1 relative">
+                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                    <Input
+                      id="phone"
+                      type="tel"
+                      maxLength={10}
+                      value={formData.phone || ''}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        if (val.length <= 10) {
+                          setFormData(prev => ({ ...prev, phone: val }));
+                        }
+                      }}
+                      className="pl-10"
+                      placeholder="Teléfono del cliente..."
+                    />
+                  </div>
+                </div>
+
+                {/* Información / Concepto */}
+                <div>
+                  <Label htmlFor="info" className="text-sm font-medium text-gray-700">
+                    Información / Concepto *
+                  </Label>
+                  <div className="mt-1 relative">
+                    <Info className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                    <Input
+                      id="info"
+                      type="text"
+                      value={formData.info || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, info: e.target.value }))}
+                      className="pl-10"
+                      placeholder="Ej: Abono de cliente, pago de anticipo..."
+                      required
+                    />
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Descripción */}
             <div>
@@ -314,7 +409,7 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
                 </Button>
                 <Button
                   type="submit"
-                  disabled={loading || formData.amount <= 0 || formData.amount > (pendingAmount + payment.amount)}
+                  disabled={loading || formData.amount <= 0 || (maximumAmount !== undefined && formData.amount > maximumAmount)}
                   className="flex items-center gap-2"
                 >
                   {loading && <Loader className="animate-spin" size={16} />}

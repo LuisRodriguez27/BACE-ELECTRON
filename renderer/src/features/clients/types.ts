@@ -2,7 +2,9 @@ import { z } from 'zod';
 
 export const createClientSchema = z.object({
   name: z.string().min(3, 'El nombre es obligatorio'),
-  phone: z.string().min(10, 'El teléfono debete de tener al menos 10 digitos'),
+  phone: z.string()
+    .length(10, 'El teléfono debe tener exactamente 10 dígitos')
+    .regex(/^\d+$/, 'El teléfono debe contener solo números'),
   address: z.string().optional(),
   description: z.string().optional(),
   color: z.enum(['green', 'yellow', 'red']).nullable().optional()

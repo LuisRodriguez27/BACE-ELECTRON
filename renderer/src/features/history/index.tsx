@@ -1,12 +1,22 @@
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Calendar, CheckCircle, Clock, DollarSign, Eye, Loader2, Search, ShoppingCart } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle, Clock, DollarSign, Edit3, Eye, Loader2, Search, ShoppingCart } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import OrderDetailsModal from '../orders/components/OrderDetailsModal';
+import CreateOrderModal from '../orders/components/FormOrderModal';
 import type { Order } from '../orders/types';
+import type { OrderStatusType } from '../orders/types';
 import { PaymentsApiService } from '../payments/PaymentsApiService';
 import type { Payment } from '../payments/types';
 import { SalesApiService } from './SalesApiService';
 import { formatDateMX, formatDateOnlyMX } from '@/utils/dateUtils';
+import { useAuthStore } from '@/store/auth';
+import { usePermissions } from '@/hooks/use-permissions';
+import ClientColorIndicator from '../clients/components/ClientColorIndicator';
+import type { ClientColor } from '../clients/types';
+import { getOrderItemDisplayName } from '../orders/types';
+import { OrdersApiService } from '../orders/OrdersApiService';
+import OrderStatusSelect from '../orders/components/OrderStatusSelect';
+import { toast } from 'sonner';
 
 interface PaginationInfo {
   page: number;
@@ -24,6 +34,7 @@ const OrdersPage: React.FC = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [pagination, setPagination] = useState<PaginationInfo>({
     page: 1,
@@ -36,6 +47,10 @@ const OrdersPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentSearchTerm, setCurrentSearchTerm] = useState(''); // Para saber qué término se está usando actualmente
   const [searchDebounceTimer, setSearchDebounceTimer] = useState<number | null>(null);
+  const [updatingOrderIds, setUpdatingOrderIds] = useState<Set<number>>(new Set());
+  
+  const { checkPermission } = usePermissions();
+  const { user } = useAuthStore();
   
   const observerRef = useRef<IntersectionObserver | null>(null);
   const lastOrderElementRef = useCallback((node: HTMLDivElement) => {
@@ -193,8 +208,62 @@ const OrdersPage: React.FC = () => {
     setShowDetailsModal(true);
   };
 
-  const closeModal = () => {
+  const handleEditOrder = (orderId: number) => {
+    if (!checkPermission("Editar Órdenes")) {
+      return;
+    }
+    setSelectedOrderId(orderId);
+    setShowEditModal(true);
+  };
+
+  const handleStatusChange = async (order: Order, status: OrderStatusType) => {
+    if (status === order.status || !checkPermission('Editar Órdenes')) return;
+
+    setUpdatingOrderIds(prev => new Set(prev).add(order.id));
+    try {
+      const updatedOrder = await OrdersApiService.update(order.id, {
+        status,
+        edited_by: user?.id,
+      });
+      handleOrderUpdated(updatedOrder);
+    } catch (err) {
+      console.error('Error changing order status:', err);
+      toast.error('No se pudo actualizar el estado de la orden');
+    } finally {
+      setUpdatingOrderIds(prev => {
+        const next = new Set(prev);
+        next.delete(order.id);
+        return next;
+      });
+    }
+  };
+
+  const handleOrderUpdated = (updatedOrder: Order) => {
+    // Si la orden ya no está completada, la removemos del historial
+    if (updatedOrder.status !== 'Completado') {
+      setOrders(prev => prev.filter(o => o.id !== updatedOrder.id));
+      setPagination(prev => ({
+        ...prev,
+        total: Math.max(0, prev.total - 1)
+      }));
+    } else {
+      setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+    }
+  };
+
+  const handleOrderCreated = (newOrder: Order) => {
+    if (newOrder.status === 'Completado') {
+      setOrders(prev => [newOrder, ...prev]);
+      setPagination(prev => ({
+        ...prev,
+        total: prev.total + 1
+      }));
+    }
+  };
+
+  const closeModals = () => {
     setShowDetailsModal(false);
+    setShowEditModal(false);
     setSelectedOrderId(null);
   };
 
@@ -345,11 +414,11 @@ const OrdersPage: React.FC = () => {
                 <div 
                       key={order.id} 
                       ref={index === orders.length - 1 ? lastOrderElementRef : null}
-                      className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
+                      className="border border-gray-200 rounded-lg p-4 sm:p-6 hover:shadow-md transition-shadow"
                     >
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <div className="flex items-center gap-3 mb-2">
+                    <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-start 2xl:justify-between mb-4">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
                           <h3 className="font-semibold text-gray-900">Orden #{order.id}</h3>
                           <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(order.status)}`}>
                             Completada
@@ -392,7 +461,25 @@ const OrdersPage: React.FC = () => {
                         </div>
                       </div>
                     
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap gap-2 2xl:shrink-0 2xl:justify-end">
+                      {checkPermission('Editar Órdenes') && (
+                        <OrderStatusSelect
+                          status={order.status}
+                          isUpdating={updatingOrderIds.has(order.id)}
+                          onChange={(status) => handleStatusChange(order, status)}
+                        />
+                      )}
+                      {checkPermission("Editar Órdenes") && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditOrder(order.id)}
+                          className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        >
+                          <Edit3 size={14} />
+                          Edición
+                        </Button>
+                      )}
                       <Button 
                         variant="outline" 
                         size="sm"
@@ -422,59 +509,90 @@ const OrdersPage: React.FC = () => {
                     )}
                   
                   {/* Información adicional */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
-                    {order.client && (
-                      <div>
-                        <span className="text-sm font-medium text-gray-700">Cliente:</span>
-                        <div className="text-sm text-gray-600">ID: {order.client_id}</div>
-                        <p className="text-sm text-gray-600">{order.client.name}</p>
-                        {order.client.phone && (
-                          <p className="text-xs text-gray-500">{order.client.phone}</p>
-                        )}
-                      </div>
-                    )}
-                    
-                    {order.user && (
-                      <div>
-                        <span className="text-sm font-medium text-gray-700">Creado por:</span>
-                        <p className="text-sm text-gray-600">{order.user.username}</p>
-                      </div>
-                    )}
-                    
-                    {order.editedByUser && (
-                      <div>
-                        <span className="text-sm font-medium text-gray-700">Editado por:</span>
-                        <p className="text-sm text-gray-600">{order.editedByUser.username}</p>
-                      </div>
-                    )}
-                    
-                    {/* Información de pagos */}
-                    {paymentsCount > 0 && (
-                      <div>
-                        <span className="text-sm font-medium text-gray-700">Pagos:</span>
-                        <p className="text-sm text-gray-600">
-                          {paymentsCount} pago{paymentsCount !== 1 ? 's' : ''} registrado{paymentsCount !== 1 ? 's' : ''}
-                        </p>
-                        {remaining > 0 && (
-                          <p className="text-xs text-orange-600">
-                            Pendiente: ${remaining.toFixed(2)}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                    
-                    {order.orderProducts && order.orderProducts.length > 0 && (
-                      <div className={paymentsCount > 0 ? "" : "md:col-span-2"}>
-                        <span className="text-sm font-medium text-gray-700">Productos:</span>
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          {order.orderProducts.map((op, index) => (
-                            <span key={index} className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded">
-                              {op.product_name} (x{op.quantity})
-                            </span>
-                          ))}
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pt-4 border-t border-gray-100 mt-4">
+                    {/* Columna Izquierda: Cliente y Pagos (35% / 4 de 12 columnas) */}
+                    <div className="md:col-span-4 space-y-3">
+                      {order.client && (
+                        <div>
+                          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">Cliente</span>
+                          <div className="flex items-center gap-2">
+                            {order.client.color && (
+                              <ClientColorIndicator color={order.client.color as ClientColor} size="sm" />
+                            )}
+                            <p className="text-sm font-semibold text-gray-800 leading-tight">{order.client.name}</p>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                            <span>ID: {order.client_id}</span>
+                            {order.client.phone && (
+                              <>
+                                <span>•</span>
+                                <span>{order.client.phone}</span>
+                              </>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+
+                      {/* Información de pagos */}
+                      {paymentsCount > 0 && (
+                        <div>
+                          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">Estado de Pago</span>
+                          <p className="text-xs text-gray-600">
+                            {paymentsCount} pago{paymentsCount !== 1 ? 's' : ''} registrado{paymentsCount !== 1 ? 's' : ''}
+                          </p>
+                          {remaining > 0 ? (
+                            <p className="text-xs font-semibold text-orange-600">
+                              Pendiente: ${remaining.toFixed(2)}
+                            </p>
+                          ) : (
+                            <p className="text-xs font-semibold text-green-600">
+                              Liquidado
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Columna Derecha: Creado/Editado y Productos (65% / 8 de 12 columnas) */}
+                    <div className="md:col-span-8 space-y-3">
+                      {/* Creado por / Editado por */}
+                      {(order.user || order.editedByUser) && (
+                        <div className="flex flex-wrap gap-x-10 gap-y-1 text-xs text-gray-500">
+                          {order.user && (
+                            <div>
+                              <span className="font-semibold text-gray-400 uppercase tracking-wider">Creado por: </span>
+                              <span className="text-gray-650">{order.user.username}</span>
+                            </div>
+                          )}
+                          {order.editedByUser && (
+                            <div>
+                              <span className="font-semibold text-gray-400 uppercase tracking-wider">Editado por: </span>
+                              <span className="text-gray-650">{order.editedByUser.username}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {order.orderProducts && order.orderProducts.length > 0 && (
+                        <div>
+                          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Productos</span>
+                          <div className="flex flex-wrap gap-2">
+                            {order.orderProducts.map((op, index) => (
+                              <span key={index} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-md border border-blue-100">
+                                {getOrderItemDisplayName(op)}
+                                <span className="bg-blue-100 text-blue-800 px-1 rounded text-[10px] font-bold">x{op.quantity}</span>
+                                {op.is_delivered && (
+                                  <span className="text-[9px] bg-green-100 text-green-800 font-semibold px-1 rounded border border-green-200" title="Entregado">E</span>
+                                )}
+                                {op.is_paid && (
+                                  <span className="text-[9px] bg-emerald-100 text-emerald-800 font-semibold px-1 rounded border border-emerald-200" title="Liquidado">L</span>
+                                )}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 );
@@ -508,9 +626,25 @@ const OrdersPage: React.FC = () => {
       {/* Modals */}
       <OrderDetailsModal
         isOpen={showDetailsModal}
-        onClose={closeModal}
+        onClose={closeModals}
         orderId={selectedOrderId}
-        // No pasamos onOrderUpdated para deshabilitar edición en historial
+        onOrderUpdated={handleOrderUpdated}
+        onEditClick={(orderId) => {
+          setShowDetailsModal(false);
+          setSelectedOrderId(orderId);
+          setTimeout(() => {
+            setShowEditModal(true);
+          }, 100);
+        }}
+      />
+
+      <CreateOrderModal
+        isOpen={showEditModal}
+        onClose={closeModals}
+        onOrderCreated={handleOrderCreated}
+        onOrderUpdated={handleOrderUpdated}
+        currentUserId={user?.id!}
+        orderId={selectedOrderId}
       />
 
     </div>

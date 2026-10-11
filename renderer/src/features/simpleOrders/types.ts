@@ -6,6 +6,8 @@ export interface SimpleOrderPayment {
   amount: number;
   date: string;
   descripcion?: string;
+  is_credit?: boolean;
+  credit_payment_id?: number | null;
 }
 
 export interface SimpleOrder {
@@ -14,7 +16,9 @@ export interface SimpleOrder {
   date: string;
   concept: string;
   client_name?: string;
+  client_phone?: string;
   total: number;
+  credited_amount?: number;
   active: boolean;
   user?: {
     id: number;
@@ -23,12 +27,14 @@ export interface SimpleOrder {
   payments: SimpleOrderPayment[];
   totalPaid: number;
   balance: number;
+  clientCreated?: boolean;
 }
 
 export interface CreateSimpleOrderForm {
   user_id: number;
   date?: string;
   client_name?: string;
+  client_phone?: string;
   concept: string;
   total: number;
   active?: boolean;
