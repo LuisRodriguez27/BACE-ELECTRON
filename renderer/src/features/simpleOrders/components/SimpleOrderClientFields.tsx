@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
-import { Input, Label } from '@/components/ui';
-import { Loader, User } from 'lucide-react';
+import { Button, Input, Label } from '@/components/ui';
+import { Loader, Plus, User } from 'lucide-react';
 import { useClientSearch } from '@/features/clients/hooks/useClientSearch';
 import type { Client } from '@/features/clients/types';
+import CreateClientModal from '@/features/clients/components/CreateClientModal';
 
 interface SimpleOrderClientFieldsProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ const SimpleOrderClientFields: React.FC<SimpleOrderClientFieldsProps> = ({
 }) => {
   const dropdownId = `${idPrefix}-client-dropdown`;
   const containerId = `${idPrefix}-client-search`;
+  const [createClientOpen, setCreateClientOpen] = React.useState(false);
   const clientSearch = useClientSearch({
     dropdownId,
     containerId,
@@ -56,9 +58,14 @@ const SimpleOrderClientFields: React.FC<SimpleOrderClientFieldsProps> = ({
   return (
     <div id={containerId} className="space-y-4 relative">
       <div>
-        <Label htmlFor={`${idPrefix}-client-name`} className="mb-1 block font-medium">
-          Nombre del Cliente <span className="text-gray-400 font-normal text-xs">(Opcional)</span>
-        </Label>
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <Label htmlFor={`${idPrefix}-client-name`} className="font-medium">
+            Nombre del Cliente <span className="text-gray-400 font-normal text-xs">(Opcional)</span>
+          </Label>
+          <Button type="button" variant="outline" size="sm" className="h-7 gap-1 border-blue-200 px-2 text-xs text-blue-600 hover:bg-blue-50" onClick={() => setCreateClientOpen(true)}>
+            <Plus size={12} /> Crear cliente
+          </Button>
+        </div>
         <div className="relative">
           <Input
             id={`${idPrefix}-client-name`}
@@ -117,6 +124,18 @@ const SimpleOrderClientFields: React.FC<SimpleOrderClientFieldsProps> = ({
           ) : null}
         </div>
       )}
+
+      <CreateClientModal
+        isOpen={createClientOpen}
+        initialName={clientName.trim()}
+        onClose={() => setCreateClientOpen(false)}
+        onClientCreated={(client) => {
+          clientSearch.handleClientCreated(client);
+          onClientNameChange(client.name);
+          onClientPhoneChange(client.phone);
+          setCreateClientOpen(false);
+        }}
+      />
     </div>
   );
 };

@@ -1238,6 +1238,7 @@ export const CreateBudgetModal: React.FC<CreateBudgetModalProps> = ({
         isOpen={showCreateClientModal}
         onClose={() => setShowCreateClientModal(false)}
         onClientCreated={handleClientCreated}
+        initialName={clientSearch.clientSearchTerm}
       />
 
       {/* Modal de crear producto */}

@@ -9,7 +9,7 @@ interface ClientSearchFieldProps {
   clientSearch: UseClientSearchReturn;
   register: UseFormRegister<any>;
   errors: FieldErrors<FieldValues>;
-  onOpenCreateClientModal: () => void;
+  onOpenCreateClientModal: (initialName: string) => void;
   required?: boolean;
   allowFreeText?: boolean;
 }
@@ -37,6 +37,10 @@ const ClientSearchField: React.FC<ClientSearchFieldProps> = ({
     handleClientInputChange,
   } = clientSearch;
 
+  const openCreateClientModal = () => {
+    onOpenCreateClientModal(clientSearchTerm.trim());
+  };
+
   return (
     <div className="md:col-span-2">
       <div className="flex items-center justify-between mb-1">
@@ -45,7 +49,7 @@ const ClientSearchField: React.FC<ClientSearchFieldProps> = ({
         </Label>
         <Button
           type="button"
-          onClick={onOpenCreateClientModal}
+          onClick={openCreateClientModal}
           variant="outline"
           size="sm"
           className="flex items-center gap-1 text-xs px-3 py-1 h-7 border-blue-200 text-blue-600 hover:bg-blue-50"
@@ -68,7 +72,7 @@ const ClientSearchField: React.FC<ClientSearchFieldProps> = ({
             </div>
             <Button
               type="button"
-              onClick={onOpenCreateClientModal}
+              onClick={openCreateClientModal}
               size="sm"
               className="flex items-center gap-2"
             >
@@ -183,7 +187,7 @@ const ClientSearchField: React.FC<ClientSearchFieldProps> = ({
                             type="button"
                             size="sm"
                             onClick={() => {
-                              onOpenCreateClientModal();
+                              openCreateClientModal();
                               setShowClientDropdown(false);
                             }}
                             className="text-xs"

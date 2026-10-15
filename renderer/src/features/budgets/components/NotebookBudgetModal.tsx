@@ -153,7 +153,7 @@ const NotebookBudgetModal: React.FC<Props> = ({ isOpen, onClose, onBudgetCreated
       </div>
       <div className="flex justify-end gap-3 p-6 border-t"><Button type="button" variant="outline" onClick={close}>Cancelar</Button><Button type="submit" disabled={submitting}>{submitting && <Loader className="animate-spin mr-2" size={16}/>} {budgetToEdit ? 'Guardar cambios' : 'Crear presupuesto'}</Button></div>
     </form>
-    <CreateClientModal isOpen={showCreateClient} onClose={() => setShowCreateClient(false)} onClientCreated={(client: Client) => clientSearch.handleClientCreated(client)} />
+    <CreateClientModal isOpen={showCreateClient} onClose={() => setShowCreateClient(false)} onClientCreated={(client: Client) => clientSearch.handleClientCreated(client)} initialName={clientSearch.clientSearchTerm} />
   </div>;
 };
 

@@ -205,6 +205,7 @@ const CreateCreditModal: React.FC<Props> = ({ isOpen, initialSource, onClose, on
       <CreateClientModal
         isOpen={createClientOpen}
         onClose={() => setCreateClientOpen(false)}
+        initialName={clientSearch.clientSearchTerm}
         onClientCreated={client => {
           clientSearch.handleClientCreated(client);
           setCreateClientOpen(false);

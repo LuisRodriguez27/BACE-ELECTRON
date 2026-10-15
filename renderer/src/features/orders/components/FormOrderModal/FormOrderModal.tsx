@@ -340,6 +340,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         isOpen={orderForm.showCreateClientModal}
         onClose={() => orderForm.setShowCreateClientModal(false)}
         onClientCreated={handleClientCreated}
+        initialName={clientSearch.clientSearchTerm}
       />
 
       {/* Modal de crear plantilla */}

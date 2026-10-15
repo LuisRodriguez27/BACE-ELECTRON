@@ -163,7 +163,7 @@ const AssignOrderToCreditModal: React.FC<Props> = ({ source, onClose, onAssigned
 
         <div className="flex justify-end gap-2 border-t px-6 py-4"><Button type="button" variant="outline" onClick={onClose} disabled={submitting}>Cancelar</Button><Button type="button" onClick={handleSubmit} disabled={submitting || loadingCredits || (mode === 'existing' && !selectedCreditId)} className="gap-2">{submitting && <Loader2 size={16} className="animate-spin" />}{mode === 'existing' ? 'Agregar cargo' : 'Crear crédito'}</Button></div>
       </div>
-      <CreateClientModal isOpen={createClientOpen} onClose={() => setCreateClientOpen(false)} onClientCreated={client => { clientSearch.handleClientCreated(client); setCreateClientOpen(false); reset({ client_id: client.id }); }} />
+      <CreateClientModal isOpen={createClientOpen} onClose={() => setCreateClientOpen(false)} initialName={clientSearch.clientSearchTerm} onClientCreated={client => { clientSearch.handleClientCreated(client); setCreateClientOpen(false); reset({ client_id: client.id }); }} />
     </div>
   );
 };

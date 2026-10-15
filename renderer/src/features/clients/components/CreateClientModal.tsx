@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { extractErrorMessage } from '@/utils/errorHandling';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FileText, Loader, MapPin, Phone, User as UserIcon, X } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { ClientApiService } from '../ClientApiService';
 import { createClientSchema, type Client, type CreateClientForm } from '../types';
@@ -14,12 +14,14 @@ interface CreateClientModalProps {
   isOpen: boolean;
   onClose: () => void;
   onClientCreated: (client: Client) => void;
+  initialName?: string;
 }
 
 const CreateClientModal: React.FC<CreateClientModalProps> = ({ 
   isOpen, 
   onClose, 
-  onClientCreated 
+  onClientCreated,
+  initialName = ''
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +35,13 @@ const CreateClientModal: React.FC<CreateClientModalProps> = ({
   } = useForm<CreateClientForm>({
     resolver: zodResolver(createClientSchema)
   });
+
+  useEffect(() => {
+    if (isOpen) {
+      reset({ name: initialName });
+      setError(null);
+    }
+  }, [initialName, isOpen, reset]);
 
   const onSubmit = async (data: CreateClientForm) => {
     try {
